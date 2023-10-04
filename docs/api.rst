@@ -18,6 +18,7 @@ List of modules
    :maxdepth: 2
 
    digi
+   display
    hexagon
    io
    mc

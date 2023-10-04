@@ -50,9 +50,6 @@ class HexagonCollection(PatchCollection):
 
     orientation: float
         The hexagon orientation in radians---zero means pointy topped.
-
-    kwargs
-        The keyword arguments to be passed to the PatchCollection constructor.
     """
 
     def __init__(self, x, y, radius : float, orientation : float = 0., **kwargs) -> None:
@@ -64,11 +61,12 @@ class HexagonCollection(PatchCollection):
         kwargs.setdefault('edgecolor', 'gray')
         kwargs.setdefault('facecolor', 'none')
         kwargs.setdefault('linewidth', 1.2)
-        patches = [RegularPolygon(xy, 6, radius=radius, orientation=orientation) for xy in zip(x, y)]
+        patches = [RegularPolygon(xy, 6, radius=radius, orientation=orientation) \
+            for xy in zip(x, y)]
         # match_original is explicitely set to false so that new colors may be
         # assigned to individual members by providing the standard collection
         # arguments: facecolor, edgecolor, linewidths, norm or cmap.
-        PatchCollection.__init__(self, patches, match_original=False, **kwargs)
+        super().__init__(patches, match_original=False, **kwargs)
 
 
 
@@ -127,6 +125,7 @@ class HexagonalGridDisplay:
         **kwargs) -> HexagonCollection:
         """Draw the full grid display.
         """
+        # pylint: disable = invalid-name
         col = np.tile(np.arange(self._grid.num_cols), self._grid.num_rows)
         row = np.repeat(np.arange(self._grid.num_rows), self._grid.num_cols)
         x, y = self._grid.pixel_to_world(col, row)
@@ -144,6 +143,7 @@ class HexagonalGridDisplay:
         indices : bool = True, padding : bool = True, **kwargs) -> HexagonCollection:
         """Draw a given ROI.
         """
+        # pylint: disable = invalid-name
         # Calculate the coordinates of the pixel centers and build the hexagon collection.
         col, row = roi.serial_readout_coordinates()
         dx, dy = offset
@@ -179,6 +179,7 @@ class HexagonalGridDisplay:
         This is taking over where the draw_roi() hook left, and adding the
         event part.
         """
+        # pylint: disable = invalid-name
         collection = self.draw_roi(event.roi, offset, indices, padding, **kwargs)
         face_color = self.pha_to_colors(event.pha, zero_sup_threshold)
         collection.set_facecolor(face_color)
@@ -190,7 +191,8 @@ class HexagonalGridDisplay:
             text_color = np.tile(black, len(face_color)).reshape(face_color.shape)
             text_color[self.brightness(face_color) < 0.5] = white
             fmt = dict(ha='center', va='center', fontsize='xx-small')
-            for x, y, value, color in zip(collection.x, collection.y, event.pha.flatten(), text_color):
+            for x, y, value, color in zip(collection.x, collection.y,\
+                event.pha.flatten(), text_color):
                 if value > zero_sup_threshold:
                     plt.text(x, y, f'{value}', color=color, **fmt)
         return collection
