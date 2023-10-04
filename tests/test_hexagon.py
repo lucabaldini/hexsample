@@ -70,4 +70,9 @@ def test_display(nside : int = 10, pitch : float = 0.1):
         mask = np.logical_not(mask)
         plt.scatter(x[mask], y[mask], color='b', s=4.)
         display.setup_gca()
+
+
+
+if __name__ == '__main__':
+    test_display()
     plt.show()

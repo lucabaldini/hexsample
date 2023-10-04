@@ -77,7 +77,7 @@ def _test_forest(element, initial_level='K', num_events=100000, chisq_test=True)
     forest.plot()
     if chisq_test:
         # Extract a bunch of random energies...
-        energy = forest.energy_rvs(num_events)
+        energy = forest.rvs(num_events)
         # ... and do a chisquare test against the original line probabilities.
         values, counts = np.unique(energy, return_counts=True)
         for val, cnts in zip(values, counts):
