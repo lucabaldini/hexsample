@@ -42,6 +42,81 @@ class HexagonalLayout(Enum):
 
 
 
+def neighbors_odd_r(col : int, row : int) -> tuple:
+    """Return a tuple with the coordinates of the 6 neighbor pixel for a given
+    pixel in a ODD_R hexagonal grid.
+
+    Arguments
+    ---------
+    col : int
+        The column index.
+
+    row : int
+        The row index.
+    """
+    parity = row % 2
+    return (col + parity, row - 1), (col + 1, row), (col + parity, row + 1),\
+        (col + parity - 1, row + 1), (col - 1, row), (col + parity - 1, row - 1)
+
+def neighbors_even_r(col : int, row : int) -> tuple:
+    """Return a tuple with the coordinates of the 6 neighbor pixel for a given
+    pixel in a EVEN_R hexagonal grid.
+
+    Arguments
+    ---------
+    col : int
+        The column index.
+
+    row : int
+        The row index.
+    """
+    parity = row % 2
+    return (col - parity + 1, row - 1), (col + 1, row), (col - parity + 1, row + 1),\
+        (col - parity, row + 1), (col - 1, row), (col - parity, row - 1)
+
+def neighbors_odd_q(col : int, row : int) -> tuple:
+    """Return a tuple with the coordinates of the 6 neighbor pixel for a given
+    pixel in a ODD_Q hexagonal grid.
+
+    Arguments
+    ---------
+    col : int
+        The column index.
+
+    row : int
+        The row index.
+    """
+    parity = col % 2
+    return (col, row - 1), (col + 1, row + parity - 1), (col + 1, row + parity),\
+        (col, row + 1), (col - 1, row + parity), (col - 1, row + parity - 1)
+
+def neighbors_even_q(col : int, row : int) -> tuple:
+    """Return a tuple with the coordinates of the 6 neighbor pixel for a given
+    pixel in a EVEN_Q hexagonal grid.
+
+    Arguments
+    ---------
+    col : int
+        The column index.
+
+    row : int
+        The row index.
+    """
+    parity = col % 2
+    return (col, row - 1), (col + 1, row - parity), (col + 1, row - parity + 1),\
+        (col, row + 1), (col - 1, row - parity + 1), (col - 1, row - parity)
+
+
+# Lookup table for the functions returning the tuple of the 6 neighbor pixels in
+# a hexagonal grid with a given layout.
+_NEIGHBORS_PROXY_DICT = {
+    HexagonalLayout.ODD_R: neighbors_odd_r,
+    HexagonalLayout.EVEN_R: neighbors_even_r,
+    HexagonalLayout.ODD_Q: neighbors_odd_q,
+    HexagonalLayout.EVEN_Q: neighbors_even_q,
+}
+
+
 class HexagonalGrid:
 
     # pylint: disable = too-many-instance-attributes
@@ -82,6 +157,9 @@ class HexagonalGrid:
         else:
             self.xoffset = 0.5 * (self.num_cols - 1) * self.secondary_pitch
             self.yoffset = 0.5 * (self.num_rows - 1 - 0.5 * self._parity_offset(1)) * self.pitch
+        # Cache the proper function to retrieve the neighbor pixels from the
+        # lookup table---this is used, e.g., for the clustering.
+        self.neighbors = _NEIGHBORS_PROXY_DICT[self.layout]
 
     def pointy_topped(self) -> bool:
         """Return True if the layout is pointy-topped.
