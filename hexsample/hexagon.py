@@ -73,14 +73,14 @@ class HexagonalGrid:
         self.num_rows = num_rows
         self.num_pixels = self.num_cols * self.num_rows
         self.pitch = pitch
-        self._secondary_pitch = 0.5 * np.sqrt(3.) * self.pitch
+        self.secondary_pitch = 0.5 * np.sqrt(3.) * self.pitch
         self._hexagon_size = self.pitch / np.sqrt(3.)
         # Definition of the origin of coordinates.
         if self.pointy_topped():
             self.xoffset = 0.5 * (self.num_cols - 1 - 0.5 * self._parity_offset(1)) * self.pitch
-            self.yoffset = 0.5 * (self.num_rows - 1) * self._secondary_pitch
+            self.yoffset = 0.5 * (self.num_rows - 1) * self.secondary_pitch
         else:
-            self.xoffset = 0.5 * (self.num_cols - 1) * self._secondary_pitch
+            self.xoffset = 0.5 * (self.num_cols - 1) * self.secondary_pitch
             self.yoffset = 0.5 * (self.num_rows - 1 - 0.5 * self._parity_offset(1)) * self.pitch
 
     def pointy_topped(self) -> bool:
@@ -140,9 +140,9 @@ class HexagonalGrid:
         # pylint: disable = invalid-name
         if self.pointy_topped():
             x = (col - 0.5 * self._parity_offset(row)) * self.pitch - self.xoffset
-            y = self.yoffset - row * self._secondary_pitch
+            y = self.yoffset - row * self.secondary_pitch
         else:
-            x = col * self._secondary_pitch - self.xoffset
+            x = col * self.secondary_pitch - self.xoffset
             y = self.yoffset - (row - 0.5 * self._parity_offset(col)) * self.pitch
         return x, y
 
