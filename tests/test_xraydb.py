@@ -35,7 +35,6 @@ def _load_nist_data(file_name):
     logger.info('Done, {len(energy)} row(s) found.')
     return energy, coh, incoh, photo, total
 
-
 def test_si():
     """Unit test for Si.
     """
@@ -60,8 +59,6 @@ def test_si():
         assert max_frac_delta < 0.001
     setup_gca(xlabel='Energy [eV]', ylabel='Attenuation [cm$^2$ g$^{-1}$]',
         logy=True, logx=True, legend=True, grids=True)
-    plt.show()
-
 
 def test_cdte():
     """Unit test for CdTe.
@@ -84,4 +81,9 @@ def test_cdte():
         logger.info(f'Maximum fractional delta: {max_frac_delta}')
     setup_gca(xlabel='Energy [eV]', ylabel='Attenuation [cm$^2$ g$^{-1}$]',
         logy=True, logx=True, legend=True, grids=True)
+
+
+if __name__ == '__main__':
+    test_si()
+    test_cdte()
     plt.show()

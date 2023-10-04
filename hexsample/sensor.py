@@ -235,7 +235,7 @@ class Sensor:
     def photabsorption_efficiency(self, energy : np.ndarray) -> np.ndarray:
         """Return the photabsorption efficiency for a given array of energy values.
         """
-        lambda_ = self.material.attenuation_length(energy, 'photo')
+        lambda_ = self.material.photoelectric_attenuation_length(energy)
         return 1. - np.exp(-self.thickness / lambda_)
 
     def rvs_absorption_depth(self, energy : np.ndarray) -> np.ndarray:

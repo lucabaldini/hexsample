@@ -61,7 +61,7 @@ class HexagonCollection(PatchCollection):
         kwargs.setdefault('edgecolor', 'gray')
         kwargs.setdefault('facecolor', 'none')
         kwargs.setdefault('linewidth', 1.2)
-        patches = [RegularPolygon(xy, 6, radius, orientation) for xy in zip(x, y)]
+        patches = [RegularPolygon(xy, 6, radius=radius, orientation=orientation) for xy in zip(x, y)]
         # match_original is explicitely set to false so that new colors may be
         # assigned to individual members by providing the standard collection
         # arguments: facecolor, edgecolor, linewidths, norm or cmap.

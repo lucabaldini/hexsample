@@ -24,7 +24,7 @@ from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
 from hexsample.modeling import Exponential
 from hexsample.plot import plt, setup_gca
-from hexsample.sensor import Sensor
+from hexsample.sensor import SiliconSensor
 
 
 def test_sensor():
@@ -33,13 +33,13 @@ def test_sensor():
     plt.figure('Efficiency')
     energy = np.linspace(1000., 20000., 200)
     for thickness in (0.1, 0.2, 0.3, 0.5, 0.75, 1.):
-        sensor = Sensor(thickness)
+        sensor = SiliconSensor(thickness)
         efficiency = sensor.photabsorption_efficiency(energy)
         plt.plot(energy, efficiency, label=f'{1.e3 * thickness} $\\mu$m')
     setup_gca(xlabel='Energy [eV]', ylabel='Photoabsorption efficiency',
         grids=True, legend=True)
     plt.figure('Absorption depth')
-    sensor = Sensor()
+    sensor = SiliconSensor()
     energy = np.full(100000, 8000)
     d = sensor.rvs_absorption_depth(energy)
     h = Histogram1d(np.linspace(-0.1, 0.4, 101)).fill(d)

@@ -67,15 +67,15 @@ def test_roi(min_col : int = 0, max_col : int = 5, min_row : int = 25,
     assert roi.min_row == min_row
     assert roi.max_row == max_row
     assert roi.padding == padding
-    num_columns = max_col - min_col + 1
+    num_cols = max_col - min_col + 1
     num_rows = max_row - min_row + 1
-    assert roi.num_columns == num_columns
+    assert roi.num_cols == num_cols
     assert roi.num_rows == num_rows
-    assert roi.size == num_columns * num_rows
-    assert roi.shape() == (num_rows, num_columns)
-    print(roi.column_indices())
-    print(roi.row_indices())
+    assert roi.size == num_cols * num_rows
+    assert roi.shape() == (num_rows, num_cols)
+    print(roi.col_indexes())
+    print(roi.row_indexes())
     print(roi.serial_readout_coordinates())
-    print(roi.serial_readout_indices())
+    print(roi.serial_readout_indexes())
     print(roi.rot_slice())
     print(roi.rot_mask())
