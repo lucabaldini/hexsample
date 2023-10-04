@@ -22,13 +22,29 @@
 """Event display.
 """
 
+from hexsample.app import ArgumentParser
+from hexsample.digi import Xpol3
+from hexsample.display import HexagonalGridDisplay
+from hexsample.io import DigiInputFile
+from hexsample.plot import plt
 
-def display():
+
+def display(**kwargs):
+    """Display the events in the input file.
     """
-    """
-    pass
+    file_path = kwargs.get('infile')
+    display = HexagonalGridDisplay(Xpol3())
+    input_file = DigiInputFile(file_path)
+    for event in input_file:
+        print(event.ascii())
+        display.draw_digi_event(event)
+        display.show()
 
 
 
 if __name__ == '__main__':
-    display()
+    parser = ArgumentParser()
+    parser.add_infile()
+    parser.add_zsupthreshold()
+    args = parser.parse_args()
+    display(**args.__dict__)
