@@ -1,0 +1,378 @@
+# Copyright (C) 2023 luca.baldini@pi.infn.it
+#
+# For the license terms see the file LICENSE, distributed along with this
+# software.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+"""Digitization facilities.
+"""
+
+from dataclasses import dataclass
+
+import numpy as np
+
+from hexsample.hexagon import HexagonalGrid, HexagonalLayout
+from hexsample.pprint import AnsiFontEffect, ansi_format, space, line
+from hexsample.roi import Padding, RegionOfInterest
+from hexsample import xpol
+
+
+
+@dataclass
+class DigiEvent:
+
+    """Descriptor for a digitized event.
+
+    A digitized event is the datum of a RegionOfInterest object, a trigger
+    identifier, a timestamp and a 1-dimensional array of ADC counts, in the
+    readout order. Note that the length of the pha array must match the size of
+    the ROI.
+
+    Note that, since in the simulated digitization process we typically create
+    an ROI first, and only in a second moment a fully fledged event, we prefer
+    composition over inheritance, and deemed more convenient to have a
+    :class:`RegionOfInterest <hexsample.roi.RegionOfInterest>` object as a class
+    member, rather than inherit from :class:`RegionOfInterest <hexsample.roi.RegionOfInterest>`.
+
+    Arguments
+    ---------
+    trigger_id : int
+        The trigger identifier.
+
+    seconds : int
+        The integer part of the timestamp.
+
+    microseconds : int
+        The fractional part of the timestamp.
+
+    roi : RegionOfInterest
+        The region of interest for the event.
+
+    pha : np.ndarray
+        The pixel content of the event, in the form of a 1-dimensional array
+        whose length matches the size of the ROI.
+    """
+
+    trigger_id : int
+    seconds : int
+    microseconds : int
+    livetime : int
+    roi : RegionOfInterest
+    pha : np.ndarray
+
+    def __post_init__(self) -> None:
+        """Post-initialization code.
+
+        Here we reshape the one-dimensional PHA array coming from the serial
+        readout to the proper ROI shape for all subsequent operations.
+        """
+        self.pha = self.pha.reshape(self.roi.shape())
+
+    @classmethod
+    def from_digi(cls, row : np.ndarray, pha : np.ndarray):
+        """Alternative constructor rebuilding an object from a row on a digi file.
+
+        This is used internally when we access event data in a digi file, and
+        we need to reassemble a DigiEvent object from a given row of a digi table.
+        """
+        # pylint: disable=too-many-locals
+        trigger_id, seconds, microseconds, livetime, min_col, max_col, min_row, max_row,\
+            pad_top, pad_right, pad_bottom, pad_left = row
+        padding = Padding(pad_top, pad_right, pad_bottom, pad_left)
+        roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
+        return cls(trigger_id, seconds, microseconds, livetime, roi, pha)
+
+    def __call__(self, col : int, row : int) -> int:
+        """Retrieve the pha content of the event for a given column and row.
+
+        Internally this is subtracting the proper offset to the column and row
+        indexes in order to convert from chip coordinates to indexes of the
+        underlying PHA array. Note that, due to the way arrays are indexed in numpy,
+        we do need to swap the column and the row.
+
+        Arguments
+        ---------
+        col : int
+            The column number (in chip coordinates).
+
+        row : int
+            The row number (in chip coordinates).
+        """
+        return self.pha[row - self.roi.min_row, col - self.roi.min_col]
+
+    def ascii(self, pha_width : int = 5):
+        """Ascii representation.
+        """
+        fmt = f'%{pha_width}d'
+        cols = self.roi.col_indexes()
+        rows = self.roi.row_indexes()
+        big_space = space(2 * pha_width + 1)
+        text = f'\n{big_space}'
+        text += ''.join([fmt % col for col in cols])
+        text += f'\n{big_space}'
+        text += ''.join([fmt % (col - self.roi.min_col) for col in cols])
+        text += f'\n{big_space}+{line(pha_width * self.roi.num_cols)}\n'
+        for row in rows:
+            text += f'{fmt % row} {fmt % (row - self.roi.min_row)}|'
+            for col in cols:
+                pha = fmt % self(col, row)
+                if not self.roi.in_rot(col, row):
+                    pha = ansi_format(pha, AnsiFontEffect.FG_BRIGHT_BLUE)
+                text += pha
+            text += f'\n{big_space}|\n'
+        text += f'{self.roi}\n'
+        return text
+
+
+
+class HexagonalReadout(HexagonalGrid):
+
+    """Description of a pixel readout chip on a hexagonal matrix.
+    """
+
+    def __init__(self, layout : HexagonalLayout, num_cols : int, num_rows : int,
+                 pitch : float, enc : float, gain : float) -> None:
+        """Constructor.
+        """
+        # pylint: disable=too-many-arguments
+        super().__init__(layout, num_cols, num_rows, pitch)
+        self.enc = enc
+        self.gain = gain
+        self.shape = (self.num_rows, self.num_cols)
+        self._col_binning = np.arange(self.num_cols + 1) - 0.5
+        self._row_binning = np.arange(self.num_rows + 1) - 0.5
+        self._binning = (self._row_binning, self._col_binning)
+        self.trigger_id = -1
+
+    @staticmethod
+    def sum_miniclusters(array : np.ndarray) -> np.ndarray:
+        """Sum the values in a given numpy array over its 2 x 2 trigger miniclusters.
+
+        Note that the shape of the target 2-dimensional array must be even in
+        both dimensions for the thing to work.
+        """
+        num_rows, num_cols = array.shape
+        return array.reshape((num_rows // 2, 2, num_cols // 2, 2)).sum(-1).sum(1)
+
+    @staticmethod
+    def zero_suppress(array : np.ndarray, threshold : float) -> None:
+        """Utility function to zero-suppress an generic array.
+
+        This is returning an array of the same shape of the input where all the
+        values lower or equal than the zero suppression threshold are set to zero.
+
+        Arguments
+        ---------
+        array : array_like
+            The input array.
+
+        threshold : float
+            The zero suppression threshold.
+        """
+        array[array <= threshold] = 0
+
+    @staticmethod
+    def trim_to_roi(array : np.ndarray, roi : RegionOfInterest) -> np.ndarray:
+        """Utility function to trim a generic array to a given ROI.
+
+        This is returning the rectangular portion of the input array corresponding
+        to the ROI, preserving the original values in that portion.
+
+        Arguments
+        ---------
+        array : array_like
+            The input array.
+
+        roi : RegionOfInterest
+            The target region of interest.
+        """
+        return array[roi.min_row:roi.max_row + 1, roi.min_col:roi.max_col + 1]
+
+    def sample(self, x : np.ndarray, y : np.ndarray) -> np.ndarray:
+        """Spatially sample a pair of arrays of x and y coordinates in physical
+        space onto logical (hexagonal) coordinates in logical space.
+
+        This is achieved by converting the (x, y) physical coordinates into the
+        corresponding (col, row) logical coordinates on the hexagonal grid, and
+        then filling a two dimensional histogram in logical space. Note that,
+        although the output array represent counts, the corresponding underlying
+        dtype is float64, and we do not attempt a cast to integer since the
+        very next step in the digitization chain is adding the noise, which by
+        its very nature is intrinsically a floating point quantity, even in the
+        equivalent noise charge representation.
+
+        Arguments
+        ---------
+        x : array_like
+            The physical x coordinates to sample.
+
+        y : array_like
+            The physical y coordinates to sample.
+        """
+        # pylint: disable=invalid-name
+        col, row = self.world_to_pixel(x, y)
+        # Note that the histogram takes place in the numpy array representation,
+        # that is, rows go first---this way we avoid a transposition to get the
+        # array of counts in the proper shape.
+        counts, _, _ = np.histogram2d(row, col, self._binning)
+        return counts
+
+    def rvs_noise(self) -> np.ndarray:
+        """Extract a pure-noise random array with the size of the full readout chip.
+
+        This is sampled from a gaussian distribution with zero average. If the
+        `enc` class member is not strictly positive, this is returning an array
+        of zeroes with the proper shape.
+        """
+        if self.enc <= 0.:
+            return np.full(self.shape, 0.)
+        return np.random.normal(0., self.enc, size=self.shape)
+
+    def trigger(self, signal : np.ndarray, trg_threshold : float) -> np.ndarray:
+        """Apply the trigger to a given signal array and with a fixed threshold.
+
+        Here we downsample in the signal into the 2 x 2 trigger miniclusters,
+        we set to zero the content for all the miniclusters below the trigger
+        threshold, and we return the zero-suppressed trigger array that can
+        be used to calculate the ROI.
+
+        Arguments
+        ---------
+        signal : array_like
+            The num_rows x num_cols array of pixel signals in electron equivalent.
+
+        trg_threshold : float
+            The trigger threshold in electron equivalent.
+        """
+        trg = HexagonalReadout.sum_miniclusters(signal)
+        HexagonalReadout.zero_suppress(trg, trg_threshold)
+        self.trigger_id += 1
+        return trg
+
+    def calculate_roi(self, trg : np.ndarray, padding : Padding) -> RegionOfInterest:
+        """Calculate the region of interest for a given trigger array.
+
+        Arguments
+        ---------
+        trg : array_like
+            The array holding the content of the signal miniclusters.
+
+        padding : Padding
+            The padding to be applied to the region of trigger.
+        """
+        cols = 2 * np.nonzero(trg.sum(axis=0))[0]
+        rows = 2 * np.nonzero(trg.sum(axis=1))[0]
+        min_col = np.clip(cols.min() - padding.left, 0, self.num_cols)
+        max_col = np.clip(cols.max() + 1 + padding.right, 0, self.num_cols)
+        min_row = np.clip(rows.min() - padding.top, 0, self.num_rows)
+        max_row = np.clip(rows.max() + 1 + padding.bottom, 0, self.num_rows)
+        return RegionOfInterest(min_col, max_col, min_row, max_row, padding)
+
+    def digitize(self, signal : np.ndarray, roi : RegionOfInterest,
+        zero_sup_threshold : int = 0, offset : int = 0) -> np.ndarray:
+        """Digitize the actual signal within a given ROI.
+
+        Arguments
+        ---------
+        signal : array_like
+            The input array of pixel signals to be digitized.
+
+        roi : RegionOfInterest
+            The target ROI.
+
+        zero_sup_threshold : int
+            Zero-suppression threshold in ADC counts.
+
+        offset : int
+            Optional offset in ADC counts to be applied before the zero suppression.
+        """
+        # Trim the signal to the given ROI...
+        pha = self.trim_to_roi(signal, roi)
+        # ... apply the conversion between electrons and ADC counts...
+        pha *= self.gain
+        # ... round to the neirest integer...
+        pha = np.round(pha).astype(int)
+        # ... if necessary, add the offset for diagnostic events...
+        pha += offset
+        # ... zero suppress the thing...
+        self.zero_suppress(pha, zero_sup_threshold)
+        # ... flatten the array to simulate the serial readout and return the
+        # array as the BEE would have.
+        return pha.flatten()
+
+    @staticmethod
+    def latch_timestamp(timestamp : float) -> tuple[int, int, int]:
+        """Latch the event timestamp and return the corresponding fields of the
+        digi event contribution: seconds, microseconds and livetime.
+
+        .. warning::
+           The livetime calculation is not implemented, yet.
+
+        Arguments
+        ---------
+        timestamp : float
+            The ground-truth event timestamp from the event generator.
+        """
+        microseconds, seconds = np.modf(timestamp)
+        livetime = 0
+        return int(seconds), int(1000000 * microseconds), livetime
+
+    def read(self, timestamp : float, x : np.ndarray, y : np.ndarray, trg_threshold : float,
+        padding : Padding, zero_sup_threshold : int = 0, offset : int = 0) -> DigiEvent:
+        """Readout an event.
+
+        Arguments
+        ---------
+        timestamp : float
+            The event timestamp.
+
+        x : array_like
+            The physical x coordinates of the input charge.
+
+        y : array_like
+            The physical x coordinates of the input charge.
+
+        trg_threshold : float
+            Trigger threshold in electron equivalent.
+
+        padding : Padding
+            The padding to be applied to the ROT.
+
+        zero_sup_threshold : int
+            Zero suppression threshold in ADC counts.
+
+        offset : int
+            Optional offset in ADC counts to be applied before the zero suppression.
+        """
+        # pylint: disable=invalid-name, too-many-arguments
+        signal = self.sample(x, y) + self.rvs_noise()
+        trg = self.trigger(signal, trg_threshold)
+        roi = self.calculate_roi(trg, padding)
+        pha = self.digitize(signal, roi, zero_sup_threshold, offset)
+        seconds, microseconds, livetime = self.latch_timestamp(timestamp)
+        return DigiEvent(self.trigger_id, seconds, microseconds, livetime, roi, pha)
+
+
+
+class Xpol3(HexagonalReadout):
+
+    """Derived class representing the XPOL-III readout chip.
+    """
+
+    def __init__(self, enc : float = 20., gain : float = 1.) -> None:
+        """Constructor.
+        """
+        super().__init__(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, enc, gain)

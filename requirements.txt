@@ -1,0 +1,6 @@
+loguru
+matplotlib
+nist-calculators
+numpy
+scipy
+pydata-sphinx-theme
