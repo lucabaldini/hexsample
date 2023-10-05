@@ -113,6 +113,24 @@ class DigiEvent:
         """
         return self.pha[row - self.roi.min_row, col - self.roi.min_col]
 
+    def highest_pixel(self, absolute : bool = True) -> tuple[int, int]:
+        """Return the coordinates (col, row) of the highest pixel.
+
+        Arguments
+        ---------
+        absolute : bool
+            If true, the absolute coordinates (i.e., those referring to the readout
+            chip) are returned; otherwise the coordinates are intended relative
+            to the readout window (i.e., they can be used to index the pha array).
+        """
+        # Note col and row are swapped, here, due to how the numpy array are indexed.
+        # pylint: disable = unbalanced-tuple-unpacking
+        row, col = np.unravel_index(np.argmax(self.pha), self.pha.shape)
+        if absolute:
+            col += self.roi.min_col
+            row += self.roi.min_row
+        return col, row
+
     def ascii(self, pha_width : int = 5):
         """Ascii representation.
         """
