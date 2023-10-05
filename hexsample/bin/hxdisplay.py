@@ -37,7 +37,7 @@ def display(**kwargs):
     input_file = DigiInputFile(file_path)
     for event in input_file:
         print(event.ascii())
-        display.draw_digi_event(event)
+        display.draw_digi_event(event, zero_sup_threshold=0)
         display.show()
 
 
@@ -45,6 +45,5 @@ def display(**kwargs):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_infile()
-    parser.add_zsupthreshold()
     args = parser.parse_args()
     display(**args.__dict__)
