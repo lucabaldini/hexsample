@@ -215,21 +215,21 @@ class Sensor:
 
     Arguments
     ---------
-    thickness : float
-        The sensor thickness in cm.
-
     material : Material instance
         The sensor material.
+
+    thickness : float
+        The sensor thickness in cm.
 
     trans_diffusion_sigma : float
         The transverse diffusion sigma in um / sqrt(cm).
     """
 
-    def __init__(self, thickness : float, material : Material, trans_diffusion_sigma : float) -> None:
+    def __init__(self, material : Material, thickness : float, trans_diffusion_sigma : float) -> None:
         """Constructor.
         """
-        self.thickness = thickness
         self.material = material
+        self.thickness = thickness
         self.trans_diffusion_sigma = trans_diffusion_sigma
 
     def photabsorption_efficiency(self, energy : np.ndarray) -> np.ndarray:
@@ -258,4 +258,4 @@ class SiliconSensor(Sensor):
     def __init__(self, thickness : float = 0.03, trans_diffusion_sigma : float = 40.) -> None:
         """Constructor.
         """
-        super().__init__(thickness, Silicon, trans_diffusion_sigma)
+        super().__init__(Silicon, thickness, trans_diffusion_sigma)
