@@ -160,7 +160,7 @@ class DBscan:
     min_cluster_size: int
         The minimum size of a cluster.
     """
-    def __init__(self, threshold, min_density_points=4, min_cluster_size=6):
+    def __init__(self, threshold, min_density_points=1, min_cluster_size=1):
         """ Class constructor.
         """
         self.threshold = threshold
@@ -268,3 +268,14 @@ class DBscan:
             # Update the cluster id with the sorted number
             cluster.cluster_id = idx
         return good_clusters
+
+
+
+
+if __name__ == '__main__':
+    clustering = DBscan(20)
+    print(clustering)
+    #region_query = region_query_factory(self)
+    #cluster_id = self.cluster_id.flatten()
+    #engine.run(self.pha.flatten(), cluster_id, region_query)
+    #self.cluster_id = cluster_id.reshape(self.shape)
