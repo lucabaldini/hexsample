@@ -40,6 +40,7 @@ HEXSAMPLE_DOCS_FIGURES = HEXSAMPLE_DOCS / 'figures'
 HEXSAMPLE_DOCS_STATIC = HEXSAMPLE_DOCS / '_static'
 HEXSAMPLE_TEST = HEXSAMPLE_BASE / 'tests'
 HEXSAMPLE_TEST_DATA = HEXSAMPLE_TEST / 'data'
+HEXSAMPLE_BIN = HEXSAMPLE_ROOT / 'bin'
 
 # Make room for the output data.
 HEXSAMPLE_DATA = Path.home() / 'hexsampledata'
