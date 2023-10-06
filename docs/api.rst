@@ -17,12 +17,14 @@ List of modules
 .. toctree::
    :maxdepth: 2
 
+   clustering
    digi
    display
    hexagon
    io
    mc
    pprint
+   recon
    roi
    sensor
    source
