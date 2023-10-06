@@ -59,7 +59,8 @@ def hxsim(**kwargs):
     sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
     photon_list = PhotonList(source, sensor, kwargs['numevents'])
     readout = Xpol3(kwargs['noise'], kwargs['gain'])
-    output_file = DigiOutputFile(kwargs.get('outfile'), mc=True)
+    output_file_path = kwargs.get('outfile')
+    output_file = DigiOutputFile(output_file_path, mc=True)
     padding = Padding(*kwargs['padding'])
     readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
     logger.info('Starting the event loop...')
@@ -70,6 +71,7 @@ def hxsim(**kwargs):
     logger.info('Done!')
     output_file.flush()
     output_file.close()
+    return output_file_path
 
 
 

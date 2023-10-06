@@ -47,7 +47,8 @@ def hxrecon(**kwargs):
     file_path = kwargs['infile']
     clustering = ClusteringNN(Xpol3(), kwargs['zsupthreshold'], kwargs['nneighbors'])
     input_file = DigiInputFile(file_path)
-    output_file = ReconOutputFile(file_path.replace('.h5', '_recon.h5'), mc=True)
+    output_file_path = file_path.replace('.h5', '_recon.h5')
+    output_file = ReconOutputFile(output_file_path, mc=True)
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         args = event.trigger_id, event.timestamp(), event.livetime, event.roi.size, cluster
@@ -57,6 +58,7 @@ def hxrecon(**kwargs):
     output_file.flush()
     input_file.close()
     output_file.close()
+    return output_file_path
 
 
 
