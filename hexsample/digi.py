@@ -131,6 +131,12 @@ class DigiEvent:
             row += self.roi.min_row
         return col, row
 
+    def timestamp(self) -> float:
+        """Return the timestamp of the event, that is, the sum of the second and
+        microseconds parts of the DigiEvent contributions as a floating point number.
+        """
+        return self.seconds + 1.e-6 * self.microseconds
+
     def ascii(self, pha_width : int = 5):
         """Ascii representation.
         """
