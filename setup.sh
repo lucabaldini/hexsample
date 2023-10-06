@@ -21,4 +21,4 @@ export PYTHONPATH=$HEXSAMPLE_ROOT:$PYTHONPATH
 #
 # Add the bin folder to the $PATH so that we have the executables off hand.
 #
-export PATH=$HEXSAMPLE_ROOT/baldaquin/bin:$PATH
+export PATH=$HEXSAMPLE_ROOT/hexsample/bin:$PATH
