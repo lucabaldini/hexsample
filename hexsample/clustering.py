@@ -124,8 +124,8 @@ class ClusteringNN(ClusteringBase):
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.
         idx = np.argsort(-pha)
-        # Only pick the N highest pixels.
-        mask = idx[:self.num_neighbors]
+        # Only pick the seed and the N highest pixels.
+        mask = idx[:self.num_neighbors + 1]
         # If there's any zero left in the target pixels, get rid of it.
         mask = mask[pha[mask] > 0]
         # Trim the relevant arrays.
