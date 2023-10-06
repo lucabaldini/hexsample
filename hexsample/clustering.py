@@ -1,4 +1,4 @@
-# Copyright (C) 2023 alberto.manfreda@pi.infn.it
+# Copyright (C) 2023 luca.baldini@pi.infn.it
 #
 # For the license terms see the file LICENSE, distributed along with this
 # software.
@@ -21,261 +21,70 @@
 """
 
 from dataclasses import dataclass
-import enum
 
 import numpy as np
 
-
-
-def region_query_factory(event):
-    """ Factory for the auxiliary region_query function used by the
-    clustering. We use the closure to cache some data from the current event,
-    namely the two arrays of offset coordinates (in serial readout order)
-    and the corresponding 2D array of serial readout indices.
-
-    Arguments
-    ---------
-    event: xL1Event
-        The current event.
-    """
-    cols, rows = event.serial_readout_coordinates()
-    indices = event.serial_readout_indices()
-
-    def region_query(index, threshold):
-        """ Find the over threshold neighbors of a given pixel in the current
-        event.
-
-        Arguments
-        ---------
-        index: int
-            The pixel readout index.
-
-        threshold: float
-            The clustering threshold.
-        """
-        neighbor_offset_coords = find_neighbors(cols[index], rows[index])
-        neighbors = []
-        for col, row in neighbor_offset_coords:
-            if not event.coordinates_in_roi(col, row):
-                continue
-            # Switch from absolute (i.e. referred to the entre CHIP) to relative
-            # (i.e. referred to the current ROI) offset coordinates
-            col -= event.min_col
-            row -= event.min_row
-            if event.pha[row, col] > threshold:
-                neighbors.append(indices[row, col])
-        return neighbors
-
-    return region_query
-
-
-class PixelStatus(enum.IntEnum):
-    """Enum for the different status of a point (pixel) while running the
-    DBSCAN algorithm. See the DBscan class for a detailed explanation.
-    Note that we need all the corresponding values to be negative, as we
-    reserve positive values for the cluster IDs."""
-    UNDEFINED = -3 # Pixel yet to be visited by the clustering algorithm
-    SUBTHRESHOLD = -2 # Pixel not assigned to any cluster (under threshold)
-    NOISE = -1 # Pixel not assigned to any cluster (over threshold but isolated)
+from hexsample.digi import DigiEvent
 
 
 @dataclass
-class ClusterInfo:
-    """ Class for storing information about a cluster."""
-    cluster_id : int
-    num_pixels : int = 0
-    pulse_height : float = 0.
+class Cluster:
 
-    def update(self, pha):
-        """ Update the cluster information with a new pixel.
-
-        Arguments
-        ---------
-        pixel_value:  float
-            The pixel PHA.
-        """
-        self.num_pixels += 1
-        self.pulse_height += pha
-
-    def __gt__(self, other):
-        """ Define the rules for cluster sorting (in order of priority):
-        1) greater pulse invariant
-        2) greater number of pixels
-        """
-        if self.pulse_height < other.pulse_height:
-            return False
-        if self.num_pixels < other.num_pixels:
-            return False
-        return True
-
-    def __str__(self):
-        return f'Cluster id {self.cluster_id}: {self.num_pixels} pixels, '\
-               f'{self.pulse_height} ADC counts total'
-
-
-class DBscan:
-    """Class implmenting the DBSCAN clustering algorithm
-    See https://en.wikipedia.org/wiki/DBSCAN for an introduction to DBSCAN
-
-    Original work:
-    Ester, Martin; Kriegel, Hans-Peter; Sander, Jörg; Xu, Xiaowei (1996)
-    "A density-based algorithm for discovering clusters in large spatial
-    databases with noise." Proceedings of the Second International Conference
-    on Knowledge Discovery and Data Mining (KDD-96). AAAI Press. pp. 226–231.
-    CiteSeerX 10.1.1.121.9220 Freely accessible. ISBN 1-57735-004-9.
-
-    The DBSCAN algorithm is based on the dfinition of a neighborood for each
-    point. The points are classified as core points, (density-) reachable
-    points and outliers, as follows:
-
-    - A point p is a core point if at least min_denisty points are in its
-      neighborood (including p).
-    - A point q is directly reachable from a core point p if it is in the
-      neighborood of p. Points are only said to be directly reachable
-      from core points.
-    - A point q is reachable from (or density connected to) p if there is a
-      path connecting p and q passing only through points each directly
-      reachable from the previous one.
-      Note that this implies that the initial point and all points on the
-      path must be core points, with the possible exception of q.
-
-    All points not reachable from any other point are outliers or noise points.
-
-    In the original algorithm, the neighborood of a point is defined by
-    specyifing a radius around the point. In our case, however, a pixel can
-    only be neighbor with its ajacent pixels on the hexagonal grid, and we
-    replace the radius parameter with a threshold for noise suppression.
-    So the neighborood of a pixel is defined by the number of hexagonally
-    adjacent pixels which are above the noise suppression threshold.
-
-    Arguments
-    ---------
-    threshold : float
-        The clustering threshold.
-
-    min_density_points : int
-        The minimum number of over-threshold neighbors required for a pixel to
-        be classifed as CORE (including the pixel itself).
-
-    min_cluster_size: int
-        The minimum size of a cluster.
+    """Small container class describing a cluster.
     """
-    def __init__(self, threshold, min_density_points=1, min_cluster_size=1):
-        """ Class constructor.
+
+    x : np.ndarray
+    y : np.ndarray
+    pha : np.ndarray
+
+    def pulse_height(self) -> float:
+        """Return the total pulse height of the cluster.
         """
-        self.threshold = threshold
-        self.min_density_points = min_density_points
-        self.min_cluster_size = min_cluster_size
+        return self.pha.sum()
 
-    def run(self, input_data, output_ids, region_query):
-        """ The clustering workhorse function. Fill the output_data array with
-        the cluster id for each pixel and also returns a sorted list of
-        ClusterInfo objects.
-
-        Arguments
-        ---------
-        input_data : np.array
-            The 1-dimensional pha values (they would typically be in serial
-            readout order, altough that is not required, as long as the
-            index is consistent with the logic of the region_query function)
-
-        output_ids : np.array
-            A 1-dimensional array of the same shape of the input_data, which
-            will be filled with the cluster id for each pixel.
-
-        region_query: func (int, float) -> List[int]
-            A function returning the list of indices of the over-threshold
-            neighbors of a pixel in the current event given the pixel index
-            and a threshold
-
+    def centroid(self) -> tuple[float, float]:
+        """Return the cluster centroid.
         """
-        cluster_ids = np.full(output_ids.shape, PixelStatus.UNDEFINED)
-        # Create an empty list of ClusterInfo objects
-        clusters  = []
-        # Main loop
-        for pixel_id, pixel_value in enumerate(input_data):
-            # Skip already visited pixels
-            if cluster_ids[pixel_id] != PixelStatus.UNDEFINED:
-                continue
-            # Flag under threshold pixels
-            # TODO: we may consider accepting under threshold pixels, as long as
-            # they are surrounded by pixels in the cluster
-            if pixel_value <= self.threshold:
-                cluster_ids[pixel_id] = PixelStatus.SUBTHRESHOLD
-                continue
-            # Get an array of adjacent, over threshold pixels
-            neighbors = region_query(pixel_id, self.threshold)
-            # Check wheter the pixel is isolated
-            if len(neighbors) < self.min_density_points:
-                # Flag the pixel as NOISE (over threshold, but isolated)
-                cluster_ids[pixel_id] = PixelStatus.NOISE
-                continue
-            # If not, start building a new cluster from this pixel
-            # Create the new cluster (with incremental id)
-            cluster = ClusterInfo(cluster_id=len(clusters))
-            # Add the pixel to the cluster
-            cluster_ids[pixel_id] = cluster.cluster_id
-            cluster.update(pixel_value)
-            # Loop over adiacent pixels (we can't use an iterator because of the
-            # array being expanded inside the loop, which would invalidate it)
-            i = 0
-            while i < len(neighbors):
-                # Get the id of the currently visted pixel
-                _id = neighbors[i]
-                i += 1
-                # If the pixel has already been flagged as noise, now merge it
-                # into to the cluster - but do not expand from it (it is a
-                # border pixel)
-                if cluster_ids[_id] == PixelStatus.NOISE:
-                    cluster_ids[_id] = cluster.cluster_id
-                    cluster.update(input_data[_id])
-                    continue
-                # If the pixel status is not undefined skip it
-                if cluster_ids[_id] != PixelStatus.UNDEFINED:
-                    continue
-                # Assign the pixel to the current cluster
-                cluster_ids[_id] = cluster.cluster_id
-                cluster.update(input_data[_id])
-                # Get the array of its neighbors
-                _neighbors = region_query(_id, self.threshold)
-                # If the density condition is satisfied, expand the list of
-                # candidate pixels to visit with the neighbors of the current
-                # pixel
-                if len(_neighbors) >= self.min_density_points:
-                    for pixel in _neighbors:
-                        if pixel not in neighbors:
-                            neighbors.append(pixel)
-            # Finally add the new cluster to the array of clusters found
-            clusters.append(cluster)
-        # Now get rid of all the clusters below the minimum size allowed,
-        # marking their pixels as NOISE
-        good_clusters = []
-        for cluster in clusters:
-            if cluster.num_pixels < self.min_cluster_size:
-                cluster_mask = (cluster_ids == cluster.cluster_id)
-                cluster_ids[cluster_mask] = PixelStatus.NOISE
-            else:
-                good_clusters.append(cluster)
-        # Now sort clusters in descending order (so that the first cluster has
-        # the highest pulse invariant)
-        good_clusters.sort(reverse=True)
-        # Finally set the indices in the output array to the corresponding
-        # sorted cluster id
-        np.copyto(output_ids, cluster_ids)
-        for idx, cluster in enumerate(good_clusters):
-            cluster_mask = (cluster_ids == cluster.cluster_id)
-            output_ids[cluster_mask] = idx
-            # Update the cluster id with the sorted number
-            cluster.cluster_id = idx
-        return good_clusters
+        return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
 
+
+@dataclass
+class ClusteringNN:
+
+    """
+    """
+
+    zero_sup_threshold : int
+    num_neighbors : int
+
+    def run(event : DigiEvent) -> Cluster:
+        """
+        """
+        pass
 
 
 
 if __name__ == '__main__':
-    clustering = DBscan(20)
-    print(clustering)
-    #region_query = region_query_factory(self)
-    #cluster_id = self.cluster_id.flatten()
-    #engine.run(self.pha.flatten(), cluster_id, region_query)
-    #self.cluster_id = cluster_id.reshape(self.shape)
+    #cluster = Cluster(np.full(10, 1.), np.full(10, 1.), np.full(10, 123))
+    #print(cluster)
+    #print(cluster.pulse_height(), cluster.centroid())
+    from hexsample.io import DigiInputFile
+    from hexsample.digi import Xpol3
+    grid = Xpol3()
+    clustering = ClusteringNN(0, 6)
+    for event in DigiInputFile('/home/lbaldini/hexsampledata/hxsim.h5'):
+        print(event.ascii())
+        col, row = event.highest_pixel()
+        cols = [col]
+        rows = [row]
+        pha = [event(col, row)]
+        for _col, _row in grid.neighbors(col, row):
+            cols.append(_col)
+            rows.append(_row)
+            pha.append(event(_col, _row))
+        cols = np.array(cols)
+        rows = np.array(rows)
+        x, y = grid.pixel_to_world(cols, row)
+        pha = np.array(pha)
+        print(cols, rows, x, y, pha)
+        input()
