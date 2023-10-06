@@ -29,8 +29,17 @@ from hexsample.io import DigiInputFile
 from hexsample.plot import plt
 
 
-def display(**kwargs):
-    """Display the events in the input file.
+__description__ = \
+"""Single event display.
+"""
+
+# Parser object.
+HXDISPLAY_ARGPARSER = ArgumentParser(description=__description__)
+HXDISPLAY_ARGPARSER.add_infile()
+
+
+def hxdisplay(**kwargs):
+    """Application main entry point.
     """
     file_path = kwargs.get('infile')
     display = HexagonalGridDisplay(Xpol3())
@@ -44,7 +53,4 @@ def display(**kwargs):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_infile()
-    args = parser.parse_args()
-    display(**args.__dict__)
+    hxdisplay(**HXDISPLAY_ARGPARSER.parse_args().__dict__)

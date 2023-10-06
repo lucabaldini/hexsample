@@ -31,8 +31,18 @@ from hexsample.io import DigiInputFile, ReconOutputFile
 from hexsample.recon import ReconEvent
 
 
-def recon(**kwargs):
-    """Run the reconstruction.
+__description__ = \
+"""Run the reconstruction on a file produced by hxsim.py
+"""
+
+# Parser object.
+HXRECON_ARGPARSER = ArgumentParser(description=__description__)
+HXRECON_ARGPARSER.add_infile()
+HXRECON_ARGPARSER.add_clustering_options()
+
+
+def hxrecon(**kwargs):
+    """Application main entry point.
     """
     file_path = kwargs['infile']
     clustering = ClusteringNN(Xpol3(), kwargs['zsupthreshold'], kwargs['nneighbors'])
@@ -51,8 +61,4 @@ def recon(**kwargs):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_infile()
-    parser.add_clustering_options()
-    args = parser.parse_args()
-    recon(**args.__dict__)
+    hxrecon(**HXRECON_ARGPARSER.parse_args().__dict__)

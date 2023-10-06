@@ -35,9 +35,23 @@ from hexsample.source import LineForest, GaussianBeam, Source
 from hexsample.sensor import Material, Sensor
 
 
-def simulate(**kwargs):
-    """Run a simulation.
+__description__ = \
+"""Simulate a list of digitized events from an arbitrary X-ray source.
+"""
+
+# Parser object.
+HXSIM_ARGPARSER = ArgumentParser(description=__description__)
+HXSIM_ARGPARSER.add_numevents(1000)
+HXSIM_ARGPARSER.add_outfile(HEXSAMPLE_DATA / 'hxsim.h5')
+HXSIM_ARGPARSER.add_source_options()
+HXSIM_ARGPARSER.add_sensor_options()
+HXSIM_ARGPARSER.add_readout_options()
+
+
+def hxsim(**kwargs):
+    """Application main entry point.
     """
+    # pylint: disable=too-many-locals, invalid-name
     spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
     beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
     source = Source(spectrum, beam)
@@ -49,7 +63,7 @@ def simulate(**kwargs):
     padding = Padding(*kwargs['padding'])
     readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
     logger.info('Starting the event loop...')
-    for i, mc_event in tqdm(enumerate(photon_list)):
+    for mc_event in tqdm(photon_list):
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
         digi_event = readout.read(mc_event.timestamp, x, y, *readout_args)
         output_file.add_row(digi_event, mc_event)
@@ -60,11 +74,4 @@ def simulate(**kwargs):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_numevents(1000)
-    parser.add_outfile(HEXSAMPLE_DATA / 'hxsim.h5')
-    parser.add_source_options()
-    parser.add_sensor_options()
-    parser.add_readout_options()
-    args = parser.parse_args()
-    simulate(**args.__dict__)
+    hxsim(**HXSIM_ARGPARSER.parse_args().__dict__)
