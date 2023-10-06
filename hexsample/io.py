@@ -318,3 +318,18 @@ class DigiInputFile(tables.File):
         if self.__index == len(self.digi_table):
             raise StopIteration
         return self.digi_event(self.__index)
+
+
+
+class ReconInputFile(tables.File):
+
+    """Description of a reconstructed input file.
+    """
+
+    def __init__(self, file_path : str):
+        """Constructor.
+        """
+        logger.info(f'Opening input recon file {file_path}...')
+        super().__init__(file_path, 'r')
+        self.recon_table = self.root.recon.recon_table
+        self.mc_table = self.root.mc.mc_table
