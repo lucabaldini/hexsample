@@ -25,6 +25,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from hexsample.digi import DigiEvent
+from hexsample.hexagon import HexagonalGrid
 
 
 @dataclass
@@ -33,9 +34,22 @@ class Cluster:
     """Small container class describing a cluster.
     """
 
+    # pylint: disable = invalid-name
+
     x : np.ndarray
     y : np.ndarray
     pha : np.ndarray
+
+    def __post_init__(self) -> None:
+        """Small cross check on the dimensions of the arrays passed in the constructor.
+        """
+        if not self.x.shape == self.y.shape == self.pha.shape:
+            raise RuntimeError(f'Inconsistent arrays: x = {self.x}, y = {self.y}, pha = {self.pha}')
+
+    def size(self) -> int:
+        """Return the size of the cluster.
+        """
+        return self.x.size
 
     def pulse_height(self) -> float:
         """Return the total pulse height of the cluster.
@@ -48,43 +62,75 @@ class Cluster:
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
 
 
+
 @dataclass
-class ClusteringNN:
+class ClusteringBase:
 
-    """
+    """Base class for the clustering.
     """
 
-    zero_sup_threshold : int
+    grid : HexagonalGrid
+    zero_sup_threshold : float
+
+    def zero_suppress(self, array : np.ndarray) -> np.ndarray:
+        """Zero suppress a generic array.
+        """
+        out = array.copy()
+        out[out <= self.zero_sup_threshold] = 0
+        return out
+
+    def run(self, event : DigiEvent) -> Cluster:
+        """Workhorse method to be reimplemented by derived classes.
+        """
+        raise NotImplementedError
+
+
+
+@dataclass
+class ClusteringNN(ClusteringBase):
+
+    """Neirest neighbor clustering.
+
+    This is a very simple clustering strategy where we use the highest pixel in
+    the event as a seed, loop over the six neighbors (after the zero suppression)
+    and keep the N highest pixels.
+
+    Arguments
+    ---------
+    num_neighbors : int
+        The number of neighbors (between 0 and 6) to include in the cluster.
+    """
+
     num_neighbors : int
 
-    def run(event : DigiEvent) -> Cluster:
+    def run(self, event : DigiEvent) -> Cluster:
+        """Overladed method.
+
+        .. warning::
+           The loop ever the neighbors might likely be vectorized and streamlined
+           for speed using proper numpy array for the offset indexes.
         """
-        """
-        pass
-
-
-
-if __name__ == '__main__':
-    #cluster = Cluster(np.full(10, 1.), np.full(10, 1.), np.full(10, 123))
-    #print(cluster)
-    #print(cluster.pulse_height(), cluster.centroid())
-    from hexsample.io import DigiInputFile
-    from hexsample.digi import Xpol3
-    grid = Xpol3()
-    clustering = ClusteringNN(0, 6)
-    for event in DigiInputFile('/home/lbaldini/hexsampledata/hxsim.h5'):
-        print(event.ascii())
-        col, row = event.highest_pixel()
-        cols = [col]
-        rows = [row]
-        pha = [event(col, row)]
-        for _col, _row in grid.neighbors(col, row):
-            cols.append(_col)
-            rows.append(_row)
-            pha.append(event(_col, _row))
-        cols = np.array(cols)
-        rows = np.array(rows)
-        x, y = grid.pixel_to_world(cols, row)
-        pha = np.array(pha)
-        print(cols, rows, x, y, pha)
-        input()
+        # pylint: disable = invalid-name
+        seed_col, seed_row = event.highest_pixel()
+        col = [seed_col]
+        row = [seed_row]
+        for _col, _row in self.grid.neighbors(seed_col, seed_row):
+            col.append(_col)
+            row.append(_row)
+        col = np.array(col)
+        row = np.array(row)
+        pha = np.array([event(_col, _row) for _col, _row in zip(col, row)])
+        pha = self.zero_suppress(pha)
+        # Array indexes in order of decreasing pha---note that we use -pha to
+        # trick argsort into sorting values in decreasing order.
+        idx = np.argsort(-pha)
+        # Only pick the N highest pixels.
+        mask = idx[:self.num_neighbors]
+        # If there's any zero left in the target pixels, get rid of it.
+        mask = mask[pha[mask] > 0]
+        # Trim the relevant arrays.
+        col = col[mask]
+        row = row[mask]
+        pha = pha[mask]
+        x, y = self.grid.pixel_to_world(col, row)
+        return Cluster(x, y, pha)
