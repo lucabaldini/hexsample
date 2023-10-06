@@ -25,7 +25,7 @@ import tables
 
 from hexsample.mc import MonteCarloEvent
 from hexsample.digi import DigiEvent
-from hexsample.roi import Padding, RegionOfInterest
+from hexsample.recon import ReconEvent
 
 
 class MonteCarloDescription(tables.IsDescription):
@@ -41,6 +41,23 @@ class MonteCarloDescription(tables.IsDescription):
     absy = tables.Float32Col(pos=3)
     absz = tables.Float32Col(pos=4)
     num_pairs = tables.Int32Col(pos=5)
+
+def _fill_mc_row(row : tables.tableextension.Row, event : MonteCarloEvent) -> None:
+    """Helper function to fill an output table row, given a MonteCarloEvent object.
+
+    .. note::
+       This would have naturally belonged to the MonteCarloDescription class as
+       a @staticmethod, but doing so is apparently breaking something into the
+       tables internals, and all of a sudden you get an exception due to the
+       fact that a staticmethod cannot be pickled.
+    """
+    row['timestamp'] = event.timestamp
+    row['energy'] = event.energy
+    row['absx'] = event.absx
+    row['absy'] = event.absy
+    row['absz'] = event.absz
+    row['num_pairs'] = event.num_pairs
+    row.append()
 
 
 
@@ -63,6 +80,65 @@ class DigiDescription(tables.IsDescription):
     padding_right = tables.Int8Col(pos=9)
     padding_bottom = tables.Int8Col(pos=10)
     padding_left = tables.Int8Col(pos=11)
+
+def _fill_digi_row(row : tables.tableextension.Row, event : DigiEvent) -> None:
+    """Helper function to fill an output table row, given a DigiEvent object.
+
+    .. note::
+       This would have naturally belonged to the DigiDescription class as
+       a @staticmethod, but doing so is apparently breaking something into the
+       tables internals, and all of a sudden you get an exception due to the
+       fact that a staticmethod cannot be pickled.
+    """
+    row['trigger_id'] = event.trigger_id
+    row['seconds'] = event.seconds
+    row['microseconds'] = event.microseconds
+    row['livetime'] = event.livetime
+    row['min_col'] = event.roi.min_col
+    row['max_col'] = event.roi.max_col
+    row['min_row'] = event.roi.min_row
+    row['max_row'] = event.roi.max_row
+    row['padding_top'] = event.roi.padding.top
+    row['padding_right'] = event.roi.padding.right
+    row['padding_bottom'] = event.roi.padding.bottom
+    row['padding_left'] = event.roi.padding.left
+    row.append()
+
+
+
+class ReconDescription(tables.IsDescription):
+
+    """Description of the recon file format.
+    """
+
+    # pylint: disable=too-few-public-methods
+
+    trigger_id = tables.Int32Col(pos=0)
+    timestamp = tables.Float64Col(pos=1)
+    livetime = tables.Int32Col(pos=2)
+    roi_size = tables.Int32Col(pos=3)
+    cluster_size = tables.Int8Col(pos=4)
+    energy = tables.Float32Col(pos=5)
+    posx = tables.Float32Col(pos=6)
+    posy = tables.Float32Col(pos=7)
+
+def _fill_recon_row(row : tables.tableextension.Row, event : ReconEvent) -> None:
+    """Helper function to fill an output table row, given a ReconEvent object.
+
+    .. note::
+       This would have naturally belonged to the ReconDescription class as
+       a @staticmethod, but doing so is apparently breaking something into the
+       tables internals, and all of a sudden you get an exception due to the
+       fact that a staticmethod cannot be pickled.
+    """
+    row['trigger_id'] = event.trigger_id
+    row['timestamp'] = event.timestamp
+    row['livetime'] = event.livetime
+    row['roi_size'] = event.roi_size
+    row['cluster_size'] = event.cluster.size()
+    row['energy'] = event.energy()
+    row['posx'], row['posy'] = event.position()
+    row.append()
 
 
 
@@ -115,35 +191,72 @@ class DigiOutputFile(tables.File):
         mc : MonteCarloEvent
             The Monte Carlo event contribution.
         """
-        row = self.digi_table.row
-        row['trigger_id'] = digi_event.trigger_id
-        row['seconds'] = digi_event.seconds
-        row['microseconds'] = digi_event.microseconds
-        row['min_col'] = digi_event.roi.min_col
-        row['max_col'] = digi_event.roi.max_col
-        row['min_row'] = digi_event.roi.min_row
-        row['max_row'] = digi_event.roi.max_row
-        row['padding_top'] = digi_event.roi.padding.top
-        row['padding_right'] = digi_event.roi.padding.right
-        row['padding_bottom'] = digi_event.roi.padding.bottom
-        row['padding_left'] = digi_event.roi.padding.left
-        row.append()
+        _fill_digi_row(self.digi_table.row, digi_event)
         self.pha_array.append(digi_event.pha.flatten())
         if mc_event is not None:
-            row = self.mc_table.row
-            row['timestamp'] = mc_event.timestamp
-            row['energy'] = mc_event.energy
-            row['absx'] = mc_event.absx
-            row['absy'] = mc_event.absy
-            row['absz'] = mc_event.absz
-            row['num_pairs'] = mc_event.num_pairs
-            row.append()
+            _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.
         """
         self.digi_table.flush()
         self.pha_array.flush()
+        if self.mc_table is not None:
+            self.mc_table.flush()
+
+
+
+class ReconOutputFile(tables.File):
+
+    """Description of a reconstructed output file.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the file on disk.
+
+    mc : bool
+        If True, a specific group and table is created in the file to hold the
+        Monte Carlo information.
+    """
+
+    RECON_TABLE_SPECS = ('recon_table', ReconDescription, 'Recon data')
+    MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
+
+    def __init__(self, file_path : str, mc : bool = False):
+        """Constructor.
+        """
+        logger.info(f'Opening output recon file {file_path}...')
+        super().__init__(file_path, 'w')
+        #self.config = self.create_group(self.root, 'config', 'Data acquisition setup')
+        self.recon_group = self.create_group(self.root, 'recon', 'Recon')
+        self.recon_table = self.create_table(self.recon_group, *self.RECON_TABLE_SPECS)
+        if mc:
+            self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
+            self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
+        else:
+            self.mc_group = None
+            self.mc_table = None
+
+    def add_row(self, recon_event : ReconEvent, mc_event : MonteCarloEvent = None) -> None:
+        """Add one row to the file.
+
+        Arguments
+        ---------
+        digi : DigiEvent
+            The digitized event contribution.
+
+        mc : MonteCarloEvent
+            The Monte Carlo event contribution.
+        """
+        _fill_recon_row(self.recon_table.row, recon_event)
+        if mc_event is not None:
+            _fill_mc_row(self.mc_table.row, mc_event)
+
+    def flush(self) -> None:
+        """Flush the basic file components.
+        """
+        self.recon_table.flush()
         if self.mc_table is not None:
             self.mc_table.flush()
 
@@ -205,3 +318,18 @@ class DigiInputFile(tables.File):
         if self.__index == len(self.digi_table):
             raise StopIteration
         return self.digi_event(self.__index)
+
+
+
+class ReconInputFile(tables.File):
+
+    """Description of a reconstructed input file.
+    """
+
+    def __init__(self, file_path : str):
+        """Constructor.
+        """
+        logger.info(f'Opening input recon file {file_path}...')
+        super().__init__(file_path, 'r')
+        self.recon_table = self.root.recon.recon_table
+        self.mc_table = self.root.mc.mc_table

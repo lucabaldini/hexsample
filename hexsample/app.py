@@ -123,9 +123,18 @@ class ArgumentParser(argparse.ArgumentParser):
             help='conversion factors between electron equivalent and ADC counts')
         group.add_argument('--offset', type=int, default=0,
             help='optional signal offset in ADC counts')
-        group.add_argument('--trgthreshold', type=float, default=250.,
+        group.add_argument('--trgthreshold', type=float, default=500.,
             help='trigger threshold in electron equivalent')
         group.add_argument('--zsupthreshold', type=int, default=0,
             help='zero-suppression threshold in ADC counts')
         group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
             help='padding on the four sides of the ROT')
+
+    def add_clustering_options(self) -> None:
+        """Add an option group for the clustering.
+        """
+        group = self.add_argument_group('clustering', 'Clustering options')
+        group.add_argument('--zsupthreshold', type=int, default=0,
+            help='zero-suppression threshold in ADC counts')
+        group.add_argument('--nneighbors', type=int, default=6,
+            help='number of neighbors to be considered (0--6)')

@@ -55,15 +55,13 @@ def test_display(nside : int = 10, pitch : float = 0.1):
     target_row = 5
     for layout in HexagonalLayout:
         plt.figure(f'Hexagonal sampling {layout}')
-        nside = 10
-        pitch = 1.
         num_events = 100000
         grid = HexagonalGrid(layout, nside, nside, pitch)
         display = HexagonalGridDisplay(grid)
         display.draw(pixel_labels=True)
         plt.plot(0., 0., 'o', color='k')
-        x = np.random.normal(0., 1., num_events)
-        y = np.random.normal(0., 1., num_events)
+        x = np.random.normal(0., 0.1, num_events)
+        y = np.random.normal(0., 0.1, num_events)
         col, row = grid.world_to_pixel(x, y)
         mask = (col == target_col) * (row == target_row)
         plt.scatter(x[mask], y[mask], color='r', s=4.)
@@ -71,8 +69,27 @@ def test_display(nside : int = 10, pitch : float = 0.1):
         plt.scatter(x[mask], y[mask], color='b', s=4.)
         display.setup_gca()
 
+def test_neighbors(nside : int = 10, pitch : float = 0.1) -> None:
+    """
+    """
+    target_pixels = (2, 3), (7, 4)
+    fmt = dict(size='xx-small', ha='center', va='center')
+    for layout in HexagonalLayout:
+        plt.figure(f'Hexagonal neighbors {layout}')
+        grid = HexagonalGrid(layout, nside, nside, pitch)
+        display = HexagonalGridDisplay(grid)
+        display.draw(pixel_labels=False)
+        for col, row in target_pixels:
+            x, y = grid.pixel_to_world(col, row)
+            plt.text(x, y, f'({col}, {row})', **fmt)
+            for i, (_col, _row) in enumerate(grid.neighbors(col, row)):
+                x, y = grid.pixel_to_world(_col, _row)
+                plt.text(x, y, f'{i + 1}', **fmt)
+        display.setup_gca()
+
 
 
 if __name__ == '__main__':
     test_display()
+    test_neighbors()
     plt.show()

@@ -39,6 +39,7 @@ def display(**kwargs):
         print(event.ascii())
         display.draw_digi_event(event, zero_sup_threshold=0)
         display.show()
+    input_file.close()
 
 
 

@@ -22,6 +22,7 @@
 
 from dataclasses import dataclass
 
+from loguru import logger
 import numpy as np
 
 from hexsample.hexagon import HexagonalGrid, HexagonalLayout
@@ -79,7 +80,14 @@ class DigiEvent:
         Here we reshape the one-dimensional PHA array coming from the serial
         readout to the proper ROI shape for all subsequent operations.
         """
-        self.pha = self.pha.reshape(self.roi.shape())
+        try:
+            self.pha = self.pha.reshape(self.roi.shape())
+        except ValueError as error:
+            logger.error(f'Error in {self.__class__.__name__} post-initializaion.')
+            print(self.roi)
+            print(f'ROI size: {self.roi.size}')
+            print(f'pha size: {self.pha.size}')
+            logger.error(error)
 
     @classmethod
     def from_digi(cls, row : np.ndarray, pha : np.ndarray):
@@ -112,6 +120,30 @@ class DigiEvent:
             The row number (in chip coordinates).
         """
         return self.pha[row - self.roi.min_row, col - self.roi.min_col]
+
+    def highest_pixel(self, absolute : bool = True) -> tuple[int, int]:
+        """Return the coordinates (col, row) of the highest pixel.
+
+        Arguments
+        ---------
+        absolute : bool
+            If true, the absolute coordinates (i.e., those referring to the readout
+            chip) are returned; otherwise the coordinates are intended relative
+            to the readout window (i.e., they can be used to index the pha array).
+        """
+        # Note col and row are swapped, here, due to how the numpy array are indexed.
+        # pylint: disable = unbalanced-tuple-unpacking
+        row, col = np.unravel_index(np.argmax(self.pha), self.pha.shape)
+        if absolute:
+            col += self.roi.min_col
+            row += self.roi.min_row
+        return col, row
+
+    def timestamp(self) -> float:
+        """Return the timestamp of the event, that is, the sum of the second and
+        microseconds parts of the DigiEvent contributions as a floating point number.
+        """
+        return self.seconds + 1.e-6 * self.microseconds
 
     def ascii(self, pha_width : int = 5):
         """Ascii representation.
