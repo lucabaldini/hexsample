@@ -45,8 +45,7 @@ HXRECON_ARGPARSER.add_clustering_options()
 def hxrecon(**kwargs):
     """Application main entry point.
     """
-    # Note we cast the input file to string, in case it happens to be a pathlib.Path
-    # object.
+    # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
     input_file_path = str(kwargs['infile'])
     if not input_file_path.endswith('.h5'):
         raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')

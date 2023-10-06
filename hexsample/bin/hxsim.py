@@ -71,7 +71,8 @@ def hxsim(**kwargs):
     logger.info('Done!')
     output_file.flush()
     output_file.close()
-    return output_file_path
+    # Cast the output_file_path to string, in case it happens to be a pathlib.Path object.
+    return str(output_file_path)
 
 
 
