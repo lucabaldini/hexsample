@@ -38,16 +38,22 @@ __description__ = \
 # Parser object.
 HXRECON_ARGPARSER = ArgumentParser(description=__description__)
 HXRECON_ARGPARSER.add_infile()
+HXRECON_ARGPARSER.add_suffix('recon')
 HXRECON_ARGPARSER.add_clustering_options()
 
 
 def hxrecon(**kwargs):
     """Application main entry point.
     """
-    file_path = kwargs['infile']
+    # Note we cast the input file to string, in case it happens to be a pathlib.Path
+    # object.
+    input_file_path = str(kwargs['infile'])
+    if not input_file_path.endswith('.h5'):
+        raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')
     clustering = ClusteringNN(Xpol3(), kwargs['zsupthreshold'], kwargs['nneighbors'])
-    input_file = DigiInputFile(file_path)
-    output_file_path = file_path.replace('.h5', '_recon.h5')
+    input_file = DigiInputFile(input_file_path)
+    suffix = kwargs['suffix']
+    output_file_path = input_file_path.replace('.h5', f'_{suffix}.h5')
     output_file = ReconOutputFile(output_file_path, mc=True)
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)

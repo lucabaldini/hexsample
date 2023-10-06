@@ -35,17 +35,20 @@ from hxrecon import HXRECON_ARGPARSER, hxrecon as _hxrecon
 from hxsim import HXSIM_ARGPARSER, hxsim as _hxsim
 
 
-def default_args(parser : ArgumentParser) -> dict:
+def default_args(parser : ArgumentParser, required_args='') -> dict:
     """Return the default arguments for a given ArgumentParser object.
 
     Arguments
     ---------
     parser : ArgumentParser
         The argument parser object for a given application.
-    """
-    return parser.parse_args('').__dict__
 
-def update_args(parser : ArgumentParser, **kwargs) -> dict:
+    required_args : iterable (optional)
+        A list with all the required arguments.
+    """
+    return parser.parse_args(required_args).__dict__
+
+def update_args(parser : ArgumentParser, required_args='', **kwargs) -> dict:
     """Retrieve the default option from an ArgumentParser object and update
     specific keys based on arbitrary keyword arguments.
 
@@ -54,17 +57,20 @@ def update_args(parser : ArgumentParser, **kwargs) -> dict:
     parser : ArgumentParser
         The argument parser object for a given application.
 
+    required_args : iterable (optional)
+        A list with all the required arguments.
+
     kwargs : dict
         Additional keyword arguments.
     """
-    args = default_args(parser)
+    args = default_args(parser, required_args)
     args.update(kwargs)
     return args
 
 def hxrecon(**kwargs):
     """Application wrapper.
     """
-    return _hxrecon(**update_args(HXRECON_ARGPARSER, **kwargs))
+    return _hxrecon(**update_args(HXRECON_ARGPARSER, ['infile'], **kwargs))
 
 def hxsim(**kwargs):
     """Application wrapper.

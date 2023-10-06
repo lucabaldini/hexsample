@@ -85,6 +85,12 @@ class ArgumentParser(argparse.ArgumentParser):
         help = 'path to the output file'
         self.add_argument('--outfile', '-o', type=str, default=default, help=help)
 
+    def add_suffix(self, default : str) -> None:
+        """Add an option for the output suffix.
+        """
+        help = 'suffix for the output file'
+        self.add_argument('--suffix', type=str, default=default, help=help)
+
     def add_source_options(self) -> None:
         """Add an option group for the source properties.
         """
