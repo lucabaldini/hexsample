@@ -110,6 +110,7 @@ dependencies = [
   "pydata-sphinx-theme",
   "scipy",
   "tables",
+  "tqdm",
   "xraydb"
 ]
 

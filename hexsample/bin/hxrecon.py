@@ -22,6 +22,8 @@
 """Event reconstruction.
 """
 
+from tqdm import tqdm
+
 from hexsample.app import ArgumentParser
 from hexsample.clustering import ClusteringNN
 from hexsample.digi import Xpol3
@@ -36,7 +38,7 @@ def recon(**kwargs):
     clustering = ClusteringNN(Xpol3(), kwargs['zsupthreshold'], kwargs['nneighbors'])
     input_file = DigiInputFile(file_path)
     output_file = ReconOutputFile(file_path.replace('.h5', '_recon.h5'), mc=True)
-    for i, event in enumerate(input_file):
+    for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         args = event.trigger_id, event.timestamp(), event.livetime, event.roi.size, cluster
         recon_event = ReconEvent(*args)

@@ -23,6 +23,7 @@
 """
 
 from loguru import logger
+from tqdm import tqdm
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
@@ -48,7 +49,7 @@ def simulate(**kwargs):
     padding = Padding(*kwargs['padding'])
     readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
     logger.info('Starting the event loop...')
-    for i, mc_event in enumerate(photon_list):
+    for i, mc_event in tqdm(enumerate(photon_list)):
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
         digi_event = readout.read(mc_event.timestamp, x, y, *readout_args)
         output_file.add_row(digi_event, mc_event)
