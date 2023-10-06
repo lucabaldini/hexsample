@@ -22,6 +22,7 @@
 
 from dataclasses import dataclass
 
+from loguru import logger
 import numpy as np
 
 from hexsample.hexagon import HexagonalGrid, HexagonalLayout
@@ -79,7 +80,14 @@ class DigiEvent:
         Here we reshape the one-dimensional PHA array coming from the serial
         readout to the proper ROI shape for all subsequent operations.
         """
-        self.pha = self.pha.reshape(self.roi.shape())
+        try:
+            self.pha = self.pha.reshape(self.roi.shape())
+        except ValueError as error:
+            logger.error(f'Error in {self.__class__.__name__} post-initializaion.')
+            print(self.roi)
+            print(f'ROI size: {self.roi.size}')
+            print(f'pha size: {self.pha.size}')
+            logger.error(error)
 
     @classmethod
     def from_digi(cls, row : np.ndarray, pha : np.ndarray):

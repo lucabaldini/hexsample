@@ -123,7 +123,7 @@ class ArgumentParser(argparse.ArgumentParser):
             help='conversion factors between electron equivalent and ADC counts')
         group.add_argument('--offset', type=int, default=0,
             help='optional signal offset in ADC counts')
-        group.add_argument('--trgthreshold', type=float, default=250.,
+        group.add_argument('--trgthreshold', type=float, default=500.,
             help='trigger threshold in electron equivalent')
         group.add_argument('--zsupthreshold', type=int, default=0,
             help='zero-suppression threshold in ADC counts')
