@@ -24,20 +24,37 @@
 
 from tqdm import tqdm
 
-from hexsample.app import ArgumentParser
+from hexsample.app import ArgumentParser, check_required_args
 from hexsample.clustering import ClusteringNN
 from hexsample.digi import Xpol3
 from hexsample.io import DigiInputFile, ReconOutputFile
 from hexsample.recon import ReconEvent
 
 
-def recon(**kwargs):
-    """Run the reconstruction.
+__description__ = \
+"""Run the reconstruction on a file produced by hxsim.py
+"""
+
+# Parser object.
+HXRECON_ARGPARSER = ArgumentParser(description=__description__)
+HXRECON_ARGPARSER.add_infile()
+HXRECON_ARGPARSER.add_suffix('recon')
+HXRECON_ARGPARSER.add_clustering_options()
+
+
+def hxrecon(**kwargs):
+    """Application main entry point.
     """
-    file_path = kwargs['infile']
+    check_required_args(hxrecon, 'infile', **kwargs)
+    # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
+    input_file_path = str(kwargs['infile'])
+    if not input_file_path.endswith('.h5'):
+        raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')
     clustering = ClusteringNN(Xpol3(), kwargs['zsupthreshold'], kwargs['nneighbors'])
-    input_file = DigiInputFile(file_path)
-    output_file = ReconOutputFile(file_path.replace('.h5', '_recon.h5'), mc=True)
+    input_file = DigiInputFile(input_file_path)
+    suffix = kwargs['suffix']
+    output_file_path = input_file_path.replace('.h5', f'_{suffix}.h5')
+    output_file = ReconOutputFile(output_file_path, mc=True)
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         args = event.trigger_id, event.timestamp(), event.livetime, event.roi.size, cluster
@@ -47,12 +64,9 @@ def recon(**kwargs):
     output_file.flush()
     input_file.close()
     output_file.close()
+    return output_file_path
 
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_infile()
-    parser.add_clustering_options()
-    args = parser.parse_args()
-    recon(**args.__dict__)
+    hxrecon(**vars(HXRECON_ARGPARSER.parse_args()))

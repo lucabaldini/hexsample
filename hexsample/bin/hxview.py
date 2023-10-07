@@ -30,7 +30,16 @@ from hexsample.io import ReconInputFile
 from hexsample.plot import plt
 
 
-def view(**kwargs):
+__description__ = \
+"""Simple viewer for reconstructed event lists.
+"""
+
+# Parser object.
+HXVIEW_ARGPARSER = ArgumentParser(description=__description__)
+HXVIEW_ARGPARSER.add_infile()
+
+
+def hxview(**kwargs):
     """View the file content.
     """
     input_file = ReconInputFile(kwargs['infile'])
@@ -51,8 +60,6 @@ def view(**kwargs):
     plt.show()
 
 
+
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_infile()
-    args = parser.parse_args()
-    view(**args.__dict__)
+    hxview(**vars(HXVIEW_ARGPARSER.parse_args()))

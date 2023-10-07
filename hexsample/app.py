@@ -33,6 +33,25 @@ def print_start_msg():
     """
     print(START_MESSAGE)
 
+def check_required_args(caller, *args, **kwargs):
+    """Snippet to same some bolerplate code when checking for required arguments
+    (which is relevant in pipeline contexts).
+
+    Argument
+    --------
+    caller : callable
+        The caller function (must have a ``__name__`` attribute).
+
+    args : iterable
+        The names of the required arguments.
+
+    kwargs : dict
+        The full dictionary of command-line arguments.
+    """
+    for arg in args:
+        if arg not in kwargs:
+            raise RuntimeError(f'Missing positional argument "{arg}" to {caller.__name__}()')
+
 
 
 class Formatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
@@ -84,6 +103,12 @@ class ArgumentParser(argparse.ArgumentParser):
         """
         help = 'path to the output file'
         self.add_argument('--outfile', '-o', type=str, default=default, help=help)
+
+    def add_suffix(self, default : str) -> None:
+        """Add an option for the output suffix.
+        """
+        help = 'suffix for the output file'
+        self.add_argument('--suffix', type=str, default=default, help=help)
 
     def add_source_options(self) -> None:
         """Add an option group for the source properties.
