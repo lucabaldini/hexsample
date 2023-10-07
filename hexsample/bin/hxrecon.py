@@ -68,4 +68,4 @@ def hxrecon(**kwargs):
 
 
 if __name__ == '__main__':
-    hxrecon(**HXRECON_ARGPARSER.parse_args().__dict__)
+    hxrecon(**vars(HXRECON_ARGPARSER.parse_args()))

@@ -77,4 +77,4 @@ def hxsim(**kwargs):
 
 
 if __name__ == '__main__':
-    hxsim(**HXSIM_ARGPARSER.parse_args().__dict__)
+    hxsim(**vars(HXSIM_ARGPARSER.parse_args()))

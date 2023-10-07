@@ -53,4 +53,4 @@ def hxdisplay(**kwargs):
 
 
 if __name__ == '__main__':
-    hxdisplay(**HXDISPLAY_ARGPARSER.parse_args().__dict__)
+    hxdisplay(**vars(HXDISPLAY_ARGPARSER.parse_args()))

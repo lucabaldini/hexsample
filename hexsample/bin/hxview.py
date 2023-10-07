@@ -62,4 +62,4 @@ def hxview(**kwargs):
 
 
 if __name__ == '__main__':
-    hxview(**HXVIEW_ARGPARSER.parse_args().__dict__)
+    hxview(**vars(HXVIEW_ARGPARSER.parse_args()))
