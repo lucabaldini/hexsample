@@ -33,6 +33,25 @@ def print_start_msg():
     """
     print(START_MESSAGE)
 
+def check_required_args(caller, *args, **kwargs):
+    """Snippet to same some bolerplate code when checking for required arguments
+    (which is relevant in pipeline contexts).
+
+    Argument
+    --------
+    caller : callable
+        The caller function (must have a ``__name__`` attribute).
+
+    args : iterable
+        The names of the required arguments.
+
+    kwargs : dict
+        The full dictionary of command-line arguments.
+    """
+    for arg in args:
+        if arg not in kwargs:
+            raise RuntimeError(f'Missing positional argument "{arg}" to {caller.__name__}()')
+
 
 
 class Formatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):

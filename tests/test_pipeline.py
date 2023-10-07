@@ -16,6 +16,8 @@
 """Test suite for hexsample.pipeline
 """
 
+import pytest
+
 from hexsample import HEXSAMPLE_DATA
 import hexsample.pipeline as pipeline
 
@@ -23,9 +25,11 @@ import hexsample.pipeline as pipeline
 def test_parsers():
     """Test the relevant ArgumentParser objects.
     """
+    assert pipeline.required_args(pipeline.HXSIM_ARGPARSER) == []
+    assert pipeline.required_args(pipeline.HXRECON_ARGPARSER) == ['infile']
+    assert 'infile' not in pipeline.update_args(pipeline.HXRECON_ARGPARSER)
+    assert 'infile' in pipeline.update_args(pipeline.HXRECON_ARGPARSER, infile='test_file')
     print(pipeline.update_args(pipeline.HXSIM_ARGPARSER))
-    print(pipeline.update_args(pipeline.HXRECON_ARGPARSER, ['infile']))
-    print(pipeline.update_args(pipeline.HXRECON_ARGPARSER, ['infile'], infile='test_file'))
 
 def test_pipeline():
     """Test generating and reconstructing files.
@@ -34,4 +38,7 @@ def test_pipeline():
         output_file_path = HEXSAMPLE_DATA / f'hxsim_{thickness}.h5'
         file_path = pipeline.hxsim(numevents=100, thickness=thickness, outfile=output_file_path)
         for nneighbors in (3, 4):
+            with pytest.raises(RuntimeError) as excinfo:
+                pipeline.hxrecon()
+            print(excinfo.value)
             pipeline.hxrecon(infile=file_path, suffix=f'recon_nn{nneighbors}')
