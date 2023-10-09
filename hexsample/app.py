@@ -22,10 +22,10 @@
 
 import argparse
 
-from hexsample import PACKAGE_NAME
+from hexsample import __package__
 
 
-START_MESSAGE = f'Welcome to {PACKAGE_NAME}'
+START_MESSAGE = f'Welcome to {__package__}'
 
 
 def print_start_msg():
