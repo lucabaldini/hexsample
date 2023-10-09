@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+#
+# Copyright (C) 2022--2023 luca.baldini@pi.infn.it
+#
+# For the license terms see the file LICENSE, distributed along with this
+# software.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+"""Simple versioning tool.
+"""
+
+from enum import Enum
+import os
+import time
+
+from loguru import logger
+
+from HEXSAMPLE import HEXSAMPLE_VERSION_FILE_PATH, HEXSAMPLE_RELEASE_NOTES_PATH, __package__
+
+_BUILD_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
+_UPDATE_MODES = ('major', 'minor', 'micro')
+
+
+class BumpMode(Enum):
+
+    """Enum class expressing the possible version bumps.
+    """
+
+    MAJOR : str = 'major'
+    MINOR : str = 'minor'
+    MICRO : str = 'micro'
+
+
+
+def latch_date() -> str:
+    """Latch the current date and time
+    """
+    return time.strftime(_BUILD_DATE_FORMAT)
+
+def build_version_string(major : int, minor : int, micro : int) -> str:
+    """Build a version string from the macro, minor and micro fields.
+    """
+    return f'{major}.{minor}.{micro}'
+
+def parse_version_string(version_string : str) -> tuple[int, int, int]:
+    """Parse a version string.
+
+    Note we are not doing anything fancier than sticking to a simple
+    major.minor.micro versioning system, with no alpha, beta or release candidates.
+    """
+    return [int(item) for item in version_string.split('.')]
+
+def bump_version_string(version_string : str, mode : BumpMode) -> str:
+    """Bump a version string with a given bump mode.
+    """
+    major, minor, micro = parse_version_string(version_string)
+    if mode == BumpMode.MAJOR:
+        return build_version_string(major + 1, 0, 0)
+    if mode == BumpMode.MINOR:
+        return build_version_string(major, minor + 1, 0)
+    if mode == BumpMode.MICRO:
+        return build_version_string(major, minor, micro + 1)
+    raise RuntimeError(f'Unknown bump mode {mode}')
+
+def write_version_file(version_string : str, tag_date : str, dry_run : bool = False) -> None:
+    """Write the version string and tag date to the unique version file in the package.
+    """
+    logger.info(f'Writing version info to {HEXSAMPLE_VERSION_FILE_PATH}...')
+    logger.info(f'Version string: {version_string}')
+    logger.info(f'Build date: {build_date}')
+    if dry_run:
+        logger.info('Dry run, just kidding')
+        return
+    with open(HEXSAMPLE_VERSION_FILE_PATH, 'w') as version_file:
+        version_file.write(f'__version__ = \'{version_string}\'\n')
+        version_file.write(f'__tagdate__ = \'{tag_date}\'\n')
+    logger.info('Done.')
+
+def update_release_notes(version_string : str, tag_date : str, dry_run : bool = False) -> None:
+    """ Write the new tag and build date on top of the release notes
+    (which must be kept up to date during the release process).
+    """
+    title = '.. _release_notes:\n\nRelease notes\n=============\n\n'
+    logger.info('Reading in %s...' % HEXSAMPLE_RELEASE_NOTES_PATH)
+    notes = open(HEXSAMPLE_RELEASE_NOTES_PATH).read().strip('\n').strip(title)
+    logger.info('Writing out %s...' % HEXSAMPLE_RELEASE_NOTES_PATH)
+    if dry_run:
+        logger.info('Dry run, just kidding')
+        return
+    with open(HEXSAMPLE_RELEASE_NOTES_PATH, 'w') as release_notes:
+        outputFile.writelines(title)
+        outputFile.writelines(f'\n*{__package__} ({version_string}) - {tag_date}*\n\n')
+        outputFile.writelines(notes)
+    logger.info('Done.')
+
+def tag_package(mode, dry_run=False):
+    """ Tag the package.
+
+    This means:
+    (*) hg pull/update to make sure we're not missing remote modification;
+    (*) figure out the target tag and update the release.notes;
+    (*) commit the modifications, tag and push.
+    """
+    cmd('git pull', verbose=True, dry_run=dry_run)
+    cmd('git status', verbose=True, dry_run=dry_run)
+    tag = updateVersionInfo(mode, dry_run)
+    updateReleaseNotes(tag, dry_run)
+    msg = 'Prepare for tag %s.' % tag
+    cmd('git commit -a -m "%s"' % msg, verbose=True, dry_run=dry_run)
+    cmd('git push', verbose=True, dry_run=dry_run)
+    msg = 'tagging version %s' % tag
+    cmd('git tag -a %s -m "%s"' % (tag, msg), verbose=True, dry_run=dry_run)
+    cmd('git push --tags', verbose = True, dry_run=dry_run)
+    cmd('git status', verbose = True, dry_run=dry_run)
+
+
+
+if __name__ == '__main__':
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option('-t', dest = 'tagmode', type = str, default = None,
+                      help = 'The release tag mode %s.' % TAG_MODES)
+    parser.add_option('-n', action = 'store_true', dest = 'dryrun',
+                      help = 'Dry run (i.e. do not actually do anything).')
+    (opts, args) = parser.parse_args()
+    if not opts.tagmode and not (opts.src):
+        parser.print_help()
+        parser.error('Please specify at least one valid option.')
+    tag = None
+    if opts.tagmode is not None:
+        if opts.tagmode not in TAG_MODES:
+            parser.error('Invalid tag mode %s (allowed: %s)' %\
+                             (opts.tagmode, TAG_MODES))
+        tagPackage(opts.tagmode, opts.dryrun)
+    if opts.src and not opts.dryrun:
+        distsrc()
