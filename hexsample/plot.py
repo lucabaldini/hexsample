@@ -154,10 +154,10 @@ class StatBox(PlotCard):
     """
     """
 
-    def add_parameter_value(self, name : str, value : float, error : float, units : str = None):
+    def add_parameter_value(self, name : str, value : float, error : float):
         """
         """
-        self.add_line(name, f'{value} +- {error}')
+        self.add_line(name, f'{value} +- {error}', fmt='%s')
 
 
 
