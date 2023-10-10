@@ -28,8 +28,9 @@ from loguru import logger
 from hexsample._version import __version__, __tagdate__
 
 # Logger setup.
-DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True,
-    format=">>> <level>{message}</level>")
+DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True, format=">>> <level>{message}</level>")
+logger.remove()
+logger.add(**DEFAULT_LOGURU_HANDLER)
 
 __package__ = 'hexsample'
 
