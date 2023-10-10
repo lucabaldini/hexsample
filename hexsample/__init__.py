@@ -32,7 +32,7 @@ DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True, format=">>> <level
 logger.remove()
 logger.add(**DEFAULT_LOGURU_HANDLER)
 
-__package__ = 'hexsample'
+__pkgname__ = 'hexsample'
 
 # Basic package structure.
 HEXSAMPLE_ROOT = Path(__file__).parent

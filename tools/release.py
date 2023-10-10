@@ -23,18 +23,16 @@
 """
 
 from enum import Enum
-import os
-import subprocess
 import time
 
 from loguru import logger
 
-from hexsample import __package__, __version__, __tagdate__
+from hexsample import __pkgname__, __version__, __tagdate__
 from hexsample import HEXSAMPLE_VERSION_FILE_PATH, HEXSAMPLE_RELEASE_NOTES_PATH
+from hexsample.shell import cmd
+
 
 _BUILD_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
-_UPDATE_MODES = ('major', 'minor', 'micro')
-
 
 class BumpMode(Enum):
 
@@ -46,21 +44,9 @@ class BumpMode(Enum):
     MICRO : str = 'micro'
 
 
-def cmd(command : str, dry_run : bool = False) -> int:
-    """ Exec a system command.
-    """
-    logger.info(f'About to execute "{command}"...')
-    if dry_run:
-        logger.info('Just kidding (dry run).')
-        return 0
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    error_code = process.wait()
-    print(process.stdout.read().strip(b'\n').decode())
-    if error_code:
-        logger.error('Command returned status code %d.', error_code)
-        msg = process.stderr.read().decode().strip('\n')
-        logger.error('Full error message following...\n%s', msg)
-    return error_code
+_BUMP_MODES = tuple([mode.value for mode in BumpMode])
+
+
 
 def latch_date() -> str:
     """Latch the current date and time
@@ -126,19 +112,20 @@ def update_release_notes(version_string : str, tag_date : str, dry_run : bool = 
     """ Write the new tag and build date on top of the release notes.
     """
     title = '.. _release_notes:\n\nRelease notes\n=============\n\n'
-    logger.info('Reading in %s...' % HEXSAMPLE_RELEASE_NOTES_PATH)
-    notes = open(HEXSAMPLE_RELEASE_NOTES_PATH).read().strip('\n').strip(title)
-    logger.info('Writing out %s...' % HEXSAMPLE_RELEASE_NOTES_PATH)
+    logger.info(f'Reading in {HEXSAMPLE_RELEASE_NOTES_PATH}...')
+    with open(HEXSAMPLE_RELEASE_NOTES_PATH) as input_file:
+        notes = input_file.read().strip('\n').strip(title)
+    logger.info(f'Writing out {HEXSAMPLE_RELEASE_NOTES_PATH}...')
     if dry_run:
         logger.info('Dry run, just kidding')
         return
     with open(HEXSAMPLE_RELEASE_NOTES_PATH, 'w') as release_notes:
         release_notes.writelines(title)
-        release_notes.writelines(f'\n*{__package__} ({version_string}) - {tag_date}*\n\n')
+        release_notes.writelines(f'\n*{__pkgname__} ({version_string}) - {tag_date}*\n\n')
         release_notes.writelines(notes)
     logger.info('Done.')
 
-def tag_package(mode, dry_run : bool = False) -> None:
+def tag_package(mode : BumpMode, dry_run : bool = False) -> None:
     """Tag the package.
     """
     cmd('git pull', dry_run)
@@ -147,34 +134,22 @@ def tag_package(mode, dry_run : bool = False) -> None:
     tag_date = latch_date()
     write_version_file(version_string, tag_date, dry_run)
     update_release_notes(version_string, tag_date, dry_run)
-    msg = 'Prepare for tag {version_string}.'
-    #cmd('git commit -a -m "%s"' % msg, verbose=True, dry_run=dry_run)
-    #cmd('git push', verbose=True, dry_run=dry_run)
-    msg = 'Tagging version {version_string}'
-    #cmd('git tag -a %s -m "%s"' % (tag, msg), verbose=True, dry_run=dry_run)
-    #cmd('git push --tags', verbose = True, dry_run=dry_run)
-    #cmd('git status', verbose = True, dry_run=dry_run)
+    message = f'Prepare for tag {version_string}.'
+    cmd(f'git commit -a -m "{message}"', dry_run)
+    cmd('git push', dry_run)
+    message = f'Tagging version {version_string}'
+    cmd(f'git tag -a {version_string} -m "{message}"', dry_run)
+    cmd('git push --tags', dry_run)
+    cmd('git status', dry_run)
 
 
 
 if __name__ == '__main__':
-    tag_package(BumpMode.MICRO)
-
-    # from optparse import OptionParser
-    # parser = OptionParser()
-    # parser.add_option('-t', dest = 'tagmode', type = str, default = None,
-    #                   help = 'The release tag mode %s.' % TAG_MODES)
-    # parser.add_option('-n', action = 'store_true', dest = 'dryrun',
-    #                   help = 'Dry run (i.e. do not actually do anything).')
-    # (opts, args) = parser.parse_args()
-    # if not opts.tagmode and not (opts.src):
-    #     parser.print_help()
-    #     parser.error('Please specify at least one valid option.')
-    # tag = None
-    # if opts.tagmode is not None:
-    #     if opts.tagmode not in TAG_MODES:
-    #         parser.error('Invalid tag mode %s (allowed: %s)' %\
-    #                          (opts.tagmode, TAG_MODES))
-    #     tagPackage(opts.tagmode, opts.dryrun)
-    # if opts.src and not opts.dryrun:
-    #     distsrc()
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('mode', type=str, choices=_BUMP_MODES,
+        help='the release bump mode')
+    parser.add_argument('--dryrun', action='store_true', default=False,
+        help='dry run')
+    args = parser.parse_args()
+    tag_package(BumpMode(args.mode), args.dryrun)
