@@ -25,8 +25,10 @@
 import numpy as np
 
 from hexsample.app import ArgumentParser
+from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
 from hexsample.io import ReconInputFile
+from hexsample.modeling import Gaussian
 from hexsample.plot import plt
 
 
@@ -50,6 +52,11 @@ def hxview(**kwargs):
     binning = np.linspace(rec_energy.min(), rec_energy.max(), 100)
     h_rec = Histogram1d(binning).fill(rec_energy)
     h_rec.plot()
+    model = Gaussian() + Gaussian()
+    #model = fit_histogram(GaussianLineForestCuK(), h_rec)
+    fit_histogram(model, h_rec, p0=(1., 8000., 150., 1., 8900., 150.))
+    model.plot()
+    model.stat_box()
     #h_mc = Histogram1d(binning).fill(mc_energy)
     #h_mc.plot()
     plt.figure('Cluster size')
