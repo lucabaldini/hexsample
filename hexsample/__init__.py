@@ -25,6 +25,7 @@ import sys
 
 from loguru import logger
 
+from hexsample._version import __version__, __tagdate__
 
 # Logger setup.
 DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True,
@@ -46,7 +47,7 @@ HEXSAMPLE_BIN = HEXSAMPLE_ROOT / 'bin'
 HEXSAMPLE_VERSION_FILE_PATH = HEXSAMPLE_ROOT / '_version.py'
 
 # Path to the release notes.
-HEXSAMPLE_RELEASE_NOTES_PATH = HEXSAMPLE_DOCS / 'release_notes.rst'
+HEXSAMPLE_RELEASE_NOTES_PATH = HEXSAMPLE_DOCS / 'release.rst'
 
 # Make room for the output data.
 HEXSAMPLE_DATA = Path.home() / 'hexsampledata'
