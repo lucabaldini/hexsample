@@ -149,6 +149,18 @@ class PlotCard(dict):
 
 
 
+class StatBox(PlotCard):
+
+    """
+    """
+
+    def add_parameter_value(self, name : str, value : float, error : float, units : str = None):
+        """
+        """
+        self.add_line(name, f'{value} +- {error}')
+
+
+
 def last_line_color(default : str = 'black') -> str:
     """Return the color used to draw the last line
     """
