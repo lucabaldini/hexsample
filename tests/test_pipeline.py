@@ -25,11 +25,19 @@ import hexsample.pipeline as pipeline
 def test_parsers():
     """Test the relevant ArgumentParser objects.
     """
-    assert pipeline.required_args(pipeline.HXSIM_ARGPARSER) == []
-    assert pipeline.required_args(pipeline.HXRECON_ARGPARSER) == ['infile']
-    assert 'infile' not in pipeline.update_args(pipeline.HXRECON_ARGPARSER)
-    assert 'infile' in pipeline.update_args(pipeline.HXRECON_ARGPARSER, infile='test_file')
-    print(pipeline.update_args(pipeline.HXSIM_ARGPARSER))
+    assert pipeline.required_arguments(pipeline.HXSIM_ARGPARSER) == []
+    assert pipeline.required_arguments(pipeline.HXRECON_ARGPARSER) == ['infile']
+    assert 'infile' not in pipeline.update_arguments(pipeline.HXRECON_ARGPARSER)
+    assert 'infile' in pipeline.update_arguments(pipeline.HXRECON_ARGPARSER, infile='test_file')
+    print(pipeline.update_arguments(pipeline.HXSIM_ARGPARSER))
+
+def test_wrong_args():
+    """Make sure that, when supplied with wrong parameters, the pipeline applications
+    are raising a RuntimeError.
+    """
+    with pytest.raises(RuntimeError) as excinfo:
+        pipeline.hxsim(numevents=100, bogusparam='howdy')
+    print(excinfo.value)
 
 def test_pipeline():
     """Test generating and reconstructing files.
