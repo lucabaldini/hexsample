@@ -6,5 +6,5 @@ pydata-sphinx-theme
 scipy
 tables
 tqdm
-uncertainities
+uncertainties
 xraydb

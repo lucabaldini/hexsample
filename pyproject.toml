@@ -111,7 +111,7 @@ dependencies = [
   "scipy",
   "tables",
   "tqdm",
-  "uncertainities",
+  "uncertainties",
   "xraydb"
 ]
 
