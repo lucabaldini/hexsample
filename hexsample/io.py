@@ -21,6 +21,7 @@
 """
 
 from loguru import logger
+import numpy as np
 import tables
 
 from hexsample.mc import MonteCarloEvent
@@ -333,3 +334,13 @@ class ReconInputFile(tables.File):
         super().__init__(file_path, 'r')
         self.recon_table = self.root.recon.recon_table
         self.mc_table = self.root.mc.mc_table
+
+    def recon_column(self, name : str) -> np.ndarray:
+        """Return a given column in the recon table.
+        """
+        return self.recon_table.col(name)
+
+    def mc_column(self, name : str) -> np.ndarray:
+        """Return a given column in the Monte Carlo table.
+        """
+        return self.mc_table.col(name)
