@@ -26,13 +26,14 @@ def test_card():
     card.add_string('Label', 'Content')
     card.add_blank()
     card.add_quantity('Fixed float', 1.0)
+    card.add_quantity('Formatted fixed float', 1.0, fmt='.5f')
     card.add_quantity('Fixed int', 1)
     card.add_quantity('Parameter 1', 1.23456, 0.53627)
     card.add_quantity('Fixed float', 1.0, units='cm')
     card.add_quantity('Fixed int', 1, units='cm')
     card.add_quantity('Parameter 1', 1.23456, 0.53627, units='cm')
     card.plot()
-
+    card.plot(0.05, 0.95, ha='left')
 
 
 if __name__ == '__main__':

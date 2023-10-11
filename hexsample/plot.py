@@ -24,6 +24,7 @@ from typing import Any
 from loguru import logger
 import matplotlib
 from matplotlib import pyplot as plt
+import uncertainties
 
 if sys.flags.interactive:
     plt.ion()
@@ -74,53 +75,88 @@ class PlotCard(dict):
 
     """Small class reperesenting a text card.
 
-    This is essentially a dictionary that is capable of plotting itself on
-    a matplotlib figure in the form of a multi-line graphic card.
+    This is essentially a list of key-value pairs that is capable of plotting
+    itself on a matplotlib figure in the form of a multi-line graphic card.
+    Possible uses include a statistical box for the results of a fit.
 
-    Arguments
-    ---------
-    data : dict
-        A dictionary holding the lines to be displayed in the card.
+    Note that the semantics of the object is intentionally simple---add stuff
+    and plot once; we do non support, e.g., updating the values after the fact.
     """
 
-    KEY_KWARGS = dict(color='gray', size='x-small', ha='left', va='top')
-    VALUE_KWARGS = dict(color='black', size='small', ha='left', va='top')
+    _LABEL_KWARGS = dict(color='gray', size='x-small', ha='right', va='top')
+    _CONTENT_KWARGS = dict(color='black', size='small', ha='right', va='top')
 
-    def __init__(self, data : dict = None) -> None:
+    def __init__(self) -> None:
         """Constructor.
         """
-        super().__init__()
-        if data is not None:
-            for key, value in data.items():
-                self.add_line(key, value)
+        self._item_list = []
 
-    def add_line(self, key : str, value : float, fmt : str = '%g', units : str = None) -> None:
-        """Set the value for a given key.
+    def add_string(self, label : str, content : str) -> None:
+        """Add a label-content pair to the card. This is the workhorse methods,
+        and specialized methods below use this internally.
 
         Arguments
         ---------
-        key : str
-            The key, i.e., the explanatory text for a given value.
+        label : str
+            The label, i.e., the explanatory text for a given value.
 
-        value : float, optional
-            The actual value (if None, a blank line will be added).
-
-        fmt : str
-            The string format to be used to render the value.
-
-        units : str
-            The measurement units for the value.
+        content : str
+            The actual text content.
         """
-        self[key] = (value, fmt, units)
+        self._item_list.append((label, content))
 
-    def draw(self, axes = None, x : float = 0.05, y : float = 0.95, line_spacing : float = 0.075,
-        spacing_ratio : float = 0.75) -> None:
-        """Draw the card.
+    def add_quantity(self, label : str, value : float, error : float = None,
+        fmt : str = None, units : str = None) -> None:
+        """Add a numerical quantity to the card.
+
+        This can be either a numerical value, or the result of a measurement
+        (i.e., including its uncertainity).
 
         Arguments
         ---------
-        x0, y0 : float
-            The absolute coordinates of the top-left corner of the card.
+        label : str
+            The label, i.e., the explanatory text for a given value.
+
+        value : float
+            The numerical value of the quantity.
+
+        error : float, optional
+            The uncertainty of the measurement.
+
+        fmt : str, optional
+            Optional format string for the quantity---this is ignored if the error
+            is defined, as in that case the rultes for the significant digits take
+            precedence.
+
+        units : str, optional
+            Optional measurement errors.
+        """
+        if error is not None and error > 0.:
+            content = f'{uncertainties.ufloat(value, error):.2fP}'
+        elif fmt is not None:
+            content = f'{value:{fmt}}'
+        else:
+            content = f'{value}'
+        if units is not None:
+            content = f'{content} {units}'
+        self.add_string(label, content)
+
+    def add_blank(self) -> None:
+        """Add a blank line.
+        """
+        self.add_string('', '')
+
+    def plot(self, x : float = 0.95, y : float = 0.95, line_spacing : float = 0.075,
+        spacing_ratio : float = 0.75, **kwargs) -> None:
+        """Plot the card.
+
+        Arguments
+        ---------
+        x : float
+            The absolute x-coordinate of the top-left corner of the card.
+
+        y : float
+            The absolute x-coordinate of the top-left corner of the card.
 
         line_spacing : float
             The line spacing in units of the total height of the current axes.
@@ -129,35 +165,17 @@ class PlotCard(dict):
             The fractional line spacing assigned to the key label.
         """
         # pylint: disable=invalid-name
-        if axes is None:
-            axes = plt.gca()
         key_norm = spacing_ratio / (1. + spacing_ratio)
         value_norm = 1. - key_norm
-        for kwargs in (self.KEY_KWARGS, self.VALUE_KWARGS):
-            kwargs['transform'] = axes.transAxes
-        for key, (value, fmt, units) in self.items():
-            if value is None:
-                y -= 0.5 * line_spacing
-                continue
-            axes.text(x, y, key, **self.KEY_KWARGS)
+        label_kwargs = self._LABEL_KWARGS.copy()
+        label_kwargs.update(kwargs)
+        content_kwargs = self._CONTENT_KWARGS.copy()
+        content_kwargs.update(kwargs)
+        for label, content in self._item_list:
+            plt.gca().text(x, y, label, transform=plt.gca().transAxes, **label_kwargs)
             y -= key_norm * line_spacing
-            value = fmt % value
-            if units is not None:
-                value = f'{value} {units}'
-            axes.text(x, y, value, **self.VALUE_KWARGS)
+            plt.gca().text(x, y, content, transform=plt.gca().transAxes, **content_kwargs)
             y -= value_norm * line_spacing
-
-
-
-class StatBox(PlotCard):
-
-    """
-    """
-
-    def add_parameter_value(self, name : str, value : float, error : float):
-        """
-        """
-        self.add_line(name, f'{value} +- {error}', fmt='%s')
 
 
 
