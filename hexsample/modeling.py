@@ -19,7 +19,7 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from hexsample.plot import plt, StatBox
+from hexsample.plot import plt, PlotCard
 
 # pylint: disable=invalid-name
 
@@ -279,23 +279,19 @@ class FitModelBase:
         """
         if len(parameters) == len(self):
             self.parameters = parameters
-        display_stat_box = kwargs.pop('display_stat_box', False)
         x = np.linspace(self.xmin, self.xmax, 1000)
         y = self(x, *parameters)
         plt.plot(x, y, **kwargs)
-        if display_stat_box:
-            self.stat_box(**kwargs)
 
     def stat_box(self, **kwargs):
         """Plot a ROOT-style stat box for the model.
         """
-        box = StatBox()
-        box.add_line('Fit model', self.name(), fmt='%s')
-        box.add_line('Chisquare', '%.1f / %d' % (self.chisq, self.ndof), fmt='%s')
+        box = PlotCard()
+        box.add_string('Fit model', self.name())
+        box.add_string('Chisquare', '%.1f / %d' % (self.chisq, self.ndof))
         for name, value, error in self.parameter_status():
-            box.add_parameter_value(name, value, error)
-        box.draw(**kwargs)
-        return box
+            box.add_quantity(name, value, error)
+        box.plot(**kwargs)
 
     def __len__(self):
         """Return the number of model parameters.

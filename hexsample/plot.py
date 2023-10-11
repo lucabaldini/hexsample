@@ -132,7 +132,7 @@ class PlotCard(dict):
             Optional measurement errors.
         """
         if error is not None and error > 0.:
-            content = f'{uncertainties.ufloat(value, error):.2fP}'
+            content = f'{uncertainties.ufloat(value, error):P}'
         elif fmt is not None:
             content = f'{value:{fmt}}'
         else:
