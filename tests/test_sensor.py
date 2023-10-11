@@ -32,19 +32,19 @@ def test_sensor():
     """
     plt.figure('Efficiency')
     energy = np.linspace(1000., 20000., 200)
-    for thickness in (0.1, 0.2, 0.3, 0.5, 0.75, 1.):
+    for thickness in (0.01, 0.02, 0.03, 0.05, 0.075, 0.1):
         sensor = SiliconSensor(thickness)
         efficiency = sensor.photabsorption_efficiency(energy)
-        plt.plot(energy, efficiency, label=f'{1.e3 * thickness} $\\mu$m')
+        plt.plot(energy, efficiency, label=f'{1.e4 * thickness} $\\mu$m')
     setup_gca(xlabel='Energy [eV]', ylabel='Photoabsorption efficiency',
         grids=True, legend=True)
     plt.figure('Absorption depth')
-    sensor = SiliconSensor()
+    sensor = SiliconSensor(thickness=0.03)
     energy = np.full(100000, 8000)
     d = sensor.rvs_absorption_depth(energy)
-    h = Histogram1d(np.linspace(-0.1, 0.4, 101)).fill(d)
+    h = Histogram1d(np.linspace(-0.01, 0.04, 101)).fill(d)
     h.plot()
-    setup_gca(xlabel='Absorption depth [mm]', logy=True)
+    setup_gca(xlabel='Absorption depth [cm]', logy=True)
     model = fit_histogram(Exponential(), h)
     model.plot()
     model.stat_box()
