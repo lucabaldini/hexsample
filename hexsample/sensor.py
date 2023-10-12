@@ -26,8 +26,6 @@ import numpy as np
 import scipy.stats
 import xraydb
 
-from hexsample import logger
-
 
 
 class CrossSection(Enum):
@@ -225,7 +223,8 @@ class Sensor:
         The transverse diffusion sigma in um / sqrt(cm).
     """
 
-    def __init__(self, material : Material, thickness : float, trans_diffusion_sigma : float) -> None:
+    def __init__(self, material : Material, thickness : float,
+        trans_diffusion_sigma : float) -> None:
         """Constructor.
         """
         self.material = material

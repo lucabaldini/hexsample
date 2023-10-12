@@ -71,7 +71,7 @@ MONOSPACE_FONTS = [
 
 
 
-class PlotCard(dict):
+class PlotCard:
 
     """Small class reperesenting a text card.
 
@@ -131,6 +131,7 @@ class PlotCard(dict):
         units : str, optional
             Optional measurement errors.
         """
+        # pylint: disable=too-many-arguments
         if error is not None and error > 0.:
             content = f'{uncertainties.ufloat(value, error):P}'
         elif fmt is not None:

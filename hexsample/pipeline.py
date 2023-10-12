@@ -47,6 +47,7 @@ def required_arguments(parser : ArgumentParser) -> list:
     parser : ArgumentParser
         The argument parser object for a given application.
     """
+    # pylint: disable=protected-access
     return [action.dest for action in parser._actions if action.required]
 
 def default_arguments(parser : ArgumentParser) -> dict:
@@ -79,7 +80,8 @@ def default_arguments(parser : ArgumentParser) -> dict:
     # All parser arguments.
     kwargs = vars(parser.parse_args(args))
     # Strip the positional arguments from the complete list.
-    [kwargs.pop(key) for key in args]
+    for key in args:
+        kwargs.pop(key)
     # And return the two sets separately.
     return args, kwargs
 

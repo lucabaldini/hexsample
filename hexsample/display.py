@@ -85,7 +85,7 @@ class HexagonalGridDisplay:
 
     @staticmethod
     def setup_gca():
-        """
+        """Setup the current axes object to make the display work.
         """
         plt.gca().set_aspect('equal')
         plt.gca().autoscale()
@@ -125,7 +125,7 @@ class HexagonalGridDisplay:
         **kwargs) -> HexagonCollection:
         """Draw the full grid display.
         """
-        # pylint: disable = invalid-name
+        # pylint: disable = invalid-name, too-many-locals
         col = np.tile(np.arange(self._grid.num_cols), self._grid.num_rows)
         row = np.repeat(np.arange(self._grid.num_rows), self._grid.num_cols)
         x, y = self._grid.pixel_to_world(col, row)
@@ -143,7 +143,7 @@ class HexagonalGridDisplay:
         indices : bool = True, padding : bool = True, **kwargs) -> HexagonCollection:
         """Draw a given ROI.
         """
-        # pylint: disable = invalid-name
+        # pylint: disable = invalid-name, too-many-locals
         # Calculate the coordinates of the pixel centers and build the hexagon collection.
         col, row = roi.serial_readout_coordinates()
         dx, dy = offset
@@ -179,7 +179,7 @@ class HexagonalGridDisplay:
         This is taking over where the draw_roi() hook left, and adding the
         event part.
         """
-        # pylint: disable = invalid-name
+        # pylint: disable = invalid-name, too-many-arguments, too-many-locals
         collection = self.draw_roi(event.roi, offset, indices, padding, **kwargs)
         face_color = self.pha_to_colors(event.pha, zero_sup_threshold)
         collection.set_facecolor(face_color)
