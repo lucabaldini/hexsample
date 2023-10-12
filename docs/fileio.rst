@@ -1,5 +1,5 @@
-:mod:`hexsample.io` --- Input/Output
-====================================
+:mod:`hexsample.fileio` --- Input/Output
+========================================
 
 This module contains all the I/O related facilities, that is, the basic definition
 of the file format and the proper classes to create and read back data files.
@@ -25,12 +25,12 @@ File base classes
 The module provides base classes for input and output files, than are then
 specialized for, e.g., digitized or reconstructed data.
 
-:class:`OutputFileBase <hexsample.io.OutputFileBase>` is the base file for
+:class:`OutputFileBase <hexsample.fileio.OutputFileBase>` is the base file for
 output files. Instantiating an object of this class causes the output file to
 be opened in write mode, and a ``header`` node to be created that can be
 used to store arbitrary user attributes---typically to keep track of the
 simulation or reconstruction settings. The file header can bu updated via the
-:meth:`update_header() <hexsample.io.OutputFileBase.update_header>` call, which
+:meth:`update_header() <hexsample.fileio.OutputFileBase.update_header>` call, which
 loops over the keyword arguments and set the attributes one at a time.
 
 
@@ -43,7 +43,7 @@ would ordinarily be written out by the DAQ, i.e., the trigger identifier, the
 timestamp, and all the quantities that are necessary in order to uniquely identify
 the region of interest:
 
-.. literalinclude:: ../hexsample/io.py
+.. literalinclude:: ../hexsample/fileio.py
    :pyobject: DigiDescription
 
 In addition, the PHA content of the ROI (which is a variable-length array by its
@@ -53,7 +53,7 @@ group holding the digi table.
 For simulated data, digitized files contain an additional table encapsulating the
 ground truth information for the event.
 
-.. literalinclude:: ../hexsample/io.py
+.. literalinclude:: ../hexsample/fileio.py
    :pyobject: MonteCarloDescription
 
 
@@ -62,4 +62,4 @@ ground truth information for the event.
 Module documentation
 --------------------
 
-.. automodule:: hexsample.io
+.. automodule:: hexsample.fileio

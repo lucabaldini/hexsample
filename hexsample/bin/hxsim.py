@@ -28,7 +28,7 @@ from tqdm import tqdm
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
 from hexsample.digi import Xpol3
-from hexsample.io import DigiOutputFile
+from hexsample.fileio import DigiOutputFile
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
 from hexsample.source import LineForest, GaussianBeam, Source
