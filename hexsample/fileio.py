@@ -185,7 +185,7 @@ class OutputFileBase(tables.File):
         # pylint: disable=protected-access
         logger.info('Updating file header...')
         for key, value in kwargs.items():
-            if isinstance(value, tuple) or isinstance(value, list):
+            if isinstance(value, (tuple, list)):
                 logger.debug(f'Converting {key} ({value}) to a native numpy array...')
                 value = np.array(value)
                 logger.debug(f'-> {value}.')
@@ -325,6 +325,7 @@ class InputFileBase(tables.File):
 
         This is used, e.g, to rebuild the header information.
         """
+        # pylint: disable=protected-access
         return {key : group._v_attrs[key] for key in group._v_attrs._f_list('user')}
 
     def header_value(self, key : str, default : Any = None) -> Any:

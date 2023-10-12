@@ -55,6 +55,7 @@ def hxrecon(**kwargs):
     suffix = kwargs['suffix']
     output_file_path = input_file_path.replace('.h5', f'_{suffix}.h5')
     output_file = ReconOutputFile(output_file_path)
+    output_file.update_header(**kwargs)
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         args = event.trigger_id, event.timestamp(), event.livetime, event.roi.size, cluster
