@@ -3,6 +3,9 @@
 Release notes
 =============
 
+
+*hexsample (0.2.0) - Thu, 12 Oct 2023 17:51:13 +0200*
+
 * Merging https://github.com/lucabaldini/hexsample/pull/11
 * Merging https://github.com/lucabaldini/hexsample/pull/10
 * Merging https://github.com/lucabaldini/hexsample/pull/17
