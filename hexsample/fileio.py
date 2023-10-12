@@ -169,8 +169,14 @@ class OutputFileBase(tables.File):
         super().__init__(file_path, 'w')
         self.header_group = self.create_group(self.root, 'header', 'File header')
 
-    def update_header(self, **kwargs) -> None:
-        """Update the file header with arbitary keyword arguments.
+    def update_header(self, **kwargs):
+        """Update the user attributes in the header group.
+        """
+        self.update_user_attributes(self.header_group, **kwargs)
+
+    @staticmethod
+    def update_user_attributes(group, **kwargs) -> None:
+        """Update the user attributes for a given group.
 
         The basic rules, here, are that all the keys of the keyword arguments
         must be string, and the values can be arbitrary data types. Following
@@ -183,13 +189,13 @@ class OutputFileBase(tables.File):
         Python-aware or not) application.
         """
         # pylint: disable=protected-access
-        logger.info('Updating file header...')
+        logger.info(f'Updating {group._v_pathname} group metadata...')
         for key, value in kwargs.items():
             if isinstance(value, (tuple, list)):
                 logger.debug(f'Converting {key} ({value}) to a native numpy array...')
                 value = np.array(value)
                 logger.debug(f'-> {value}.')
-            self.header_group._v_attrs[key] = value
+            group._v_attrs[key] = value
 
     def add_row(self, *args) -> None:
         """Virtual function to add a row to the output file.
@@ -277,10 +283,16 @@ class ReconOutputFile(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
+        self.digi_header_group = self.create_group(self.root, 'digi_header', 'Digi file header')
         self.recon_group = self.create_group(self.root, 'recon', 'Recon')
         self.recon_table = self.create_table(self.recon_group, *self.RECON_TABLE_SPECS)
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
         self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
+
+    def update_digi_header(self, **kwargs):
+        """Update the user arguments in the digi header group.
+        """
+        self.update_user_attributes(self.digi_header_group, **kwargs)
 
     def add_row(self, recon_event : ReconEvent, mc_event : MonteCarloEvent) -> None:
         """Add one row to the file.
@@ -316,7 +328,6 @@ class InputFileBase(tables.File):
         logger.info(f'Opening input file {file_path}...')
         super().__init__(file_path, 'r')
         self.header = self._user_attributes(self.root.header)
-        logger.info(f'File header: {self.header}')
 
     @staticmethod
     def _user_attributes(group : tables.group.Group) -> dict:
@@ -402,5 +413,6 @@ class ReconInputFile(InputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
+        self.digi_header = self._user_attributes(self.root.digi_header)
         self.recon_table = self.root.recon.recon_table
         self.mc_table = self.root.mc.mc_table
