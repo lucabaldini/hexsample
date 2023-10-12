@@ -20,6 +20,8 @@
 """Definition of the file format.
 """
 
+from typing import Any
+
 from loguru import logger
 import numpy as np
 import tables
@@ -165,7 +167,7 @@ class OutputFileBase(tables.File):
         """
         logger.info(f'Opening output file {file_path}...')
         super().__init__(file_path, 'w')
-        self.header = self.create_group(self.root, 'header', 'File header')
+        self.header_group = self.create_group(self.root, 'header', 'File header')
 
     def update_header(self, **kwargs) -> None:
         """Update the file header with arbitary keyword arguments.
@@ -187,7 +189,7 @@ class OutputFileBase(tables.File):
                 logger.debug(f'Converting {key} ({value}) to a native numpy array...')
                 value = np.array(value)
                 logger.debug(f'-> {value}.')
-            self.header._v_attrs[key] = value
+            self.header_group._v_attrs[key] = value
 
     def add_row(self, *args) -> None:
         """Virtual function to add a row to the output file.
@@ -303,7 +305,36 @@ class ReconOutputFile(OutputFileBase):
 
 
 
-class DigiInputFile(tables.File):
+class InputFileBase(tables.File):
+
+    """Base class for input files.
+    """
+
+    def __init__(self, file_path : str):
+        """Constructor.
+        """
+        logger.info(f'Opening input file {file_path}...')
+        super().__init__(file_path, 'r')
+        self.header = self._user_attributes(self.root.header)
+        logger.info(f'File header: {self.header}')
+
+    @staticmethod
+    def _user_attributes(group : tables.group.Group) -> dict:
+        """Return all the user attributes for a given group in the form of a
+        Python dictionary.
+
+        This is used, e.g, to rebuild the header information.
+        """
+        return {key : group._v_attrs[key] for key in group._v_attrs._f_list('user')}
+
+    def header_value(self, key : str, default : Any = None) -> Any:
+        """Return the header value corresponding to a given key.
+        """
+        return self.header.get(key, default)
+
+
+
+class DigiInputFile(InputFileBase):
 
     """Description of a digitized input file.
 
@@ -316,8 +347,7 @@ class DigiInputFile(tables.File):
     def __init__(self, file_path : str):
         """Constructor.
         """
-        logger.info(f'Opening input digi file {file_path}...')
-        super().__init__(file_path, 'r')
+        super().__init__(file_path)
         self.digi_table = self.root.digi.digi_table
         self.pha_array = self.root.digi.pha
         self.mc_table = self.root.mc.mc_table
@@ -362,7 +392,7 @@ class DigiInputFile(tables.File):
 
 
 
-class ReconInputFile(tables.File):
+class ReconInputFile(InputFileBase):
 
     """Description of a reconstructed input file.
     """
@@ -370,7 +400,6 @@ class ReconInputFile(tables.File):
     def __init__(self, file_path : str):
         """Constructor.
         """
-        logger.info(f'Opening input recon file {file_path}...')
-        super().__init__(file_path, 'r')
+        super().__init__(file_path)
         self.recon_table = self.root.recon.recon_table
         self.mc_table = self.root.mc.mc_table
