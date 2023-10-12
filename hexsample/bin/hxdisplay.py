@@ -25,7 +25,7 @@
 from hexsample.app import ArgumentParser
 from hexsample.digi import Xpol3
 from hexsample.display import HexagonalGridDisplay
-from hexsample.io import DigiInputFile
+from hexsample.fileio import DigiInputFile
 from hexsample.plot import plt
 
 

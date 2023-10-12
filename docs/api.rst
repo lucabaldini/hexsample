@@ -21,7 +21,7 @@ List of modules
    digi
    display
    hexagon
-   io
+   fileio
    mc
    pprint
    recon

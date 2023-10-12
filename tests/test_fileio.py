@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Test suite for hexsample.io
+"""Test suite for hexsample.fileio
 """
 
 from loguru import logger
@@ -21,7 +21,7 @@ import numpy as np
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.digi import DigiEvent
-from hexsample.io import DigiInputFile, DigiOutputFile
+from hexsample.fileio import DigiInputFile, DigiOutputFile
 from hexsample.mc import MonteCarloEvent
 from hexsample.roi import RegionOfInterest, Padding
 
@@ -42,7 +42,7 @@ def _digi_event(index : int) -> DigiEvent:
 def _test_write(file_path, num_events : int = 10):
     """Small test writing a bunch of toy event strcutures to file.
     """
-    output_file = DigiOutputFile(file_path, mc=True)
+    output_file = DigiOutputFile(file_path)
     for i in range(num_events):
         output_file.add_row(_digi_event(i), _mc_event(i))
     output_file.close()

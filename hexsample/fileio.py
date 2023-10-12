@@ -20,7 +20,10 @@
 """Definition of the file format.
 """
 
+from typing import Any
+
 from loguru import logger
+import numpy as np
 import tables
 
 from hexsample.mc import MonteCarloEvent
@@ -142,7 +145,69 @@ def _fill_recon_row(row : tables.tableextension.Row, event : ReconEvent) -> None
 
 
 
-class DigiOutputFile(tables.File):
+class OutputFileBase(tables.File):
+
+    """Base class for output files.
+
+    The base class has the responsibility of opening the output file and create a
+    header node to store all the necessary metadata. Subclasses can use the
+    update_header() hook to write arbitrary user attributes in the header node.
+
+    Note this is a purely virtual class, and subclasses should reimplement the
+    add_row() and flush() methods.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the file on disk.
+    """
+
+    def __init__(self, file_path : str) -> None:
+        """Constructor.
+        """
+        logger.info(f'Opening output file {file_path}...')
+        super().__init__(file_path, 'w')
+        self.header_group = self.create_group(self.root, 'header', 'File header')
+
+    def update_header(self, **kwargs) -> None:
+        """Update the file header with arbitary keyword arguments.
+
+        The basic rules, here, are that all the keys of the keyword arguments
+        must be string, and the values can be arbitrary data types. Following
+        up on the discussion at https://www.pytables.org/usersguide/tutorials.html
+        we write the keywords arguments one at a time (as opposed to the entire
+        dictionary all at once) and make an effort to convert the Python types
+        to native numpy arrays when that is not performed automatically (e.g.,
+        for lists and tuples). This avoids the need for serializing the Python
+        data and should ensure that the output file can be read with any (be it
+        Python-aware or not) application.
+        """
+        # pylint: disable=protected-access
+        logger.info('Updating file header...')
+        for key, value in kwargs.items():
+            if isinstance(value, (tuple, list)):
+                logger.debug(f'Converting {key} ({value}) to a native numpy array...')
+                value = np.array(value)
+                logger.debug(f'-> {value}.')
+            self.header_group._v_attrs[key] = value
+
+    def add_row(self, *args) -> None:
+        """Virtual function to add a row to the output file.
+
+        This needs to be reimplemented in derived classes.
+        """
+        raise NotImplementedError
+
+    def flush(self) -> None:
+        """Virtual function to flush the file.
+
+        This needs to be reimplemented in derived classes.
+        """
+        raise NotImplementedError
+
+
+
+class DigiOutputFile(OutputFileBase):
 
     """Description of a digitized output file.
 
@@ -154,33 +219,23 @@ class DigiOutputFile(tables.File):
     ---------
     file_path : str
         The path to the file on disk.
-
-    mc : bool
-        If True, a specific group and table is created in the file to hold the
-        Monte Carlo information.
     """
 
     DIGI_TABLE_SPECS = ('digi_table', DigiDescription, 'Digi data')
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
-    def __init__(self, file_path : str, mc : bool = False):
+    def __init__(self, file_path : str):
         """Constructor.
         """
-        logger.info(f'Opening output digi file {file_path}...')
-        super().__init__(file_path, 'w')
-        #self.config = self.create_group(self.root, 'config', 'Data acquisition setup')
+        super().__init__(file_path)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
-        if mc:
-            self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
-            self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
-        else:
-            self.mc_group = None
-            self.mc_table = None
+        self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
+        self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
 
-    def add_row(self, digi_event : DigiEvent, mc_event : MonteCarloEvent = None) -> None:
+    def add_row(self, digi_event : DigiEvent, mc_event : MonteCarloEvent) -> None:
         """Add one row to the file.
 
         Arguments
@@ -191,22 +246,21 @@ class DigiOutputFile(tables.File):
         mc : MonteCarloEvent
             The Monte Carlo event contribution.
         """
+        # pylint: disable=arguments-differ
         _fill_digi_row(self.digi_table.row, digi_event)
         self.pha_array.append(digi_event.pha.flatten())
-        if mc_event is not None:
-            _fill_mc_row(self.mc_table.row, mc_event)
+        _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.
         """
         self.digi_table.flush()
         self.pha_array.flush()
-        if self.mc_table is not None:
-            self.mc_table.flush()
+        self.mc_table.flush()
 
 
 
-class ReconOutputFile(tables.File):
+class ReconOutputFile(OutputFileBase):
 
     """Description of a reconstructed output file.
 
@@ -214,31 +268,21 @@ class ReconOutputFile(tables.File):
     ---------
     file_path : str
         The path to the file on disk.
-
-    mc : bool
-        If True, a specific group and table is created in the file to hold the
-        Monte Carlo information.
     """
 
     RECON_TABLE_SPECS = ('recon_table', ReconDescription, 'Recon data')
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
-    def __init__(self, file_path : str, mc : bool = False):
+    def __init__(self, file_path : str):
         """Constructor.
         """
-        logger.info(f'Opening output recon file {file_path}...')
-        super().__init__(file_path, 'w')
-        #self.config = self.create_group(self.root, 'config', 'Data acquisition setup')
+        super().__init__(file_path)
         self.recon_group = self.create_group(self.root, 'recon', 'Recon')
         self.recon_table = self.create_table(self.recon_group, *self.RECON_TABLE_SPECS)
-        if mc:
-            self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
-            self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
-        else:
-            self.mc_group = None
-            self.mc_table = None
+        self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
+        self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
 
-    def add_row(self, recon_event : ReconEvent, mc_event : MonteCarloEvent = None) -> None:
+    def add_row(self, recon_event : ReconEvent, mc_event : MonteCarloEvent) -> None:
         """Add one row to the file.
 
         Arguments
@@ -249,20 +293,49 @@ class ReconOutputFile(tables.File):
         mc : MonteCarloEvent
             The Monte Carlo event contribution.
         """
+        # pylint: disable=arguments-differ
         _fill_recon_row(self.recon_table.row, recon_event)
-        if mc_event is not None:
-            _fill_mc_row(self.mc_table.row, mc_event)
+        _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.
         """
         self.recon_table.flush()
-        if self.mc_table is not None:
-            self.mc_table.flush()
+        self.mc_table.flush()
 
 
 
-class DigiInputFile(tables.File):
+class InputFileBase(tables.File):
+
+    """Base class for input files.
+    """
+
+    def __init__(self, file_path : str):
+        """Constructor.
+        """
+        logger.info(f'Opening input file {file_path}...')
+        super().__init__(file_path, 'r')
+        self.header = self._user_attributes(self.root.header)
+        logger.info(f'File header: {self.header}')
+
+    @staticmethod
+    def _user_attributes(group : tables.group.Group) -> dict:
+        """Return all the user attributes for a given group in the form of a
+        Python dictionary.
+
+        This is used, e.g, to rebuild the header information.
+        """
+        # pylint: disable=protected-access
+        return {key : group._v_attrs[key] for key in group._v_attrs._f_list('user')}
+
+    def header_value(self, key : str, default : Any = None) -> Any:
+        """Return the header value corresponding to a given key.
+        """
+        return self.header.get(key, default)
+
+
+
+class DigiInputFile(InputFileBase):
 
     """Description of a digitized input file.
 
@@ -275,8 +348,7 @@ class DigiInputFile(tables.File):
     def __init__(self, file_path : str):
         """Constructor.
         """
-        logger.info(f'Opening input digi file {file_path}...')
-        super().__init__(file_path, 'r')
+        super().__init__(file_path)
         self.digi_table = self.root.digi.digi_table
         self.pha_array = self.root.digi.pha
         self.mc_table = self.root.mc.mc_table
@@ -321,7 +393,7 @@ class DigiInputFile(tables.File):
 
 
 
-class ReconInputFile(tables.File):
+class ReconInputFile(InputFileBase):
 
     """Description of a reconstructed input file.
     """
@@ -329,7 +401,6 @@ class ReconInputFile(tables.File):
     def __init__(self, file_path : str):
         """Constructor.
         """
-        logger.info(f'Opening input recon file {file_path}...')
-        super().__init__(file_path, 'r')
+        super().__init__(file_path)
         self.recon_table = self.root.recon.recon_table
         self.mc_table = self.root.mc.mc_table

@@ -100,9 +100,14 @@ class ArgumentParser(argparse.ArgumentParser):
 
     def add_outfile(self, default : str) -> None:
         """Add an option for the output file.
+
+        Note that we cast the default to a string---this prevents having
+        pathlib.Path instances around, which would then needed to be handled
+        properly in specific places (such as adding metadata to the output HDF5
+        file headers).
         """
         help = 'path to the output file'
-        self.add_argument('--outfile', '-o', type=str, default=default, help=help)
+        self.add_argument('--outfile', '-o', type=str, default=str(default), help=help)
 
     def add_suffix(self, default : str) -> None:
         """Add an option for the output suffix.

@@ -5,11 +5,19 @@ Release notes
 
 * Merging https://github.com/lucabaldini/hexsample/pull/11
 * Merging https://github.com/lucabaldini/hexsample/pull/10
+* Merging https://github.com/lucabaldini/hexsample/pull/17
+* Casting the outputfile default argument to string in ArgumentParser in order
+  to avoid possible problems downstream with patlib.Path instances.
+* mc option removed from output digi and recon files.
+* Base classes for input and output files added, and machinery for adding
+  and retrieving metadata information to/from file headers added.
+* io module renamed as fileio
 * Added protection against mistyped parameter names in pipeline calls.
 * uncertainties added as a requirement.
 * PlotCard class completely refactored.
 * Updating the hxview script.
 * Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/14
       * https://github.com/lucabaldini/hexsample/issues/15
 
 
