@@ -19,6 +19,22 @@ of the file format and the proper classes to create and read back data files.
    the package that might see drastic changes in the future.
 
 
+File base classes
+-----------------
+
+The module provides base classes for input and output files, than are then
+specialized for, e.g., digitized or reconstructed data.
+
+:class:`OutputFileBase <hexsample.io.OutputFileBase>` is the base file for
+output files. Instantiating an object of this class causes the output file to
+be opened in write mode, and a ``header`` node to be created that can be
+used to store arbitrary user attributes---typically to keep track of the
+simulation or reconstruction settings. The file header can bu updated via the
+:meth:`update_header() <hexsample.io.OutputFileBase.update_header>` call, which
+loops over the keyword arguments and set the attributes one at a time.
+
+
+
 Digitized data
 --------------
 
