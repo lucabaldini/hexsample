@@ -11,6 +11,7 @@ Release notes
 * mc option removed from output digi and recon files.
 * Base classes for input and output files added, and machinery for adding
   and retrieving metadata information to/from file headers added.
+* Digi header group metadata propagated to the recon files.
 * io module renamed as fileio
 * Added protection against mistyped parameter names in pipeline calls.
 * uncertainties added as a requirement.
