@@ -20,6 +20,8 @@
 """Definition of the file format.
 """
 
+import inspect
+import pathlib
 import time
 from typing import Any
 
@@ -171,7 +173,9 @@ class OutputFileBase(tables.File):
         logger.info(f'Opening output file {file_path}...')
         super().__init__(file_path, 'w')
         self.header_group = self.create_group(self.root, 'header', 'File header')
-        self._set_user_attribute(self.header_group, 'date', time.strftime(self._DATE_FORMAT))
+        date = time.strftime(self._DATE_FORMAT)
+        creator = pathlib.Path(inspect.stack()[-1].filename).name
+        self.update_header(date=date, creator=creator)
 
     def update_header(self, **kwargs) -> None:
         """Update the user attributes in the header group.
