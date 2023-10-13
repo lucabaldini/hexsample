@@ -29,6 +29,16 @@ from hexsample.modeling import Gaussian
 from hexsample.plot import plt, setup_gca
 
 
+
+def absz_analysis(input_file : ReconInputFile):
+    """
+    """
+    absz = input_file.mc_column('absz')
+    h = Histogram1d(np.linspace(0., 0.06, 100)).fill(absz)
+    h.plot()
+    setup_gca(logy=True)
+
+
 def cluster_size_analysis(input_file : ReconInputFile):
     """
     """
@@ -62,11 +72,12 @@ def pha_analysis(input_file : ReconInputFile):
 
 
 if __name__ == '__main__':
-    thickness = 500
-    enc = 40
+    thickness = 200
+    enc = 20
     thr = 2 * enc
     file_path = f'/home/lbaldini/hexsampledata/sim_thick{thickness}_enc{enc}_diffx1_recon_thr{thr}.h5'
     recon_file = ReconInputFile(file_path)
     #cluster_size_analysis(recon_file)
-    pha_analysis(recon_file)
+    #pha_analysis(recon_file)
+    absz_analysis(recon_file)
     plt.show()
