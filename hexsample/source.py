@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
 import numpy as np
 import xraydb
@@ -48,7 +48,7 @@ class BeamBase:
     x0 : float = 0.
     y0 : float = 0.
 
-    def rvs(self, size : int = 1) -> tuple[np.ndarray, np.ndarray]:
+    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Do-nothing hook to generate random positions in the x-y plane.
 
         Arguments
@@ -79,7 +79,7 @@ class PointBeam(BeamBase):
         The y-coordinate of the beam centroid in cm.
     """
 
-    def rvs(self, size : int = 1) -> tuple[np.ndarray, np.ndarray]:
+    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
 
         Arguments
@@ -118,7 +118,7 @@ class DiskBeam(BeamBase):
 
     radius : float = 0.1
 
-    def rvs(self, size : int = 1) -> tuple[np.ndarray, np.ndarray]:
+    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
 
         Arguments
@@ -159,7 +159,7 @@ class GaussianBeam(BeamBase):
 
     sigma : float = 0.1
 
-    def rvs(self, size : int = 1) -> tuple[np.ndarray, np.ndarray]:
+    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
 
         Arguments
@@ -312,7 +312,7 @@ class Source:
         timestamp.sort()
         return timestamp
 
-    def rvs(self, size : int = 1) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Extract random X-ray initial properties.
 
         Arguments
