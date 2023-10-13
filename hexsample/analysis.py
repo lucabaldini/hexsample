@@ -24,7 +24,7 @@ import numpy as np
 
 from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
-from hexsample.io import ReconInputFile
+from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian
 from hexsample.plot import plt, setup_gca
 
@@ -64,20 +64,21 @@ def pha_analysis(input_file : ReconInputFile):
     h = Histogram1d(binning).fill(rec_energy)
     h.plot()
     setup_gca(xlabel='Energy [keV]')
-    model = Gaussian() + Gaussian()
-    fit_histogram(model, h, p0=(1., 8050., 200., 0.5, 8900., 100.), xmin=7890)
+    #model = Gaussian() + Gaussian()
+    #fit_histogram(model, h, p0=(1., 8050., 100., 0.5, 8900., 100.), xmin=7890)
+    model = fit_histogram(Gaussian(), h, p0=(1., 8900., 100.), xmin=8600)
     model.plot()
     model.stat_box()
 
 
 
 if __name__ == '__main__':
-    thickness = 200
-    enc = 20
+    thickness = 500
+    enc = 10
     thr = 2 * enc
-    file_path = f'/home/lbaldini/hexsampledata/sim_thick{thickness}_enc{enc}_diffx1_recon_thr{thr}.h5'
+    file_path = f'/home/lbaldini/hexsampledata/sim_{thickness}um_{enc}enc_recon_nn2_thr{thr}.h5'
     recon_file = ReconInputFile(file_path)
     #cluster_size_analysis(recon_file)
-    #pha_analysis(recon_file)
-    absz_analysis(recon_file)
+    pha_analysis(recon_file)
+    #absz_analysis(recon_file)
     plt.show()
