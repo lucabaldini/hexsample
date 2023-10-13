@@ -21,6 +21,7 @@
 """
 
 from dataclasses import dataclass
+from typing import Tuple
 
 import xraydb
 
@@ -69,7 +70,7 @@ class ReconEvent:
         """
         return ionization_potential * self.cluster.pulse_height()
 
-    def position(self) -> tuple[float, float]:
+    def position(self) -> Tuple[float, float]:
         """Return the reconstructed position of the event.
         """
         return self.cluster.centroid()

@@ -21,6 +21,7 @@
 """
 
 from dataclasses import dataclass
+from typing import Tuple
 
 import numpy as np
 
@@ -104,7 +105,7 @@ class RegionOfInterest:
         if isinstance(self.padding, int):
             self.padding = Padding(self.padding)
 
-    def shape(self) -> tuple[int, int]:
+    def shape(self) -> Tuple[int, int]:
         """Return the shape of the ROI.
 
         Note that rows goes first and cols goes last---this is the shape that
@@ -113,7 +114,7 @@ class RegionOfInterest:
         """
         return self.num_rows, self.num_cols
 
-    def at_border(self, chip_size : tuple[int, int]):
+    def at_border(self, chip_size : Tuple[int, int]):
         """Return True if the ROI is on the border for a given chip_size.
 
         We should consider making the chip size a class member, because it looks
@@ -133,7 +134,7 @@ class RegionOfInterest:
         """
         return np.arange(self.min_row, self.max_row + 1)
 
-    def serial_readout_coordinates(self) -> tuple[np.array, np.array]:
+    def serial_readout_coordinates(self) -> Tuple[np.array, np.array]:
         """Return two one-dimensional arrays containing the column and row
         indexes, respectively, in order of serial readout of the ROI.
 
@@ -163,7 +164,7 @@ class RegionOfInterest:
         """
         return np.arange(self.size).reshape(self.shape())
 
-    def rot_slice(self) -> tuple[slice, slice]:
+    def rot_slice(self) -> Tuple[slice, slice]:
         """Return a pair of slice objects that can be used to address the ROT
         part of a numpy array representing, e.g., the pha values of a given event.
 
