@@ -93,7 +93,7 @@ class PhotonList:
         """Constructor.
         """
         self.timestamp, self.energy, self.absx, self.absy = source.rvs(num_photons)
-        self.absz = sensor.rvs_absorption_depth(self.energy)
+        self.absz = sensor.rvs_absz(self.energy)
         self.num_pairs = sensor.material.rvs_num_pairs(self.energy)
         self.__index = -1
 

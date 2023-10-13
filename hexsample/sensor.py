@@ -247,6 +247,16 @@ class Sensor:
         dist = scipy.stats.expon(scale=lambda_)
         return dist.ppf(np.random.uniform(0., dist.cdf(self.thickness)))
 
+    def rvs_absz(self, energy : np.ndarray) -> np.ndarray:
+        """Extract random variates for the absorption position along the z axis.
+
+        Not that, in our parallel-plane geometry, the z axis runs perpendicularly
+        to the readout plane, which is assumed to be at z = 0. The top of the
+        sensor is therefore at z = thickness, and all the photons are assumed
+        to have a momentum parallel to the z axis.
+        """
+        return self.thickness - self.rvs_absorption_depth(energy)
+
 
 
 class SiliconSensor(Sensor):
