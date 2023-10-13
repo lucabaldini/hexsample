@@ -21,6 +21,7 @@
 """
 
 from dataclasses import dataclass
+from typing import Tuple
 
 import numpy as np
 
@@ -56,7 +57,7 @@ class Cluster:
         """
         return self.pha.sum()
 
-    def centroid(self) -> tuple[float, float]:
+    def centroid(self) -> Tuple[float, float]:
         """Return the cluster centroid.
         """
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)

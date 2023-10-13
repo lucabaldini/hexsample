@@ -22,6 +22,7 @@
 
 
 from enum import Enum, auto
+from typing import Tuple
 
 import numpy as np
 
@@ -204,7 +205,7 @@ class HexagonalGrid:
         value = index & 1
         return value if self.even() else - value
 
-    def pixel_to_world(self, col : np.array, row : np.array) -> tuple[np.array, np.array]:
+    def pixel_to_world(self, col : np.array, row : np.array) -> Tuple[np.array, np.array]:
         """Transform pixel coordinates to world coordinates.
 
         Arguments
@@ -224,7 +225,7 @@ class HexagonalGrid:
             y = self.yoffset - (row - 0.5 * self._parity_offset(col)) * self.pitch
         return x, y
 
-    def _float_axial(self, x : np.array, y : np.array) -> tuple[np.array, np.array]:
+    def _float_axial(self, x : np.array, y : np.array) -> Tuple[np.array, np.array]:
         """Conversion of a given set of world coordinates into fractional axial
         coordinates, a. k. a. step 1 in the transformation between world coordinates
         to pixel coordinates.
@@ -249,7 +250,7 @@ class HexagonalGrid:
         return q, r
 
     @staticmethod
-    def _axial_round(q : np.array, r : np.array) -> tuple[np.array, np.array]:
+    def _axial_round(q : np.array, r : np.array) -> Tuple[np.array, np.array]:
         """Rounding to integer of the axial coordinates, a. k. a. step 2 in the
         transformation between world coordinates to pixel coordinates.
 
@@ -272,7 +273,7 @@ class HexagonalGrid:
         dr = np.round(r + 0.5 * q) * (q**2. < r**2.)
         return (qgrid + dq).astype(int), (rgrid + dr).astype(int)
 
-    def _axial_to_offset(self, q : np.array, r : np.array) -> tuple[np.array, np.array]:
+    def _axial_to_offset(self, q : np.array, r : np.array) -> Tuple[np.array, np.array]:
         """Conversion from axial to offset coordinates, a. k. a. step 3 in the
         transformation between world coordinates to pixel coordinates.
 
@@ -295,7 +296,7 @@ class HexagonalGrid:
             row = r + (q + self._parity_offset(q)) // 2
         return col, row
 
-    def world_to_pixel(self, x : np.array, y : np.array) -> tuple[np.array, np.array]:
+    def world_to_pixel(self, x : np.array, y : np.array) -> Tuple[np.array, np.array]:
         """Transform world coordinates to pixel coordinates.
 
         This proceeds in three basic steps (conversion to fractional axial coordinates,

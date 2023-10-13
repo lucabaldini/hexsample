@@ -4,6 +4,13 @@ Release notes
 =============
 
 
+*hexsample (0.3.1) - Fri, 13 Oct 2023 15:41:01 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/20
+* Added support for Python 3.7 through small tweaks to the type annotations.
+* Added setup.bat script to support development under Windows.
+
+
 *hexsample (0.3.0) - Fri, 13 Oct 2023 14:28:53 +0200*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/18
