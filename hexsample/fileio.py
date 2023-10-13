@@ -20,6 +20,7 @@
 """Definition of the file format.
 """
 
+import time
 from typing import Any
 
 from loguru import logger
@@ -162,20 +163,30 @@ class OutputFileBase(tables.File):
         The path to the file on disk.
     """
 
+    _DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
+
     def __init__(self, file_path : str) -> None:
         """Constructor.
         """
         logger.info(f'Opening output file {file_path}...')
         super().__init__(file_path, 'w')
         self.header_group = self.create_group(self.root, 'header', 'File header')
+        self._set_user_attribute(self.header_group, 'date', time.strftime(self._DATE_FORMAT))
 
-    def update_header(self, **kwargs):
+    def update_header(self, **kwargs) -> None:
         """Update the user attributes in the header group.
         """
         self.update_user_attributes(self.header_group, **kwargs)
 
     @staticmethod
-    def update_user_attributes(group, **kwargs) -> None:
+    def _set_user_attribute(group : tables.group.Group, name : str, value : Any) -> None:
+        """Set a user attribute for a given group.
+        """
+        # pylint: disable=protected-access
+        group._v_attrs[name] = value
+
+    @staticmethod
+    def update_user_attributes(group : tables.group.Group, **kwargs) -> None:
         """Update the user attributes for a given group.
 
         The basic rules, here, are that all the keys of the keyword arguments
@@ -189,13 +200,13 @@ class OutputFileBase(tables.File):
         Python-aware or not) application.
         """
         # pylint: disable=protected-access
-        logger.info(f'Updating {group._v_pathname} group metadata...')
-        for key, value in kwargs.items():
+        logger.info(f'Updating {group._v_pathname} group user attributes...')
+        for name, value in kwargs.items():
             if isinstance(value, (tuple, list)):
-                logger.debug(f'Converting {key} ({value}) to a native numpy array...')
+                logger.debug(f'Converting {name} ({value}) to a native numpy array...')
                 value = np.array(value)
                 logger.debug(f'-> {value}.')
-            group._v_attrs[key] = value
+            OutputFileBase._set_user_attribute(group, name, value)
 
     def add_row(self, *args) -> None:
         """Virtual function to add a row to the output file.
