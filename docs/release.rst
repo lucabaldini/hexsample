@@ -4,7 +4,9 @@ Release notes
 =============
 
 * Merging https://github.com/lucabaldini/hexsample/pull/18
+* Merging https://github.com/lucabaldini/hexsample/pull/19
 * Cleanup and linting.
+* Glaring bug in the simulation (the z coordinate of absorption was swapped) fixed.
 
 
 *hexsample (0.2.0) - Thu, 12 Oct 2023 17:51:13 +0200*
