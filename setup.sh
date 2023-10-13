@@ -6,7 +6,7 @@
 SETUP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 #
-# Base package root. All the other releavant folders are relative to this
+# Base package root. All the other relevant folders are relative to this
 # location.
 #
 export HEXSAMPLE_ROOT=$SETUP_DIR

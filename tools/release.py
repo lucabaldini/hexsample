@@ -24,6 +24,7 @@
 
 from enum import Enum
 import time
+from typing import Tuple
 
 from loguru import logger
 
@@ -69,7 +70,7 @@ def build_version_string(major : int, minor : int, micro : int) -> str:
     """
     return f'{major}.{minor}.{micro}'
 
-def parse_version_string(version_string : str) -> tuple[int, int, int]:
+def parse_version_string(version_string : str) -> Tuple[int, int, int]:
     """Parse a version string.
 
     Note we are not doing anything fancier than sticking to a simple

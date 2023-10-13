@@ -21,6 +21,7 @@
 """
 
 from dataclasses import dataclass
+from typing import Tuple
 
 from loguru import logger
 import numpy as np
@@ -121,7 +122,7 @@ class DigiEvent:
         """
         return self.pha[row - self.roi.min_row, col - self.roi.min_col]
 
-    def highest_pixel(self, absolute : bool = True) -> tuple[int, int]:
+    def highest_pixel(self, absolute : bool = True) -> Tuple[int, int]:
         """Return the coordinates (col, row) of the highest pixel.
 
         Arguments
@@ -346,7 +347,7 @@ class HexagonalReadout(HexagonalGrid):
         return pha.flatten()
 
     @staticmethod
-    def latch_timestamp(timestamp : float) -> tuple[int, int, int]:
+    def latch_timestamp(timestamp : float) -> Tuple[int, int, int]:
         """Latch the event timestamp and return the corresponding fields of the
         digi event contribution: seconds, microseconds and livetime.
 
