@@ -35,7 +35,7 @@ from hxrecon import HXRECON_ARGPARSER, hxrecon as _hxrecon
 from hxsim import HXSIM_ARGPARSER, hxsim as _hxsim
 
 
-def required_args(parser : ArgumentParser) -> list:
+def required_arguments(parser : ArgumentParser) -> list:
     """Return a list of the positional arguments for a given parser.
 
     This is useful to retrieve all the default values from an ArgumentParser
@@ -47,9 +47,10 @@ def required_args(parser : ArgumentParser) -> list:
     parser : ArgumentParser
         The argument parser object for a given application.
     """
+    # pylint: disable=protected-access
     return [action.dest for action in parser._actions if action.required]
 
-def default_args(parser : ArgumentParser) -> dict:
+def default_arguments(parser : ArgumentParser) -> dict:
     """Return the default arguments for a given ArgumentParser object.
 
     If the parser has no positional arguments, this is simply achieved via a
@@ -68,13 +69,23 @@ def default_args(parser : ArgumentParser) -> dict:
     ---------
     parser : ArgumentParser
         The argument parser object for a given application.
-    """
-    args = required_args(parser)
-    kwargs = vars(parser.parse_args(args))
-    [kwargs.pop(key) for key in args]
-    return kwargs
 
-def update_args(parser : ArgumentParser, **kwargs) -> dict:
+    Returns
+    -------
+    args, kwargs : list, dict
+        The list of positional arguments and a dictionary of all the other arguments.
+    """
+    # Positional arguments.
+    args = required_arguments(parser)
+    # All parser arguments.
+    kwargs = vars(parser.parse_args(args))
+    # Strip the positional arguments from the complete list.
+    for key in args:
+        kwargs.pop(key)
+    # And return the two sets separately.
+    return args, kwargs
+
+def update_arguments(parser : ArgumentParser, **kwargs) -> dict:
     """Retrieve the default option from an ArgumentParser object and update
     specific keys based on arbitrary keyword arguments.
 
@@ -86,16 +97,22 @@ def update_args(parser : ArgumentParser, **kwargs) -> dict:
     kwargs : dict
         Additional keyword arguments.
     """
-    args = default_args(parser)
-    args.update(kwargs)
-    return args
+    # Retrieve the default arguments.
+    _args, _kwargs = default_arguments(parser)
+    # Loop over the kwargs passed to the function to make sure that all of them
+    # are recognized by the parser.
+    for key in kwargs:
+        if key not in _args and key not in _kwargs:
+            raise RuntimeError(f'Unknown parameter {key} passed to a pipeline component')
+    _kwargs.update(kwargs)
+    return _kwargs
 
 def hxrecon(**kwargs):
     """Application wrapper.
     """
-    return _hxrecon(**update_args(HXRECON_ARGPARSER, **kwargs))
+    return _hxrecon(**update_arguments(HXRECON_ARGPARSER, **kwargs))
 
 def hxsim(**kwargs):
     """Application wrapper.
     """
-    return _hxsim(**update_args(HXSIM_ARGPARSER, **kwargs))
+    return _hxsim(**update_arguments(HXSIM_ARGPARSER, **kwargs))

@@ -27,7 +27,7 @@ import numpy as np
 from hexsample.app import ArgumentParser
 from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
-from hexsample.io import ReconInputFile
+from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian
 from hexsample.plot import plt
 

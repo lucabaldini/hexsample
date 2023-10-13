@@ -85,6 +85,8 @@ class RegionOfInterest:
     extreme corners, in the order (min_col, max_col, min_row, max_row).
     """
 
+    # pylint: disable=too-many-instance-attributes
+
     min_col : int
     max_col : int
     min_row : int

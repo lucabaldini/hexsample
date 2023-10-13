@@ -22,10 +22,10 @@
 
 import argparse
 
-from hexsample import __package__
+from hexsample import __pkgname__
 
 
-START_MESSAGE = f'Welcome to {__package__}'
+START_MESSAGE = f'Welcome to {__pkgname__}'
 
 
 def print_start_msg():
@@ -89,26 +89,31 @@ class ArgumentParser(argparse.ArgumentParser):
     def add_infile(self) -> None:
         """Add an option for the input file.
         """
-        help = 'path to the input file'
-        self.add_argument('infile', type=str, help=help)
+        self.add_argument('infile', type=str,
+            help='path to the input file')
 
     def add_numevents(self, default : int) -> None:
         """Add an option for the number of events.
         """
-        help = 'number of events'
-        self.add_argument('--numevents', '-n', type=int, default=default, help=help)
+        self.add_argument('--numevents', '-n', type=int, default=default,
+            help='number of events')
 
     def add_outfile(self, default : str) -> None:
         """Add an option for the output file.
+
+        Note that we cast the default to a string---this prevents having
+        pathlib.Path instances around, which would then needed to be handled
+        properly in specific places (such as adding metadata to the output HDF5
+        file headers).
         """
-        help = 'path to the output file'
-        self.add_argument('--outfile', '-o', type=str, default=default, help=help)
+        self.add_argument('--outfile', '-o', type=str, default=str(default),
+            help='path to the output file')
 
     def add_suffix(self, default : str) -> None:
         """Add an option for the output suffix.
         """
-        help = 'suffix for the output file'
-        self.add_argument('--suffix', type=str, default=default, help=help)
+        self.add_argument('--suffix', type=str, default=default,
+            help='suffix for the output file')
 
     def add_source_options(self) -> None:
         """Add an option group for the source properties.
@@ -161,5 +166,5 @@ class ArgumentParser(argparse.ArgumentParser):
         group = self.add_argument_group('clustering', 'Clustering options')
         group.add_argument('--zsupthreshold', type=int, default=0,
             help='zero-suppression threshold in ADC counts')
-        group.add_argument('--nneighbors', type=int, default=6,
+        group.add_argument('--nneighbors', type=int, default=2,
             help='number of neighbors to be considered (0--6)')

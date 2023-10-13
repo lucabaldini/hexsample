@@ -28,7 +28,7 @@ from tqdm import tqdm
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
 from hexsample.digi import Xpol3
-from hexsample.io import DigiOutputFile
+from hexsample.fileio import DigiOutputFile
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
 from hexsample.source import LineForest, GaussianBeam, Source
@@ -60,7 +60,8 @@ def hxsim(**kwargs):
     photon_list = PhotonList(source, sensor, kwargs['numevents'])
     readout = Xpol3(kwargs['noise'], kwargs['gain'])
     output_file_path = kwargs.get('outfile')
-    output_file = DigiOutputFile(output_file_path, mc=True)
+    output_file = DigiOutputFile(output_file_path)
+    output_file.update_header(**kwargs)
     padding = Padding(*kwargs['padding'])
     readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
     logger.info('Starting the event loop...')
@@ -71,8 +72,7 @@ def hxsim(**kwargs):
     logger.info('Done!')
     output_file.flush()
     output_file.close()
-    # Cast the output_file_path to string, in case it happens to be a pathlib.Path object.
-    return str(output_file_path)
+    return output_file_path
 
 
 
