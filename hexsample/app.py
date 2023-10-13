@@ -166,5 +166,5 @@ class ArgumentParser(argparse.ArgumentParser):
         group = self.add_argument_group('clustering', 'Clustering options')
         group.add_argument('--zsupthreshold', type=int, default=0,
             help='zero-suppression threshold in ADC counts')
-        group.add_argument('--nneighbors', type=int, default=6,
+        group.add_argument('--nneighbors', type=int, default=2,
             help='number of neighbors to be considered (0--6)')
