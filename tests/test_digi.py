@@ -53,16 +53,11 @@ def test_digitization(layout : HexagonalLayout = HexagonalLayout.ODD_R, num_cols
     # Extract the counts: this should provide an array where all the values are
     # zero except the one at position (row, col)---don't forget rows go first in
     # the native numpy representation.
-    counts = readout.sample(x, y)
-    assert counts[row, col] == num_pairs
-    assert np.nonzero(counts) == (row, col)
-    # Extract the noise.
-    noise = readout.rvs_noise()
-    if enc <= 0.:
-        assert np.allclose(noise, np.zeros(readout.shape))
+    signal = readout.sample(x, y)
+    assert signal[row, col] == num_pairs
+    assert np.nonzero(signal) == (row, col)
     # Apply the trigger.
-    sig = counts + noise
-    trg = readout.trigger(sig, trg_threshold)
+    trg = readout.trigger(signal, trg_threshold)
     assert trg[row // 2, col // 2] == num_pairs
     assert np.nonzero(trg) == (row // 2, col // 2)
     # Calculate the ROI.
