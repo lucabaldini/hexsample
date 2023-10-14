@@ -263,17 +263,6 @@ class HexagonalReadout(HexagonalGrid):
         counts, _, _ = np.histogram2d(row, col, self._binning)
         return counts
 
-    def rvs_noise(self) -> np.ndarray:
-        """Extract a pure-noise random array with the size of the full readout chip.
-
-        This is sampled from a gaussian distribution with zero average. If the
-        `enc` class member is not strictly positive, this is returning an array
-        of zeroes with the proper shape.
-        """
-        if self.enc <= 0.:
-            return np.full(self.shape, 0.)
-        return np.random.normal(0., self.enc, size=self.shape)
-
     def trigger(self, signal : np.ndarray, trg_threshold : float) -> np.ndarray:
         """Apply the trigger to a given signal array and with a fixed threshold.
 
@@ -334,6 +323,9 @@ class HexagonalReadout(HexagonalGrid):
         """
         # Trim the signal to the given ROI...
         pha = self.trim_to_roi(signal, roi)
+        # ... add the noise.
+        if self.enc > 0:
+            pha += np.random.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
         pha *= self.gain
         # ... round to the neirest integer...
@@ -391,7 +383,7 @@ class HexagonalReadout(HexagonalGrid):
             Optional offset in ADC counts to be applied before the zero suppression.
         """
         # pylint: disable=invalid-name, too-many-arguments
-        signal = self.sample(x, y) + self.rvs_noise()
+        signal = self.sample(x, y)
         trg = self.trigger(signal, trg_threshold)
         roi = self.calculate_roi(trg, padding)
         pha = self.digitize(signal, roi, zero_sup_threshold, offset)
