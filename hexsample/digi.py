@@ -394,9 +394,6 @@ class HexagonalReadout(HexagonalGrid):
         """
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
-        #trg = self.trigger(signal, trg_threshold)
-        #roi = self.calculate_roi(trg, min_col, min_row, padding)
-        #pha = self.digitize(signal, roi, zero_sup_threshold, offset)
         roi, pha = self.trigger(signal, trg_threshold, min_col, min_row, padding)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEvent(self.trigger_id, seconds, microseconds, livetime, roi, pha)
