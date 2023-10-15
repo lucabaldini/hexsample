@@ -293,7 +293,9 @@ class HexagonalReadout(HexagonalGrid):
         signal array to the proper dimension.
 
         .. warning::
-           This is still incorrect at the edges of the readout chip.
+           This is still incorrect at the edges of the readout chip, as we are
+           not trimming the ROI (and the corresponding arrays) to the physical
+           dimensions of the chip.
         """
         trg = self.sum_miniclusters(signal)
         self.zero_suppress(trg, trg_threshold)
@@ -302,10 +304,10 @@ class HexagonalReadout(HexagonalGrid):
         cols_min = cols.min()
         rows_min = rows.min()
         top, right, bottom, left = padding
-        roi_min_col = np.clip(min_col + cols_min - left, 0, self.num_cols)
-        roi_max_col = np.clip(min_col + cols.max() + 1 + right, 0, self.num_cols)
-        roi_min_row = np.clip(min_row + rows_min - top, 0, self.num_rows)
-        roi_max_row = np.clip(min_row + rows.max() + 1 + bottom, 0, self.num_rows)
+        roi_min_col = min_col + cols_min - left
+        roi_max_col = min_col + cols.max() + 1 + right
+        roi_min_row = min_row + rows_min - top
+        roi_max_row = min_row + rows.max() + 1 + bottom
         roi = RegionOfInterest(roi_min_col, roi_max_col, roi_min_row, roi_max_row, padding)
         pha = np.full(roi.shape(), 0.)
         num_rows, num_cols = signal.shape
