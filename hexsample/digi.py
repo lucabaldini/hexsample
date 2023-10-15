@@ -297,22 +297,19 @@ class HexagonalReadout(HexagonalGrid):
            not trimming the ROI (and the corresponding arrays) to the physical
            dimensions of the chip.
         """
-        trg = self.sum_miniclusters(signal)
-        self.zero_suppress(trg, trg_threshold)
-        cols = 2 * np.nonzero(trg.sum(axis=0))[0]
-        rows = 2 * np.nonzero(trg.sum(axis=1))[0]
-        cols_min = cols.min()
-        rows_min = rows.min()
-        top, right, bottom, left = padding
-        roi_min_col = min_col + cols_min - left
-        roi_max_col = min_col + cols.max() + 1 + right
-        roi_min_row = min_row + rows_min - top
-        roi_max_row = min_row + rows.max() + 1 + bottom
+        trg_signal = self.sum_miniclusters(signal)
+        self.zero_suppress(trg_signal, trg_threshold)
+        trg_cols = 2 * np.nonzero(trg_signal.sum(axis=0))[0]
+        trg_rows = 2 * np.nonzero(trg_signal.sum(axis=1))[0]
+        roi_min_col = min_col + trg_cols.min() - padding.left
+        roi_max_col = min_col + trg_cols.max() + 1 + padding.right
+        roi_min_row = min_row + trg_rows.min() - padding.top
+        roi_max_row = min_row + trg_rows.max() + 1 + padding.bottom
         roi = RegionOfInterest(roi_min_col, roi_max_col, roi_min_row, roi_max_row, padding)
         pha = np.full(roi.shape(), 0.)
         num_rows, num_cols = signal.shape
-        start_row = bottom - rows_min
-        start_col = left - cols_min
+        start_row = padding.bottom - trg_rows.min()
+        start_col = padding.left - trg_cols.min()
         pha[start_row:start_row + num_rows, start_col:start_col + num_cols] = signal
         self.trigger_id += 1
         return roi, pha
