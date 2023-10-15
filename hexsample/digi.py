@@ -279,8 +279,8 @@ class HexagonalReadout(HexagonalGrid):
         trg_threshold : float
             The trigger threshold in electron equivalent.
         """
-        trg = HexagonalReadout.sum_miniclusters(signal)
-        HexagonalReadout.zero_suppress(trg, trg_threshold)
+        trg = self.sum_miniclusters(signal)
+        self.zero_suppress(trg, trg_threshold)
         self.trigger_id += 1
         return trg
 
