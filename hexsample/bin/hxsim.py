@@ -23,6 +23,7 @@
 """
 
 from loguru import logger
+import numpy as np
 from tqdm import tqdm
 
 from hexsample import HEXSAMPLE_DATA
@@ -43,6 +44,7 @@ __description__ = \
 HXSIM_ARGPARSER = ArgumentParser(description=__description__)
 HXSIM_ARGPARSER.add_numevents(1000)
 HXSIM_ARGPARSER.add_outfile(HEXSAMPLE_DATA / 'hxsim.h5')
+HXSIM_ARGPARSER.add_seed()
 HXSIM_ARGPARSER.add_source_options()
 HXSIM_ARGPARSER.add_sensor_options()
 HXSIM_ARGPARSER.add_readout_options()
@@ -52,6 +54,10 @@ def hxsim(**kwargs):
     """Application main entry point.
     """
     # pylint: disable=too-many-locals, invalid-name
+    seed = kwargs['seed']
+    if seed is not None:
+        logger.info(f'Setting the random seed to {seed}...')
+        np.random.seed(seed)
     spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
     beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
     source = Source(spectrum, beam)

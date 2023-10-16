@@ -29,6 +29,7 @@ from loguru import logger
 import numpy as np
 import tables
 
+from hexsample import __version__, __tagdate__
 from hexsample.mc import MonteCarloEvent
 from hexsample.digi import DigiEvent
 from hexsample.recon import ReconEvent
@@ -175,7 +176,7 @@ class OutputFileBase(tables.File):
         self.header_group = self.create_group(self.root, 'header', 'File header')
         date = time.strftime(self._DATE_FORMAT)
         creator = pathlib.Path(inspect.stack()[-1].filename).name
-        self.update_header(date=date, creator=creator)
+        self.update_header(date=date, creator=creator, version=__version__, tagdate=__tagdate__)
 
     def update_header(self, **kwargs) -> None:
         """Update the user attributes in the header group.
@@ -209,6 +210,10 @@ class OutputFileBase(tables.File):
             if isinstance(value, (tuple, list)):
                 logger.debug(f'Converting {name} ({value}) to a native numpy array...')
                 value = np.array(value)
+                logger.debug(f'-> {value}.')
+            if value is None:
+                logger.debug(f'Converting {name} ({value}) to string...')
+                value = str(value)
                 logger.debug(f'-> {value}.')
             OutputFileBase._set_user_attribute(group, name, value)
 
