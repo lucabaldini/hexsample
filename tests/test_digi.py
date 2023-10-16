@@ -65,15 +65,11 @@ def test_digitization(layout : HexagonalLayout = HexagonalLayout.ODD_R, num_cols
     # Extract the counts: this should provide an array where all the values are
     # zero except the one at position (row, col)---don't forget rows go first in
     # the native numpy representation.
-    signal = readout.sample(x, y)
-    assert signal[row, col] == num_pairs
-    assert np.nonzero(signal) == (row, col)
+    min_col, min_row, signal = readout.sample(x, y)
+    assert signal[row - min_row, col - min_col] == num_pairs
+    assert np.nonzero(signal) == (row - min_row, col - min_col)
     # Apply the trigger.
-    trg = readout.trigger(signal, trg_threshold)
-    assert trg[row // 2, col // 2] == num_pairs
-    assert np.nonzero(trg) == (row // 2, col // 2)
-    # Calculate the ROI.
-    roi = readout.calculate_roi(trg, padding)
+    roi, pha = readout.trigger(signal, trg_threshold, min_col, min_row, padding)
     assert roi.min_col == 2 * (col // 2) - padding.left
     assert roi.max_col == 2 * (col // 2) + 1 + padding.right
     assert roi.min_row == 2 * (row // 2) - padding.bottom
