@@ -221,9 +221,9 @@ def _compare_readouts(x, y, trg_threshold=200., padding=Padding(2)):
     """
     args = 0., x, y, trg_threshold, padding
     old = OLD_READOUT.read(*args)
-    print(old.ascii())
+    #print(old.ascii())
     new = NEW_READOUT.read(*args)
-    print(new.ascii())
+    #print(new.ascii())
     assert np.allclose(old.pha, new.pha)
     assert old.roi.min_col == new.roi.min_col
     assert old.roi.max_col == new.roi.max_col
@@ -254,3 +254,35 @@ def test_photon_list(num_photons=1000):
     for mc_event in photon_list:
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
         old, new = _compare_readouts(x, y)
+
+def test_timing(sigma=0.0006, num_pairs=2250, num_photons=10000):
+    """Time the sampling routine.
+    """
+    x = np.random.normal(0., sigma, size=num_pairs)
+    y = np.random.normal(0., sigma, size=num_pairs)
+    padding = Padding(2)
+    trg_threshold = 300.
+    #
+    logger.info('Timing world_to_pixel()...')
+    start_time = time.time()
+    for i in range(num_photons):
+        col, row = NEW_READOUT.world_to_pixel(x, y)
+    elapsed_time = time.time() - start_time
+    evt_us = 1.e6 * elapsed_time / num_photons
+    logger.info(f'Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.')
+    #
+    logger.info('Timing sample()...')
+    start_time = time.time()
+    for i in range(num_photons):
+        min_col, min_row, signal = NEW_READOUT.sample(x, y)
+    elapsed_time = time.time() - start_time
+    evt_us = 1.e6 * elapsed_time / num_photons
+    logger.info(f'Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.')
+    #
+    logger.info('Timing trigger()...')
+    start_time = time.time()
+    for i in range(num_photons):
+        roi, pha = NEW_READOUT.trigger(signal, trg_threshold, min_col, min_row, padding)
+    elapsed_time = time.time() - start_time
+    evt_us = 1.e6 * elapsed_time / num_photons
+    logger.info(f'Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.')

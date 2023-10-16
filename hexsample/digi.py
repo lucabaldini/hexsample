@@ -23,6 +23,7 @@
 from dataclasses import dataclass
 from typing import Tuple
 
+import fast_histogram
 from loguru import logger
 import numpy as np
 
@@ -259,7 +260,7 @@ class HexagonalReadout(HexagonalGrid):
 
         Returns
         -------
-        min_col, max_col, min_row, max_row, signal : 5-element tuple (4 integers and an array)
+        min_col, min_row, signal : 5-element tuple (4 integers and an array)
             The coordinates of the smallest rectangle containing all the signal,
             and the corresponding histogram of the signal itself, in electron equivalent.
         """
