@@ -32,7 +32,7 @@ from hexsample.fileio import DigiInputFile
 
 
 __description__ = \
-"""Compare two different event files.
+"""Compare two different (digi) event files.
 """
 
 # Parser object.
