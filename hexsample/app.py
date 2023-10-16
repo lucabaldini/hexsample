@@ -109,39 +109,26 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('--outfile', '-o', type=str, default=str(default),
             help='path to the output file')
 
+    def add_seed(self) -> None:
+        """Add an option for the random seed of a simulation.
+        """
+        self.add_argument('--seed', type=int, default=None,
+            help='random seed for the simulation')
+
     def add_suffix(self, default : str) -> None:
         """Add an option for the output suffix.
         """
         self.add_argument('--suffix', type=str, default=default,
             help='suffix for the output file')
 
-    def add_source_options(self) -> None:
-        """Add an option group for the source properties.
+    def add_clustering_options(self) -> None:
+        """Add an option group for the clustering.
         """
-        group = self.add_argument_group('source', 'X-ray source properties')
-        group.add_argument('--srcelement', type=str, default='Cu',
-            help='element generating the line forest')
-        group.add_argument('--srclevel', type=str, default='K',
-            help='initial level for the line forest')
-        group.add_argument('--srcposx', type=float, default=0.,
-            help='x position of the source centroid in cm')
-        group.add_argument('--srcposy', type=float, default=0.,
-            help='y position of the source centroid in cm')
-        group.add_argument('--srcsigma', type=float, default=0.1,
-            help='one-dimensional standard deviation of the gaussian beam in cm')
-
-    def add_sensor_options(self) -> None:
-        """Add an option group for the sensor properties.
-        """
-        group = self.add_argument_group('sensor', 'Sensor properties')
-        group.add_argument('--actmedium', type=str, choices=('Si',), default='Si',
-            help='active sensor material')
-        group.add_argument('--thickness', type=float, default=0.03,
-            help='thickness in cm')
-        group.add_argument('--fano', type=float, default=0.116,
-            help='fano factor')
-        group.add_argument('--transdiffsigma', type=float, default=40.,
-            help='diffusion sigma in um per sqrt(cm)')
+        group = self.add_argument_group('clustering', 'Clustering options')
+        group.add_argument('--zsupthreshold', type=int, default=0,
+            help='zero-suppression threshold in ADC counts')
+        group.add_argument('--nneighbors', type=int, default=2,
+            help='number of neighbors to be considered (0--6)')
 
     def add_readout_options(self) -> None:
         """Add an option group for the readout properties.
@@ -160,11 +147,30 @@ class ArgumentParser(argparse.ArgumentParser):
         group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
             help='padding on the four sides of the ROT')
 
-    def add_clustering_options(self) -> None:
-        """Add an option group for the clustering.
+    def add_sensor_options(self) -> None:
+        """Add an option group for the sensor properties.
         """
-        group = self.add_argument_group('clustering', 'Clustering options')
-        group.add_argument('--zsupthreshold', type=int, default=0,
-            help='zero-suppression threshold in ADC counts')
-        group.add_argument('--nneighbors', type=int, default=2,
-            help='number of neighbors to be considered (0--6)')
+        group = self.add_argument_group('sensor', 'Sensor properties')
+        group.add_argument('--actmedium', type=str, choices=('Si',), default='Si',
+            help='active sensor material')
+        group.add_argument('--thickness', type=float, default=0.03,
+            help='thickness in cm')
+        group.add_argument('--fano', type=float, default=0.116,
+            help='fano factor')
+        group.add_argument('--transdiffsigma', type=float, default=40.,
+            help='diffusion sigma in um per sqrt(cm)')
+
+    def add_source_options(self) -> None:
+        """Add an option group for the source properties.
+        """
+        group = self.add_argument_group('source', 'X-ray source properties')
+        group.add_argument('--srcelement', type=str, default='Cu',
+            help='element generating the line forest')
+        group.add_argument('--srclevel', type=str, default='K',
+            help='initial level for the line forest')
+        group.add_argument('--srcposx', type=float, default=0.,
+            help='x position of the source centroid in cm')
+        group.add_argument('--srcposy', type=float, default=0.,
+            help='y position of the source centroid in cm')
+        group.add_argument('--srcsigma', type=float, default=0.1,
+            help='one-dimensional standard deviation of the gaussian beam in cm')

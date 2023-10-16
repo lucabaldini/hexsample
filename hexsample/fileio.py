@@ -210,6 +210,10 @@ class OutputFileBase(tables.File):
                 logger.debug(f'Converting {name} ({value}) to a native numpy array...')
                 value = np.array(value)
                 logger.debug(f'-> {value}.')
+            if value is None:
+                logger.debug(f'Converting {name} ({value}) to string...')
+                value = str(value)
+                logger.debug(f'-> {value}.')
             OutputFileBase._set_user_attribute(group, name, value)
 
     def add_row(self, *args) -> None:
