@@ -242,12 +242,7 @@ class HexagonalReadout(HexagonalGrid):
 
         This is achieved by converting the (x, y) physical coordinates into the
         corresponding (col, row) logical coordinates on the hexagonal grid, and
-        then filling a two dimensional histogram in logical space. Note that,
-        although the output array represent counts, the corresponding underlying
-        dtype is float64, and we do not attempt a cast to integer since the
-        very next step in the digitization chain is adding the noise, which by
-        its very nature is intrinsically a floating point quantity, even in the
-        equivalent noise charge representation.
+        then filling a two-dimensional histogram in logical space.
 
         .. note::
 
@@ -266,9 +261,10 @@ class HexagonalReadout(HexagonalGrid):
 
         Returns
         -------
-        min_col, min_row, signal : 5-element tuple (4 integers and an array)
-            The coordinates of the smallest rectangle containing all the signal,
-            and the corresponding histogram of the signal itself, in electron equivalent.
+        min_col, min_row, signal : 3-element tuple (2 integers and an array)
+            The coordinates of the bottom-left corner of the smallest rectangle
+            containing all the signal, and the corresponding histogram of the
+            signal itself, in electron equivalent.
         """
         # pylint: disable=invalid-name
         col, row = self.world_to_pixel(x, y)
@@ -285,7 +281,9 @@ class HexagonalReadout(HexagonalGrid):
             min_row -= 1
         if self.is_even(max_row):
             max_row += 1
-        # Streamlined version of a two-dimensional histogram.
+        # Streamlined version of a two-dimensional histogram. As obscure as it
+        # might seem, this four-liner is significantly faster than a call to
+        # np.histogram2d and allows for a substantial speedup in the event generation.
         num_cols = max_col - min_col + 1
         num_rows = max_row - min_row + 1
         index = num_cols * (row - min_row) + (col - min_col)
@@ -302,20 +300,31 @@ class HexagonalReadout(HexagonalGrid):
            not trimming the ROI (and the corresponding arrays) to the physical
            dimensions of the chip.
         """
+        # Sum the sampled signal into the 2 x 2 trigger miniclusters.
         trg_signal = self.sum_miniclusters(signal)
+        # Zero-suppress the trigger signal below the trigger threshold.
         self.zero_suppress(trg_signal, trg_threshold)
+        # This is tricky, and needs to be documented properly---basically we
+        # build arrays with all the (minicluster) columns and rows for which
+        # at least one minicluster is above threshold. The multiplicative factor
+        # of 2 serves the purpose of converting minicluster to pixel coordinates.
         trg_cols = 2 * np.nonzero(trg_signal.sum(axis=0))[0]
         trg_rows = 2 * np.nonzero(trg_signal.sum(axis=1))[0]
+        # Build the actual ROI in chip coordinates and initialize the RegionOfInterest
+        # object.
         roi_min_col = min_col + trg_cols.min() - padding.left
         roi_max_col = min_col + trg_cols.max() + 1 + padding.right
         roi_min_row = min_row + trg_rows.min() - padding.top
         roi_max_row = min_row + trg_rows.max() + 1 + padding.bottom
         roi = RegionOfInterest(roi_min_col, roi_max_col, roi_min_row, roi_max_row, padding)
+        # And now the actual PHA array: we start with all zeroes...
         pha = np.full(roi.shape(), 0.)
+        # ...and then we patch the original signal array into the proper submask.
         num_rows, num_cols = signal.shape
         start_row = padding.bottom - trg_rows.min()
         start_col = padding.left - trg_cols.min()
         pha[start_row:start_row + num_rows, start_col:start_col + num_cols] = signal
+        # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
         return roi, pha
 
