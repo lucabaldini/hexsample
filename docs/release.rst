@@ -4,6 +4,22 @@ Release notes
 =============
 
 
+* Merging https://github.com/lucabaldini/hexsample/pull/22
+* This is a major rework of the sampling, trigger and digitization facilities
+  allowing for a simulation speedup of almost an order of magnitude, without loss
+  of performance.
+* Digitization machinery refactored in order to avoid working with large sparse
+  arrays (in pixel and minicluster space) full of zeroes.
+* Generation of the noise moved at the end of the digitization process.
+* Hexagonal sampling largely rewritten to avoid the use of numpy.histogram2d.
+* Trigger machinery reworked to accommodate the previous changes.
+* Comparison operator defined for Padding, RegionOfInterest and DigiEvent in
+  order to be able to make strict comparisons between output digi files.
+* Seed for a small utility to compare digi files added.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/12
+
+
 *hexsample (0.3.2) - Mon, 16 Oct 2023 12:12:10 +0200*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/25
