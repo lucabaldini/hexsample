@@ -23,7 +23,6 @@
 from dataclasses import dataclass
 from typing import Tuple
 
-import fast_histogram
 from loguru import logger
 import numpy as np
 
@@ -279,13 +278,11 @@ class HexagonalReadout(HexagonalGrid):
             min_row -= 1
         if self.is_even(max_row):
             max_row += 1
-        # Note that the histogram takes place in the numpy array representation,
-        # that is, rows go first---this way we avoid a transposition to get the
-        # array of counts in the proper shape.
-        col_binning = np.arange(min_col, max_col + 2) - 0.5
-        row_binning = np.arange(min_row, max_row + 2) - 0.5
-        binning = (row_binning, col_binning)
-        signal, _, _ = np.histogram2d(row, col, binning)
+        # Streamlined version of a two-dimensional histogram.
+        num_cols = max_col - min_col + 1
+        num_rows = max_row - min_row + 1
+        index = num_cols * (row - min_row) + (col - min_col)
+        signal = np.bincount(index, minlength=num_cols * num_rows).reshape((num_rows, num_cols))
         return min_col, min_row, signal
 
     def trigger(self, signal : np.ndarray, trg_threshold, min_col : int, min_row : int,

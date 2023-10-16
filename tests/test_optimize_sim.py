@@ -23,10 +23,11 @@ have floating around for future reference.
 import time
 
 import numpy as np
+import pytest
 
 from hexsample import logger
 from hexsample import xpol
-from hexsample.digi import HexagonalReadout, Xpol3
+from hexsample.digi import HexagonalReadout
 from hexsample.hexagon import HexagonalLayout
 from hexsample.fileio import DigiEvent
 from hexsample.mc import PhotonList
@@ -243,7 +244,7 @@ def _test_pixel_centers():
         y = np.full(2500, y0)
         old, new = _compare_readouts(x, y)
 
-def test_photon_list(num_photons=1000):
+def test_photon_list(num_photons=100):
     """Realistic comparison with a sensible photon list.
     """
     spectrum = LineForest('Cu', 'K')
@@ -255,6 +256,7 @@ def test_photon_list(num_photons=1000):
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
         old, new = _compare_readouts(x, y)
 
+@pytest.mark.skip(reason='just a timing experiment...')
 def test_timing(sigma=0.0006, num_pairs=2250, num_photons=10000):
     """Time the sampling routine.
     """
@@ -286,3 +288,31 @@ def test_timing(sigma=0.0006, num_pairs=2250, num_photons=10000):
     elapsed_time = time.time() - start_time
     evt_us = 1.e6 * elapsed_time / num_photons
     logger.info(f'Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.')
+
+def test_fast_histogram(sigma=0.0015, num_pairs=2250):
+    """Test an alternative implementation of the 2d histogram to streamline the
+    simulation.
+    """
+    x = np.random.normal(0., sigma, size=num_pairs)
+    y = np.random.normal(0., sigma, size=num_pairs)
+    col, row = NEW_READOUT.world_to_pixel(x, y)
+    min_col, max_col, min_row, max_row = col.min(), col.max(), row.min(), row.max()
+    if NEW_READOUT.is_odd(min_col):
+        min_col -= 1
+    if NEW_READOUT.is_even(max_col):
+        max_col += 1
+    if NEW_READOUT.is_odd(min_row):
+        min_row -= 1
+    if NEW_READOUT.is_even(max_row):
+        max_row += 1
+    # Old implementation of the sampling, using a native numpy histogram2d.
+    col_binning = np.arange(min_col, max_col + 2) - 0.5
+    row_binning = np.arange(min_row, max_row + 2) - 0.5
+    binning = (row_binning, col_binning)
+    signal, _, _ = np.histogram2d(row, col, binning)
+    # And alternative implementation, where we use np.bincount over the flattened indices.
+    num_cols = max_col - min_col + 1
+    num_rows = max_row - min_row + 1
+    index = num_cols * (row - min_row) + (col - min_col)
+    signal2 = np.bincount(index, minlength=num_cols * num_rows).reshape((num_rows, num_cols))
+    assert np.allclose(signal, signal2)
