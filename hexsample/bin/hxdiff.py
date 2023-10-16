@@ -95,8 +95,8 @@ def hxdiff(**kwargs):
     file_path1, file_path2 = kwargs['infiles']
     file1 = DigiInputFile(file_path1)
     file2 = DigiInputFile(file_path2)
-    #_digi_diff_strict(file1, file2)
-    _digi_diff_graphical(file1, file2)
+    _digi_diff_strict(file1, file2)
+    #_digi_diff_graphical(file1, file2)
     file1.close()
     file2.close()
 
