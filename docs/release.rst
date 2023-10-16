@@ -3,6 +3,9 @@
 Release notes
 =============
 
+
+*hexsample (0.3.2) - Mon, 16 Oct 2023 12:12:10 +0200*
+
 * Merging https://github.com/lucabaldini/hexsample/pull/25
 * Command-line switch to set the random seed added.
 * Version and tag date added to the output file header.
