@@ -4,6 +4,8 @@ Release notes
 =============
 
 
+*hexsample (0.4.0) - Mon, 16 Oct 2023 22:11:44 +0200*
+
 * Merging https://github.com/lucabaldini/hexsample/pull/22
 * This is a major rework of the sampling, trigger and digitization facilities
   allowing for a simulation speedup of almost an order of magnitude, without loss
