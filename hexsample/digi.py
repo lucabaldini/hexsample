@@ -312,8 +312,8 @@ class HexagonalReadout(HexagonalGrid):
         self.trigger_id += 1
         return roi, pha
 
-    def digitize(self, signal : np.ndarray, roi : RegionOfInterest,
-        zero_sup_threshold : int = 0, offset : int = 0) -> np.ndarray:
+    def digitize(self, pha : np.ndarray, zero_sup_threshold : int = 0,
+        offset : int = 0) -> np.ndarray:
         """Digitize the actual signal within a given ROI.
 
         Arguments
@@ -392,6 +392,7 @@ class HexagonalReadout(HexagonalGrid):
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
         roi, pha = self.trigger(signal, trg_threshold, min_col, min_row, padding)
+        pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEvent(self.trigger_id, seconds, microseconds, livetime, roi, pha)
 
