@@ -22,8 +22,10 @@
 """Diff utility for event files.
 """
 
+import pathlib
 
 
+from hexsample import logger
 from hexsample.app import ArgumentParser
 from hexsample.fileio import DigiInputFile
 
@@ -44,16 +46,22 @@ def hxdiff(**kwargs):
     """Application main entry point.
     """
     file_path1, file_path2 = kwargs['infiles']
+    file_name1 = pathlib.Path(file_path1).name
+    file_name2 = pathlib.Path(file_path2).name
     file1 = DigiInputFile(file_path1)
     file2 = DigiInputFile(file_path2)
-    #for i in range(10):
-        #evt1 = file1.digi_event(i)
-        #evt2 = file2.digi_event(i)
-    for evt1, evt2 in zip(file1, file2):
-        print(evt1)
-        print(evt2)
-        #print(evt1 == evt2)
-        input()
+    num_differences = 0
+    for i, (evt1, evt2) in enumerate(zip(file1, file2)):
+        if evt2 != evt1:
+            logger.error(f'Mismatch at line {i} of the input files')
+            logger.info(f'Event from {file_name1}: {evt1}')
+            logger.info(f'Event from {file_name2}: {evt2}')
+            num_differences += 1
+    if num_differences > 0:
+        logger.error(f'Differences found for {num_differences} rows.')
+    else:
+        logger.info(f'No differences found, all good :-)')
+
 
 
 if __name__ == '__main__':
