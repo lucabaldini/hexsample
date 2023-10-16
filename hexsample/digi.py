@@ -90,6 +90,13 @@ class DigiEvent:
             print(f'pha size: {self.pha.size}')
             logger.error(error)
 
+    def __eq__(self, other) -> bool:
+        """Overloaded comparison operator.
+        """
+        return (self.trigger_id, self.seconds, self.microseconds, self.livetime) == \
+            (other.trigger_id, other.seconds, other.microseconds, other.livetime) and \
+            self.roi == other.roi and np.allclose(self.pha, other.pha)
+
     @classmethod
     def from_digi(cls, row : np.ndarray, pha : np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.

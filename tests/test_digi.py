@@ -38,6 +38,18 @@ def test_digi_event(min_col : int = 106, max_col : int = 113, min_row : int = 15
     col, row = j + evt.roi.min_col, i + evt.roi.min_row
     assert evt(col, row) == 2
 
+def test_digi_event_comparison():
+    """
+    """
+    padding = Padding(2)
+    roi = RegionOfInterest(10, 23, 10, 23, padding)
+    pha = np.full(roi.size, 2)
+    evt1 = DigiEvent(0, 0, 0, 0, roi, pha)
+    evt2 = DigiEvent(0, 0, 0, 0, roi, 1. * pha)
+    evt3 = DigiEvent(0, 0, 0, 0, roi, 2. * pha)
+    assert evt1 == evt2
+    assert evt1 != evt3
+
 def test_digitization(layout : HexagonalLayout = HexagonalLayout.ODD_R, num_cols : int = 100,
     num_rows : int = 100, pitch : float = 0.1, enc : float = 0., gain : float = 0.5,
     num_pairs : int = 1000, trg_threshold : float = 200., padding : Padding = Padding(1)):
