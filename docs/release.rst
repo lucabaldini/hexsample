@@ -4,6 +4,15 @@ Release notes
 =============
 
 
+* Merging https://github.com/lucabaldini/hexsample/pull/29
+* Bookkeeping in place for the file types.
+* New "filetype" attribute added to the file header---written automatically by
+  OutputFileBase and read automatically by InputFileBase.
+* New fileio.open_input_file() function added to open input files transparently.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/27
+
+
 *hexsample (0.4.0) - Mon, 16 Oct 2023 22:11:44 +0200*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/22
