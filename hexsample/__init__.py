@@ -33,6 +33,7 @@ logger.remove()
 logger.add(**DEFAULT_LOGURU_HANDLER)
 
 __pkgname__ = 'hexsample'
+__url__ = 'https://github.com/lucabaldini/hexsample'
 
 # Basic package structure.
 HEXSAMPLE_ROOT = Path(__file__).parent
