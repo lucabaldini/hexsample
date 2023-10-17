@@ -21,7 +21,8 @@ import numpy as np
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.digi import DigiEvent
-from hexsample.fileio import DigiInputFile, DigiOutputFile
+from hexsample.fileio import DigiInputFile, DigiOutputFile, ReconInputFile, ReconOutputFile,\
+    FileType, peek_file_type, open_input_file
 from hexsample.mc import MonteCarloEvent
 from hexsample.roi import RegionOfInterest, Padding
 
@@ -71,3 +72,31 @@ def test():
     _test_write(file_path)
     logger.info(f'Testing input file {file_path}...')
     _test_read(file_path)
+
+def test_file_type():
+    """Test the auto-recognition machinery for input file types.
+    """
+    # Test for the digi files.
+    file_path = HEXSAMPLE_DATA / 'test_digi_filetype.h5'
+    digi_file = DigiOutputFile(file_path)
+    digi_file.close()
+    digi_file = DigiInputFile(file_path)
+    assert digi_file.file_type == FileType.DIGI
+    digi_file.close()
+    assert peek_file_type(file_path) == FileType.DIGI
+    digi_file = open_input_file(file_path)
+    assert isinstance(digi_file, DigiInputFile)
+    assert digi_file.file_type == FileType.DIGI
+    digi_file.close()
+    # Test for the recon files.
+    file_path = HEXSAMPLE_DATA / 'test_recon_filetype.h5'
+    recon_file = ReconOutputFile(file_path)
+    recon_file.close()
+    recon_file = ReconInputFile(file_path)
+    assert recon_file.file_type == FileType.RECON
+    recon_file.close()
+    assert peek_file_type(file_path) == FileType.RECON
+    recon_file = open_input_file(file_path)
+    assert isinstance(recon_file, ReconInputFile)
+    assert recon_file.file_type == FileType.RECON
+    recon_file.close()
