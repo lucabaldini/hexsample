@@ -7,7 +7,7 @@ Release notes
 * Merging https://github.com/lucabaldini/hexsample/pull/30
 * Merging https://github.com/lucabaldini/hexsample/pull/31\
 * Readout chip geometry exposed in the simulation via command-line arguments, and
-  automatically picked up in the reconstruction.
+  automatically picked up in the reconstruction and the event display.
 * Start message updated.
 * Bookkeeping in place for the file types.
 * New "filetype" attribute added to the file header---written automatically by
