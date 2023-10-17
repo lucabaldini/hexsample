@@ -20,6 +20,7 @@
 """Definition of the file format.
 """
 
+from enum import Enum
 import inspect
 import pathlib
 import time
@@ -149,6 +150,16 @@ def _fill_recon_row(row : tables.tableextension.Row, event : ReconEvent) -> None
 
 
 
+class FileType(Enum):
+
+    """Enum class for the different file types.
+    """
+
+    DIGI = 'Digi'
+    RECON = 'Recon'
+
+
+
 class OutputFileBase(tables.File):
 
     """Base class for output files.
@@ -167,6 +178,7 @@ class OutputFileBase(tables.File):
     """
 
     _DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
+    _FILE_TYPE = None
 
     def __init__(self, file_path : str) -> None:
         """Constructor.
@@ -176,7 +188,8 @@ class OutputFileBase(tables.File):
         self.header_group = self.create_group(self.root, 'header', 'File header')
         date = time.strftime(self._DATE_FORMAT)
         creator = pathlib.Path(inspect.stack()[-1].filename).name
-        self.update_header(date=date, creator=creator, version=__version__, tagdate=__tagdate__)
+        self.update_header(filetype=self._FILE_TYPE.value, date=date, creator=creator,
+            version=__version__, tagdate=__tagdate__)
 
     def update_header(self, **kwargs) -> None:
         """Update the user attributes in the header group.
@@ -247,6 +260,7 @@ class DigiOutputFile(OutputFileBase):
         The path to the file on disk.
     """
 
+    _FILE_TYPE = FileType.DIGI
     DIGI_TABLE_SPECS = ('digi_table', DigiDescription, 'Digi data')
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
@@ -296,6 +310,7 @@ class ReconOutputFile(OutputFileBase):
         The path to the file on disk.
     """
 
+    _FILE_TYPE = FileType.RECON
     RECON_TABLE_SPECS = ('recon_table', ReconDescription, 'Recon data')
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
