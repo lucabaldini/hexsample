@@ -28,8 +28,9 @@ from tqdm import tqdm
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
-from hexsample.digi import Xpol3
+from hexsample.digi import HexagonalReadout
 from hexsample.fileio import DigiOutputFile
+from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
 from hexsample.source import LineForest, GaussianBeam, Source
@@ -64,7 +65,10 @@ def hxsim(**kwargs):
     material = Material(kwargs['actmedium'], kwargs['fano'])
     sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
     photon_list = PhotonList(source, sensor, kwargs['numevents'])
-    readout = Xpol3(kwargs['noise'], kwargs['gain'])
+    args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
+        kwargs['pitch'], kwargs['noise'], kwargs['gain']
+    readout = HexagonalReadout(*args)
+    logger.info(f'Readout chip: {readout}')
     output_file_path = kwargs.get('outfile')
     output_file = DigiOutputFile(output_file_path)
     output_file.update_header(**kwargs)

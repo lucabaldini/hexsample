@@ -23,6 +23,7 @@
 import argparse
 
 from hexsample import __pkgname__, __version__, __tagdate__, __url__
+from hexsample.hexagon import HexagonalLayout
 
 
 START_MESSAGE = f"""
@@ -144,6 +145,15 @@ class ArgumentParser(argparse.ArgumentParser):
         """Add an option group for the readout properties.
         """
         group = self.add_argument_group('readout', 'Redout configuration')
+        layouts = [item.value for item in HexagonalLayout]
+        group.add_argument('--layout', type=str, choices=layouts, default=layouts[0],
+            help='hexagonal layout of the readout chip')
+        group.add_argument('--numcolumns', type=int, default=304,
+            help='number of colums in the readout chip')
+        group.add_argument('--numrows', type=int, default=352,
+            help='number of rows in the readout chip')
+        group.add_argument('--pitch', type=float, default=0.005,
+            help='pitch of the readout chip')
         group.add_argument('--noise', type=float, default=20.,
             help='equivalent noise charge rms in electrons')
         group.add_argument('--gain', type=float, default=1.,

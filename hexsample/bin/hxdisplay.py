@@ -22,10 +22,12 @@
 """Event display.
 """
 
+from hexsample import logger
 from hexsample.app import ArgumentParser
-from hexsample.digi import Xpol3
+from hexsample.digi import HexagonalReadout
 from hexsample.display import HexagonalGridDisplay
 from hexsample.fileio import DigiInputFile
+from hexsample.hexagon import HexagonalLayout
 from hexsample.plot import plt
 
 
@@ -42,8 +44,13 @@ def hxdisplay(**kwargs):
     """Application main entry point.
     """
     file_path = kwargs.get('infile')
-    display = HexagonalGridDisplay(Xpol3())
     input_file = DigiInputFile(file_path)
+    header = input_file.header
+    args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+        header['pitch'], header['noise'], header['gain']
+    readout = HexagonalReadout(*args)
+    logger.info(f'Readout chip: {readout}')
+    display = HexagonalGridDisplay(readout)
     for event in input_file:
         print(event.ascii())
         display.draw_digi_event(event, zero_sup_threshold=0)

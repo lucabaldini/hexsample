@@ -21,7 +21,7 @@
 """
 
 
-from enum import Enum, auto
+from enum import Enum
 from typing import Tuple
 
 import numpy as np
@@ -33,13 +33,13 @@ class HexagonalLayout(Enum):
     """
 
     # Horizontal, pointy top, odd rows are shoved right.
-    ODD_R = auto()
+    ODD_R = 'ODD_R'
     # Horizontal, pointy top, even rows are shoved right.
-    EVEN_R = auto()
+    EVEN_R = 'EVEN_R'
     # Vertical, flat top, odd columns are shoved down.
-    ODD_Q = auto()
+    ODD_Q = 'ODD_Q'
     # Vertical, flat top, even columns are shoved down.
-    EVEN_Q = auto()
+    EVEN_Q = 'EVEN_Q'
 
 
 
