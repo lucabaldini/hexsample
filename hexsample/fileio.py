@@ -363,6 +363,8 @@ class InputFileBase(tables.File):
         logger.info(f'Opening input file {file_path}...')
         super().__init__(file_path, 'r')
         self.header = self._user_attributes(self.root.header)
+        self.file_type = FileType(self.header_value('filetype'))
+        logger.info(f'File type: {self.file_type}')
 
     @staticmethod
     def _user_attributes(group : tables.group.Group) -> dict:
@@ -451,3 +453,34 @@ class ReconInputFile(InputFileBase):
         self.digi_header = self._user_attributes(self.root.digi_header)
         self.recon_table = self.root.recon.recon_table
         self.mc_table = self.root.mc.mc_table
+
+
+
+def peek_file_type(file_path : str) -> FileType:
+    """Peek into the header of a HDF5 file and determing the file type.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the input file.
+    """
+    with tables.open_file(file_path, 'r') as input_file:
+        try:
+            return FileType(input_file.root.header._v_attrs['filetype'])
+        except KeyError:
+            raise RuntimeError(f'File {file_path} has no type information.')
+
+def open_input_file(file_path : str) -> InputFileBase:
+    """Open an input file automatically determining the file type.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the output file.
+    """
+    file_type = peek_file_type(file_path)
+    if file_type == FileType.DIGI:
+        return DigiInputFile(file_path)
+    if file_type == FileType.RECON:
+        return ReconInputFile(file_path)
+    raise RuntimeError(f'Invalid input file type {file_type}')
