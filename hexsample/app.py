@@ -22,10 +22,20 @@
 
 import argparse
 
-from hexsample import __pkgname__
+from hexsample import __pkgname__, __version__, __tagdate__, __url__
 
 
-START_MESSAGE = f'Welcome to {__pkgname__}'
+START_MESSAGE = f"""
+    This is {__pkgname__} version {__version__}, built on {__tagdate__}
+
+    Copyright (C) 2022--2023, the {__pkgname__} team.
+
+    {__pkgname__} comes with ABSOLUTELY NO WARRANTY.
+    This is free software, and you are welcome to redistribute it under certain
+    conditions. See the LICENSE file for details.
+
+    Visit {__url__} for more information.
+"""
 
 
 def print_start_msg():

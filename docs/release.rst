@@ -3,8 +3,9 @@
 Release notes
 =============
 
-
 * Merging https://github.com/lucabaldini/hexsample/pull/29
+* Merging https://github.com/lucabaldini/hexsample/pull/30
+* Start message updated.
 * Bookkeeping in place for the file types.
 * New "filetype" attribute added to the file header---written automatically by
   OutputFileBase and read automatically by InputFileBase.
