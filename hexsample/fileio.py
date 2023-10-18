@@ -363,7 +363,12 @@ class InputFileBase(tables.File):
         logger.info(f'Opening input file {file_path}...')
         super().__init__(file_path, 'r')
         self.header = self._user_attributes(self.root.header)
-        self.file_type = FileType(self.header_value('filetype'))
+        # The try/except block is for backward compatibility with old files,
+        # but it should be removed at some point.
+        try:
+            self.file_type = FileType(self.header_value('filetype'))
+        except ValueError:
+            self.file_type = None
         logger.info(f'File type: {self.file_type}')
 
     @staticmethod
