@@ -236,7 +236,7 @@ class HexagonalReadout(HexagonalGrid):
         """
         return not HexagonalReadout.is_odd(value)
 
-    def sample(self, x : np.ndarray, y : np.ndarray) -> Tuple[Tuple[int, int, int, int], np.ndarray]:
+    def sample(self, x : np.ndarray, y : np.ndarray) -> Tuple[Tuple[int, int], np.ndarray]:
         """Spatially sample a pair of arrays of x and y coordinates in physical
         space onto logical (hexagonal) coordinates in logical space.
 
