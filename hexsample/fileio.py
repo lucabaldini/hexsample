@@ -494,4 +494,3 @@ def open_input_file(file_path : str) -> InputFileBase:
     if file_type == FileType.RECON:
         return ReconInputFile(file_path)
     raise RuntimeError(f'Invalid input file type {file_type}')
->>>>>>> main
