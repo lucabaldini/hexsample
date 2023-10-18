@@ -1,6 +1,6 @@
 # Inspired by https://coderefinery.github.io/documentation/gh_workflow/
 
-name: documentation
+name: Compile documentation
 
 on:
   push:
@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   docs:
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
