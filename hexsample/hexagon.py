@@ -21,7 +21,7 @@
 """
 
 
-from enum import Enum, auto
+from enum import Enum
 from typing import Tuple
 
 import numpy as np
@@ -33,13 +33,13 @@ class HexagonalLayout(Enum):
     """
 
     # Horizontal, pointy top, odd rows are shoved right.
-    ODD_R = auto()
+    ODD_R = 'ODD_R'
     # Horizontal, pointy top, even rows are shoved right.
-    EVEN_R = auto()
+    EVEN_R = 'EVEN_R'
     # Vertical, flat top, odd columns are shoved down.
-    ODD_Q = auto()
+    ODD_Q = 'ODD_Q'
     # Vertical, flat top, even columns are shoved down.
-    EVEN_Q = auto()
+    EVEN_Q = 'EVEN_Q'
 
 
 
@@ -269,9 +269,12 @@ class HexagonalGrid:
         rgrid = np.round(r)
         q -= qgrid
         r -= rgrid
-        dq = np.round(q + 0.5 * r) * (q**2. >= r**2.)
-        dr = np.round(r + 0.5 * q) * (q**2. < r**2.)
-        return (qgrid + dq).astype(int), (rgrid + dr).astype(int)
+        mask = np.abs(q) >= np.abs(r)
+        dq = np.round(q + 0.5 * r) * mask
+        dr = np.round(r + 0.5 * q) * np.logical_not(mask)
+        q = (qgrid + dq).astype(int)
+        r = (rgrid + dr).astype(int)
+        return q, r
 
     def _axial_to_offset(self, q : np.array, r : np.array) -> Tuple[np.array, np.array]:
         """Conversion from axial to offset coordinates, a. k. a. step 3 in the

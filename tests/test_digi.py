@@ -38,6 +38,18 @@ def test_digi_event(min_col : int = 106, max_col : int = 113, min_row : int = 15
     col, row = j + evt.roi.min_col, i + evt.roi.min_row
     assert evt(col, row) == 2
 
+def test_digi_event_comparison():
+    """
+    """
+    padding = Padding(2)
+    roi = RegionOfInterest(10, 23, 10, 23, padding)
+    pha = np.full(roi.size, 2)
+    evt1 = DigiEvent(0, 0, 0, 0, roi, pha)
+    evt2 = DigiEvent(0, 0, 0, 0, roi, 1. * pha)
+    evt3 = DigiEvent(0, 0, 0, 0, roi, 2. * pha)
+    assert evt1 == evt2
+    assert evt1 != evt3
+
 def test_digitization(layout : HexagonalLayout = HexagonalLayout.ODD_R, num_cols : int = 100,
     num_rows : int = 100, pitch : float = 0.1, enc : float = 0., gain : float = 0.5,
     num_pairs : int = 1000, trg_threshold : float = 200., padding : Padding = Padding(1)):
@@ -53,20 +65,11 @@ def test_digitization(layout : HexagonalLayout = HexagonalLayout.ODD_R, num_cols
     # Extract the counts: this should provide an array where all the values are
     # zero except the one at position (row, col)---don't forget rows go first in
     # the native numpy representation.
-    counts = readout.sample(x, y)
-    assert counts[row, col] == num_pairs
-    assert np.nonzero(counts) == (row, col)
-    # Extract the noise.
-    noise = readout.rvs_noise()
-    if enc <= 0.:
-        assert np.allclose(noise, np.zeros(readout.shape))
+    min_col, min_row, signal = readout.sample(x, y)
+    assert signal[row - min_row, col - min_col] == num_pairs
+    assert np.nonzero(signal) == (row - min_row, col - min_col)
     # Apply the trigger.
-    sig = counts + noise
-    trg = readout.trigger(sig, trg_threshold)
-    assert trg[row // 2, col // 2] == num_pairs
-    assert np.nonzero(trg) == (row // 2, col // 2)
-    # Calculate the ROI.
-    roi = readout.calculate_roi(trg, padding)
+    roi, pha = readout.trigger(signal, trg_threshold, min_col, min_row, padding)
     assert roi.min_col == 2 * (col // 2) - padding.left
     assert roi.max_col == 2 * (col // 2) + 1 + padding.right
     assert roi.min_row == 2 * (row // 2) - padding.bottom

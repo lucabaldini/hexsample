@@ -4,6 +4,50 @@ Release notes
 =============
 
 
+*hexsample (0.5.0) - Tue, 17 Oct 2023 22:37:49 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/29
+* Merging https://github.com/lucabaldini/hexsample/pull/30
+* Merging https://github.com/lucabaldini/hexsample/pull/31\
+* Readout chip geometry exposed in the simulation via command-line arguments, and
+  automatically picked up in the reconstruction and the event display.
+* Start message updated.
+* Bookkeeping in place for the file types.
+* New "filetype" attribute added to the file header---written automatically by
+  OutputFileBase and read automatically by InputFileBase.
+* New fileio.open_input_file() function added to open input files transparently.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/21
+      * https://github.com/lucabaldini/hexsample/issues/27
+
+
+*hexsample (0.4.0) - Mon, 16 Oct 2023 22:11:44 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/22
+* This is a major rework of the sampling, trigger and digitization facilities
+  allowing for a simulation speedup of almost an order of magnitude, without loss
+  of performance.
+* Digitization machinery refactored in order to avoid working with large sparse
+  arrays (in pixel and minicluster space) full of zeroes.
+* Generation of the noise moved at the end of the digitization process.
+* Hexagonal sampling largely rewritten to avoid the use of numpy.histogram2d.
+* Trigger machinery reworked to accommodate the previous changes.
+* Comparison operator defined for Padding, RegionOfInterest and DigiEvent in
+  order to be able to make strict comparisons between output digi files.
+* Seed for a small utility to compare digi files added.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/12
+
+
+*hexsample (0.3.2) - Mon, 16 Oct 2023 12:12:10 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/25
+* Command-line switch to set the random seed added.
+* Version and tag date added to the output file header.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/23
+
+
 *hexsample (0.3.1) - Fri, 13 Oct 2023 15:41:01 +0200*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/20

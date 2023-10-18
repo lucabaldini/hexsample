@@ -90,6 +90,13 @@ class DigiEvent:
             print(f'pha size: {self.pha.size}')
             logger.error(error)
 
+    def __eq__(self, other) -> bool:
+        """Overloaded comparison operator.
+        """
+        return (self.trigger_id, self.seconds, self.microseconds, self.livetime) == \
+            (other.trigger_id, other.seconds, other.microseconds, other.livetime) and \
+            self.roi == other.roi and np.allclose(self.pha, other.pha)
+
     @classmethod
     def from_digi(cls, row : np.ndarray, pha : np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.
@@ -185,9 +192,6 @@ class HexagonalReadout(HexagonalGrid):
         self.enc = enc
         self.gain = gain
         self.shape = (self.num_rows, self.num_cols)
-        self._col_binning = np.arange(self.num_cols + 1) - 0.5
-        self._row_binning = np.arange(self.num_rows + 1) - 0.5
-        self._binning = (self._row_binning, self._col_binning)
         self.trigger_id = -1
 
     @staticmethod
@@ -218,34 +222,34 @@ class HexagonalReadout(HexagonalGrid):
         array[array <= threshold] = 0
 
     @staticmethod
-    def trim_to_roi(array : np.ndarray, roi : RegionOfInterest) -> np.ndarray:
-        """Utility function to trim a generic array to a given ROI.
+    def is_odd(value : int) -> bool:
+        """Return whether the input integer is odd.
 
-        This is returning the rectangular portion of the input array corresponding
-        to the ROI, preserving the original values in that portion.
-
-        Arguments
-        ---------
-        array : array_like
-            The input array.
-
-        roi : RegionOfInterest
-            The target region of interest.
+        See https://stackoverflow.com/questions/14651025/ for some metrics about
+        the speed of this particular implementation.
         """
-        return array[roi.min_row:roi.max_row + 1, roi.min_col:roi.max_col + 1]
+        return value & 0x1
 
-    def sample(self, x : np.ndarray, y : np.ndarray) -> np.ndarray:
+    @staticmethod
+    def is_even(value : int) -> bool:
+        """Return whether the input integer is even.
+        """
+        return not HexagonalReadout.is_odd(value)
+
+    def sample(self, x : np.ndarray, y : np.ndarray) -> Tuple[Tuple[int, int, int, int], np.ndarray]:
         """Spatially sample a pair of arrays of x and y coordinates in physical
         space onto logical (hexagonal) coordinates in logical space.
 
         This is achieved by converting the (x, y) physical coordinates into the
         corresponding (col, row) logical coordinates on the hexagonal grid, and
-        then filling a two dimensional histogram in logical space. Note that,
-        although the output array represent counts, the corresponding underlying
-        dtype is float64, and we do not attempt a cast to integer since the
-        very next step in the digitization chain is adding the noise, which by
-        its very nature is intrinsically a floating point quantity, even in the
-        equivalent noise charge representation.
+        then filling a two-dimensional histogram in logical space.
+
+        .. note::
+
+           The output two-dimensional histogram is restricted to the pixels with
+           a physical signal, in order to avoid having to deal with large sparse
+           arrays downstream. See https://github.com/lucabaldini/hexsample/issues/12
+           for more details about the reasoning behind this.
 
         Arguments
         ---------
@@ -254,68 +258,78 @@ class HexagonalReadout(HexagonalGrid):
 
         y : array_like
             The physical y coordinates to sample.
+
+        Returns
+        -------
+        min_col, min_row, signal : 3-element tuple (2 integers and an array)
+            The coordinates of the bottom-left corner of the smallest rectangle
+            containing all the signal, and the corresponding histogram of the
+            signal itself, in electron equivalent.
         """
         # pylint: disable=invalid-name
         col, row = self.world_to_pixel(x, y)
-        # Note that the histogram takes place in the numpy array representation,
-        # that is, rows go first---this way we avoid a transposition to get the
-        # array of counts in the proper shape.
-        counts, _, _ = np.histogram2d(row, col, self._binning)
-        return counts
+        # Determine the corners of the relevant rectangle where the signal histogram
+        # should be built. Reminder: in our trigger minicluster arrangement the minimum
+        # column and row coordinates are always even and the maximum column and
+        # row coordinates are always odd.
+        min_col, max_col, min_row, max_row = col.min(), col.max(), row.min(), row.max()
+        if self.is_odd(min_col):
+            min_col -= 1
+        if self.is_even(max_col):
+            max_col += 1
+        if self.is_odd(min_row):
+            min_row -= 1
+        if self.is_even(max_row):
+            max_row += 1
+        # Streamlined version of a two-dimensional histogram. As obscure as it
+        # might seem, this four-liner is significantly faster than a call to
+        # np.histogram2d and allows for a substantial speedup in the event generation.
+        num_cols = max_col - min_col + 1
+        num_rows = max_row - min_row + 1
+        index = num_cols * (row - min_row) + (col - min_col)
+        signal = np.bincount(index, minlength=num_cols * num_rows).reshape((num_rows, num_cols))
+        return min_col, min_row, signal
 
-    def rvs_noise(self) -> np.ndarray:
-        """Extract a pure-noise random array with the size of the full readout chip.
+    def trigger(self, signal : np.ndarray, trg_threshold, min_col : int, min_row : int,
+        padding : Padding) -> Tuple[RegionOfInterest, np.ndarray]:
+        """Apply the trigger, calculate the region of interest, and pad the
+        signal array to the proper dimension.
 
-        This is sampled from a gaussian distribution with zero average. If the
-        `enc` class member is not strictly positive, this is returning an array
-        of zeroes with the proper shape.
+        .. warning::
+           This is still incorrect at the edges of the readout chip, as we are
+           not trimming the ROI (and the corresponding arrays) to the physical
+           dimensions of the chip.
         """
-        if self.enc <= 0.:
-            return np.full(self.shape, 0.)
-        return np.random.normal(0., self.enc, size=self.shape)
-
-    def trigger(self, signal : np.ndarray, trg_threshold : float) -> np.ndarray:
-        """Apply the trigger to a given signal array and with a fixed threshold.
-
-        Here we downsample in the signal into the 2 x 2 trigger miniclusters,
-        we set to zero the content for all the miniclusters below the trigger
-        threshold, and we return the zero-suppressed trigger array that can
-        be used to calculate the ROI.
-
-        Arguments
-        ---------
-        signal : array_like
-            The num_rows x num_cols array of pixel signals in electron equivalent.
-
-        trg_threshold : float
-            The trigger threshold in electron equivalent.
-        """
-        trg = HexagonalReadout.sum_miniclusters(signal)
-        HexagonalReadout.zero_suppress(trg, trg_threshold)
+        # Sum the sampled signal into the 2 x 2 trigger miniclusters.
+        trg_signal = self.sum_miniclusters(signal)
+        # Zero-suppress the trigger signal below the trigger threshold.
+        self.zero_suppress(trg_signal, trg_threshold)
+        # This is tricky, and needs to be documented properly---basically we
+        # build arrays with all the (minicluster) columns and rows for which
+        # at least one minicluster is above threshold. The multiplicative factor
+        # of 2 serves the purpose of converting minicluster to pixel coordinates.
+        trg_cols = 2 * np.nonzero(trg_signal.sum(axis=0))[0]
+        trg_rows = 2 * np.nonzero(trg_signal.sum(axis=1))[0]
+        # Build the actual ROI in chip coordinates and initialize the RegionOfInterest
+        # object.
+        roi_min_col = min_col + trg_cols.min() - padding.left
+        roi_max_col = min_col + trg_cols.max() + 1 + padding.right
+        roi_min_row = min_row + trg_rows.min() - padding.top
+        roi_max_row = min_row + trg_rows.max() + 1 + padding.bottom
+        roi = RegionOfInterest(roi_min_col, roi_max_col, roi_min_row, roi_max_row, padding)
+        # And now the actual PHA array: we start with all zeroes...
+        pha = np.full(roi.shape(), 0.)
+        # ...and then we patch the original signal array into the proper submask.
+        num_rows, num_cols = signal.shape
+        start_row = padding.bottom - trg_rows.min()
+        start_col = padding.left - trg_cols.min()
+        pha[start_row:start_row + num_rows, start_col:start_col + num_cols] = signal
+        # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
-        return trg
+        return roi, pha
 
-    def calculate_roi(self, trg : np.ndarray, padding : Padding) -> RegionOfInterest:
-        """Calculate the region of interest for a given trigger array.
-
-        Arguments
-        ---------
-        trg : array_like
-            The array holding the content of the signal miniclusters.
-
-        padding : Padding
-            The padding to be applied to the region of trigger.
-        """
-        cols = 2 * np.nonzero(trg.sum(axis=0))[0]
-        rows = 2 * np.nonzero(trg.sum(axis=1))[0]
-        min_col = np.clip(cols.min() - padding.left, 0, self.num_cols)
-        max_col = np.clip(cols.max() + 1 + padding.right, 0, self.num_cols)
-        min_row = np.clip(rows.min() - padding.top, 0, self.num_rows)
-        max_row = np.clip(rows.max() + 1 + padding.bottom, 0, self.num_rows)
-        return RegionOfInterest(min_col, max_col, min_row, max_row, padding)
-
-    def digitize(self, signal : np.ndarray, roi : RegionOfInterest,
-        zero_sup_threshold : int = 0, offset : int = 0) -> np.ndarray:
+    def digitize(self, pha : np.ndarray, zero_sup_threshold : int = 0,
+        offset : int = 0) -> np.ndarray:
         """Digitize the actual signal within a given ROI.
 
         Arguments
@@ -332,8 +346,9 @@ class HexagonalReadout(HexagonalGrid):
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
-        # Trim the signal to the given ROI...
-        pha = self.trim_to_roi(signal, roi)
+        # Add the noise.
+        if self.enc > 0:
+            pha += np.random.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
         pha *= self.gain
         # ... round to the neirest integer...
@@ -391,10 +406,9 @@ class HexagonalReadout(HexagonalGrid):
             Optional offset in ADC counts to be applied before the zero suppression.
         """
         # pylint: disable=invalid-name, too-many-arguments
-        signal = self.sample(x, y) + self.rvs_noise()
-        trg = self.trigger(signal, trg_threshold)
-        roi = self.calculate_roi(trg, padding)
-        pha = self.digitize(signal, roi, zero_sup_threshold, offset)
+        min_col, min_row, signal = self.sample(x, y)
+        roi, pha = self.trigger(signal, trg_threshold, min_col, min_row, padding)
+        pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEvent(self.trigger_id, seconds, microseconds, livetime, roi, pha)
 

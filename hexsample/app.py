@@ -22,10 +22,21 @@
 
 import argparse
 
-from hexsample import __pkgname__
+from hexsample import __pkgname__, __version__, __tagdate__, __url__
+from hexsample.hexagon import HexagonalLayout
 
 
-START_MESSAGE = f'Welcome to {__pkgname__}'
+START_MESSAGE = f"""
+    This is {__pkgname__} version {__version__}, built on {__tagdate__}
+
+    Copyright (C) 2022--2023, the {__pkgname__} team.
+
+    {__pkgname__} comes with ABSOLUTELY NO WARRANTY.
+    This is free software, and you are welcome to redistribute it under certain
+    conditions. See the LICENSE file for details.
+
+    Visit {__url__} for more information.
+"""
 
 
 def print_start_msg():
@@ -109,11 +120,65 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('--outfile', '-o', type=str, default=str(default),
             help='path to the output file')
 
+    def add_seed(self) -> None:
+        """Add an option for the random seed of a simulation.
+        """
+        self.add_argument('--seed', type=int, default=None,
+            help='random seed for the simulation')
+
     def add_suffix(self, default : str) -> None:
         """Add an option for the output suffix.
         """
         self.add_argument('--suffix', type=str, default=default,
             help='suffix for the output file')
+
+    def add_clustering_options(self) -> None:
+        """Add an option group for the clustering.
+        """
+        group = self.add_argument_group('clustering', 'Clustering options')
+        group.add_argument('--zsupthreshold', type=int, default=0,
+            help='zero-suppression threshold in ADC counts')
+        group.add_argument('--nneighbors', type=int, default=2,
+            help='number of neighbors to be considered (0--6)')
+
+    def add_readout_options(self) -> None:
+        """Add an option group for the readout properties.
+        """
+        group = self.add_argument_group('readout', 'Redout configuration')
+        layouts = [item.value for item in HexagonalLayout]
+        group.add_argument('--layout', type=str, choices=layouts, default=layouts[0],
+            help='hexagonal layout of the readout chip')
+        group.add_argument('--numcolumns', type=int, default=304,
+            help='number of colums in the readout chip')
+        group.add_argument('--numrows', type=int, default=352,
+            help='number of rows in the readout chip')
+        group.add_argument('--pitch', type=float, default=0.005,
+            help='pitch of the readout chip')
+        group.add_argument('--noise', type=float, default=20.,
+            help='equivalent noise charge rms in electrons')
+        group.add_argument('--gain', type=float, default=1.,
+            help='conversion factors between electron equivalent and ADC counts')
+        group.add_argument('--offset', type=int, default=0,
+            help='optional signal offset in ADC counts')
+        group.add_argument('--trgthreshold', type=float, default=500.,
+            help='trigger threshold in electron equivalent')
+        group.add_argument('--zsupthreshold', type=int, default=0,
+            help='zero-suppression threshold in ADC counts')
+        group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
+            help='padding on the four sides of the ROT')
+
+    def add_sensor_options(self) -> None:
+        """Add an option group for the sensor properties.
+        """
+        group = self.add_argument_group('sensor', 'Sensor properties')
+        group.add_argument('--actmedium', type=str, choices=('Si',), default='Si',
+            help='active sensor material')
+        group.add_argument('--thickness', type=float, default=0.03,
+            help='thickness in cm')
+        group.add_argument('--fano', type=float, default=0.116,
+            help='fano factor')
+        group.add_argument('--transdiffsigma', type=float, default=40.,
+            help='diffusion sigma in um per sqrt(cm)')
 
     def add_source_options(self) -> None:
         """Add an option group for the source properties.
@@ -129,42 +194,3 @@ class ArgumentParser(argparse.ArgumentParser):
             help='y position of the source centroid in cm')
         group.add_argument('--srcsigma', type=float, default=0.1,
             help='one-dimensional standard deviation of the gaussian beam in cm')
-
-    def add_sensor_options(self) -> None:
-        """Add an option group for the sensor properties.
-        """
-        group = self.add_argument_group('sensor', 'Sensor properties')
-        group.add_argument('--actmedium', type=str, choices=('Si',), default='Si',
-            help='active sensor material')
-        group.add_argument('--thickness', type=float, default=0.03,
-            help='thickness in cm')
-        group.add_argument('--fano', type=float, default=0.116,
-            help='fano factor')
-        group.add_argument('--transdiffsigma', type=float, default=40.,
-            help='diffusion sigma in um per sqrt(cm)')
-
-    def add_readout_options(self) -> None:
-        """Add an option group for the readout properties.
-        """
-        group = self.add_argument_group('readout', 'Redout configuration')
-        group.add_argument('--noise', type=float, default=20.,
-            help='equivalent noise charge rms in electrons')
-        group.add_argument('--gain', type=float, default=1.,
-            help='conversion factors between electron equivalent and ADC counts')
-        group.add_argument('--offset', type=int, default=0,
-            help='optional signal offset in ADC counts')
-        group.add_argument('--trgthreshold', type=float, default=500.,
-            help='trigger threshold in electron equivalent')
-        group.add_argument('--zsupthreshold', type=int, default=0,
-            help='zero-suppression threshold in ADC counts')
-        group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
-            help='padding on the four sides of the ROT')
-
-    def add_clustering_options(self) -> None:
-        """Add an option group for the clustering.
-        """
-        group = self.add_argument_group('clustering', 'Clustering options')
-        group.add_argument('--zsupthreshold', type=int, default=0,
-            help='zero-suppression threshold in ADC counts')
-        group.add_argument('--nneighbors', type=int, default=2,
-            help='number of neighbors to be considered (0--6)')

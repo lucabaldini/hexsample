@@ -24,10 +24,12 @@
 
 from tqdm import tqdm
 
+from hexsample import logger
 from hexsample.app import ArgumentParser, check_required_args
 from hexsample.clustering import ClusteringNN
-from hexsample.digi import Xpol3
+from hexsample.digi import HexagonalReadout
 from hexsample.fileio import DigiInputFile, ReconOutputFile
+from hexsample.hexagon import HexagonalLayout
 from hexsample.recon import ReconEvent
 
 
@@ -50,8 +52,13 @@ def hxrecon(**kwargs):
     input_file_path = str(kwargs['infile'])
     if not input_file_path.endswith('.h5'):
         raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')
-    clustering = ClusteringNN(Xpol3(), kwargs['zsupthreshold'], kwargs['nneighbors'])
     input_file = DigiInputFile(input_file_path)
+    header = input_file.header
+    args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+        header['pitch'], header['noise'], header['gain']
+    readout = HexagonalReadout(*args)
+    logger.info(f'Readout chip: {readout}')
+    clustering = ClusteringNN(readout, kwargs['zsupthreshold'], kwargs['nneighbors'])
     suffix = kwargs['suffix']
     output_file_path = input_file_path.replace('.h5', f'_{suffix}.h5')
     output_file = ReconOutputFile(output_file_path)

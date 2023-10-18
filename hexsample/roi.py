@@ -67,6 +67,11 @@ class Padding:
         if self.left is None:
             self.left = self.right
 
+    def __eq__(self, other):
+        """Overloaded comparison operator.
+        """
+        return tuple(self) == tuple(other)
+
     def __iter__(self):
         """Make the class iterable, in the order (top, right, bottom, left)
 
@@ -104,6 +109,13 @@ class RegionOfInterest:
         # case the padding is the same on all four sides.
         if isinstance(self.padding, int):
             self.padding = Padding(self.padding)
+
+    def __eq__(self, other):
+        """Overloaded comparison operator.
+        """
+        return (self.min_col, self.max_col, self.min_row, self.max_row) == \
+            (other.min_col, other.max_col, other.min_row, other.max_row) and\
+            self.padding == other.padding
 
     def shape(self) -> Tuple[int, int]:
         """Return the shape of the ROI.

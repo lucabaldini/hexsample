@@ -23,12 +23,14 @@
 """
 
 from loguru import logger
+import numpy as np
 from tqdm import tqdm
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
-from hexsample.digi import Xpol3
+from hexsample.digi import HexagonalReadout
 from hexsample.fileio import DigiOutputFile
+from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
 from hexsample.source import LineForest, GaussianBeam, Source
@@ -43,6 +45,7 @@ __description__ = \
 HXSIM_ARGPARSER = ArgumentParser(description=__description__)
 HXSIM_ARGPARSER.add_numevents(1000)
 HXSIM_ARGPARSER.add_outfile(HEXSAMPLE_DATA / 'hxsim.h5')
+HXSIM_ARGPARSER.add_seed()
 HXSIM_ARGPARSER.add_source_options()
 HXSIM_ARGPARSER.add_sensor_options()
 HXSIM_ARGPARSER.add_readout_options()
@@ -52,13 +55,20 @@ def hxsim(**kwargs):
     """Application main entry point.
     """
     # pylint: disable=too-many-locals, invalid-name
+    seed = kwargs['seed']
+    if seed is not None:
+        logger.info(f'Setting the random seed to {seed}...')
+        np.random.seed(seed)
     spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
     beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
     source = Source(spectrum, beam)
     material = Material(kwargs['actmedium'], kwargs['fano'])
     sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
     photon_list = PhotonList(source, sensor, kwargs['numevents'])
-    readout = Xpol3(kwargs['noise'], kwargs['gain'])
+    args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
+        kwargs['pitch'], kwargs['noise'], kwargs['gain']
+    readout = HexagonalReadout(*args)
+    logger.info(f'Readout chip: {readout}')
     output_file_path = kwargs.get('outfile')
     output_file = DigiOutputFile(output_file_path)
     output_file.update_header(**kwargs)
