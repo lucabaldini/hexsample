@@ -4,6 +4,8 @@ Release notes
 =============
 
 
+*hexsample (0.5.2) - Wed, 18 Oct 2023 21:45:47 +0200*
+
 * New attempt at compiling the docs on github pages.
 
 
