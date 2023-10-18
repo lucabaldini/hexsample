@@ -4,6 +4,8 @@ Release notes
 =============
 
 
+*hexsample (0.5.1) - Wed, 18 Oct 2023 21:30:42 +0200*
+
 * Merging https://github.com/lucabaldini/hexsample/pull/3
 * Attempt at compiling the docs on github pages whenever a new tag is created.
 
