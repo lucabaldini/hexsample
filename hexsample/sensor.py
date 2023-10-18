@@ -26,8 +26,6 @@ import numpy as np
 import scipy.stats
 import xraydb
 
-from hexsample import logger
-
 
 
 class CrossSection(Enum):
@@ -215,21 +213,22 @@ class Sensor:
 
     Arguments
     ---------
-    thickness : float
-        The sensor thickness in cm.
-
     material : Material instance
         The sensor material.
+
+    thickness : float
+        The sensor thickness in cm.
 
     trans_diffusion_sigma : float
         The transverse diffusion sigma in um / sqrt(cm).
     """
 
-    def __init__(self, thickness : float, material : Material, trans_diffusion_sigma : float) -> None:
+    def __init__(self, material : Material, thickness : float,
+        trans_diffusion_sigma : float) -> None:
         """Constructor.
         """
-        self.thickness = thickness
         self.material = material
+        self.thickness = thickness
         self.trans_diffusion_sigma = trans_diffusion_sigma
 
     def photabsorption_efficiency(self, energy : np.ndarray) -> np.ndarray:
@@ -248,6 +247,16 @@ class Sensor:
         dist = scipy.stats.expon(scale=lambda_)
         return dist.ppf(np.random.uniform(0., dist.cdf(self.thickness)))
 
+    def rvs_absz(self, energy : np.ndarray) -> np.ndarray:
+        """Extract random variates for the absorption position along the z axis.
+
+        Not that, in our parallel-plane geometry, the z axis runs perpendicularly
+        to the readout plane, which is assumed to be at z = 0. The top of the
+        sensor is therefore at z = thickness, and all the photons are assumed
+        to have a momentum parallel to the z axis.
+        """
+        return self.thickness - self.rvs_absorption_depth(energy)
+
 
 
 class SiliconSensor(Sensor):
@@ -258,4 +267,4 @@ class SiliconSensor(Sensor):
     def __init__(self, thickness : float = 0.03, trans_diffusion_sigma : float = 40.) -> None:
         """Constructor.
         """
-        super().__init__(thickness, Silicon, trans_diffusion_sigma)
+        super().__init__(Silicon, thickness, trans_diffusion_sigma)

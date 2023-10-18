@@ -22,13 +22,42 @@
 """Event display.
 """
 
+from hexsample import logger
+from hexsample.app import ArgumentParser
+from hexsample.digi import HexagonalReadout
+from hexsample.display import HexagonalGridDisplay
+from hexsample.fileio import DigiInputFile
+from hexsample.hexagon import HexagonalLayout
+from hexsample.plot import plt
 
-def display():
+
+__description__ = \
+"""Single event display.
+"""
+
+# Parser object.
+HXDISPLAY_ARGPARSER = ArgumentParser(description=__description__)
+HXDISPLAY_ARGPARSER.add_infile()
+
+
+def hxdisplay(**kwargs):
+    """Application main entry point.
     """
-    """
-    pass
+    file_path = kwargs.get('infile')
+    input_file = DigiInputFile(file_path)
+    header = input_file.header
+    args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+        header['pitch'], header['noise'], header['gain']
+    readout = HexagonalReadout(*args)
+    logger.info(f'Readout chip: {readout}')
+    display = HexagonalGridDisplay(readout)
+    for event in input_file:
+        print(event.ascii())
+        display.draw_digi_event(event, zero_sup_threshold=0)
+        display.show()
+    input_file.close()
 
 
 
 if __name__ == '__main__':
-    display()
+    hxdisplay(**vars(HXDISPLAY_ARGPARSER.parse_args()))

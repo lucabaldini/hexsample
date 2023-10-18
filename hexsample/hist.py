@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import numbers
-from typing import Optional
+from typing import Optional, Tuple
 
 import matplotlib
 import numpy as np
@@ -63,7 +63,7 @@ class HistogramBase:
 
     PLOT_OPTIONS = {}
 
-    def __init__(self, binning : tuple[np.array], labels : tuple[str]) -> None:
+    def __init__(self, binning : Tuple[np.array], labels : Tuple[str]) -> None:
         """Constructor.
         """
         assert len(labels) == len(binning) + 1
@@ -138,7 +138,7 @@ class HistogramBase:
         """
         return np.searchsorted(binning, values, side) - 1
 
-    def find_bin(self, *coords : float) -> tuple[int]:
+    def find_bin(self, *coords : float) -> Tuple[int]:
         """Find the bin corresponding to a given set of "physical" coordinates
         on the histogram axes.
 

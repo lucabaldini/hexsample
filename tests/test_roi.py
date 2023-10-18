@@ -56,6 +56,15 @@ def test_padding(top : int = 2, right : int = 4, bottom : int = 3, left : int = 
     assert pad.left == left
     assert tuple(pad) == (top, right, bottom, left)
 
+def test_padding_equality():
+    """Test the equality opetator for padding.
+    """
+    pad1 = Padding(2)
+    pad2 = Padding(2, 2, 2, 2)
+    pad3 = Padding(2, 1, 2, 1)
+    assert pad1 == pad2
+    assert pad1 != pad3
+
 def test_roi(min_col : int = 0, max_col : int = 5, min_row : int = 25,
     max_row : int = 30, padding : Padding = Padding(2)):
     """Unit test for the RegionOfInterest class.
@@ -79,3 +88,12 @@ def test_roi(min_col : int = 0, max_col : int = 5, min_row : int = 25,
     print(roi.serial_readout_indexes())
     print(roi.rot_slice())
     print(roi.rot_mask())
+
+def test_roi_comparison():
+    """Test the equality operator for ROI objects.
+    """
+    roi1 = RegionOfInterest(10, 23, 20, 33, Padding(2))
+    roi2 = RegionOfInterest(10, 23, 20, 33, Padding(2, 2, 2, 2))
+    roi3 = RegionOfInterest(10, 13, 20, 23, Padding(0, 0, 0, 0))
+    assert roi1 == roi2
+    assert roi1 != roi3

@@ -22,13 +22,60 @@
 """Event reconstruction.
 """
 
+from tqdm import tqdm
 
-def recon():
+from hexsample import logger
+from hexsample.app import ArgumentParser, check_required_args
+from hexsample.clustering import ClusteringNN
+from hexsample.digi import HexagonalReadout
+from hexsample.fileio import DigiInputFile, ReconOutputFile
+from hexsample.hexagon import HexagonalLayout
+from hexsample.recon import ReconEvent
+
+
+__description__ = \
+"""Run the reconstruction on a file produced by hxsim.py
+"""
+
+# Parser object.
+HXRECON_ARGPARSER = ArgumentParser(description=__description__)
+HXRECON_ARGPARSER.add_infile()
+HXRECON_ARGPARSER.add_suffix('recon')
+HXRECON_ARGPARSER.add_clustering_options()
+
+
+def hxrecon(**kwargs):
+    """Application main entry point.
     """
-    """
-    pass
+    check_required_args(hxrecon, 'infile', **kwargs)
+    # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
+    input_file_path = str(kwargs['infile'])
+    if not input_file_path.endswith('.h5'):
+        raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')
+    input_file = DigiInputFile(input_file_path)
+    header = input_file.header
+    args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+        header['pitch'], header['noise'], header['gain']
+    readout = HexagonalReadout(*args)
+    logger.info(f'Readout chip: {readout}')
+    clustering = ClusteringNN(readout, kwargs['zsupthreshold'], kwargs['nneighbors'])
+    suffix = kwargs['suffix']
+    output_file_path = input_file_path.replace('.h5', f'_{suffix}.h5')
+    output_file = ReconOutputFile(output_file_path)
+    output_file.update_header(**kwargs)
+    output_file.update_digi_header(**input_file.header)
+    for i, event in tqdm(enumerate(input_file)):
+        cluster = clustering.run(event)
+        args = event.trigger_id, event.timestamp(), event.livetime, event.roi.size, cluster
+        recon_event = ReconEvent(*args)
+        mc_event = input_file.mc_event(i)
+        output_file.add_row(recon_event, mc_event)
+    output_file.flush()
+    input_file.close()
+    output_file.close()
+    return output_file_path
 
 
 
 if __name__ == '__main__':
-    recon()
+    hxrecon(**vars(HXRECON_ARGPARSER.parse_args()))

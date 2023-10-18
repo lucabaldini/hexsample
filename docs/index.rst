@@ -12,7 +12,9 @@ hexsample (X-ray hexagonal sampling)
    :maxdepth: 2
    :caption: Contents:
 
+   install
    api
+   release
 
 
 

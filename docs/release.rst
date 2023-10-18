@@ -1,0 +1,91 @@
+.. _release_notes:
+
+Release notes
+=============
+
+
+*hexsample (0.5.0) - Tue, 17 Oct 2023 22:37:49 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/29
+* Merging https://github.com/lucabaldini/hexsample/pull/30
+* Merging https://github.com/lucabaldini/hexsample/pull/31\
+* Readout chip geometry exposed in the simulation via command-line arguments, and
+  automatically picked up in the reconstruction and the event display.
+* Start message updated.
+* Bookkeeping in place for the file types.
+* New "filetype" attribute added to the file header---written automatically by
+  OutputFileBase and read automatically by InputFileBase.
+* New fileio.open_input_file() function added to open input files transparently.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/21
+      * https://github.com/lucabaldini/hexsample/issues/27
+
+
+*hexsample (0.4.0) - Mon, 16 Oct 2023 22:11:44 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/22
+* This is a major rework of the sampling, trigger and digitization facilities
+  allowing for a simulation speedup of almost an order of magnitude, without loss
+  of performance.
+* Digitization machinery refactored in order to avoid working with large sparse
+  arrays (in pixel and minicluster space) full of zeroes.
+* Generation of the noise moved at the end of the digitization process.
+* Hexagonal sampling largely rewritten to avoid the use of numpy.histogram2d.
+* Trigger machinery reworked to accommodate the previous changes.
+* Comparison operator defined for Padding, RegionOfInterest and DigiEvent in
+  order to be able to make strict comparisons between output digi files.
+* Seed for a small utility to compare digi files added.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/12
+
+
+*hexsample (0.3.2) - Mon, 16 Oct 2023 12:12:10 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/25
+* Command-line switch to set the random seed added.
+* Version and tag date added to the output file header.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/23
+
+
+*hexsample (0.3.1) - Fri, 13 Oct 2023 15:41:01 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/20
+* Added support for Python 3.7 through small tweaks to the type annotations.
+* Added setup.bat script to support development under Windows.
+
+
+*hexsample (0.3.0) - Fri, 13 Oct 2023 14:28:53 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/18
+* Merging https://github.com/lucabaldini/hexsample/pull/19
+* Cleanup and linting.
+* Glaring bug in the simulation (the z coordinate of absorption was swapped) fixed.
+
+
+*hexsample (0.2.0) - Thu, 12 Oct 2023 17:51:13 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/11
+* Merging https://github.com/lucabaldini/hexsample/pull/10
+* Merging https://github.com/lucabaldini/hexsample/pull/17
+* Casting the outputfile default argument to string in ArgumentParser in order
+  to avoid possible problems downstream with patlib.Path instances.
+* mc option removed from output digi and recon files.
+* Base classes for input and output files added, and machinery for adding
+  and retrieving metadata information to/from file headers added.
+* Digi header group metadata propagated to the recon files.
+* io module renamed as fileio
+* Added protection against mistyped parameter names in pipeline calls.
+* uncertainties added as a requirement.
+* PlotCard class completely refactored.
+* Updating the hxview script.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/14
+      * https://github.com/lucabaldini/hexsample/issues/15
+
+
+*hexsample (0.1.0) - Tue, 10 Oct 2023 10:31:12 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/10
+* Initial setup of the repository.
+* Simple versioning system in plac

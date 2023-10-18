@@ -24,33 +24,67 @@ from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
 from hexsample.modeling import Exponential
 from hexsample.plot import plt, setup_gca
-from hexsample.sensor import SiliconSensor
+from hexsample.sensor import Silicon, SiliconSensor
 
 
-def test_sensor():
+def test_efficiency():
+    """Calculate the efficiency of a silicon detector for different thickness values.
     """
-    """
-    plt.figure('Efficiency')
-    energy = np.linspace(1000., 20000., 200)
-    for thickness in (0.1, 0.2, 0.3, 0.5, 0.75, 1.):
+    plt.figure('Silicon efficiency')
+    energy = np.linspace(2000., 15000., 200)
+    for thickness in (0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.1):
         sensor = SiliconSensor(thickness)
         efficiency = sensor.photabsorption_efficiency(energy)
-        plt.plot(energy, efficiency, label=f'{1.e3 * thickness} $\\mu$m')
+        plt.plot(energy, efficiency, label=f'{1.e4 * thickness:.0f} $\\mu$m')
     setup_gca(xlabel='Energy [eV]', ylabel='Photoabsorption efficiency',
-        grids=True, legend=True)
+        grids=True, legend=True, xmax=energy.max())
+
+def test_attenuation_length():
+    """Calculate the photoelectric attenuation length of a silicon detector.
+    """
+    plt.figure('Silicon attenuation length')
+    energy = np.linspace(2000., 15000., 200)
+    attenuation_length = Silicon.photoelectric_attenuation_length(energy)
+    plt.plot(energy, attenuation_length)
+    setup_gca(xlabel='Energy [eV]', ylabel='Photoelectric attenuation length [cm]',
+        grids=True, logy=True, xmax=energy.max())
+
+def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
+    """Extract random absorption depths.
+    """
     plt.figure('Absorption depth')
-    sensor = SiliconSensor()
-    energy = np.full(100000, 8000)
-    d = sensor.rvs_absorption_depth(energy)
-    h = Histogram1d(np.linspace(-0.1, 0.4, 101)).fill(d)
+    sensor = SiliconSensor(thickness)
+    _energy = np.full(num_photons, energy)
+    d = sensor.rvs_absorption_depth(_energy)
+    h = Histogram1d(np.linspace(0., thickness, 100)).fill(d)
     h.plot()
-    setup_gca(xlabel='Absorption depth [mm]', logy=True)
+    setup_gca(xlabel='Absorption depth [cm]', logy=True)
     model = fit_histogram(Exponential(), h)
     model.plot()
     model.stat_box()
+    index = model.parameter_value('Index')
+    sigma_index = model.parameter_error('Index')
+    lambda_ = -1. / index
+    sigma_lambda = sigma_index / index**2.
+    delta = (Silicon.photoelectric_attenuation_length(energy) - lambda_) / sigma_lambda
+    assert delta < 5.
+
+def test_absz(thickness=0.05, energy=8000., num_photons=100000):
+    """
+    """
+    plt.figure('Absorption z')
+    sensor = SiliconSensor(thickness)
+    _energy = np.full(num_photons, energy)
+    d = sensor.rvs_absz(_energy)
+    h = Histogram1d(np.linspace(0., thickness, 100)).fill(d)
+    h.plot()
+    setup_gca(xlabel='Absorption z [cm]', logy=True)
 
 
 
 if __name__ == '__main__':
-    test_sensor()
+    test_efficiency()
+    test_attenuation_length()
+    test_absorption_depth()
+    test_absz()
     plt.show()

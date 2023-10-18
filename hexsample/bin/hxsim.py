@@ -23,49 +23,68 @@
 """
 
 from loguru import logger
+import numpy as np
+from tqdm import tqdm
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
-from hexsample.digi import Xpol3
-from hexsample.io import DigiOutputFile
+from hexsample.digi import HexagonalReadout
+from hexsample.fileio import DigiOutputFile
+from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
 from hexsample.source import LineForest, GaussianBeam, Source
-from hexsample.sensor import SiliconSensor
+from hexsample.sensor import Material, Sensor
 
 
-def simulate(**kwargs):
-    """Run a simulation.
+__description__ = \
+"""Simulate a list of digitized events from an arbitrary X-ray source.
+"""
+
+# Parser object.
+HXSIM_ARGPARSER = ArgumentParser(description=__description__)
+HXSIM_ARGPARSER.add_numevents(1000)
+HXSIM_ARGPARSER.add_outfile(HEXSAMPLE_DATA / 'hxsim.h5')
+HXSIM_ARGPARSER.add_seed()
+HXSIM_ARGPARSER.add_source_options()
+HXSIM_ARGPARSER.add_sensor_options()
+HXSIM_ARGPARSER.add_readout_options()
+
+
+def hxsim(**kwargs):
+    """Application main entry point.
     """
-    output_file_path = kwargs.get('outfile')
-    num_events = kwargs.get('numevents')
-    thickness = kwargs.get('thickness', 0.030)
-    trg_threshold = kwargs.get('trgthreshold')
-    zero_sup_threshold = kwargs.get('zsupthreshold')
-    padding = Padding(2)
-    spectrum = LineForest('Cu', 'K')
-    beam = GaussianBeam()
+    # pylint: disable=too-many-locals, invalid-name
+    seed = kwargs['seed']
+    if seed is not None:
+        logger.info(f'Setting the random seed to {seed}...')
+        np.random.seed(seed)
+    spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
+    beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
     source = Source(spectrum, beam)
-    sensor = SiliconSensor(thickness)
-    photon_list = PhotonList(source, sensor, num_events)
-    readout = Xpol3()
-    output_file = DigiOutputFile(output_file_path, mc=True)
+    material = Material(kwargs['actmedium'], kwargs['fano'])
+    sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
+    photon_list = PhotonList(source, sensor, kwargs['numevents'])
+    args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
+        kwargs['pitch'], kwargs['noise'], kwargs['gain']
+    readout = HexagonalReadout(*args)
+    logger.info(f'Readout chip: {readout}')
+    output_file_path = kwargs.get('outfile')
+    output_file = DigiOutputFile(output_file_path)
+    output_file.update_header(**kwargs)
+    padding = Padding(*kwargs['padding'])
+    readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
     logger.info('Starting the event loop...')
-    for i, mc_event in enumerate(photon_list):
+    for mc_event in tqdm(photon_list):
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
-        digi_event = readout.read(mc_event.timestamp, x, y, trg_threshold, padding)
+        digi_event = readout.read(mc_event.timestamp, x, y, *readout_args)
         output_file.add_row(digi_event, mc_event)
     logger.info('Done!')
     output_file.flush()
     output_file.close()
+    return output_file_path
 
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_outfile(HEXSAMPLE_DATA / 'hxsim.h5')
-    parser.add_numevents(1000)
-    parser.add_trgthreshold()
-    parser.add_zsupthreshold()
-    args = parser.parse_args()
-    simulate(**args.__dict__)
+    hxsim(**vars(HXSIM_ARGPARSER.parse_args()))

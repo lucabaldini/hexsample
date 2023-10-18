@@ -19,96 +19,9 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from hexsample.plot import plt
+from hexsample.plot import plt, PlotCard
 
 # pylint: disable=invalid-name
-
-
-class StatBox:
-
-    """Class describing a text box, to be used for the fit stat boxes.
-
-    Parameters
-    ----------
-    position : str of tuple
-        It can either be a two-element tuple (in which case the argument is
-        interpreted as a position in absolute coordinates, with the reference
-        corner determined by the alignment flags), or a string in the
-        set ['upper left', 'upper right', 'lower left', 'lower rigth'].
-        If position is a string, the alignment flags are ignored.
-
-    halign : str
-        The horizontal alignment ('left' | 'center' | 'right')
-
-    valign : str
-        The vertical alignment ('top' | 'center' | 'bottom')
-    """
-
-    HORIZONTAL_PADDING = 0.025
-    VERTICAL_PADDING = 0.035
-    _left, _right = HORIZONTAL_PADDING, 1 - HORIZONTAL_PADDING
-    _bottom, _top = VERTICAL_PADDING, 1 - VERTICAL_PADDING
-    POSITION_DICT = {
-        'upper left': (_left, _top, 'left', 'top'),
-        'upper right': (_right, _top, 'right', 'top'),
-        'lower left': (_left, _bottom, 'left', 'bottom'),
-        'lower right': (_right, _bottom, 'right', 'bottom')
-    }
-    DEFAULT_BBOX = dict(boxstyle='round', facecolor='white', alpha=0.75)
-
-    def __init__(self, position : str = 'upper left', halign : str = 'left',
-                 valign : str = 'top') -> None:
-        """Constructor.
-        """
-        self.set_position(position, halign, valign)
-        self.text = ''
-
-    def set_position(self, position, halign='left', valign='top'):
-        """Set the position of the bounding box.
-        """
-        if isinstance(position, str):
-            self.x0, self.y0, self.halign,\
-                self.valign = self.POSITION_DICT[position]
-        else:
-            self.x0, self.y0 = position
-            self.halign, self.valign = halign, valign
-
-    def add_entry(self, label, value=None, error=None):
-        """Add an entry to the stat box.
-        """
-        if value is None and error is None:
-            self.text += '%s\n' % label
-        elif value is not None and error is None:
-            try:
-                self.text += '%s: %g\n' % (label, value)
-            except TypeError:
-                self.text += '%s: %s\n' % (label, value)
-        elif value is not None and error is not None:
-            if error > 0:
-                self.text += '%s: %g $\\pm$ %g\n' % (label, value, error)
-            else:
-                self.text += '%s: %g (frozen)\n' % (label, value)
-
-    def plot(self, **kwargs):
-        """Plot the stat box.
-
-        Parameters
-        ----------
-        **kwargs : dict
-            The options to be passed to `plt.text()`
-        """
-        def set_kwargs_default(key, value):
-            """
-            """
-            if key not in kwargs:
-                kwargs[key] = value
-
-        set_kwargs_default('horizontalalignment', self.halign)
-        set_kwargs_default('verticalalignment', self.valign)
-        set_kwargs_default('bbox', self.DEFAULT_BBOX)
-        set_kwargs_default('transform', plt.gca().transAxes)
-        plt.text(self.x0, self.y0, self.text.strip('\n'), **kwargs)
-
 
 
 class FitModelBase:
@@ -366,26 +279,19 @@ class FitModelBase:
         """
         if len(parameters) == len(self):
             self.parameters = parameters
-        display_stat_box = kwargs.pop('display_stat_box', False)
         x = np.linspace(self.xmin, self.xmax, 1000)
         y = self(x, *parameters)
         plt.plot(x, y, **kwargs)
-        if display_stat_box:
-            self.stat_box(**kwargs)
 
-    def stat_box(self, position=None, plot=True, **kwargs):
+    def stat_box(self, **kwargs):
         """Plot a ROOT-style stat box for the model.
         """
-        if position is None:
-            position = self.DEFAULT_STAT_BOX_POSITION
-        box = StatBox(position)
-        box.add_entry('Fit model: %s' % self.name())
-        box.add_entry('Chisquare', '%.1f / %d' % (self.chisq, self.ndof))
+        box = PlotCard()
+        box.add_string('Fit model', self.name())
+        box.add_string('Chisquare', '%.1f / %d' % (self.chisq, self.ndof))
         for name, value, error in self.parameter_status():
-            box.add_entry(name, value, error)
-        if plot:
-            box.plot(**kwargs)
-        return box
+            box.add_quantity(name, value, error)
+        box.plot(**kwargs)
 
     def __len__(self):
         """Return the number of model parameters.
@@ -407,9 +313,10 @@ class FitModelBase:
 
         class _model(FitModelBase):
 
-            PARAMETER_NAMES = m1.PARAMETER_NAMES + m2.PARAMETER_NAMES
+            PARAMETER_NAMES = [f'{name}1' for name in m1.PARAMETER_NAMES] + \
+                [f'{name}2' for name in m2.PARAMETER_NAMES]
             PARAMETER_DEFAULT_VALUES = m1.PARAMETER_DEFAULT_VALUES + \
-                                       m2.PARAMETER_DEFAULT_VALUES
+                m2.PARAMETER_DEFAULT_VALUES
             DEFAULT_PLOTTING_RANGE = (xmin, xmax)
             PARAMETER_DEFAULT_BOUNDS = (-np.inf, np.inf)
 

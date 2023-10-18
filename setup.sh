@@ -6,7 +6,7 @@
 SETUP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 #
-# Base package root. All the other releavant folders are relative to this
+# Base package root. All the other relevant folders are relative to this
 # location.
 #
 export HEXSAMPLE_ROOT=$SETUP_DIR
@@ -21,4 +21,4 @@ export PYTHONPATH=$HEXSAMPLE_ROOT:$PYTHONPATH
 #
 # Add the bin folder to the $PATH so that we have the executables off hand.
 #
-export PATH=$HEXSAMPLE_ROOT/baldaquin/bin:$PATH
+export PATH=$HEXSAMPLE_ROOT/hexsample/bin:$PATH

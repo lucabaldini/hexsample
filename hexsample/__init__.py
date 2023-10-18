@@ -25,12 +25,15 @@ import sys
 
 from loguru import logger
 
+from hexsample._version import __version__, __tagdate__
 
 # Logger setup.
-DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True,
-    format=">>> <level>{message}</level>")
+DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True, format=">>> <level>{message}</level>")
+logger.remove()
+logger.add(**DEFAULT_LOGURU_HANDLER)
 
-PACKAGE_NAME = 'hexsample'
+__pkgname__ = 'hexsample'
+__url__ = 'https://github.com/lucabaldini/hexsample'
 
 # Basic package structure.
 HEXSAMPLE_ROOT = Path(__file__).parent
@@ -40,6 +43,13 @@ HEXSAMPLE_DOCS_FIGURES = HEXSAMPLE_DOCS / 'figures'
 HEXSAMPLE_DOCS_STATIC = HEXSAMPLE_DOCS / '_static'
 HEXSAMPLE_TEST = HEXSAMPLE_BASE / 'tests'
 HEXSAMPLE_TEST_DATA = HEXSAMPLE_TEST / 'data'
+HEXSAMPLE_BIN = HEXSAMPLE_ROOT / 'bin'
+
+# Path to the Python module containing the version information.
+HEXSAMPLE_VERSION_FILE_PATH = HEXSAMPLE_ROOT / '_version.py'
+
+# Path to the release notes.
+HEXSAMPLE_RELEASE_NOTES_PATH = HEXSAMPLE_DOCS / 'release.rst'
 
 # Make room for the output data.
 HEXSAMPLE_DATA = Path.home() / 'hexsampledata'

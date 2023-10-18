@@ -21,7 +21,8 @@
 """
 
 
-from enum import Enum, auto
+from enum import Enum
+from typing import Tuple
 
 import numpy as np
 
@@ -32,14 +33,89 @@ class HexagonalLayout(Enum):
     """
 
     # Horizontal, pointy top, odd rows are shoved right.
-    ODD_R = auto()
+    ODD_R = 'ODD_R'
     # Horizontal, pointy top, even rows are shoved right.
-    EVEN_R = auto()
+    EVEN_R = 'EVEN_R'
     # Vertical, flat top, odd columns are shoved down.
-    ODD_Q = auto()
+    ODD_Q = 'ODD_Q'
     # Vertical, flat top, even columns are shoved down.
-    EVEN_Q = auto()
+    EVEN_Q = 'EVEN_Q'
 
+
+
+def neighbors_odd_r(col : int, row : int) -> tuple:
+    """Return a tuple with the coordinates of the 6 neighbor pixel for a given
+    pixel in a ODD_R hexagonal grid.
+
+    Arguments
+    ---------
+    col : int
+        The column index.
+
+    row : int
+        The row index.
+    """
+    parity = row % 2
+    return (col + parity, row - 1), (col + 1, row), (col + parity, row + 1),\
+        (col + parity - 1, row + 1), (col - 1, row), (col + parity - 1, row - 1)
+
+def neighbors_even_r(col : int, row : int) -> tuple:
+    """Return a tuple with the coordinates of the 6 neighbor pixel for a given
+    pixel in a EVEN_R hexagonal grid.
+
+    Arguments
+    ---------
+    col : int
+        The column index.
+
+    row : int
+        The row index.
+    """
+    parity = row % 2
+    return (col - parity + 1, row - 1), (col + 1, row), (col - parity + 1, row + 1),\
+        (col - parity, row + 1), (col - 1, row), (col - parity, row - 1)
+
+def neighbors_odd_q(col : int, row : int) -> tuple:
+    """Return a tuple with the coordinates of the 6 neighbor pixel for a given
+    pixel in a ODD_Q hexagonal grid.
+
+    Arguments
+    ---------
+    col : int
+        The column index.
+
+    row : int
+        The row index.
+    """
+    parity = col % 2
+    return (col, row - 1), (col + 1, row + parity - 1), (col + 1, row + parity),\
+        (col, row + 1), (col - 1, row + parity), (col - 1, row + parity - 1)
+
+def neighbors_even_q(col : int, row : int) -> tuple:
+    """Return a tuple with the coordinates of the 6 neighbor pixel for a given
+    pixel in a EVEN_Q hexagonal grid.
+
+    Arguments
+    ---------
+    col : int
+        The column index.
+
+    row : int
+        The row index.
+    """
+    parity = col % 2
+    return (col, row - 1), (col + 1, row - parity), (col + 1, row - parity + 1),\
+        (col, row + 1), (col - 1, row - parity + 1), (col - 1, row - parity)
+
+
+# Lookup table for the functions returning the tuple of the 6 neighbor pixels in
+# a hexagonal grid with a given layout.
+_NEIGHBORS_PROXY_DICT = {
+    HexagonalLayout.ODD_R: neighbors_odd_r,
+    HexagonalLayout.EVEN_R: neighbors_even_r,
+    HexagonalLayout.ODD_Q: neighbors_odd_q,
+    HexagonalLayout.EVEN_Q: neighbors_even_q,
+}
 
 
 class HexagonalGrid:
@@ -73,15 +149,18 @@ class HexagonalGrid:
         self.num_rows = num_rows
         self.num_pixels = self.num_cols * self.num_rows
         self.pitch = pitch
-        self._secondary_pitch = 0.5 * np.sqrt(3.) * self.pitch
+        self.secondary_pitch = 0.5 * np.sqrt(3.) * self.pitch
         self._hexagon_size = self.pitch / np.sqrt(3.)
         # Definition of the origin of coordinates.
         if self.pointy_topped():
             self.xoffset = 0.5 * (self.num_cols - 1 - 0.5 * self._parity_offset(1)) * self.pitch
-            self.yoffset = 0.5 * (self.num_rows - 1) * self._secondary_pitch
+            self.yoffset = 0.5 * (self.num_rows - 1) * self.secondary_pitch
         else:
-            self.xoffset = 0.5 * (self.num_cols - 1) * self._secondary_pitch
+            self.xoffset = 0.5 * (self.num_cols - 1) * self.secondary_pitch
             self.yoffset = 0.5 * (self.num_rows - 1 - 0.5 * self._parity_offset(1)) * self.pitch
+        # Cache the proper function to retrieve the neighbor pixels from the
+        # lookup table---this is used, e.g., for the clustering.
+        self.neighbors = _NEIGHBORS_PROXY_DICT[self.layout]
 
     def pointy_topped(self) -> bool:
         """Return True if the layout is pointy-topped.
@@ -126,7 +205,7 @@ class HexagonalGrid:
         value = index & 1
         return value if self.even() else - value
 
-    def pixel_to_world(self, col : np.array, row : np.array) -> tuple[np.array, np.array]:
+    def pixel_to_world(self, col : np.array, row : np.array) -> Tuple[np.array, np.array]:
         """Transform pixel coordinates to world coordinates.
 
         Arguments
@@ -140,13 +219,13 @@ class HexagonalGrid:
         # pylint: disable = invalid-name
         if self.pointy_topped():
             x = (col - 0.5 * self._parity_offset(row)) * self.pitch - self.xoffset
-            y = self.yoffset - row * self._secondary_pitch
+            y = self.yoffset - row * self.secondary_pitch
         else:
-            x = col * self._secondary_pitch - self.xoffset
+            x = col * self.secondary_pitch - self.xoffset
             y = self.yoffset - (row - 0.5 * self._parity_offset(col)) * self.pitch
         return x, y
 
-    def _float_axial(self, x : np.array, y : np.array) -> tuple[np.array, np.array]:
+    def _float_axial(self, x : np.array, y : np.array) -> Tuple[np.array, np.array]:
         """Conversion of a given set of world coordinates into fractional axial
         coordinates, a. k. a. step 1 in the transformation between world coordinates
         to pixel coordinates.
@@ -171,7 +250,7 @@ class HexagonalGrid:
         return q, r
 
     @staticmethod
-    def _axial_round(q : np.array, r : np.array) -> tuple[np.array, np.array]:
+    def _axial_round(q : np.array, r : np.array) -> Tuple[np.array, np.array]:
         """Rounding to integer of the axial coordinates, a. k. a. step 2 in the
         transformation between world coordinates to pixel coordinates.
 
@@ -190,11 +269,14 @@ class HexagonalGrid:
         rgrid = np.round(r)
         q -= qgrid
         r -= rgrid
-        dq = np.round(q + 0.5 * r) * (q**2. >= r**2.)
-        dr = np.round(r + 0.5 * q) * (q**2. < r**2.)
-        return (qgrid + dq).astype(int), (rgrid + dr).astype(int)
+        mask = np.abs(q) >= np.abs(r)
+        dq = np.round(q + 0.5 * r) * mask
+        dr = np.round(r + 0.5 * q) * np.logical_not(mask)
+        q = (qgrid + dq).astype(int)
+        r = (rgrid + dr).astype(int)
+        return q, r
 
-    def _axial_to_offset(self, q : np.array, r : np.array) -> tuple[np.array, np.array]:
+    def _axial_to_offset(self, q : np.array, r : np.array) -> Tuple[np.array, np.array]:
         """Conversion from axial to offset coordinates, a. k. a. step 3 in the
         transformation between world coordinates to pixel coordinates.
 
@@ -217,7 +299,7 @@ class HexagonalGrid:
             row = r + (q + self._parity_offset(q)) // 2
         return col, row
 
-    def world_to_pixel(self, x : np.array, y : np.array) -> tuple[np.array, np.array]:
+    def world_to_pixel(self, x : np.array, y : np.array) -> Tuple[np.array, np.array]:
         """Transform world coordinates to pixel coordinates.
 
         This proceeds in three basic steps (conversion to fractional axial coordinates,
