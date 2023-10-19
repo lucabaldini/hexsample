@@ -54,7 +54,8 @@ def reset() -> None:
     generator = UninitializedGenerator()
 
 def initialize(bit_generator_class : type = DEFAULT_BIT_GENERATOR, seed : int = None) -> None:
-    """Create a random generator from a given underlying bit generator and a given seed.
+    """Create a random generator from a given underlying bit generator and a given
+    seed and set the global ``generator`` object.
 
     This is using the recommended constructor for the random number class Generator,
     and goes toward the philosophy that it is better to create a new generator
