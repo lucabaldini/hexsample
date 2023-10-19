@@ -20,5 +20,15 @@
 import numpy as np
 
 
-rng = np.random.Generator(np.random.SFC64())
-#rng = np.random.default_rng()
+_DEFAULT_BIT_GENERATOR_CLASS = np.random.SFC64
+
+
+def random_engine(bit_generator_class : type = _DEFAULT_BIT_GENERATOR_CLASS, seed : int = None):
+    """
+    """
+    seed_sequence = np.random.SeedSequence(seed)
+    bit_generator = bit_generator_class(seed_sequence)
+    return np.random.default_rng(bit_generator)
+
+
+rng = random_engine()
