@@ -25,6 +25,7 @@ List of modules
    mc
    pprint
    recon
+   rng
    roi
    sensor
    source

@@ -20,11 +20,15 @@ from loguru import logger
 
 import numpy as np
 
+from hexsample import rng
 from hexsample.fitting import fit_gaussian_iterative
 from hexsample.hist import Histogram1d, Histogram2d
 from hexsample.plot import plt, setup_gca
 from hexsample.source import PointBeam, DiskBeam, GaussianBeam
 from hexsample.source import LineForest
+
+
+rng.initialize()
 
 
 def test_point_beam(x0 : float = 1., y0 : float = -1., num_photons : int = 1000):

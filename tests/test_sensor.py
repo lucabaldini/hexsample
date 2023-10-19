@@ -20,11 +20,14 @@ from loguru import logger
 
 import numpy as np
 
+from hexsample import rng
 from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
 from hexsample.modeling import Exponential
 from hexsample.plot import plt, setup_gca
 from hexsample.sensor import Silicon, SiliconSensor
+
+rng.initialize()
 
 
 def test_efficiency():

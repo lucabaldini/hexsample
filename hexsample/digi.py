@@ -26,6 +26,7 @@ from typing import Tuple
 from loguru import logger
 import numpy as np
 
+from hexsample import rng
 from hexsample.hexagon import HexagonalGrid, HexagonalLayout
 from hexsample.pprint import AnsiFontEffect, ansi_format, space, line
 from hexsample.roi import Padding, RegionOfInterest
@@ -348,7 +349,7 @@ class HexagonalReadout(HexagonalGrid):
         """
         # Add the noise.
         if self.enc > 0:
-            pha += np.random.normal(0., self.enc, size=pha.shape)
+            pha += rng.generator.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
         pha *= self.gain
         # ... round to the neirest integer...
