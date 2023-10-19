@@ -20,6 +20,7 @@ from __future__ import print_function, division
 import numpy as np
 
 from hexsample.plot import plt, PlotCard
+from hexsample.rng import rng
 
 # pylint: disable=invalid-name
 
@@ -181,7 +182,7 @@ class FitModelBase:
         ``ppf()`` method.
         """
         try:
-            return self.ppf(np.random.random(size), *self.parameters)
+            return self.ppf(rng.random(size), *self.parameters)
         except Exception as e:
             raise RuntimeError('%s.rvs() not implemened (%s)' % (self.name(), e))
 

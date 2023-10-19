@@ -32,6 +32,7 @@ from hexsample.digi import HexagonalReadout
 from hexsample.fileio import DigiOutputFile
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
+from hexsample.rng import rng
 from hexsample.roi import Padding
 from hexsample.source import LineForest, GaussianBeam, Source
 from hexsample.sensor import Material, Sensor
@@ -58,7 +59,7 @@ def hxsim(**kwargs):
     seed = kwargs['seed']
     if seed is not None:
         logger.info(f'Setting the random seed to {seed}...')
-        np.random.seed(seed)
+        rng.seed(seed)
     spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
     beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
     source = Source(spectrum, beam)
