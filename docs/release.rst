@@ -3,6 +3,12 @@
 Release notes
 =============
 
+* Merging https://github.com/lucabaldini/hexsample/pull/35
+* New random number generation scheme, (sort of) following the best practices
+  suggested on the numpy documentation.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/24
+
 
 *hexsample (0.5.2) - Wed, 18 Oct 2023 21:45:47 +0200*
 
