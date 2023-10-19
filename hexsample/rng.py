@@ -79,5 +79,12 @@ def random_generator(bit_generator_class : type = _DEFAULT_BIT_GENERATOR, seed :
     logger.info(f'Creating new {bit_generator.__class__.__name__} pseudo-random generator...')
     return np.random.default_rng(bit_generator)
 
+def set_random_seed(seed):
+    """Horrible hack to be able to set the seed---this is actually creating a new
+    generator and overriding the global variable.
+    """
+    rng = random_generator(seed=seed)
+
+
 
 rng = random_generator()
