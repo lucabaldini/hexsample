@@ -19,16 +19,65 @@
 
 import numpy as np
 
+from hexsample import logger
 
-_DEFAULT_BIT_GENERATOR_CLASS = np.random.SFC64
+
+# Default bit generator class---this is the workhorse object that draw random
+# numbers equidistributed in the [0, 1] interval.
+# pylint: disable=invalid-name
+_DEFAULT_BIT_GENERATOR = np.random.SFC64
 
 
-def random_engine(bit_generator_class : type = _DEFAULT_BIT_GENERATOR_CLASS, seed : int = None):
-    """
+def random_generator(bit_generator_class : type = _DEFAULT_BIT_GENERATOR, seed : int = None):
+    """Create a random generator from a given underlying bit generator and a given seed.
+
+    This is using the recommended constructor for the random number class Generator,
+    and goes toward the philosophy that it is better to create a new generator
+    rather than seed one multiple times.
+
+    The available bit generators are:
+
+    * MT19937
+    * PCG64
+    * PCG64DXSM
+    * Philox
+    * SFC64
+
+    along with the old RandomState that is kept for compatibility reasons.
+
+    The merits and demerits and the performance of the various methods are briefly
+    discussed at:
+    https://numpy.org/doc/stable/reference/random/performance.html
+
+    The recommended generator for general use is PCG64 or its upgraded variant PCG64DXSM
+    for heavily-parallel use cases. They are statistically high quality, full-featured,
+    and fast on most platforms, but somewhat slow when compiled for 32-bit processes.
+
+    Philox is fairly slow, but its statistical properties have very high quality, and it
+    is easy to get an assuredly-independent stream by using unique keys.
+
+    SFC64 is statistically high quality and very fast. However, it lacks jumpability.
+    If you are not using that capability and want lots of speed, even on 32-bit processes,
+    this is your choice.
+
+    MT19937 fails some statistical tests and is not especially fast compared to modern PRNGs.
+    For these reasons, we mostly do not recommend using it on its own, only through
+    the legacy RandomState for reproducing old results. That said, it has a very long
+    history as a default in many systems.
+
+    Arguments
+    ---------
+    bit_generator_class : type
+        The class for the underlying bit generator.
+
+    seed : int
+        The initial seed (default to None).
     """
     seed_sequence = np.random.SeedSequence(seed)
+    logger.info(f'Random seed set to {seed_sequence.entropy}')
     bit_generator = bit_generator_class(seed_sequence)
+    logger.info(f'Creating new {bit_generator.__class__.__name__} pseudo-random generator...')
     return np.random.default_rng(bit_generator)
 
 
-rng = random_engine()
+rng = random_generator()
