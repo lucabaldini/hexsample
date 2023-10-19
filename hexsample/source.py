@@ -26,8 +26,8 @@ from typing import Union, Optional, Tuple
 import numpy as np
 import xraydb
 
+from hexsample import rng
 from hexsample.plot import plt, setup_gca
-from hexsample.rng import rng
 
 
 @dataclass
@@ -133,8 +133,8 @@ class DiskBeam(BeamBase):
             The photon positions on the x-y plane.
         """
         # pylint: disable=invalid-name
-        r = self.radius * np.sqrt(rng.uniform(size=size))
-        theta = rng.uniform(0., 2. * np.pi, size=size)
+        r = self.radius * np.sqrt(rng.generator.uniform(size=size))
+        theta = rng.generator.uniform(0., 2. * np.pi, size=size)
         x = self.x0 + r * np.cos(theta)
         y = self.y0 + r * np.sin(theta)
         return x, y
@@ -174,8 +174,8 @@ class GaussianBeam(BeamBase):
             The photon positions on the x-y plane.
         """
         # pylint: disable=invalid-name
-        x = rng.normal(self.x0, self.sigma, size=size)
-        y = rng.normal(self.y0, self.sigma, size=size)
+        x = rng.generator.normal(self.x0, self.sigma, size=size)
+        y = rng.generator.normal(self.y0, self.sigma, size=size)
         return x, y
 
 
@@ -253,7 +253,7 @@ class LineForest(SpectrumBase):
         energy : np.ndarray of shape ``size``
             The photon energies in eV.
         """
-        return rng.choice(self._energies, size, replace=True, p=self._probs)
+        return rng.generator.choice(self._energies, size, replace=True, p=self._probs)
 
     def plot(self) -> None:
         """Plot the line forest.
@@ -309,7 +309,7 @@ class Source:
             The photon timestamps in eV.
         """
         tmax = tmin + size / self.rate
-        timestamp = rng.uniform(tmin, tmax, size)
+        timestamp = rng.generator.uniform(tmin, tmax, size)
         timestamp.sort()
         return timestamp
 

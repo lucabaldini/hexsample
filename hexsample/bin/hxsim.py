@@ -26,13 +26,13 @@ from loguru import logger
 import numpy as np
 from tqdm import tqdm
 
+from hexsample import rng
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
 from hexsample.digi import HexagonalReadout
 from hexsample.fileio import DigiOutputFile
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
-from hexsample.rng import rng, set_random_seed
 from hexsample.roi import Padding
 from hexsample.source import LineForest, GaussianBeam, Source
 from hexsample.sensor import Material, Sensor
@@ -56,10 +56,7 @@ def hxsim(**kwargs):
     """Application main entry point.
     """
     # pylint: disable=too-many-locals, invalid-name
-    seed = kwargs['seed']
-    if seed is not None:
-        logger.info(f'Setting the random seed to {seed}...')
-        set_random_seed(seed)
+    rng.initialize(seed=kwargs['seed'])
     spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
     beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
     source = Source(spectrum, beam)

@@ -26,7 +26,7 @@ import numpy as np
 import scipy.stats
 import xraydb
 
-from hexsample.rng import rng
+from hexsample import rng
 
 
 
@@ -190,7 +190,7 @@ class Material:
         """
         mean = energy / self.ionization_potential
         sigma = np.sqrt(mean * self.fano_factor)
-        return np.round(rng.normal(mean, sigma)).astype(int)
+        return np.round(rng.generator.normal(mean, sigma)).astype(int)
 
     def __str__(self):
         """String formatting.
@@ -247,7 +247,7 @@ class Sensor:
         """
         lambda_ = self.material.photoelectric_attenuation_length(energy)
         dist = scipy.stats.expon(scale=lambda_)
-        return dist.ppf(rng.uniform(0., dist.cdf(self.thickness)))
+        return dist.ppf(rng.generator.uniform(0., dist.cdf(self.thickness)))
 
     def rvs_absz(self, energy : np.ndarray) -> np.ndarray:
         """Extract random variates for the absorption position along the z axis.

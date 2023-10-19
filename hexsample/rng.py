@@ -25,10 +25,35 @@ from hexsample import logger
 # Default bit generator class---this is the workhorse object that draw random
 # numbers equidistributed in the [0, 1] interval.
 # pylint: disable=invalid-name
-_DEFAULT_BIT_GENERATOR = np.random.SFC64
+DEFAULT_BIT_GENERATOR = np.random.SFC64
 
 
-def random_generator(bit_generator_class : type = _DEFAULT_BIT_GENERATOR, seed : int = None):
+
+class UninitializedGenerator:
+
+    """Mock class raising an exception at any attempt at an interaction.
+
+    This is a poor-man trick not to let the user forget that the they have to
+    call the initialize() function below before being able to draw any random
+    number.
+    """
+
+    # pylint: disable=too-few-public-methods
+
+    def __getattr__(self, name):
+        """Basic hook to implement a no-op class.
+        """
+        raise RuntimeError('Random number generator not initialized.')
+
+
+
+def reset() -> None:
+    """Set the generator global object to the uninitialized state.
+    """
+    global generator
+    generator = UninitializedGenerator()
+
+def initialize(bit_generator_class : type = DEFAULT_BIT_GENERATOR, seed : int = None) -> None:
     """Create a random generator from a given underlying bit generator and a given seed.
 
     This is using the recommended constructor for the random number class Generator,
@@ -73,18 +98,14 @@ def random_generator(bit_generator_class : type = _DEFAULT_BIT_GENERATOR, seed :
     seed : int
         The initial seed (default to None).
     """
+    # pylint: disable=global-statement
+    global generator
     seed_sequence = np.random.SeedSequence(seed)
     logger.info(f'Random seed set to {seed_sequence.entropy}')
     bit_generator = bit_generator_class(seed_sequence)
     logger.info(f'Creating new {bit_generator.__class__.__name__} pseudo-random generator...')
-    return np.random.default_rng(bit_generator)
-
-def set_random_seed(seed):
-    """Horrible hack to be able to set the seed---this is actually creating a new
-    generator and overriding the global variable.
-    """
-    rng = random_generator(seed=seed)
+    generator = np.random.default_rng(bit_generator)
 
 
 
-rng = random_generator()
+reset()

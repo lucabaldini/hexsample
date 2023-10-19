@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from hexsample.rng import rng
+from hexsample import rng
 from hexsample.sensor import Sensor
 from hexsample.source import Source
 
@@ -68,8 +68,8 @@ class MonteCarloEvent:
         """
         # pylint: disable=invalid-name
         sigma = diffusion_sigma / 10000. * np.sqrt(self.absz)
-        x = rng.normal(self.absx, sigma, size=self.num_pairs)
-        y = rng.normal(self.absy, sigma, size=self.num_pairs)
+        x = rng.generator.normal(self.absx, sigma, size=self.num_pairs)
+        y = rng.generator.normal(self.absy, sigma, size=self.num_pairs)
         return x, y
 
 
