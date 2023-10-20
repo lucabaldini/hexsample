@@ -244,13 +244,6 @@ class FitModelBase:
         """
         raise NotImplementedError
 
-    # def cumulative_function(self, x : np.ndarray) -> np.ndarray:
-    #     """Return the cdf at a given x and a given set of parameter values.
-    #
-    #     This needs to be overloaded by any derived classes.
-    #     """
-    #     raise NotImplementedError
-
     def __add__(self, other):
         """Add two models.
 
@@ -325,10 +318,10 @@ class Constant(FitModelBase):
         d_constant = np.full((len(x),), 1.)
         return np.array([d_constant]).transpose()
 
-    def cumulative_function(self, x : np.ndarray) -> np.ndarray:
+    def integral(self, x1, x2):
         """Overloaded method.
         """
-        return self['Constant'] * x
+        return 0.
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded method.
