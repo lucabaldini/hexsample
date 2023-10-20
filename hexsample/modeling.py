@@ -14,12 +14,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from __future__ import print_function, division
-
+"""Fit models.
+"""
 
 import numpy as np
 
-from hexsample import rng
 from hexsample.plot import plt, PlotCard
 
 # pylint: disable=invalid-name
@@ -29,18 +28,12 @@ class FitModelBase:
 
     """Base class for a fittable model.
 
-    This base class isn't really doing anything useful, the idea being that
-    actual models that can be instantiated subclass FitModelBase overloading
-    the relevant class members.
+    The class features a number of static members that derived class should redefine
+    as needed:
 
-    The class features a number of static members that derived class
-    should redefine as needed:
-
-    * ``PARAMETER_NAMES`` is a list containing the names of the model
-      parameters. (It goes without saying thet its length should match the
-      number of parameters in the model.)
+    * ``PARAMETER_NAMES`` is a list containing the names of the model parameters.
     * ``PARAMETER_DEFAULT_VALUES`` is a list containing the default values
-      of the model parameters. When a concrete model object is instantiated
+      of the model parameters---when a concrete model object is instantiated
       these are the values being attached to it at creation time.
     * ``PARAMETER_DEFAULT_BOUNDS`` is a tuple containing the default values
       of the parameter bounds to be used for the fitting. The values in the
@@ -56,12 +49,10 @@ class FitModelBase:
     * ``DEFAULT_PLOTTING_RANGE`` is a two-element list with the default support
       (x-axis range) for the model. This is automatically updated at runtime
       depending on the input data when the model is used in a fit.
-    * ``DEFAULT_STAT_BOX_POSITION`` is the default location of the stat box for
-      the model.
 
-   In addition, each derived class should override the following things:
+   In addition, each derived class should override the following methods:
 
-    * the ``value(x, *args)`` static method: this should return the value of
+    * the ``eval(x, *args)`` static method: this should return the value of
       the model at a given point for a given set of values of the underlying
       parameters;
     * (optionally) the ``jacobian(x, *args)`` static method. (If defined, this
@@ -76,228 +67,194 @@ class FitModelBase:
     are passed as an argument. The default behavior of the class method defined
     in the base class is to do nothing.
 
-    See :class:`modeling.Gaussian` for a working example.
+    See :class:`hexsample.modeling.Gaussian` for a working example.
     """
 
-    PARAMETER_NAMES = ()
-    PARAMETER_DEFAULT_VALUES = ()
+    # pylint: disable=too-many-instance-attributes
+
+    PARAMETER_NAMES = None
+    PARAMETER_DEFAULT_VALUES = None
     PARAMETER_DEFAULT_BOUNDS = (-np.inf, np.inf)
     DEFAULT_PLOTTING_RANGE = (0., 1.)
-    DEFAULT_STAT_BOX_POSITION = 'upper right'
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Constructor.
-
-        Here we initialize the class members holding the best-fit parameter
-        values and the associated covariance matrix, see the
-        :pymeth:`modeling.FitModelBase.reset()` method.
-
-        We also create a (private) look-up table holding the correspondence
-        between the parameter names and the corresponding position in the
-        parameter list and we cache the default support for the model for
-        plotting purposes.
         """
-        assert len(self.PARAMETER_NAMES) == len(self.PARAMETER_DEFAULT_VALUES)
-        self.__parameter_dict = {}
-        for i, name in enumerate(self.PARAMETER_NAMES):
-            self.__parameter_dict[name] = i
-        self.reset()
+        # Make sure the length of the parameter names and values match.
+        if len(self.PARAMETER_NAMES) != len(self.PARAMETER_DEFAULT_VALUES):
+            raise RuntimeError(f'Mismatch between parameter names and values for {self.name()}')
+        # Initialize the basic class member---the parameters are set to their default values...
+        self.parameters = np.array(self.PARAMETER_DEFAULT_VALUES, dtype='d')
+        self.num_parameters = len(self.parameters)
+        # ... the covariance matrix is all zeros...
+        self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype='d')
+        # ... the bounds are set to their defalut values...
+        self.bounds = self.PARAMETER_DEFAULT_BOUNDS
+        # .. and so it's the plotting ranage...
+        self._xmin, self._xmax = self.DEFAULT_PLOTTING_RANGE
+        # ... and the chisquare and number of degrees of freedom are set to -1.
+        self.chisq = -1.
+        self.ndof = -1
+        # Create a small lookup table between parameter names and their position
+        # within the array of parameter values.
+        self._param_index_dict = {name : i for i, name in enumerate(self.PARAMETER_NAMES)}
 
-    def name(self):
+    def name(self) -> str:
         """Return the model name.
         """
         return self.__class__.__name__
 
-    def reset(self):
-        """Reset all the necessary stuff.
-
-        This method initializes all the things that are necessry to keep
-        track of a parametric fit.
-
-        * the parameter values are set to what it specified in
-          ``PARAMETER_DEFAULT_VALUES``;
-        * the covatiance matrix is initialized to a matrix of the proper
-          dimension filled with zeroes;
-        * the minimum and maximum values of the independent variable
-          (relevant for plotting) are set to the values specified in
-          ``DEFAULT_PLOTTING_RANGE``;
-        * the model bounds are set to the values specified in
-          ``PARAMETER_DEFAULT_BOUNDS``;
-        * the chisquare and number of degrees of freedom are initialized to
-          -1.
+    def _parameter_index(self, parameter_name : str) -> int:
+        """Convenience method returning the index within the parameter vector
+        for a given parameter name.
         """
-        self.parameters = np.array(self.PARAMETER_DEFAULT_VALUES, dtype='d')
-        self.covariance_matrix = np.zeros((len(self), len(self)), dtype='d')
-        self.xmin, self.xmax = self.DEFAULT_PLOTTING_RANGE
-        self.bounds = self.PARAMETER_DEFAULT_BOUNDS
-        self.chisq = -1.
-        self.ndof = -1
+        try:
+            return self._param_index_dict[parameter_name]
+        except KeyError as exception:
+            raise KeyError(f'Unknown parameter "{parameter_name}" for {self.name()}') from exception
 
-    def reduced_chisquare(self):
+    def parameter_values(self) -> np.ndarray:
+        """Return the vector of parameter values---this is just a convenience function
+        provided for consistency with the following ``parameter_error()``.
+        """
+        return self.parameters
+
+    def parameter_errors(self) -> np.ndarray:
+        """Return the vector of parameter errors, that is, the square root of the
+        diagonal elements of the covariance matrix.
+        """
+        return np.sqrt(self.covariance_matrix.diagonal())
+
+    def __iter__(self):
+        """Iterate over the underlying parameters as (name, value, error).
+
+        This comes handy, e.g., for printing the best fit values on the terminal,
+        or for creating a stat box.
+        """
+        return zip(self.PARAMETER_NAMES, self.parameter_values(), self.parameter_errors())
+
+    def parameter_value(self, parameter_name : str) -> float:
+        """Return the parameter value by name.
+        """
+        return self.parameters[self._parameter_index(parameter_name)]
+
+    def __getitem__(self, parameter_name : str) -> float:
+        """Convenience shortcut to retrieve the value of a parameter.
+        """
+        return self.parameter_value(parameter_name)
+
+    def parameter_error(self, parameter_name : str) -> float:
+        """Return the parameter error by name.
+        """
+        parameter_index = self._parameter_index(parameter_name)
+        return np.sqrt(self.covariance_matrix[parameter_index][parameter_index])
+
+    def set_parameter(self, parameter_name : str, value : float) -> None:
+        """Set the value for a given parameter (indexed by name).
+        """
+        self.parameters[self._parameter_index(parameter_name)] = value
+
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
+        """Assign a sensible set of values to the model parameters, based on a data
+        set to be fitted.
+
+        In the base class the method is not doing anything, but it can be reimplemented
+        in derived classes to help make sure the fit converges without too much manual intervention.
+
+        Arguments
+        ---------
+        xdata : array_like
+            The x data.
+
+        ydata : array_like
+            The y data.
+
+        sigma : array_like
+            The uncertainties on the y data.
+        """
+
+    def reduced_chisquare(self) -> float:
         """Return the reduced chisquare.
         """
         if self.ndof > 0:
             return self.chisq / self.ndof
         return -1.
 
-    def __getattr__(self, name):
-        """Short-hand method to retrieve the parameter values by name.
-
-        Note that we manipulate the attribute name by capitalizing the
-        first letter and replacing underscores with spaces.
+    def set_plotting_range(self, xmin : float, xmax : float) -> None:
+        """Set the plotting range.
         """
-        name = name.title().replace('_', ' ')
-        if name in self.PARAMETER_NAMES:
-            return self.parameter_value(name)
-        else:
-            raise AttributeError
+        self._xmin = xmin
+        self._xmax = xmax
 
-    @staticmethod
-    def value(x, *parameters):
-        """Eval the model at a given point and a given set of parameter values.
-
-        Warning
-        -------
-        This needs to be overloaded in any derived class for the thing to do
-        something sensible.
+    def plot(self, num_points : int = 250, **kwargs) -> None:
+        """Plot the model.
         """
-        raise 'value() not implemented'
+        x = np.linspace(self._xmin, self._xmax, num_points)
+        plt.plot(x, self(x), **kwargs)
 
-    def integral(self, edges):
-        """Calculate the integral of the model within pre-defined edges.
+    def stat_box(self, **kwargs) -> None:
+        """Plot a stat box for the model.
 
-        Note that this assumes that the derived class provides a suitable
-        ``cdf()`` method.
+        .. warning::
+           This needs to be streamlined.
         """
-        try:
-            return self.cdf(edges[1:], *self.parameters) - \
-                self.cdf(edges[:-1], *self.parameters)
-        except Exception as e:
-            raise RuntimeError('%s.integral() not implemened (%s)' % (self.name, e))
-
-    def rvs(self, size=1):
-        """Return random variates from the model.
-
-        Note that this assumes that the derived class provides a suitable
-        ``ppf()`` method.
-        """
-        try:
-            return self.ppf(rng.generator.random(size), *self.parameters)
-        except Exception as e:
-            raise RuntimeError('%s.rvs() not implemened (%s)' % (self.name(), e))
+        box = PlotCard()
+        box.add_string('Fit model', self.name())
+        box.add_string('Chisquare', f'{self.chisq:.1f} / {self.ndof}')
+        for name, value, error in self:
+            box.add_quantity(name, value, error)
+        box.plot(**kwargs)
 
     def __call__(self, x, *parameters):
         """Return the value of the model at a given point and a given set of
         parameter values.
 
-        Note that unless the proper number of parameters is passed to the
-        function call, the model is evaluated at the best-fit parameter values.
+        The function accept a variable number of parameters, with the understanding that
 
-        The function is defined with this signature because it is called
-        with a set of parameter values during the fit process, while
-        tipically we want to evaluate it with the current set of parameter
-        values after the fact.
+        * if all the parameters are passed (that is, the number of arguments is the
+          same as the number of the function parameters) then the function is
+          evaluated in correspondence of those parameters;
+        * if no parameter is passed, then the function is evaluated in correspondence
+          of the ``self.parameters`` class member;
+        * a ``RuntimeError`` is raised in all other cases.
+
+        The function signature is designed so that the __call__ dunder can be
+        called by ``curve_fit`` during the fitting process, and then we can reuse
+        it to plot the model after the fit.
         """
-        if len(parameters) == len(self):
-            return self.value(x, *parameters)
-        else:
-            return self.value(x, *self.parameters)
+        num_params = len(parameters)
+        if num_params == self.num_parameters:
+            return self.eval(x, *parameters)
+        if num_params == 0:
+            return self.eval(x, *self.parameters)
+        raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
 
-    def __parameter_index(self, name):
-        """Convenience method returning the index within the parameter vector
-        for a given parameter name.
+    #def integral(self, edges : np.ndarray) -> np.ndarray:
+    #    """Calculate the integral of the model within pre-defined edges.
+    #
+    #    Note that this assumes that the derived class overloads the ``cdf()`` method.
+    #    """
+    #    return self.cdf(edges[1:]) - self.cdf(edges[:-1])
+
+    @staticmethod
+    def eval(x : np.ndarray, *parameters) -> np.ndarray:
+        """Eval the model at a given x and a given set of parameter values.
+
+        This needs to be overloaded by any derived classes.
         """
-        assert(name in self.PARAMETER_NAMES)
-        return self.__parameter_dict[name]
+        raise NotImplementedError
 
-    def parameter_value(self, name):
-        """Return the parameter value by name.
-        """
-        index = self.__parameter_index(name)
-        return self.parameters[index]
-
-    def parameter_error(self, name):
-        """Return the parameter error by name.
-        """
-        index = self.__parameter_index(name)
-        return np.sqrt(self.covariance_matrix[index][index])
-
-    def parameter_values(self):
-        """Return the vector of parameter values.
-        """
-        return self.parameters
-
-    def parameter_errors(self):
-        """Return the vector of parameter errors.
-        """
-        return np.sqrt(self.covariance_matrix.diagonal())
-
-    def parameter_status(self):
-        """Return the complete status of the model in the form of a tuple
-        of tuples (parameter_name, parameter_value, parameter_error).
-
-        Note this can be overloaded by derived classes if more information
-        needs to be added.
-        """
-        return tuple(zip(self.PARAMETER_NAMES, self.parameter_values(),
-                         self.parameter_errors()))
-
-    def set_parameters(self, *pars):
-        """Set all the parameter values.
-
-        Note that the arguments must be passed in the right order.
-        """
-        self.parameters = np.array(pars, dtype='d')
-
-    def set_parameter(self, name, value):
-        """Set a parameter value.
-        """
-        index = self.__parameter_index(name)
-        self.parameters[index] = value
-
-    def init_parameters(self, xdata, ydata, sigma):
-        """Assign a sensible set of values to the model parameters, based
-        on a data set to be fitted.
-
-        Note that in the base class the method is not doing anything, but it
-        can be reimplemented in derived classes to help make sure the
-        fit converges without too much manual intervention.
-        """
-        pass
-
-    def set_plotting_range(self, xmin, xmax):
-        """Set the plotting range.
-        """
-        self.xmin = xmin
-        self.xmax = xmax
-
-    def plot(self, *parameters, **kwargs):
-        """Plot the model.
-
-        Note that when this is called with a full set of parameters, the
-        self.parameters class member is overwritten so that the right values
-        can then be picked up if the stat box is plotted.
-        """
-        if len(parameters) == len(self):
-            self.parameters = parameters
-        x = np.linspace(self.xmin, self.xmax, 1000)
-        y = self(x, *parameters)
-        plt.plot(x, y, **kwargs)
-
-    def stat_box(self, **kwargs):
-        """Plot a ROOT-style stat box for the model.
-        """
-        box = PlotCard()
-        box.add_string('Fit model', self.name())
-        box.add_string('Chisquare', '%.1f / %d' % (self.chisq, self.ndof))
-        for name, value, error in self.parameter_status():
-            box.add_quantity(name, value, error)
-        box.plot(**kwargs)
-
-    def __len__(self):
-        """Return the number of model parameters.
-        """
-        return len(self.PARAMETER_NAMES)
+    # def cdf(self, x : np.ndarray) -> np.ndarray:
+    #     """Return the cdf at a given x and a given set of parameter values.
+    #
+    #     This needs to be overloaded by any derived classes.
+    #     """
+    #     raise NotImplementedError
+    #
+    # def rvs(self, size : int = 1) -> np.ndarray:
+    #     """Return random variates from the model.
+    #     """
+    #     raise NotImplementedError
 
     def __add__(self, other):
         """Add two models.
@@ -310,7 +267,7 @@ class FitModelBase:
         m2 = other
         xmin = min(m1.DEFAULT_PLOTTING_RANGE[0], m2.DEFAULT_PLOTTING_RANGE[0])
         xmax = max(m1.DEFAULT_PLOTTING_RANGE[1], m2.DEFAULT_PLOTTING_RANGE[1])
-        name = '%s + %s' % (m1.__class__.__name__, m2.__class__.__name__)
+        name = f'{m1.name()} + {m2.name()}'
 
         class _model(FitModelBase):
 
@@ -326,9 +283,9 @@ class FitModelBase:
                 FitModelBase.__init__(self)
 
             @staticmethod
-            def value(x, *parameters):
-                return m1.value(x, *parameters[:len(m1)]) +\
-                    m2.value(x, *parameters[len(m1):])
+            def eval(x, *parameters):
+                return m1.eval(x, *parameters[:len(m1)]) +\
+                    m2.eval(x, *parameters[len(m1):])
 
             @staticmethod
             def jacobian(x, *parameters):
@@ -340,11 +297,11 @@ class FitModelBase:
     def __str__(self):
         """String formatting.
         """
-        text = '%s model (chisq/ndof = %.2f / %d)' % (self.__class__.__name__,
-                                                      self.chisq, self.ndof)
-        for name, value, error in self.parameter_status():
-            text += '\n%15s: %.5e +- %.5e' % (name, value, error)
+        text = f'{self.name()} (chisq/ndof = {self.chisq:.2f} / {self.ndof})'
+        for name, value, error in self:
+            text += f'\n{name:15s}: {value:.5e} +- {error:.5e}'
         return text
+
 
 
 class Constant(FitModelBase):
@@ -352,40 +309,38 @@ class Constant(FitModelBase):
     """Constant model.
 
     .. math::
-      f(x; C) = C
+       f(x; C) = C
     """
 
-    PARAMETER_NAMES = ('Constant',)
+    PARAMETER_NAMES = ('constant',)
     PARAMETER_DEFAULT_VALUES = (1.,)
     DEFAULT_PLOTTING_RANGE = (0., 1.)
 
     @staticmethod
-    def value(x, constant):
-        """Overloaded value() method.
+    def eval(x : np.ndarray, constant : float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ
         return np.full(x.shape, constant)
 
     @staticmethod
-    def jacobian(x, constant):
-        """Overloaded jacobian() method.
+    def jacobian(x : np.ndarray, constant: float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ, unused-argument
         d_constant = np.full((len(x),), 1.)
         return np.array([d_constant]).transpose()
 
-    def cdf(self, x):
-        """Overloaded cdf() method.
-        """
-        return self.Constant * x
+    #def cdf(self, x : np.ndarray) -> np.ndarray:
+    #    """Overloaded method.
+    #    """
+    #    # pylint: disable=arguments-differ
+    #    return self['Constant'] * x
 
-    def ppf(self, q):
-        """Overloaded ppf() method.
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
+        """Overloaded method.
         """
-        return self.xmin + q * (self.xmax - self.xmin)
-
-    def init_parameters(self, xdata, ydata, sigma):
-        """Overloaded init_parameters() method.
-        """
-        self.set_parameter('Constant', np.mean(ydata))
+        self.set_parameter('constant', np.mean(ydata))
 
 
 
@@ -394,23 +349,25 @@ class Line(FitModelBase):
     """Straight-line model.
 
     .. math::
-      f(x; m, q) = mx + q
+       f(x; m, q) = mx + q
     """
 
-    PARAMETER_NAMES = ('Intercept', 'Slope')
+    PARAMETER_NAMES = ('intercept', 'slope')
     PARAMETER_DEFAULT_VALUES = (1., 1.)
     DEFAULT_PLOTTING_RANGE = (0., 1.)
 
     @staticmethod
-    def value(x, intercept, slope):
-        """Overloaded value() method.
+    def eval(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ
         return intercept + slope * x
 
     @staticmethod
-    def jacobian(x, intercept, slope):
-        """Overloaded jacobian() method.
+    def jacobian(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ, unused-argument
         d_intercept = np.full((len(x),), 1.)
         d_slope = x
         return np.array([d_intercept, d_slope]).transpose()
@@ -425,83 +382,40 @@ class Gaussian(FitModelBase):
       f(x; A, \\mu, \\sigma) = A e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}
     """
 
-    PARAMETER_NAMES = ('Amplitude', 'Peak', 'Sigma')
+    PARAMETER_NAMES = ('amplitude', 'mean', 'sigma')
     PARAMETER_DEFAULT_VALUES = (1., 0., 1.)
     PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf, 0], [np.inf] * 3)
     DEFAULT_PLOTTING_RANGE = (-5., 5.)
     SIGMA_TO_FWHM = 2.3548200450309493
 
     @staticmethod
-    def value(x, amplitude, peak, sigma):
-        """Overloaded value() method.
+    def eval(x : np.ndarray, amplitude : float, mean : float, sigma : float) -> np.ndarray:
+        """Overloaded eval() method.
         """
-        return amplitude * np.exp(-0.5 * ((x - peak)**2. / sigma**2.))
+        # pylint: disable=arguments-differ
+        return amplitude * np.exp(-0.5 * ((x - mean)**2. / sigma**2.))
 
     @staticmethod
-    def der_amplitude(x, amplitude, peak, sigma):
-        """Return the amplitude derivative of the function, to be used in the
-        calculation of the Jacobian.
-        """
-        return np.exp(-0.5 / sigma**2. * (x - peak)**2.)
-
-    @staticmethod
-    def der_peak(x, amplitude, d_amplitude, peak, sigma):
-        """Return the peak derivative of the function, to be used in the
-        calculation of the Jacobian.
-
-        Note that we pass the pre-calculated values of the amplitude derivatives
-        in order not to repeat the same calculation more times than strictly
-        necessary.
-        """
-        return amplitude * d_amplitude * (x - peak) / sigma**2.
-
-    @staticmethod
-    def der_sigma(x, amplitude, d_amplitude, peak, sigma):
-        """Return the sigma derivative of the function, to be used in the
-        calculation of the Jacobian.
-
-        Note that we pass the pre-calculated values of the amplitude derivatives
-        in order not to repeat the same calculation more times than strictly
-        necessary.
-        """
-        return amplitude * d_amplitude * (x - peak)**2. / sigma**3.
-
-    @staticmethod
-    def jacobian(x, amplitude, peak, sigma):
+    def jacobian(x : np.ndarray, amplitude : float, mean : float, sigma : float) -> np.ndarray:
         """Overloaded jacobian() method.
         """
-        d_amplitude = Gaussian.der_amplitude(x, amplitude, peak, sigma)
-        d_peak = Gaussian.der_peak(x, amplitude, d_amplitude, peak, sigma)
-        d_sigma = Gaussian.der_sigma(x, amplitude, d_amplitude, peak, sigma)
-        return np.array([d_amplitude, d_peak, d_sigma]).transpose()
+        # pylint: disable=arguments-differ
+        d_amplitude = np.exp(-0.5 / sigma**2. * (x - mean)**2.)
+        d_mean = amplitude * d_amplitude * (x - mean) / sigma**2.
+        d_sigma = amplitude * d_amplitude * (x - mean)**2. / sigma**3.
+        return np.array([d_amplitude, d_mean, d_sigma]).transpose()
 
     def init_parameters(self, xdata, ydata, sigma):
         """Overloaded init_parameters() method.
         """
-        self.set_parameter('Amplitude', np.max(ydata))
-        self.set_parameter('Peak', np.mean(xdata))
-        self.set_parameter('Sigma', np.std(xdata))
+        self.set_parameter('amplitude', np.max(ydata))
+        self.set_parameter('mean', np.mean(xdata))
+        self.set_parameter('sigma', np.std(xdata))
 
     def fwhm(self):
         """Return the absolute FWHM of the model.
         """
-        return self.SIGMA_TO_FWHM * self.sigma
-
-    def resolution(self):
-        """Return the resolution of the model, i.e., the FWHM divided by the
-        peak value.
-        """
-        if self.peak > 0:
-            return self.fwhm() / self.peak
-        return 0.
-
-    def resolution_error(self):
-        """Return the error on the resolution.
-        """
-        if self.peak > 0 and self.parameter_error('Sigma') > 0:
-            return self.resolution() * self.parameter_error('Sigma') /\
-                self.parameter_value('Sigma')
-        return 0.
+        return self.SIGMA_TO_FWHM * self['sigma']
 
 
 
@@ -513,21 +427,23 @@ class PowerLaw(FitModelBase):
       f(x; N, \\Gamma) = N x^\\Gamma
     """
 
-    PARAMETER_NAMES = ('Normalization', 'Index')
+    PARAMETER_NAMES = ('normalization', 'index')
     PARAMETER_DEFAULT_VALUES = (1., -1.)
     PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf], [np.inf, np.inf])
     DEFAULT_PLOTTING_RANGE = (1.e-2, 1.)
 
     @staticmethod
-    def value(x, normalization, index):
+    def eval(x, normalization, index):
         """Overloaded value() method.
         """
+        # pylint: disable=arguments-differ
         return normalization * (x**index)
 
     @staticmethod
     def jacobian(x, normalization, index):
         """Overloaded jacobian() method.
         """
+        # pylint: disable=arguments-differ
         d_normalization = (x**index)
         d_index = np.log(x) * normalization * (x**index)
         return np.array([d_normalization, d_index]).transpose()
@@ -542,22 +458,23 @@ class Exponential(FitModelBase):
       f(x; N, \\alpha) = N e^{\\alpha x}
     """
 
-    PARAMETER_NAMES = ('Normalization', 'Index')
+    PARAMETER_NAMES = ('normalization', 'index')
     PARAMETER_DEFAULT_VALUES = (1., -1.)
     PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf], [np.inf]*2)
     DEFAULT_PLOTTING_RANGE = (0., 1.)
 
     @staticmethod
-    def value(x, normalization, exponent):
-        """Overloaded value() method.
+    def eval(x, normalization, exponent):
+        """Overloaded eval() method.
         """
+        # pylint: disable=arguments-differ
         return normalization * np.exp(exponent * x)
 
     @staticmethod
     def jacobian(x, normalization, exponent):
         """Overloaded jacobian() method.
         """
-
+        # pylint: disable=arguments-differ
         d_normalization = np.exp(exponent * x)
         d_exponent = normalization * x * np.exp(exponent * x)
         return np.array([d_normalization, d_exponent]).transpose()
