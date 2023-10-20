@@ -30,6 +30,7 @@ from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian
 from hexsample.plot import plt
+from hexsample.analysis import pha_analysis
 
 
 __description__ = \
@@ -44,10 +45,18 @@ HXVIEW_ARGPARSER.add_infile()
 def hxview(**kwargs):
     """View the file content.
     """
+    
+    input_file = ReconInputFile(kwargs['infile'])
+    h_cluster_size,h_energy_tot = pha_analysis(input_file)
+    input_file.close()
+    plt.show()
+    
+    '''
     input_file = ReconInputFile(kwargs['infile'])
     rec_energy = input_file.recon_table.col('energy')
     mc_energy = input_file.mc_table.col('energy')
     cluster_size = input_file.recon_table.col('cluster_size')
+    
     plt.figure('Energy spectrum')
     binning = np.linspace(rec_energy.min(), rec_energy.max(), 100)
     h_rec = Histogram1d(binning).fill(rec_energy)
@@ -65,6 +74,7 @@ def hxview(**kwargs):
     h.plot()
     input_file.close()
     plt.show()
+    '''
 
 
 
