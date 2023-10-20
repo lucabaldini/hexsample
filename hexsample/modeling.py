@@ -330,11 +330,11 @@ class Constant(FitModelBase):
         d_constant = np.full((len(x),), 1.)
         return np.array([d_constant]).transpose()
 
-    #def cdf(self, x : np.ndarray) -> np.ndarray:
-    #    """Overloaded method.
-    #    """
-    #    # pylint: disable=arguments-differ
-    #    return self['Constant'] * x
+    def cdf(self, x : np.ndarray) -> np.ndarray:
+        """Overloaded method.
+        """
+        # pylint: disable=arguments-differ
+        return self['Constant'] * x
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded method.
@@ -403,14 +403,14 @@ class Gaussian(FitModelBase):
         d_sigma = amplitude * d_amplitude * (x - mean)**2. / sigma**3.
         return np.array([d_amplitude, d_mean, d_sigma]).transpose()
 
-    def init_parameters(self, xdata, ydata, sigma):
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded init_parameters() method.
         """
         self.set_parameter('amplitude', np.max(ydata))
         self.set_parameter('mean', np.mean(xdata))
         self.set_parameter('sigma', np.std(xdata))
 
-    def fwhm(self):
+    def fwhm(self) -> float:
         """Return the absolute FWHM of the model.
         """
         return self.SIGMA_TO_FWHM * self['sigma']
@@ -431,14 +431,14 @@ class PowerLaw(FitModelBase):
     DEFAULT_PLOTTING_RANGE = (1.e-2, 1.)
 
     @staticmethod
-    def eval(x, normalization, index):
+    def eval(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
         """Overloaded value() method.
         """
         # pylint: disable=arguments-differ
         return normalization * (x**index)
 
     @staticmethod
-    def jacobian(x, normalization, index):
+    def jacobian(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
         """Overloaded jacobian() method.
         """
         # pylint: disable=arguments-differ
@@ -456,22 +456,22 @@ class Exponential(FitModelBase):
       f(x; N, \\alpha) = N e^{\\alpha x}
     """
 
-    PARAMETER_NAMES = ('normalization', 'index')
+    PARAMETER_NAMES = ('normalization', 'scale')
     PARAMETER_DEFAULT_VALUES = (1., -1.)
     PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
 
     @staticmethod
-    def eval(x, normalization, exponent):
+    def eval(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
         """Overloaded eval() method.
         """
         # pylint: disable=arguments-differ
-        return normalization * np.exp(exponent * x)
+        return normalization * np.exp(scale * x)
 
     @staticmethod
-    def jacobian(x, normalization, exponent):
+    def jacobian(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
         """Overloaded jacobian() method.
         """
         # pylint: disable=arguments-differ
-        d_normalization = np.exp(exponent * x)
-        d_exponent = normalization * x * np.exp(exponent * x)
-        return np.array([d_normalization, d_exponent]).transpose()
+        d_normalization = np.exp(scale * x)
+        d_scale = normalization * x * np.exp(scale * x)
+        return np.array([d_normalization, d_scale]).transpose()
