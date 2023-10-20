@@ -46,7 +46,7 @@ class FitModelBase:
       taken to be the same for all parameters.) Use np.inf with an appropriate
       sign to disable bounds on all or some parameters. By default
       models have no built-in bounds.
-    * ``DEFAULT_PLOTTING_RANGE`` is a two-element list with the default support
+    * ``DEFAULT_RANGE`` is a two-element list with the default support
       (x-axis range) for the model. This is automatically updated at runtime
       depending on the input data when the model is used in a fit.
 
@@ -75,7 +75,7 @@ class FitModelBase:
     PARAMETER_NAMES = None
     PARAMETER_DEFAULT_VALUES = None
     PARAMETER_DEFAULT_BOUNDS = (-np.inf, np.inf)
-    DEFAULT_PLOTTING_RANGE = (0., 1.)
+    DEFAULT_RANGE = (0., 1.)
 
     def __init__(self) -> None:
         """Constructor.
@@ -90,8 +90,8 @@ class FitModelBase:
         self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype='d')
         # ... the bounds are set to their defalut values...
         self.bounds = self.PARAMETER_DEFAULT_BOUNDS
-        # .. and so it's the plotting ranage...
-        self._xmin, self._xmax = self.DEFAULT_PLOTTING_RANGE
+        # .. and so it's the range...
+        self._xmin, self._xmax = self.DEFAULT_RANGE
         # ... and the chisquare and number of degrees of freedom are set to -1.
         self.chisq = -1.
         self.ndof = -1
@@ -180,8 +180,8 @@ class FitModelBase:
             return self.chisq / self.ndof
         return -1.
 
-    def set_plotting_range(self, xmin : float, xmax : float) -> None:
-        """Set the plotting range.
+    def set_range(self, xmin : float, xmax : float) -> None:
+        """Set the function range.
         """
         self._xmin = xmin
         self._xmax = xmax
@@ -244,15 +244,10 @@ class FitModelBase:
         """
         raise NotImplementedError
 
-    # def cdf(self, x : np.ndarray) -> np.ndarray:
+    # def cumulative_function(self, x : np.ndarray) -> np.ndarray:
     #     """Return the cdf at a given x and a given set of parameter values.
     #
     #     This needs to be overloaded by any derived classes.
-    #     """
-    #     raise NotImplementedError
-    #
-    # def rvs(self, size : int = 1) -> np.ndarray:
-    #     """Return random variates from the model.
     #     """
     #     raise NotImplementedError
 
@@ -265,8 +260,8 @@ class FitModelBase:
         """
         m1 = self
         m2 = other
-        xmin = min(m1.DEFAULT_PLOTTING_RANGE[0], m2.DEFAULT_PLOTTING_RANGE[0])
-        xmax = max(m1.DEFAULT_PLOTTING_RANGE[1], m2.DEFAULT_PLOTTING_RANGE[1])
+        xmin = min(m1.DEFAULT_RANGE[0], m2.DEFAULT_RANGE[0])
+        xmax = max(m1.DEFAULT_RANGE[1], m2.DEFAULT_RANGE[1])
         name = f'{m1.name()} + {m2.name()}'
 
         class _model(FitModelBase):
@@ -275,7 +270,7 @@ class FitModelBase:
                 [f'{name}2' for name in m2.PARAMETER_NAMES]
             PARAMETER_DEFAULT_VALUES = m1.PARAMETER_DEFAULT_VALUES + \
                 m2.PARAMETER_DEFAULT_VALUES
-            DEFAULT_PLOTTING_RANGE = (xmin, xmax)
+            DEFAULT_RANGE = (xmin, xmax)
             PARAMETER_DEFAULT_BOUNDS = (-np.inf, np.inf)
 
             def __init__(self):
@@ -330,10 +325,9 @@ class Constant(FitModelBase):
         d_constant = np.full((len(x),), 1.)
         return np.array([d_constant]).transpose()
 
-    def cdf(self, x : np.ndarray) -> np.ndarray:
+    def cumulative_function(self, x : np.ndarray) -> np.ndarray:
         """Overloaded method.
         """
-        # pylint: disable=arguments-differ
         return self['Constant'] * x
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
@@ -383,19 +377,19 @@ class Gaussian(FitModelBase):
     PARAMETER_NAMES = ('amplitude', 'mean', 'sigma')
     PARAMETER_DEFAULT_VALUES = (1., 0., 1.)
     PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf, 0), (np.inf, np.inf, np.inf))
-    DEFAULT_PLOTTING_RANGE = (-5., 5.)
+    DEFAULT_RANGE = (-5., 5.)
     SIGMA_TO_FWHM = 2.3548200450309493
 
     @staticmethod
     def eval(x : np.ndarray, amplitude : float, mean : float, sigma : float) -> np.ndarray:
-        """Overloaded eval() method.
+        """Overloaded method.
         """
         # pylint: disable=arguments-differ
         return amplitude * np.exp(-0.5 * ((x - mean)**2. / sigma**2.))
 
     @staticmethod
     def jacobian(x : np.ndarray, amplitude : float, mean : float, sigma : float) -> np.ndarray:
-        """Overloaded jacobian() method.
+        """Overloaded method.
         """
         # pylint: disable=arguments-differ
         d_amplitude = np.exp(-0.5 / sigma**2. * (x - mean)**2.)
@@ -404,7 +398,7 @@ class Gaussian(FitModelBase):
         return np.array([d_amplitude, d_mean, d_sigma]).transpose()
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
-        """Overloaded init_parameters() method.
+        """Overloaded method.
         """
         self.set_parameter('amplitude', np.max(ydata))
         self.set_parameter('mean', np.mean(xdata))
@@ -428,18 +422,18 @@ class PowerLaw(FitModelBase):
     PARAMETER_NAMES = ('normalization', 'index')
     PARAMETER_DEFAULT_VALUES = (1., -1.)
     PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
-    DEFAULT_PLOTTING_RANGE = (1.e-2, 1.)
+    DEFAULT_RANGE = (1.e-2, 1.)
 
     @staticmethod
     def eval(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
-        """Overloaded value() method.
+        """Overloaded method.
         """
         # pylint: disable=arguments-differ
         return normalization * (x**index)
 
     @staticmethod
     def jacobian(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
-        """Overloaded jacobian() method.
+        """Overloaded method.
         """
         # pylint: disable=arguments-differ
         d_normalization = (x**index)
@@ -462,14 +456,14 @@ class Exponential(FitModelBase):
 
     @staticmethod
     def eval(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
-        """Overloaded eval() method.
+        """Overloaded method.
         """
         # pylint: disable=arguments-differ
         return normalization * np.exp(scale * x)
 
     @staticmethod
     def jacobian(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
-        """Overloaded jacobian() method.
+        """Overloaded method.
         """
         # pylint: disable=arguments-differ
         d_normalization = np.exp(scale * x)
