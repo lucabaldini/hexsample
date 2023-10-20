@@ -314,7 +314,6 @@ class Constant(FitModelBase):
 
     PARAMETER_NAMES = ('constant',)
     PARAMETER_DEFAULT_VALUES = (1.,)
-    DEFAULT_PLOTTING_RANGE = (0., 1.)
 
     @staticmethod
     def eval(x : np.ndarray, constant : float) -> np.ndarray:
@@ -354,7 +353,6 @@ class Line(FitModelBase):
 
     PARAMETER_NAMES = ('intercept', 'slope')
     PARAMETER_DEFAULT_VALUES = (1., 1.)
-    DEFAULT_PLOTTING_RANGE = (0., 1.)
 
     @staticmethod
     def eval(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
@@ -384,7 +382,7 @@ class Gaussian(FitModelBase):
 
     PARAMETER_NAMES = ('amplitude', 'mean', 'sigma')
     PARAMETER_DEFAULT_VALUES = (1., 0., 1.)
-    PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf, 0], [np.inf] * 3)
+    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf, 0), (np.inf, np.inf, np.inf))
     DEFAULT_PLOTTING_RANGE = (-5., 5.)
     SIGMA_TO_FWHM = 2.3548200450309493
 
@@ -429,7 +427,7 @@ class PowerLaw(FitModelBase):
 
     PARAMETER_NAMES = ('normalization', 'index')
     PARAMETER_DEFAULT_VALUES = (1., -1.)
-    PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf], [np.inf, np.inf])
+    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
     DEFAULT_PLOTTING_RANGE = (1.e-2, 1.)
 
     @staticmethod
@@ -460,8 +458,7 @@ class Exponential(FitModelBase):
 
     PARAMETER_NAMES = ('normalization', 'index')
     PARAMETER_DEFAULT_VALUES = (1., -1.)
-    PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf], [np.inf]*2)
-    DEFAULT_PLOTTING_RANGE = (0., 1.)
+    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
 
     @staticmethod
     def eval(x, normalization, exponent):
