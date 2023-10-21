@@ -21,7 +21,7 @@ from typing import Tuple
 
 import numpy as np
 
-from hexsample.plot import plt, PlotCard
+from hexsample.plot import plt, PlotCard, last_line_color
 
 # pylint: disable=invalid-name
 
@@ -237,33 +237,33 @@ class FitModelBase:
         raise NotImplementedError
 
     @staticmethod
-    def _merge_class_attributes(func, *models : type) -> Tuple:
+    def _merge_class_attributes(func, *components : type) -> Tuple:
         """Basic function to merge class attributes while summing models.
 
         This is heavily used in the model sum factory below, as it turns out that
         this is the besic signature that is needed to merge the class attributes
         when summing models.
         """
-        return tuple(sum([func(i, model) for i, model in enumerate(models)], start=[]))
+        return tuple(sum([func(i, comp) for i, comp in enumerate(components)], start=[]))
 
     @staticmethod
-    def model_sum_factory(*models : type) -> type:
+    def model_sum_factory(*components : type) -> type:
         """Class factory to sum class models.
 
         Here we have worked out the math to sum up an arbitrary number of model
         classes.
         """
         mrg = FitModelBase._merge_class_attributes
-        par_names = mrg(lambda i, m: [f'{name}{i}' for name in m.PARAMETER_NAMES], *models)
-        par_default_values = mrg(lambda i, m: list(m.PARAMETER_DEFAULT_VALUES), *models)
-        xmin = min([m.DEFAULT_RANGE[0] for m in models])
-        xmax = max([m.DEFAULT_RANGE[1] for m in models])
-        par_bound_min = mrg(lambda i, m: list(m.PARAMETER_DEFAULT_BOUNDS[0]), *models)
-        par_bound_max = mrg(lambda i, m: list(m.PARAMETER_DEFAULT_BOUNDS[1]), *models)
+        par_names = mrg(lambda i, c: [f'{name}{i}' for name in c.PARAMETER_NAMES], *components)
+        par_default_values = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_VALUES), *components)
+        xmin = min([c.DEFAULT_RANGE[0] for c in components])
+        xmax = max([c.DEFAULT_RANGE[1] for c in components])
+        par_bound_min = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_BOUNDS[0]), *components)
+        par_bound_max = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_BOUNDS[1]), *components)
         par_slices = []
         i = 0
-        for m in models:
-            num_parameters = len(m.PARAMETER_NAMES)
+        for c in components:
+            num_parameters = len(c.PARAMETER_NAMES)
             par_slices.append(slice(i, i + num_parameters))
             i += num_parameters
 
@@ -281,13 +281,24 @@ class FitModelBase:
             def eval(x, *pars):
                 """Overloaded method.
                 """
-                return sum([m.eval(x, *pars[s]) for m, s in zip(models, par_slices)])
+                return sum([c.eval(x, *pars[s]) for c, s in zip(components, par_slices)])
 
             @staticmethod
             def jacobian(x, *pars):
                 """Overloaded method.
                 """
-                return np.hstack([m.jacobian(x, *pars[s]) for m, s in zip(models, par_slices)])
+                return np.hstack([c.jacobian(x, *pars[s]) for c, s in zip(components, par_slices)])
+
+            def plot(self, num_points : int = 250, **kwargs) -> None:
+                """Overloaded method.
+
+                In addition to the total model, here we overplot the single components.
+                """
+                x = np.linspace(self._xmin, self._xmax, num_points)
+                plt.plot(x, self(x), **kwargs)
+                color = last_line_color()
+                for c, s in zip(components, par_slices):
+                    plt.plot(x, c.eval(x, *self.parameters[s]), ls='dashed', color=color)
 
         return _model
 
