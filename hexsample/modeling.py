@@ -279,10 +279,14 @@ class FitModelBase:
 
             @staticmethod
             def eval(x, *pars):
+                """Overloaded method.
+                """
                 return sum([m.eval(x, *pars[s]) for m, s in zip(models, par_slices)])
 
             @staticmethod
             def jacobian(x, *pars):
+                """Overloaded method.
+                """
                 return np.hstack([m.jacobian(x, *pars[s]) for m, s in zip(models, par_slices)])
 
         return _model
@@ -419,7 +423,7 @@ _DoubleGaussian = FitModelBase.model_sum_factory(Gaussian, Gaussian)
 
 class DoubleGaussian(_DoubleGaussian):
 
-    """
+    """Implementation of a double gaussian.
     """
 
 
