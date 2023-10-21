@@ -195,8 +195,8 @@ def fit_gaussian_iterative(histogram, p0=None, sigma=None, xmin=-numpy.inf,
     fit_histogram(model, histogram, p0, sigma, xmin, xmax, absolute_sigma,
                   check_finite, method, verbose, **kwargs)
     for i in range(num_iterations):
-        xmin = model.peak - num_sigma_left * model.sigma
-        xmax = model.peak + num_sigma_right * model.sigma
+        xmin = model['mean'] - num_sigma_left * model['sigma']
+        xmax = model['mean'] + num_sigma_right * model['sigma']
         try:
             fit_histogram(model, histogram, p0, sigma, xmin, xmax,
                           absolute_sigma, check_finite, method, verbose,

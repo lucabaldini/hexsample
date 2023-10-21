@@ -65,11 +65,9 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     model = fit_histogram(Exponential(), h)
     model.plot()
     model.stat_box()
-    index = model.parameter_value('Index')
-    sigma_index = model.parameter_error('Index')
-    lambda_ = -1. / index
-    sigma_lambda = sigma_index / index**2.
-    delta = (Silicon.photoelectric_attenuation_length(energy) - lambda_) / sigma_lambda
+    scale = model.parameter_value('scale')
+    sigma_scale = model.parameter_error('scale')
+    delta = (Silicon.photoelectric_attenuation_length(energy) - scale) / sigma_scale
     assert delta < 5.
 
 def test_absz(thickness=0.05, energy=8000., num_photons=100000):
