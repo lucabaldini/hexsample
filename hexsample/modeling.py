@@ -243,8 +243,14 @@ class FitModelBase:
         This is heavily used in the model sum factory below, as it turns out that
         this is the besic signature that is needed to merge the class attributes
         when summing models.
+
+        Note that we are not using the native Python sum(*args, start=[]), here,
+        as it is not supported in Python 3.7.
         """
-        return tuple(sum([func(i, comp) for i, comp in enumerate(components)], start=[]))
+        attrs = []
+        for i, comp in enumerate(components):
+            attrs += func(i, comp)
+        return tuple(attrs)
 
     @staticmethod
     def model_sum_factory(*components : type) -> type:
