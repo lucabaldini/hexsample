@@ -253,7 +253,6 @@ class FitModelBase:
         Here we have worked out the math to sum up an arbitrary number of model
         classes.
         """
-        name = ' + '.join([model.__name__ for model in models])
         mrg = FitModelBase._merge_class_attributes
         par_names = mrg(lambda i, m: [f'{name}{i}' for name in m.PARAMETER_NAMES], *models)
         par_default_values = mrg(lambda i, m: list(m.PARAMETER_DEFAULT_VALUES), *models)
@@ -276,7 +275,6 @@ class FitModelBase:
             PARAMETER_DEFAULT_BOUNDS = (par_bound_min, par_bound_max)
 
             def __init__(self):
-                self.__class__.__name__ = name
                 FitModelBase.__init__(self)
 
             @staticmethod
@@ -292,7 +290,9 @@ class FitModelBase:
     def __add__(self, other):
         """Add two models.
         """
-        return self.model_sum_factory(self.__class__, other.__class__)()
+        model = self.model_sum_factory(self.__class__, other.__class__)
+        model.__name__ = f'{self.name()} + {other.name()}'
+        return model()
 
     def __str__(self):
         """String formatting.
@@ -488,14 +488,3 @@ class Exponential(FitModelBase):
         """
         self.set_parameter('normalization', np.max(ydata))
         self.set_parameter('scale', np.average(xdata, weights=ydata))
-
-
-
-if __name__ == '__main__':
-    #m = FitModelBase.model_sum_factory(Constant, Gaussian, Gaussian)
-    m = DoubleGaussian()
-    m.parameters = np.array([1., 10., 1., 1., 15., 1.])
-    m.set_range(5., 20.)
-    m.plot()
-    m.stat_box()
-    plt.show()
