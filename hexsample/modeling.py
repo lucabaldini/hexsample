@@ -229,13 +229,6 @@ class FitModelBase:
             return self.eval(x, *self.parameters)
         raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
 
-    #def integral(self, edges : np.ndarray) -> np.ndarray:
-    #    """Calculate the integral of the model within pre-defined edges.
-    #
-    #    Note that this assumes that the derived class overloads the ``cdf()`` method.
-    #    """
-    #    return self.cdf(edges[1:]) - self.cdf(edges[:-1])
-
     @staticmethod
     def eval(x : np.ndarray, *parameters) -> np.ndarray:
         """Eval the model at a given x and a given set of parameter values.
@@ -318,11 +311,6 @@ class Constant(FitModelBase):
         d_constant = np.full((len(x),), 1.)
         return np.array([d_constant]).transpose()
 
-    def integral(self, x1, x2):
-        """Overloaded method.
-        """
-        return 0.
-
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded method.
         """
@@ -364,38 +352,40 @@ class Gaussian(FitModelBase):
     """One-dimensional Gaussian model.
 
     .. math::
-      f(x; A, \\mu, \\sigma) = A e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}
+      f(x; N, \\mu, \\sigma) = N e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}
     """
 
-    PARAMETER_NAMES = ('amplitude', 'mean', 'sigma')
+    PARAMETER_NAMES = ('normalization', 'mean', 'sigma')
     PARAMETER_DEFAULT_VALUES = (1., 0., 1.)
     PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf, 0), (np.inf, np.inf, np.inf))
     DEFAULT_RANGE = (-5., 5.)
     SIGMA_TO_FWHM = 2.3548200450309493
 
     @staticmethod
-    def eval(x : np.ndarray, amplitude : float, mean : float, sigma : float) -> np.ndarray:
+    def eval(x : np.ndarray, normalization : float, mean : float, sigma : float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
-        return amplitude * np.exp(-0.5 * ((x - mean)**2. / sigma**2.))
+        return normalization * np.exp(-0.5 * ((x - mean)**2. / sigma**2.))
 
     @staticmethod
-    def jacobian(x : np.ndarray, amplitude : float, mean : float, sigma : float) -> np.ndarray:
+    def jacobian(x : np.ndarray, normalization : float, mean : float, sigma : float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
-        d_amplitude = np.exp(-0.5 / sigma**2. * (x - mean)**2.)
-        d_mean = amplitude * d_amplitude * (x - mean) / sigma**2.
-        d_sigma = amplitude * d_amplitude * (x - mean)**2. / sigma**3.
-        return np.array([d_amplitude, d_mean, d_sigma]).transpose()
+        d_normalization = np.exp(-0.5 / sigma**2. * (x - mean)**2.)
+        d_mean = normalization * d_normalization * (x - mean) / sigma**2.
+        d_sigma = normalization * d_normalization * (x - mean)**2. / sigma**3.
+        return np.array([d_normalization, d_mean, d_sigma]).transpose()
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.set_parameter('amplitude', np.max(ydata))
-        self.set_parameter('mean', np.mean(xdata))
-        self.set_parameter('sigma', np.std(xdata))
+        mean = np.average(xdata, weights=ydata)
+        sigma = np.sqrt(np.average((xdata - mean)**2., weights=ydata))
+        self.set_parameter('normalization', np.max(ydata))
+        self.set_parameter('mean', mean)
+        self.set_parameter('sigma', sigma)
 
     def fwhm(self) -> float:
         """Return the absolute FWHM of the model.
@@ -422,15 +412,15 @@ class PowerLaw(FitModelBase):
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
-        return normalization * (x**index)
+        return normalization * x**index
 
     @staticmethod
     def jacobian(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
-        d_normalization = (x**index)
-        d_index = np.log(x) * normalization * (x**index)
+        d_normalization = x**index
+        d_index = np.log(x) * d_normalization * normalization
         return np.array([d_normalization, d_index]).transpose()
 
 
@@ -440,7 +430,7 @@ class Exponential(FitModelBase):
     """Exponential model.
 
     .. math::
-      f(x; N, \\alpha) = N e^{\\alpha x}
+      f(x; N, \\lambda) = N e^{\\frac{x}{\\lambda}}
     """
 
     PARAMETER_NAMES = ('normalization', 'scale')
@@ -452,13 +442,19 @@ class Exponential(FitModelBase):
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
-        return normalization * np.exp(scale * x)
+        return normalization * np.exp(-x / scale)
 
     @staticmethod
     def jacobian(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
-        d_normalization = np.exp(scale * x)
-        d_scale = normalization * x * np.exp(scale * x)
+        d_normalization = np.exp(-x / scale)
+        d_scale = normalization * d_normalization * x / scale**2.
         return np.array([d_normalization, d_scale]).transpose()
+
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
+        """Overloaded method.
+        """
+        self.set_parameter('normalization', np.max(ydata))
+        self.set_parameter('scale', np.average(xdata, weights=ydata))
