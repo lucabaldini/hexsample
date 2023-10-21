@@ -201,8 +201,8 @@ class FitModelBase:
         box = PlotCard()
         box.add_string('Fit model', self.name())
         box.add_string('Chisquare', f'{self.chisq:.1f} / {self.ndof}')
-        for name, value, error in self:
-            box.add_quantity(name, value, error)
+        for i, (name, value, error) in enumerate(self):
+            box.add_quantity(f'Par. {i}: {name}', value, error)
         box.plot(**kwargs)
 
     def __call__(self, x, *parameters):

@@ -24,6 +24,7 @@ from typing import Any
 from loguru import logger
 import matplotlib
 from matplotlib import pyplot as plt
+from matplotlib.offsetbox import TextArea, VPacker, AnnotationBbox
 import uncertainties
 
 if sys.flags.interactive:
@@ -83,8 +84,9 @@ class PlotCard:
     and plot once; we do non support, e.g., updating the values after the fact.
     """
 
-    _LABEL_KWARGS = dict(color='gray', size='x-small', ha='right', va='top')
-    _CONTENT_KWARGS = dict(color='black', size='small', ha='right', va='top')
+    _LABEL_TEXT_KWARGS = dict(color='gray', size='x-small', ha='right')
+    _CONTENT_TEXT_KWARGS = dict(color='black', size='small', ha='right')
+    _BOX_KWARGS = dict(facecolor='white', boxstyle='round', alpha=0.7, lw=1.25, edgecolor='black')
 
     def __init__(self) -> None:
         """Constructor.
@@ -147,36 +149,28 @@ class PlotCard:
         """
         self.add_string('', '')
 
-    def plot(self, x : float = 0.95, y : float = 0.95, line_spacing : float = 0.075,
-        spacing_ratio : float = 0.75, **kwargs) -> None:
+    def plot(self, x : float = 0.95, y : float = 0.95) -> None:
         """Plot the card.
 
         Arguments
         ---------
         x : float
-            The absolute x-coordinate of the top-left corner of the card.
+            The absolute x-coordinate of the right or left side of the card.
 
         y : float
-            The absolute x-coordinate of the top-left corner of the card.
-
-        line_spacing : float
-            The line spacing in units of the total height of the current axes.
-
-        spacing_ratio : float
-            The fractional line spacing assigned to the key label.
+            The absolute y-coordinate of the bottom or top side of the card.
         """
         # pylint: disable=invalid-name
-        key_norm = spacing_ratio / (1. + spacing_ratio)
-        value_norm = 1. - key_norm
-        label_kwargs = self._LABEL_KWARGS.copy()
-        label_kwargs.update(kwargs)
-        content_kwargs = self._CONTENT_KWARGS.copy()
-        content_kwargs.update(kwargs)
+        lines = []
         for label, content in self._item_list:
-            plt.gca().text(x, y, label, transform=plt.gca().transAxes, **label_kwargs)
-            y -= key_norm * line_spacing
-            plt.gca().text(x, y, content, transform=plt.gca().transAxes, **content_kwargs)
-            y -= value_norm * line_spacing
+            lines.append(TextArea(label, textprops=self._LABEL_TEXT_KWARGS))
+            lines.append(TextArea(content, textprops=self._CONTENT_TEXT_KWARGS))
+        vbox = VPacker(children=lines, pad=3., sep=3., align='left')
+        box = AnnotationBbox(vbox, xy=(x, y), xycoords=plt.gca().transAxes,
+            box_alignment=(0. if x <= 0.5 else 1., 0. if y <= 0.5 else 1.),
+            bboxprops = self._BOX_KWARGS)
+        box.set_figure(plt.gcf())
+        plt.gcf().artists.append(box)
 
 
 

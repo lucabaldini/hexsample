@@ -33,7 +33,12 @@ def test_card():
     card.add_quantity('Fixed int', 1, units='cm')
     card.add_quantity('Parameter 1', 1.23456, 0.53627, units='cm')
     card.plot()
-    card.plot(0.05, 0.95, ha='left')
+    card.plot(0.05, 0.95)
+    card = PlotCard()
+    card.add_string('Label', 'Content')
+    card.plot(0.05, 0.05)
+    card.plot(0.95, 0.05)
+
 
 
 if __name__ == '__main__':
