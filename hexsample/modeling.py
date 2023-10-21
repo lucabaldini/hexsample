@@ -17,6 +17,8 @@
 """Fit models.
 """
 
+from typing import Tuple
+
 import numpy as np
 
 from hexsample.plot import plt, PlotCard
@@ -74,7 +76,7 @@ class FitModelBase:
 
     PARAMETER_NAMES = None
     PARAMETER_DEFAULT_VALUES = None
-    PARAMETER_DEFAULT_BOUNDS = (-np.inf, np.inf)
+    PARAMETER_DEFAULT_BOUNDS = None
     DEFAULT_RANGE = (0., 1.)
 
     def __init__(self) -> None:
@@ -234,43 +236,63 @@ class FitModelBase:
         """
         raise NotImplementedError
 
-    def __add__(self, other):
-        """Add two models.
+    @staticmethod
+    def _merge_class_attributes(func, *models : type) -> Tuple:
+        """Basic function to merge class attributes while summing models.
 
-        Warning
-        -------
-        This is highly experimental and guaranteed to contain bugs. Enjoy.
+        This is heavily used in the model sum factory below, as it turns out that
+        this is the besic signature that is needed to merge the class attributes
+        when summing models.
         """
-        m1 = self
-        m2 = other
-        xmin = min(m1.DEFAULT_RANGE[0], m2.DEFAULT_RANGE[0])
-        xmax = max(m1.DEFAULT_RANGE[1], m2.DEFAULT_RANGE[1])
-        name = f'{m1.name()} + {m2.name()}'
+        return tuple(sum([func(i, model) for i, model in enumerate(models)], start=[]))
+
+    @staticmethod
+    def model_sum_factory(*models : type) -> type:
+        """Class factory to sum class models.
+
+        Here we have worked out the math to sum up an arbitrary number of model
+        classes.
+        """
+        name = ' + '.join([model.__name__ for model in models])
+        mrg = FitModelBase._merge_class_attributes
+        par_names = mrg(lambda i, m: [f'{name}{i}' for name in m.PARAMETER_NAMES], *models)
+        par_default_values = mrg(lambda i, m: list(m.PARAMETER_DEFAULT_VALUES), *models)
+        xmin = min([m.DEFAULT_RANGE[0] for m in models])
+        xmax = max([m.DEFAULT_RANGE[1] for m in models])
+        par_bound_min = mrg(lambda i, m: list(m.PARAMETER_DEFAULT_BOUNDS[0]), *models)
+        par_bound_max = mrg(lambda i, m: list(m.PARAMETER_DEFAULT_BOUNDS[1]), *models)
+        par_slices = []
+        i = 0
+        for m in models:
+            num_parameters = len(m.PARAMETER_NAMES)
+            par_slices.append(slice(i, i + num_parameters))
+            i += num_parameters
 
         class _model(FitModelBase):
 
-            PARAMETER_NAMES = [f'{name}1' for name in m1.PARAMETER_NAMES] + \
-                [f'{name}2' for name in m2.PARAMETER_NAMES]
-            PARAMETER_DEFAULT_VALUES = m1.PARAMETER_DEFAULT_VALUES + \
-                m2.PARAMETER_DEFAULT_VALUES
+            PARAMETER_NAMES = par_names
+            PARAMETER_DEFAULT_VALUES = par_default_values
             DEFAULT_RANGE = (xmin, xmax)
-            PARAMETER_DEFAULT_BOUNDS = (-np.inf, np.inf)
+            PARAMETER_DEFAULT_BOUNDS = (par_bound_min, par_bound_max)
 
             def __init__(self):
                 self.__class__.__name__ = name
                 FitModelBase.__init__(self)
 
             @staticmethod
-            def eval(x, *parameters):
-                return m1.eval(x, *parameters[:len(m1)]) +\
-                    m2.eval(x, *parameters[len(m1):])
+            def eval(x, *pars):
+                return sum([m.eval(x, *pars[s]) for m, s in zip(models, par_slices)])
 
             @staticmethod
-            def jacobian(x, *parameters):
-                return np.hstack((m1.jacobian(x, *parameters[:len(m1)]),
-                                     m2.jacobian(x, *parameters[len(m1):])))
+            def jacobian(x, *pars):
+                return np.hstack([m.jacobian(x, *pars[s]) for m, s in zip(models, par_slices)])
 
-        return _model()
+        return _model
+
+    def __add__(self, other):
+        """Add two models.
+        """
+        return self.model_sum_factory(self.__class__, other.__class__)()
 
     def __str__(self):
         """String formatting.
@@ -292,6 +314,7 @@ class Constant(FitModelBase):
 
     PARAMETER_NAMES = ('constant',)
     PARAMETER_DEFAULT_VALUES = (1.,)
+    PARAMETER_DEFAULT_BOUNDS = ((-np.inf,), (np.inf,))
 
     @staticmethod
     def eval(x : np.ndarray, constant : float) -> np.ndarray:
@@ -325,6 +348,7 @@ class Line(FitModelBase):
 
     PARAMETER_NAMES = ('intercept', 'slope')
     PARAMETER_DEFAULT_VALUES = (1., 1.)
+    PARAMETER_DEFAULT_BOUNDS = ((-np.inf,), (np.inf,))
 
     @staticmethod
     def eval(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
@@ -354,7 +378,7 @@ class Gaussian(FitModelBase):
 
     PARAMETER_NAMES = ('normalization', 'mean', 'sigma')
     PARAMETER_DEFAULT_VALUES = (1., 0., 1.)
-    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf, 0), (np.inf, np.inf, np.inf))
+    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf, 0.), (np.inf, np.inf, np.inf))
     DEFAULT_RANGE = (-5., 5.)
     SIGMA_TO_FWHM = 2.3548200450309493
 
@@ -388,6 +412,15 @@ class Gaussian(FitModelBase):
         """Return the absolute FWHM of the model.
         """
         return self.SIGMA_TO_FWHM * self['sigma']
+
+
+
+_DoubleGaussian = FitModelBase.model_sum_factory(Gaussian, Gaussian)
+
+class DoubleGaussian(_DoubleGaussian):
+
+    """
+    """
 
 
 
@@ -455,3 +488,14 @@ class Exponential(FitModelBase):
         """
         self.set_parameter('normalization', np.max(ydata))
         self.set_parameter('scale', np.average(xdata, weights=ydata))
+
+
+
+if __name__ == '__main__':
+    #m = FitModelBase.model_sum_factory(Constant, Gaussian, Gaussian)
+    m = DoubleGaussian()
+    m.parameters = np.array([1., 10., 1., 1., 15., 1.])
+    m.set_range(5., 20.)
+    m.plot()
+    m.stat_box()
+    plt.show()
