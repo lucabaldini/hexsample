@@ -51,6 +51,7 @@ def test_models():
     rvs = np.append(rng.generator.normal(10., 1., size=100000),
         rng.generator.normal(15., 1., size=25000))
     _test_model(DoubleGaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
+    _test_model(Gaussian() + Gaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
 
 
 
