@@ -192,18 +192,15 @@ class FitModelBase:
         x = np.linspace(self._xmin, self._xmax, num_points)
         plt.plot(x, self(x), **kwargs)
 
-    def stat_box(self, **kwargs) -> None:
+    def stat_box(self, x : float = 0.95, y : float = 0.95) -> None:
         """Plot a stat box for the model.
-
-        .. warning::
-           This needs to be streamlined.
         """
         box = PlotCard()
         box.add_string('Fit model', self.name())
         box.add_string('Chisquare', f'{self.chisq:.1f} / {self.ndof}')
-        for i, (name, value, error) in enumerate(self):
-            box.add_quantity(f'Par. {i}: {name}', value, error)
-        box.plot(**kwargs)
+        for name, value, error in self:
+            box.add_quantity(f'{name.title()}', value, error)
+        box.plot(x, y)
 
     def __call__(self, x, *parameters):
         """Return the value of the model at a given point and a given set of
