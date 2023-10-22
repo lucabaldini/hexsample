@@ -15,10 +15,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from loguru import logger
 import numpy
 from scipy.optimize import curve_fit
 
+from hexsample import logger
 import hexsample.modeling
 
 # pylint: disable=invalid-name
@@ -90,7 +90,7 @@ def fit(model, xdata, ydata, p0=None, sigma=None, xmin=-numpy.inf,
     xdata = xdata[_mask]
     ydata = ydata[_mask]
     if len(xdata) <= len(model.parameters):
-        raise RuntimeError('Not enough data to fit (%d points)' % len(xdata))
+        raise RuntimeError(f'Not enough data to fit ({len(xdata)} points)')
     if isinstance(sigma, numpy.ndarray):
         sigma = sigma[_mask]
     # If the model has a Jacobian defined, go ahead and use it.
@@ -104,7 +104,7 @@ def fit(model, xdata, ydata, p0=None, sigma=None, xmin=-numpy.inf,
         model.init_parameters(xdata, ydata, sigma)
         p0 = model.parameters
         if verbose:
-            logger.debug('%s parameters initialized to %s.', model.name(), p0)
+            logger.debug(f'{model.name()} parameters initialized to {p0}.')
     # If sigma is None, assume all the errors are 1. (If we don't do this,
     # the code will crash when calculating the chisquare.
     if sigma is None:
@@ -112,11 +112,11 @@ def fit(model, xdata, ydata, p0=None, sigma=None, xmin=-numpy.inf,
     popt, pcov = curve_fit(model, xdata, ydata, p0, sigma, absolute_sigma,
         check_finite, model.bounds, method, jac, **kwargs)
     # Update the model parameters.
-    model.set_plotting_range(xdata.min(), xdata.max())
+    model.set_range(xdata.min(), xdata.max())
     model.parameters = popt
     model.covariance_matrix = pcov
-    model.chisq = (((ydata - model(xdata))/sigma)**2).sum()
-    model.ndof = len(ydata) - len(model)
+    model.chisq = (((ydata - model(xdata)) / sigma)**2).sum()
+    model.ndof = len(ydata) - model.num_parameters
     if verbose:
         print(model)
     return model
@@ -195,8 +195,8 @@ def fit_gaussian_iterative(histogram, p0=None, sigma=None, xmin=-numpy.inf,
     fit_histogram(model, histogram, p0, sigma, xmin, xmax, absolute_sigma,
                   check_finite, method, verbose, **kwargs)
     for i in range(num_iterations):
-        xmin = model.peak - num_sigma_left * model.sigma
-        xmax = model.peak + num_sigma_right * model.sigma
+        xmin = model['mean'] - num_sigma_left * model['sigma']
+        xmax = model['mean'] + num_sigma_right * model['sigma']
         try:
             fit_histogram(model, histogram, p0, sigma, xmin, xmax,
                           absolute_sigma, check_finite, method, verbose,
