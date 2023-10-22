@@ -4,6 +4,11 @@ Release notes
 =============
 
 
+* Merging https://github.com/lucabaldini/hexsample/pull/35
+* Major refactoring of the modeling framework, with no (intentional) modification
+  to the public API.
+
+
 *hexsample (0.6.0) - Thu, 19 Oct 2023 23:23:07 +0200*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/35
