@@ -208,7 +208,7 @@ class FitModelBase:
 
     Finally, if there is a sensible way to initialize the model parameters
     based on a set of input data, derived classes should overload the
-    ``init_parameters(xdata, ydata, sigma)`` method of the base class, as the
+    ``init_parameters(xdata, ydata)`` method of the base class, as the
     latter is called by fitting routines if no explicit array of initial values
     are passed as an argument. The default behavior of the class method defined
     in the base class is to do nothing.
@@ -235,7 +235,7 @@ class FitModelBase:
         """
         return self.__class__.__name__
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Assign a sensible set of values to the model parameters, based on a data
         set to be fitted.
 
@@ -249,9 +249,6 @@ class FitModelBase:
 
         ydata : array_like
             The y data.
-
-        sigma : array_like
-            The uncertainties on the y data.
         """
 
     def set_range(self, xmin : float, xmax : float) -> None:
@@ -392,7 +389,7 @@ class FitModelBase:
         # If we are not passing default starting points for the model parameters,
         # try and do something sensible.
         if p0 is None:
-            self.init_parameters(xdata, ydata, sigma)
+            self.init_parameters(xdata, ydata)
             p0 = self.status.parameter_values
             if verbose:
                 logger.debug(f'{self.name()} parameters initialized to {p0}.')
@@ -555,7 +552,7 @@ class Constant(FitModelBase):
         d_constant = np.full((len(x),), 1.)
         return np.array([d_constant]).transpose()
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
         self.status.update_parameter('constant', np.mean(ydata))
@@ -623,7 +620,7 @@ class Gaussian(FitModelBase):
         d_sigma = normalization * d_normalization * (x - mean)**2. / sigma**3.
         return np.array([d_normalization, d_mean, d_sigma]).transpose()
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
         mean = np.average(xdata, weights=ydata)
@@ -707,7 +704,7 @@ class Exponential(FitModelBase):
         d_scale = normalization * d_normalization * x / scale**2.
         return np.array([d_normalization, d_scale]).transpose()
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
         self.status.update_parameter('normalization', np.max(ydata))
