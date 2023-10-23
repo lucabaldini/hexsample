@@ -273,6 +273,12 @@ class FitModelBase:
         """
         raise NotImplementedError
 
+    def _calculate_chisquare(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> float:
+        """Calculate the chisquare for the current parameter values, given
+        some input data.
+        """
+        return (((ydata - self(xdata)) / sigma)**2).sum()
+
     def fit(self, xdata : np.ndarray, ydata : np.ndarray, p0 : np.ndarray = None,
         sigma : np.ndarray = None, xmin : float = -np.inf, xmax : float = np.inf,
         absolute_sigma : bool = True, check_finite : bool =True, method : str = None,
@@ -362,7 +368,7 @@ class FitModelBase:
         self.set_range(xdata.min(), xdata.max())
         self.status.parameter_values = popt
         self.status.covariance_matrix = pcov
-        self.status.chisquare = (((ydata - self(xdata)) / sigma)**2).sum()
+        self.status.chisquare = self._calculate_chisquare(xdata, ydata, sigma)
         self.status.ndof = len(ydata) - self.status.num_parameters
         if verbose:
             print(self)
