@@ -235,22 +235,6 @@ class FitModelBase:
         """
         return self.__class__.__name__
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
-        """Assign a sensible set of values to the model parameters, based on a data
-        set to be fitted.
-
-        In the base class the method is not doing anything, but it can be reimplemented
-        in derived classes to help make sure the fit converges without too much manual intervention.
-
-        Arguments
-        ---------
-        xdata : array_like
-            The x data.
-
-        ydata : array_like
-            The y data.
-        """
-
     def set_range(self, xmin : float, xmax : float) -> None:
         """Set the function range.
         """
@@ -310,6 +294,22 @@ class FitModelBase:
         some input data.
         """
         return (((ydata - self(xdata)) / sigma)**2).sum()
+
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+        """Assign a sensible set of values to the model parameters, based on a data
+        set to be fitted.
+
+        In the base class the method is not doing anything, but it can be reimplemented
+        in derived classes to help make sure the fit converges without too much manual intervention.
+
+        Arguments
+        ---------
+        xdata : array_like
+            The x data.
+
+        ydata : array_like
+            The y data.
+        """
 
     def fit(self, xdata : np.ndarray, ydata : np.ndarray, p0 : np.ndarray = None,
         sigma : np.ndarray = None, xmin : float = -np.inf, xmax : float = np.inf,
@@ -642,6 +642,11 @@ class DoubleGaussian(_DoubleGaussian):
 
     """Implementation of a double gaussian.
     """
+
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+        """Overloaded method.
+        """
+        pass
 
 
 
