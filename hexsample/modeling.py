@@ -38,7 +38,7 @@ class FitStatus:
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, parameter_names : Tuple, parameter_values : np.ndarray,
-        parameter_bounds : Tuple[Tuple, Tuple] = None) -> None:
+        parameter_bounds : Tuple = None) -> None:
         """Constructor.
         """
         if len(parameter_names) != len(parameter_values):
@@ -46,18 +46,32 @@ class FitStatus:
         self.parameter_names = parameter_names
         self.parameter_values = np.array(parameter_values)
         self.num_parameters = len(self.parameter_names)
-        self.parameter_bounds = parameter_bounds or self.default_bounds()
+        self.parameter_bounds = self._process_bounds(parameter_bounds)
         self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype=float)
         self._parameter_free = np.ones(self.num_parameters, dtype=bool)
         self.chisquare = -1.
         self.ndof = -1
         self._parameter_index_dict = {name : i for i, name in enumerate(self.parameter_names)}
 
-    def default_bounds(self) -> Tuple:
-        """Build the proper tuple of default parameter bounds, given the number
-        of aruments in the fit model.
+    def _process_bounds(self, parameter_bounds : Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
+        """Small utility functions to process the parameter bounds for later use.
+
+        Verbatim from the scipy documentation, there are two ways to specify the bounds:
+
+        * Instance of Bounds class.
+        * 2-tuple of array_like: Each element of the tuple must be either an array
+          with the length equal to the number of parameters, or a scalar (in which
+          case the bound is taken to be the same for all parameters). Use np.inf with
+          an appropriate sign to disable bounds on all or some parameters.
+
+        Since we want to keep track of the bounds and, possibly, change them,
+        we turn all allowed possibilities, here, into a 2-tuple of numpy arrays.
         """
-        return (np.full(self.num_parameters, -np.inf), np.full(self.num_parameters, np.inf))
+        if parameter_bounds is None:
+            return (np.full(self.num_parameters, -np.inf), np.full(self.num_parameters, np.inf))
+        if len(parameter_bounds) != 2:
+            raise RuntimeError(f'Invalid parameter bounds {parameter_bounds}')
+        return tuple([np.array(bounds) for bounds in parameter_bounds])
 
     def _parameter_index(self, parameter_name : str) -> int:
         """Convenience method returning the index within the parameter vector
@@ -67,12 +81,6 @@ class FitStatus:
             return self._parameter_index_dict[parameter_name]
         except KeyError as exception:
             raise KeyError(f'Unknown parameter "{parameter_name}"') from exception
-
-    def parameter_errors(self) -> np.ndarray:
-        """Return the vector of parameter errors, that is, the square root of the
-        diagonal elements of the covariance matrix.
-        """
-        return np.sqrt(self.covariance_matrix.diagonal())
 
     def parameter_value(self, parameter_name : str) -> float:
         """Return the parameter value for a given parameter indexed by name.
@@ -84,11 +92,22 @@ class FitStatus:
         """
         return self.parameter_value(parameter_name)
 
+    def parameter_errors(self) -> np.ndarray:
+        """Return the vector of parameter errors, that is, the square root of the
+        diagonal elements of the covariance matrix.
+        """
+        return np.sqrt(self.covariance_matrix.diagonal())
+
     def parameter_error(self, parameter_name : str) -> float:
         """Return the parameter error by name.
         """
         index = self._parameter_index(parameter_name)
         return np.sqrt(self.covariance_matrix[index][index])
+
+    # def parameter_free(self, parameter_name : str) -> float:
+    #     """Return True if the given parameter is free to vary in the fit.
+    #     """
+    #     return self._parameter_free[self._parameter_index(parameter_name)]
 
     def reduced_chisquare(self) -> float:
         """Return the reduced chisquare.
@@ -108,12 +127,28 @@ class FitStatus:
         """
         self.parameter_values[self._parameter_index(parameter_name)] = value
 
-    def freeze_parameter(self, parameter_name : str, value : float) -> None:
-        """Freeze one of the parameters at a given value.
+    def update_parameter(self, parameter_name : str, value : float) -> None:
+        """Alias, waiting for the implementation of frozen parameters.
         """
-        index = self._parameter_index(parameter_name)
-        self.parameter_values[index] = value
-        self._parameter_free[index] = False
+        self.set_parameter(parameter_name, value)
+
+    # def update_parameter(self, parameter_name : str, value : float) -> None:
+    #     """Update a parameter value.
+    #
+    #     This is calling the set_parameter() hook *only* if the the parameter
+    #     itself is free to vary, and should be the default choice to interact
+    #     with the parameter values in the implementation of FitModelBase.init_parameters()
+    #     by concrete subclasses.
+    #     """
+    #     if self.parameter_free(parameter_name):
+    #         self.set_parameter(parameter_name, value)
+    #
+    # def freeze_parameter(self, parameter_name : str, value : float) -> None:
+    #     """Freeze one of the parameters at a given value.
+    #     """
+    #     index = self._parameter_index(parameter_name)
+    #     self.parameter_values[index] = value
+    #     self._parameter_free[index] = False
 
     def __iter__(self):
         """Iterate over the fit parameters as (name, value, error).
@@ -126,7 +161,7 @@ class FitStatus:
         """
         text = ''
         for name, value, error, min_bound, max_bound, free in self:
-            text += f'{name:12s} -> {value:.4e} +/- {error:.4e} ({min_bound:.4e} / {max_bound:.4e})'
+            text += f'{name:18s} {value:.3e} +/- {error:.3e} ({min_bound:.3e} / {max_bound:.3e})'
             if not free:
                 text += ' fixed'
             text += '\n'
@@ -191,8 +226,8 @@ class FitModelBase:
     def __init__(self) -> None:
         """Constructor.
         """
-        self.status = FitStatus(self.PARAMETER_NAMES, self.PARAMETER_DEFAULT_VALUES,
-            self.PARAMETER_DEFAULT_BOUNDS)
+        args = self.PARAMETER_NAMES, self.PARAMETER_DEFAULT_VALUES, self.PARAMETER_DEFAULT_BOUNDS
+        self.status = FitStatus(*args)
         self._xmin, self._xmax = self.DEFAULT_RANGE
 
     def name(self) -> str:
@@ -341,11 +376,14 @@ class FitModelBase:
         # Select data based on the x-axis range passed as an argument.
         mask = np.logical_and(xdata >= xmin, xdata <= xmax)
         xdata = xdata[mask]
-        ydata = ydata[mask]
         if len(xdata) <= self.status.num_parameters:
             raise RuntimeError(f'Not enough data to fit ({len(xdata)} points)')
-        if isinstance(sigma, np.ndarray):
-            sigma = sigma[mask]
+        ydata = ydata[mask]
+        # If sigma is None, assume all the errors are 1---we need to do this
+        # explicitely in order to calculate the chisquare downstream.
+        if sigma is None:
+            sigma = np.full(len(ydata), 1.)
+        sigma = sigma[mask]
         # If the model has a Jacobian defined, go ahead and use it.
         try:
             jac = self.jacobian
@@ -358,10 +396,7 @@ class FitModelBase:
             p0 = self.status.parameter_values
             if verbose:
                 logger.debug(f'{self.name()} parameters initialized to {p0}.')
-        # If sigma is None, assume all the errors are 1. (If we don't do this,
-        # the code will crash when calculating the chisquare.
-        if sigma is None:
-            sigma = np.full((len(ydata), ), 1.)
+        # The actual call to the glorious scipy.optimize.curve_fit() method.
         popt, pcov = curve_fit(self, xdata, ydata, p0, sigma, absolute_sigma,
             check_finite, self.status.parameter_bounds, method, jac, **kwargs)
         # Update the model parameters.
@@ -488,9 +523,7 @@ class FitModelBase:
     def __str__(self):
         """String formatting.
         """
-        text = f'{self.name()} (chisq/ndof = {self.status.chisquare:.2f} / {self.status.ndof})'
-        for name, value, error, _, _, _ in self.status:
-            text += f'\n{name:15s}: {value:.5e} +- {error:.5e}'
+        text = f'{self.name()} (chisq/ndof = {self.status.chisquare:.2f} / {self.status.ndof})\n{self.status}'
         return text
 
 
@@ -525,7 +558,7 @@ class Constant(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.status.set_parameter('constant', np.mean(ydata))
+        self.status.update_parameter('constant', np.mean(ydata))
 
 
 
@@ -595,9 +628,9 @@ class Gaussian(FitModelBase):
         """
         mean = np.average(xdata, weights=ydata)
         sigma = np.sqrt(np.average((xdata - mean)**2., weights=ydata))
-        self.status.set_parameter('normalization', np.max(ydata))
-        self.status.set_parameter('mean', mean)
-        self.status.set_parameter('sigma', sigma)
+        self.status.update_parameter('normalization', np.max(ydata))
+        self.status.update_parameter('mean', mean)
+        self.status.update_parameter('sigma', sigma)
 
     def fwhm(self) -> float:
         """Return the absolute FWHM of the model.
@@ -677,5 +710,5 @@ class Exponential(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.status.set_parameter('normalization', np.max(ydata))
-        self.status.set_parameter('scale', np.average(xdata, weights=ydata))
+        self.status.update_parameter('normalization', np.max(ydata))
+        self.status.update_parameter('scale', np.average(xdata, weights=ydata))

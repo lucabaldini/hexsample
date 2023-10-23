@@ -44,12 +44,14 @@ def test_fit_status():
     status.freeze_parameter('slope', 17.1)
     print(status)
 
-def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, **kwargs):
+def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, figname : str = None, **kwargs):
     """Basic test for a specific model.
     """
     hist = Histogram1d(np.linspace(rvs.min(), rvs.max(), 100)).fill(rvs)
     model.fit_histogram(hist, p0=p0)
-    plt.figure(f'{model.name()} fitting model')
+    if figname is None:
+        figname = f'{model.name()} fitting model'
+    plt.figure(figname)
     hist.plot()
     model.plot()
     model.stat_box()
@@ -69,9 +71,22 @@ def test_models():
     _test_model(DoubleGaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
     _test_model(Gaussian() + Gaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
 
+def test_bound_parameter():
+    """Perform a simple fit with a bound on a parameter.
+    """
+    model = Gaussian()
+    model.status.set_parameter_bounds('mean', -0.0001, 0.0001)
+    _test_model(model, rng.generator.normal(size=100000), p0 = (1., 0., 1.), figname='Gaussian bounded')
 
+# def test_fixed_parameter():
+#     """Perform a simple fit with a bound on a parameter.
+#     """
+#     model = Gaussian()
+#     model.status.freeze_parameter('mean', 0.)
+#     _test_model(model, rng.generator.normal(size=100000), figname='Gaussian fixed')
 
 
 if __name__ == '__main__':
     test_models()
+    test_bound_parameter()
     plt.show()
