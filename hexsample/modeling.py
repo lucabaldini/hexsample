@@ -17,13 +17,122 @@
 """Fit models.
 """
 
+
 from typing import Tuple
 
 import numpy as np
+from scipy.optimize import curve_fit
 
+from hexsample import logger
+from hexsample.hist import Histogram1d
 from hexsample.plot import plt, PlotCard, last_line_color
 
 # pylint: disable=invalid-name
+
+
+class FitStatus:
+
+    """Small container class holding the fit status.
+    """
+
+    # pylint: disable=too-many-instance-attributes
+
+    def __init__(self, parameter_names : Tuple, parameter_values : np.ndarray,
+        parameter_bounds : Tuple[Tuple, Tuple] = None) -> None:
+        """Constructor.
+        """
+        if len(parameter_names) != len(parameter_values):
+            raise RuntimeError('Mismatch between parameter names and values')
+        self.parameter_names = parameter_names
+        self.parameter_values = np.array(parameter_values)
+        self.num_parameters = len(self.parameter_names)
+        self.parameter_bounds = parameter_bounds or self.default_bounds()
+        self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype=float)
+        self._parameter_free = np.ones(self.num_parameters, dtype=bool)
+        self.chisquare = -1.
+        self.ndof = -1
+        self._parameter_index_dict = {name : i for i, name in enumerate(self.parameter_names)}
+
+    def default_bounds(self) -> Tuple:
+        """Build the proper tuple of default parameter bounds, given the number
+        of aruments in the fit model.
+        """
+        return (np.full(self.num_parameters, -np.inf), np.full(self.num_parameters, np.inf))
+
+    def _parameter_index(self, parameter_name : str) -> int:
+        """Convenience method returning the index within the parameter vector
+        for a given parameter name.
+        """
+        try:
+            return self._parameter_index_dict[parameter_name]
+        except KeyError as exception:
+            raise KeyError(f'Unknown parameter "{parameter_name}"') from exception
+
+    def parameter_errors(self) -> np.ndarray:
+        """Return the vector of parameter errors, that is, the square root of the
+        diagonal elements of the covariance matrix.
+        """
+        return np.sqrt(self.covariance_matrix.diagonal())
+
+    def parameter_value(self, parameter_name : str) -> float:
+        """Return the parameter value for a given parameter indexed by name.
+        """
+        return self.parameter_values[self._parameter_index(parameter_name)]
+
+    def __getitem__(self, parameter_name : str) -> float:
+        """Convenience shortcut to retrieve the value of a parameter.
+        """
+        return self.parameter_value(parameter_name)
+
+    def parameter_error(self, parameter_name : str) -> float:
+        """Return the parameter error by name.
+        """
+        index = self._parameter_index(parameter_name)
+        return np.sqrt(self.covariance_matrix[index][index])
+
+    def reduced_chisquare(self) -> float:
+        """Return the reduced chisquare.
+        """
+        return self.chisquare / self.ndof if self.ndof > 0 else -1.
+
+    def set_parameter_bounds(self, parameter_name : str, min_bound : float,
+        max_bound : float) -> None:
+        """Set the baounds for a given parameter.
+        """
+        index = self._parameter_index(parameter_name)
+        self.parameter_bounds[0][index] = min_bound
+        self.parameter_bounds[1][index] = max_bound
+
+    def set_parameter(self, parameter_name : str, value : float) -> None:
+        """Set the value for a given parameter (indexed by name).
+        """
+        self.parameter_values[self._parameter_index(parameter_name)] = value
+
+    def freeze_parameter(self, parameter_name : str, value : float) -> None:
+        """Freeze one of the parameters at a given value.
+        """
+        index = self._parameter_index(parameter_name)
+        self.parameter_values[index] = value
+        self._parameter_free[index] = False
+
+    def __iter__(self):
+        """Iterate over the fit parameters as (name, value, error).
+        """
+        return zip(self.parameter_names, self.parameter_values, self.parameter_errors(),\
+            *self.parameter_bounds, self._parameter_free)
+
+    def __str__(self):
+        """String representation.
+        """
+        text = ''
+        for name, value, error, min_bound, max_bound, free in self:
+            text += f'{name:12s} -> {value:.4e} +/- {error:.4e} ({min_bound:.4e} / {max_bound:.4e})'
+            if not free:
+                text += ' fixed'
+            text += '\n'
+        text += f'Chisquare = {self.chisquare} / {self.ndof} dof'
+        return text
+
 
 
 class FitModelBase:
@@ -82,79 +191,14 @@ class FitModelBase:
     def __init__(self) -> None:
         """Constructor.
         """
-        # Make sure the length of the parameter names and values match.
-        if len(self.PARAMETER_NAMES) != len(self.PARAMETER_DEFAULT_VALUES):
-            raise RuntimeError(f'Mismatch between parameter names and values for {self.name()}')
-        # Initialize the basic class member---the parameters are set to their default values...
-        self.parameters = np.array(self.PARAMETER_DEFAULT_VALUES, dtype='d')
-        self.num_parameters = len(self.parameters)
-        # ... the covariance matrix is all zeros...
-        self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype='d')
-        # ... the bounds are set to their defalut values...
-        self.bounds = np.array(self.PARAMETER_DEFAULT_BOUNDS)
-        # .. and so it's the range...
+        self.status = FitStatus(self.PARAMETER_NAMES, self.PARAMETER_DEFAULT_VALUES,
+            self.PARAMETER_DEFAULT_BOUNDS)
         self._xmin, self._xmax = self.DEFAULT_RANGE
-        # ... and the chisquare and number of degrees of freedom are set to -1.
-        self.chisq = -1.
-        self.ndof = -1
-        # Create a small lookup table between parameter names and their position
-        # within the array of parameter values.
-        self._param_index_dict = {name : i for i, name in enumerate(self.PARAMETER_NAMES)}
 
     def name(self) -> str:
         """Return the model name.
         """
         return self.__class__.__name__
-
-    def _parameter_index(self, parameter_name : str) -> int:
-        """Convenience method returning the index within the parameter vector
-        for a given parameter name.
-        """
-        try:
-            return self._param_index_dict[parameter_name]
-        except KeyError as exception:
-            raise KeyError(f'Unknown parameter "{parameter_name}" for {self.name()}') from exception
-
-    def parameter_values(self) -> np.ndarray:
-        """Return the vector of parameter values---this is just a convenience function
-        provided for consistency with the following ``parameter_error()``.
-        """
-        return self.parameters
-
-    def parameter_errors(self) -> np.ndarray:
-        """Return the vector of parameter errors, that is, the square root of the
-        diagonal elements of the covariance matrix.
-        """
-        return np.sqrt(self.covariance_matrix.diagonal())
-
-    def __iter__(self):
-        """Iterate over the underlying parameters as (name, value, error).
-
-        This comes handy, e.g., for printing the best fit values on the terminal,
-        or for creating a stat box.
-        """
-        return zip(self.PARAMETER_NAMES, self.parameter_values(), self.parameter_errors())
-
-    def parameter_value(self, parameter_name : str) -> float:
-        """Return the parameter value by name.
-        """
-        return self.parameters[self._parameter_index(parameter_name)]
-
-    def __getitem__(self, parameter_name : str) -> float:
-        """Convenience shortcut to retrieve the value of a parameter.
-        """
-        return self.parameter_value(parameter_name)
-
-    def parameter_error(self, parameter_name : str) -> float:
-        """Return the parameter error by name.
-        """
-        parameter_index = self._parameter_index(parameter_name)
-        return np.sqrt(self.covariance_matrix[parameter_index][parameter_index])
-
-    def set_parameter(self, parameter_name : str, value : float) -> None:
-        """Set the value for a given parameter (indexed by name).
-        """
-        self.parameters[self._parameter_index(parameter_name)] = value
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Assign a sensible set of values to the model parameters, based on a data
@@ -175,13 +219,6 @@ class FitModelBase:
             The uncertainties on the y data.
         """
 
-    def reduced_chisquare(self) -> float:
-        """Return the reduced chisquare.
-        """
-        if self.ndof > 0:
-            return self.chisq / self.ndof
-        return -1.
-
     def set_range(self, xmin : float, xmax : float) -> None:
         """Set the function range.
         """
@@ -199,8 +236,8 @@ class FitModelBase:
         """
         box = PlotCard()
         box.add_string('Fit model', self.name())
-        box.add_string('Chisquare', f'{self.chisq:.1f} / {self.ndof}')
-        for name, value, error in self:
+        box.add_string('Chisquare', f'{self.status.chisquare:.1f} / {self.status.ndof}')
+        for name, value, error, *_ in self.status:
             box.add_quantity(f'{name.title()}', value, error)
         box.plot(x, y)
 
@@ -222,10 +259,10 @@ class FitModelBase:
         it to plot the model after the fit.
         """
         num_params = len(parameters)
-        if num_params == self.num_parameters:
+        if num_params == self.status.num_parameters:
             return self.eval(x, *parameters)
         if num_params == 0:
-            return self.eval(x, *self.parameters)
+            return self.eval(x, *self.status.parameter_values)
         raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
 
     @staticmethod
@@ -235,6 +272,132 @@ class FitModelBase:
         This needs to be overloaded by any derived classes.
         """
         raise NotImplementedError
+
+    def fit(self, xdata : np.ndarray, ydata : np.ndarray, p0 : np.ndarray = None,
+        sigma : np.ndarray = None, xmin : float = -np.inf, xmax : float = np.inf,
+        absolute_sigma : bool = True, check_finite : bool =True, method : str = None,
+        verbose : bool = True, **kwargs):
+        """Lightweight wrapper over the ``scipy.optimize.curve_fit()`` function
+        to take advantage of the modeling facilities. More specifically, in addition
+        to performing the actual fit, we update all the model parameters so that,
+        after the fact, we do have a complete picture of the fit outcome.
+
+        Parameters
+        ----------
+        model : :py:class:`modeling.FitModelBase` instance callable
+            The model function, f(x, ...).  It must take the independent
+            variable as the first argument and the parameters to fit as
+            separate remaining arguments.
+
+        xdata : array_like
+            The independent variable where the data is measured.
+
+        ydata : array_like
+            The dependent data --- nominally f(xdata, ...)
+
+        p0 : None, scalar, or sequence, optional
+            Initial guess for the parameters. If None, then the initial
+            values will all be 1.
+
+        sigma : None or array_like, optional
+            Uncertainties in `ydata`. If None, all the uncertainties are set to
+            1 and the fit becomes effectively unweighted.
+
+        xmin : float
+            The minimum value for the input x-values.
+
+        xmax : float
+            The maximum value for the input x-values.
+
+        absolute_sigma : bool, optional
+            If True, `sigma` is used in an absolute sense and the estimated
+            parameter covariance `pcov` reflects these absolute values.
+            If False, only the relative magnitudes of the `sigma` values matter.
+            The returned parameter covariance matrix `pcov` is based on scaling
+            `sigma` by a constant factor. This constant is set by demanding that the
+            reduced `chisq` for the optimal parameters `popt` when using the
+            *scaled* `sigma` equals unity.
+
+        method : {'lm', 'trf', 'dogbox'}, optional
+            Method to use for optimization.  See `least_squares` for more details.
+            Default is 'lm' for unconstrained problems and 'trf' if `bounds` are
+            provided. The method 'lm' won't work when the number of observations
+            is less than the number of variables, use 'trf' or 'dogbox' in this
+            case.
+
+        verbose : bool
+            Print the model if True.
+
+        kwargs
+            Keyword arguments passed to `leastsq` for ``method='lm'`` or
+            `least_squares` otherwise.
+        """
+        # Select data based on the x-axis range passed as an argument.
+        mask = np.logical_and(xdata >= xmin, xdata <= xmax)
+        xdata = xdata[mask]
+        ydata = ydata[mask]
+        if len(xdata) <= self.status.num_parameters:
+            raise RuntimeError(f'Not enough data to fit ({len(xdata)} points)')
+        if isinstance(sigma, np.ndarray):
+            sigma = sigma[mask]
+        # If the model has a Jacobian defined, go ahead and use it.
+        try:
+            jac = self.jacobian
+        except:
+            jac = None
+        # If we are not passing default starting points for the model parameters,
+        # try and do something sensible.
+        if p0 is None:
+            self.init_parameters(xdata, ydata, sigma)
+            p0 = self.status.parameter_values
+            if verbose:
+                logger.debug(f'{self.name()} parameters initialized to {p0}.')
+        # If sigma is None, assume all the errors are 1. (If we don't do this,
+        # the code will crash when calculating the chisquare.
+        if sigma is None:
+            sigma = np.full((len(ydata), ), 1.)
+        popt, pcov = curve_fit(self, xdata, ydata, p0, sigma, absolute_sigma,
+            check_finite, self.status.parameter_bounds, method, jac, **kwargs)
+        # Update the model parameters.
+        self.set_range(xdata.min(), xdata.max())
+        self.status.parameter_values = popt
+        self.status.covariance_matrix = pcov
+        self.status.chisquare = (((ydata - self(xdata)) / sigma)**2).sum()
+        self.status.ndof = len(ydata) - self.status.num_parameters
+        if verbose:
+            print(self)
+
+    def fit_histogram(self, histogram : Histogram1d, p0 : np.ndarray=None,
+        xmin : float = -np.inf, xmax : float = np.inf, absolute_sigma : bool = True,
+        check_finite : bool = True, method : str = None, verbose : bool = True, **kwargs):
+        """Fit a histogram to a given model.
+
+        This is basically calling :meth:`ixpeobssim.core.fitting.fit` with some
+        pre-processing to turn the histogram bin edges and content into
+        x-y data. Particularly, the bin centers are taken as the independent
+        data series, the bin contents are taken as the dependent data saries,
+        and the square root of the counts as the Poisson error.
+
+        For additional parameters look at the documentation of the
+        :meth:`ixpeobssim.core.fitting.fit`
+
+        Parameters
+        ----------
+        model : :py:class:`modeling.FitModelBase` instance or
+            callable
+            The fit model.
+
+        histogram : ixpeHistogram1d instance
+            The histogram to be fitted.
+        """
+        if histogram.num_axes != 1:
+            raise RuntimeError(f'Histogram is not one-dimensional')
+        mask = (histogram.content > 0)
+        xdata = histogram.bin_centers(0)[mask]
+        ydata = histogram.content[mask]
+        sigma = histogram.errors()[mask]
+        return self.fit(xdata, ydata, p0, sigma, xmin, xmax, absolute_sigma, check_finite,
+            method, verbose, **kwargs)
 
     @staticmethod
     def _merge_class_attributes(func, *components : type) -> Tuple:
@@ -304,7 +467,8 @@ class FitModelBase:
                 plt.plot(x, self(x), **kwargs)
                 color = last_line_color()
                 for c, s in zip(components, par_slices):
-                    plt.plot(x, c.eval(x, *self.parameters[s]), ls='dashed', color=color)
+                    plt.plot(x, c.eval(x, *self.status.parameter_values[s]),
+                        ls='dashed', color=color)
 
         return _model
 
@@ -318,8 +482,8 @@ class FitModelBase:
     def __str__(self):
         """String formatting.
         """
-        text = f'{self.name()} (chisq/ndof = {self.chisq:.2f} / {self.ndof})'
-        for name, value, error in self:
+        text = f'{self.name()} (chisq/ndof = {self.status.chisquare:.2f} / {self.status.ndof})'
+        for name, value, error, _, _, _ in self.status:
             text += f'\n{name:15s}: {value:.5e} +- {error:.5e}'
         return text
 
@@ -355,7 +519,7 @@ class Constant(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.set_parameter('constant', np.mean(ydata))
+        self.status.set_parameter('constant', np.mean(ydata))
 
 
 
@@ -425,14 +589,14 @@ class Gaussian(FitModelBase):
         """
         mean = np.average(xdata, weights=ydata)
         sigma = np.sqrt(np.average((xdata - mean)**2., weights=ydata))
-        self.set_parameter('normalization', np.max(ydata))
-        self.set_parameter('mean', mean)
-        self.set_parameter('sigma', sigma)
+        self.status.set_parameter('normalization', np.max(ydata))
+        self.status.set_parameter('mean', mean)
+        self.status.set_parameter('sigma', sigma)
 
     def fwhm(self) -> float:
         """Return the absolute FWHM of the model.
         """
-        return self.SIGMA_TO_FWHM * self['sigma']
+        return self.SIGMA_TO_FWHM * self.status['sigma']
 
 
 
@@ -507,5 +671,5 @@ class Exponential(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.set_parameter('normalization', np.max(ydata))
-        self.set_parameter('scale', np.average(xdata, weights=ydata))
+        self.status.set_parameter('normalization', np.max(ydata))
+        self.status.set_parameter('scale', np.average(xdata, weights=ydata))

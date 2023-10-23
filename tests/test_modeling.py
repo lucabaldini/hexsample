@@ -19,25 +19,41 @@
 import numpy as np
 
 from hexsample import rng
-from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
 from hexsample.modeling import Constant, Line, Gaussian, PowerLaw, Exponential,\
-    FitModelBase, DoubleGaussian
+    FitModelBase, DoubleGaussian, FitStatus
 from hexsample.plot import plt, setup_gca
 
 rng.initialize()
 
 
+def test_fit_status():
+    """
+    """
+    par_names = ('slope', 'intercept')
+    par_values = (1., 1.)
+    status = FitStatus(par_names, par_values, None)
+    print()
+    print(status)
+    status.parameter_values = np.array([1.33, 0.55])
+    status.covariance_matrix = np.array([[0.01, 0.], [0., 0.01]])
+    status.chisquare = 21.3
+    status.ndof = 16
+    print(status)
+    status.set_parameter_bounds('slope', 10., 20.)
+    status.freeze_parameter('slope', 17.1)
+    print(status)
+
 def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, **kwargs):
     """Basic test for a specific model.
     """
     hist = Histogram1d(np.linspace(rvs.min(), rvs.max(), 100)).fill(rvs)
-    fit_histogram(model, hist, p0=p0)
+    model.fit_histogram(hist, p0=p0)
     plt.figure(f'{model.name()} fitting model')
     hist.plot()
     model.plot()
     model.stat_box()
-    num_sigma = (model.chisq - model.ndof) / np.sqrt(2. * model.ndof)
+    num_sigma = (model.status.chisquare - model.status.ndof) / np.sqrt(2. * model.status.ndof)
     assert abs(num_sigma) < 5.
     setup_gca(xlabel='x [a. u.]', **kwargs)
 
@@ -52,6 +68,7 @@ def test_models():
         rng.generator.normal(15., 1., size=25000))
     _test_model(DoubleGaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
     _test_model(Gaussian() + Gaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
+
 
 
 
