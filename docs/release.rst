@@ -4,9 +4,14 @@ Release notes
 =============
 
 
+* Merging https://github.com/lucabaldini/hexsample/pull/38
 * Merging https://github.com/lucabaldini/hexsample/pull/35
 * Major refactoring of the modeling framework, with no (intentional) modification
   to the public API.
+* New FitStatus class, refactoring of the FitModelBase class, with fit() and
+  fit_histogram() now class members (as opposed to loose functions in the
+  fitting module).
+* Fit with parameter bounds now supported.
 
 
 *hexsample (0.6.0) - Thu, 19 Oct 2023 23:23:07 +0200*
