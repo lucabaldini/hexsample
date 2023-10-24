@@ -16,28 +16,48 @@
 """Test suite for modeling.py
 """
 
+from functools import partial
+
 import numpy as np
 
 from hexsample import rng
-from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
 from hexsample.modeling import Constant, Line, Gaussian, PowerLaw, Exponential,\
-    FitModelBase, DoubleGaussian
+    FitModelBase, DoubleGaussian, FitStatus
 from hexsample.plot import plt, setup_gca
 
 rng.initialize()
 
 
-def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, **kwargs):
+def test_fit_status():
+    """
+    """
+    par_names = ('slope', 'intercept')
+    par_values = (1., 1.)
+    status = FitStatus(par_names, par_values, None)
+    print()
+    print(status)
+    status.parameter_values = np.array([1.33, 0.55])
+    status.covariance_matrix = np.array([[0.01, 0.], [0., 0.01]])
+    status.chisquare = 21.3
+    status.ndof = 16
+    print(status)
+    status.set_parameter_bounds('slope', 10., 20.)
+    #status.freeze_parameter('slope', 17.1)
+    print(status)
+
+def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, figname : str = None, **kwargs):
     """Basic test for a specific model.
     """
     hist = Histogram1d(np.linspace(rvs.min(), rvs.max(), 100)).fill(rvs)
-    fit_histogram(model, hist, p0=p0)
-    plt.figure(f'{model.name()} fitting model')
+    model.fit_histogram(hist, p0=p0)
+    if figname is None:
+        figname = f'{model.name()} fitting model'
+    plt.figure(figname)
     hist.plot()
     model.plot()
     model.stat_box()
-    num_sigma = (model.chisq - model.ndof) / np.sqrt(2. * model.ndof)
+    num_sigma = (model.status.chisquare - model.status.ndof) / np.sqrt(2. * model.status.ndof)
     assert abs(num_sigma) < 5.
     setup_gca(xlabel='x [a. u.]', **kwargs)
 
@@ -53,8 +73,35 @@ def test_models():
     _test_model(DoubleGaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
     _test_model(Gaussian() + Gaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
 
+def test_bound_parameter():
+    """Perform a simple fit with a bound on a parameter.
+    """
+    model = Gaussian()
+    model.status.set_parameter_bounds('mean', -0.0001, 0.0001)
+    _test_model(model, rng.generator.normal(size=100000), p0 = (1., 0., 1.), figname='Gaussian bounded')
+
+def test_partial():
+    """
+    """
+    model = Gaussian()
+    x = np.linspace(-5., 5., 100)
+    f1 = model.__call__
+    f2 = partial(model.eval, mean=1., sigma=1.)
+    plt.figure('Test partial')
+    plt.plot(x, f1(x))
+    plt.plot(x, f2(x, 1.))
+
+
+# def test_fixed_parameter():
+#     """Perform a simple fit with a bound on a parameter.
+#     """
+#     model = Gaussian()
+#     model.status.freeze_parameter('mean', 0.)
+#     _test_model(model, rng.generator.normal(size=100000), figname='Gaussian fixed')
 
 
 if __name__ == '__main__':
     test_models()
+    test_bound_parameter()
+    test_partial()
     plt.show()

@@ -21,7 +21,6 @@ from loguru import logger
 import numpy as np
 
 from hexsample import rng
-from hexsample.fitting import fit_histogram
 from hexsample.hist import Histogram1d
 from hexsample.modeling import Exponential
 from hexsample.plot import plt, setup_gca
@@ -62,11 +61,12 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     h = Histogram1d(np.linspace(0., thickness, 100)).fill(d)
     h.plot()
     setup_gca(xlabel='Absorption depth [cm]', logy=True)
-    model = fit_histogram(Exponential(), h)
+    model = Exponential()
+    model.fit_histogram(h)
     model.plot()
     model.stat_box()
-    scale = model.parameter_value('scale')
-    sigma_scale = model.parameter_error('scale')
+    scale = model.status.parameter_value('scale')
+    sigma_scale = model.status.parameter_error('scale')
     delta = (Silicon.photoelectric_attenuation_length(energy) - scale) / sigma_scale
     assert delta < 5.
 
