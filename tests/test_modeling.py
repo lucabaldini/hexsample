@@ -17,6 +17,7 @@
 """
 
 from functools import partial
+from inspect import signature
 
 import numpy as np
 
@@ -84,24 +85,43 @@ def test_partial():
     """
     """
     model = Gaussian()
-    x = np.linspace(-5., 5., 100)
-    f1 = model.__call__
-    f2 = partial(model.eval, mean=1., sigma=1.)
+    print(signature(model.__call__))
+    print(model.status.fill_args(3., 3., 3.))
+
+
+
     plt.figure('Test partial')
-    plt.plot(x, f1(x))
-    plt.plot(x, f2(x, 1.))
+    x = np.linspace(-5., 5., 100)
+    plt.plot(x, model(x, 1., 0., 1.))
+
+    #f = partial(model.eval, mean=1.)
+    #plt.plot(x, f(x, normalization=1., sigma=1.))
+    model.status.freeze_parameter('mean', 1.)
+    print(model.status.fill_args(3., 3.))
+
+    plt.plot(x, model.partial()(x, 1., 1.))
 
 
-# def test_fixed_parameter():
-#     """Perform a simple fit with a bound on a parameter.
-#     """
-#     model = Gaussian()
-#     model.status.freeze_parameter('mean', 0.)
-#     _test_model(model, rng.generator.normal(size=100000), figname='Gaussian fixed')
+
+    #
+    #f1 = model.__call__
+    #f2 = partial(model.eval, mean=1., sigma=1.)
+    #plt.figure('Test partial')
+    #plt.plot(x, f1(x))
+    #plt.plot(x, f2(x, 1.))
+
+
+def test_fixed_parameter():
+    """Perform a simple fit with a bound on a parameter.
+    """
+    model = Gaussian()
+    model.status.freeze_parameter('mean', 0.)
+    _test_model(model, rng.generator.normal(size=100000), figname='Gaussian fixed')
 
 
 if __name__ == '__main__':
     test_models()
     test_bound_parameter()
     test_partial()
+    #test_fixed_parameter()
     plt.show()

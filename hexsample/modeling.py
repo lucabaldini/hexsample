@@ -18,6 +18,7 @@
 """
 
 
+import functools
 from typing import Tuple
 
 import numpy as np
@@ -44,13 +45,13 @@ class FitStatus:
         if len(parameter_names) != len(parameter_values):
             raise RuntimeError('Mismatch between parameter names and values')
         self.parameter_names = parameter_names
-        self.parameter_values = np.array(parameter_values)
         self.num_parameters = len(self.parameter_names)
-        self.parameter_bounds = self._process_bounds(parameter_bounds)
+        self.parameter_values = np.array(parameter_values)
         self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype=float)
-        self._parameter_free = np.ones(self.num_parameters, dtype=bool)
         self.chisquare = -1.
         self.ndof = -1
+        self._parameter_bounds = self._process_bounds(parameter_bounds)
+        self._parameter_free = np.ones(self.num_parameters, dtype=bool)
         self._parameter_index_dict = {name : i for i, name in enumerate(self.parameter_names)}
 
     def _process_bounds(self, parameter_bounds : Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
@@ -87,6 +88,16 @@ class FitStatus:
         """
         return self.parameter_values[self._parameter_index(parameter_name)]
 
+    def free_parameter_values(self):
+        """
+        """
+        return self.parameter_values[self._parameter_free]
+
+    def free_parameter_bounds(self):
+        """
+        """
+        return tuple([bounds[self._parameter_free] for bounds in self._parameter_bounds])
+
     def __getitem__(self, parameter_name : str) -> float:
         """Convenience shortcut to retrieve the value of a parameter.
         """
@@ -104,10 +115,15 @@ class FitStatus:
         index = self._parameter_index(parameter_name)
         return np.sqrt(self.covariance_matrix[index][index])
 
-    # def parameter_free(self, parameter_name : str) -> float:
-    #     """Return True if the given parameter is free to vary in the fit.
-    #     """
-    #     return self._parameter_free[self._parameter_index(parameter_name)]
+    def parameter_free(self, parameter_name : str) -> bool:
+        """Return True if the given parameter is free to vary in the fit.
+        """
+        return self._parameter_free[self._parameter_index(parameter_name)]
+
+    def parameter_frozen(self, parameter_name : str) -> bool:
+        """Return True if the given parameter is frozen in the fit.
+        """
+        return not self.parameter_free(parameter_name)
 
     def reduced_chisquare(self) -> float:
         """Return the reduced chisquare.
@@ -119,8 +135,8 @@ class FitStatus:
         """Set the baounds for a given parameter.
         """
         index = self._parameter_index(parameter_name)
-        self.parameter_bounds[0][index] = min_bound
-        self.parameter_bounds[1][index] = max_bound
+        self._parameter_bounds[0][index] = min_bound
+        self._parameter_bounds[1][index] = max_bound
 
     def set_parameter(self, parameter_name : str, value : float) -> None:
         """Set the value for a given parameter (indexed by name).
@@ -128,33 +144,52 @@ class FitStatus:
         self.parameter_values[self._parameter_index(parameter_name)] = value
 
     def update_parameter(self, parameter_name : str, value : float) -> None:
-        """Alias, waiting for the implementation of frozen parameters.
-        """
-        self.set_parameter(parameter_name, value)
+        """Update a parameter value.
 
-    # def update_parameter(self, parameter_name : str, value : float) -> None:
-    #     """Update a parameter value.
-    #
-    #     This is calling the set_parameter() hook *only* if the the parameter
-    #     itself is free to vary, and should be the default choice to interact
-    #     with the parameter values in the implementation of FitModelBase.init_parameters()
-    #     by concrete subclasses.
-    #     """
-    #     if self.parameter_free(parameter_name):
-    #         self.set_parameter(parameter_name, value)
-    #
-    # def freeze_parameter(self, parameter_name : str, value : float) -> None:
-    #     """Freeze one of the parameters at a given value.
-    #     """
-    #     index = self._parameter_index(parameter_name)
-    #     self.parameter_values[index] = value
-    #     self._parameter_free[index] = False
+        This is calling the set_parameter() hook *only* if the the parameter
+        itself is free to vary, and should be the default choice to interact
+        with the parameter values in the implementation of FitModelBase.init_parameters()
+        by concrete subclasses.
+        """
+        if self.parameter_free(parameter_name):
+            self.set_parameter(parameter_name, value)
+
+    def freeze_parameter(self, parameter_name : str, value : float) -> None:
+        """Freeze one of the parameters at a given value.
+        """
+        index = self._parameter_index(parameter_name)
+        self.parameter_values[index] = value
+        self._parameter_free[index] = False
+
+    def partial_kwargs(self, *args):
+        """
+        """
+        assert len(args) == self._parameter_free.sum()
+        kwargs = {}
+        i = 0
+        for par_name in self.parameter_names:
+            if self.parameter_free(par_name):
+                kwargs[par_name] = args[i]
+                i += 1
+            else:
+                kwargs[par_name] = self.parameter_value(par_name)
+        return kwargs
+
+    def fill_args(self, *args):
+        """
+        """
+        assert len(args) == self._parameter_free.sum()
+        args = list(args)
+        for i, (value, free) in enumerate(zip(self.parameter_values, self._parameter_free)):
+            if not free:
+                args.insert(i, value)
+        return tuple(args)
 
     def __iter__(self):
         """Iterate over the fit parameters as (name, value, error).
         """
         return zip(self.parameter_names, self.parameter_values, self.parameter_errors(),\
-            *self.parameter_bounds, self._parameter_free)
+            *self._parameter_bounds, self._parameter_free)
 
     def __str__(self):
         """String representation.
@@ -241,21 +276,19 @@ class FitModelBase:
         self._xmin = xmin
         self._xmax = xmax
 
-    def plot(self, num_points : int = 250, **kwargs) -> None:
-        """Plot the model.
-        """
-        x = np.linspace(self._xmin, self._xmax, num_points)
-        plt.plot(x, self(x), **kwargs)
+    @staticmethod
+    def eval(x : np.ndarray, *parameters) -> np.ndarray:
+        """Eval the model at a given x and a given set of parameter values.
 
-    def stat_box(self, x : float = 0.95, y : float = 0.95) -> None:
-        """Plot a stat box for the model.
+        This needs to be overloaded by any derived classes.
         """
-        box = PlotCard()
-        box.add_string('Fit model', self.name())
-        box.add_string('Chisquare', f'{self.status.chisquare:.1f} / {self.status.ndof}')
-        for name, value, error, *_ in self.status:
-            box.add_quantity(f'{name.title()}', value, error)
-        box.plot(x, y)
+        raise NotImplementedError
+
+    def partial(self):
+        """
+        """
+        return lambda x, *args: self.eval(x, *self.status.fill_args(*args))
+        #return functools.partial(self.eval, **self.status.partial_kwargs())
 
     def __call__(self, x, *parameters):
         """Return the value of the model at a given point and a given set of
@@ -274,26 +307,14 @@ class FitModelBase:
         called by ``curve_fit`` during the fitting process, and then we can reuse
         it to plot the model after the fit.
         """
-        num_params = len(parameters)
-        if num_params == self.status.num_parameters:
-            return self.eval(x, *parameters)
-        if num_params == 0:
+        if len(parameters) == 0:
             return self.eval(x, *self.status.parameter_values)
-        raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
-
-    @staticmethod
-    def eval(x : np.ndarray, *parameters) -> np.ndarray:
-        """Eval the model at a given x and a given set of parameter values.
-
-        This needs to be overloaded by any derived classes.
-        """
-        raise NotImplementedError
-
-    def _calculate_chisquare(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> float:
-        """Calculate the chisquare for the current parameter values, given
-        some input data.
-        """
-        return (((ydata - self(xdata)) / sigma)**2).sum()
+        #print(parameters, self.status.partial_kwargs())
+        #return self.partial()(x, *parameters)
+        #num_params = len(parameters)
+        #if num_params == self.status.num_parameters:
+        return self.eval(x, *parameters)
+        #raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Assign a sensible set of values to the model parameters, based on a data
@@ -310,6 +331,12 @@ class FitModelBase:
         ydata : array_like
             The y data.
         """
+
+    def _calculate_chisquare(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> float:
+        """Calculate the chisquare for the current parameter values, given
+        some input data.
+        """
+        return (((ydata - self(xdata)) / sigma)**2).sum()
 
     def fit(self, xdata : np.ndarray, ydata : np.ndarray, p0 : np.ndarray = None,
         sigma : np.ndarray = None, xmin : float = -np.inf, xmax : float = np.inf,
@@ -383,19 +410,19 @@ class FitModelBase:
         sigma = sigma[mask]
         # If the model has a Jacobian defined, go ahead and use it.
         try:
-            jac = self.jacobian
+            jac = self._jacobian
         except:
             jac = None
         # If we are not passing default starting points for the model parameters,
         # try and do something sensible.
         if p0 is None:
             self.init_parameters(xdata, ydata)
-            p0 = self.status.parameter_values
+            p0 = self.status.free_parameter_values()
             if verbose:
                 logger.debug(f'{self.name()} parameters initialized to {p0}.')
         # The actual call to the glorious scipy.optimize.curve_fit() method.
         popt, pcov = curve_fit(self, xdata, ydata, p0, sigma, absolute_sigma,
-            check_finite, self.status.parameter_bounds, method, jac, **kwargs)
+            check_finite, self.status._parameter_bounds, method, jac, **kwargs)
         # Update the model parameters.
         self.set_range(xdata.min(), xdata.max())
         self.status.parameter_values = popt
@@ -436,6 +463,22 @@ class FitModelBase:
         sigma = histogram.errors()[mask]
         return self.fit(xdata, ydata, p0, sigma, xmin, xmax, absolute_sigma, check_finite,
             method, verbose, **kwargs)
+
+    def plot(self, num_points : int = 250, **kwargs) -> None:
+        """Plot the model.
+        """
+        x = np.linspace(self._xmin, self._xmax, num_points)
+        plt.plot(x, self(x), **kwargs)
+
+    def stat_box(self, x : float = 0.95, y : float = 0.95) -> None:
+        """Plot a stat box for the model.
+        """
+        box = PlotCard()
+        box.add_string('Fit model', self.name())
+        box.add_string('Chisquare', f'{self.status.chisquare:.1f} / {self.status.ndof}')
+        for name, value, error, *_ in self.status:
+            box.add_quantity(f'{name.title()}', value, error)
+        box.plot(x, y)
 
     @staticmethod
     def _merge_class_attributes(func, *components : type) -> Tuple:
