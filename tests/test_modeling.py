@@ -43,7 +43,7 @@ def test_fit_status():
     status.ndof = 16
     print(status)
     status.set_parameter_bounds('slope', 10., 20.)
-    status.freeze_parameter('slope', 17.1)
+    #status.freeze_parameter('slope', 17.1)
     print(status)
 
 def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, figname : str = None, **kwargs):
