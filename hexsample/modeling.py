@@ -48,7 +48,6 @@ class FitStatus:
         self.num_parameters = len(self.parameter_names)
         self.parameter_bounds = self._process_bounds(parameter_bounds)
         self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype=float)
-        self._parameter_free = np.ones(self.num_parameters, dtype=bool)
         self.chisquare = -1.
         self.ndof = -1
         self._parameter_index_dict = {name : i for i, name in enumerate(self.parameter_names)}
@@ -104,11 +103,6 @@ class FitStatus:
         index = self._parameter_index(parameter_name)
         return np.sqrt(self.covariance_matrix[index][index])
 
-    # def parameter_free(self, parameter_name : str) -> float:
-    #     """Return True if the given parameter is free to vary in the fit.
-    #     """
-    #     return self._parameter_free[self._parameter_index(parameter_name)]
-
     def reduced_chisquare(self) -> float:
         """Return the reduced chisquare.
         """
@@ -127,44 +121,18 @@ class FitStatus:
         """
         self.parameter_values[self._parameter_index(parameter_name)] = value
 
-    def update_parameter(self, parameter_name : str, value : float) -> None:
-        """Alias, waiting for the implementation of frozen parameters.
-        """
-        self.set_parameter(parameter_name, value)
-
-    # def update_parameter(self, parameter_name : str, value : float) -> None:
-    #     """Update a parameter value.
-    #
-    #     This is calling the set_parameter() hook *only* if the the parameter
-    #     itself is free to vary, and should be the default choice to interact
-    #     with the parameter values in the implementation of FitModelBase.init_parameters()
-    #     by concrete subclasses.
-    #     """
-    #     if self.parameter_free(parameter_name):
-    #         self.set_parameter(parameter_name, value)
-    #
-    # def freeze_parameter(self, parameter_name : str, value : float) -> None:
-    #     """Freeze one of the parameters at a given value.
-    #     """
-    #     index = self._parameter_index(parameter_name)
-    #     self.parameter_values[index] = value
-    #     self._parameter_free[index] = False
-
     def __iter__(self):
         """Iterate over the fit parameters as (name, value, error).
         """
         return zip(self.parameter_names, self.parameter_values, self.parameter_errors(),\
-            *self.parameter_bounds, self._parameter_free)
+            *self.parameter_bounds)
 
     def __str__(self):
         """String representation.
         """
         text = ''
-        for name, value, error, min_bound, max_bound, free in self:
-            text += f'{name:18s} {value:.3e} +/- {error:.3e} ({min_bound:.3e} / {max_bound:.3e})'
-            if not free:
-                text += ' fixed'
-            text += '\n'
+        for name, value, error, min_bound, max_bound in self:
+            text += f'{name:18s} {value:.3e} +/- {error:.3e} ({min_bound:.3e} / {max_bound:.3e})\n'
         text += f'Chisquare = {self.chisquare} / {self.ndof} dof'
         return text
 
@@ -555,7 +523,7 @@ class Constant(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.status.update_parameter('constant', np.mean(ydata))
+        self.status.set_parameter('constant', np.mean(ydata))
 
 
 
@@ -625,9 +593,9 @@ class Gaussian(FitModelBase):
         """
         mean = np.average(xdata, weights=ydata)
         sigma = np.sqrt(np.average((xdata - mean)**2., weights=ydata))
-        self.status.update_parameter('normalization', np.max(ydata))
-        self.status.update_parameter('mean', mean)
-        self.status.update_parameter('sigma', sigma)
+        self.status.set_parameter('normalization', np.max(ydata))
+        self.status.set_parameter('mean', mean)
+        self.status.set_parameter('sigma', sigma)
 
     def fwhm(self) -> float:
         """Return the absolute FWHM of the model.
@@ -712,5 +680,5 @@ class Exponential(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.status.update_parameter('normalization', np.max(ydata))
-        self.status.update_parameter('scale', np.average(xdata, weights=ydata))
+        self.status.set_parameter('normalization', np.max(ydata))
+        self.status.set_parameter('scale', np.average(xdata, weights=ydata))

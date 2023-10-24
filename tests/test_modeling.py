@@ -43,7 +43,6 @@ def test_fit_status():
     status.ndof = 16
     print(status)
     status.set_parameter_bounds('slope', 10., 20.)
-    #status.freeze_parameter('slope', 17.1)
     print(status)
 
 def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, figname : str = None, **kwargs):
@@ -80,28 +79,9 @@ def test_bound_parameter():
     model.status.set_parameter_bounds('mean', -0.0001, 0.0001)
     _test_model(model, rng.generator.normal(size=100000), p0 = (1., 0., 1.), figname='Gaussian bounded')
 
-def test_partial():
-    """
-    """
-    model = Gaussian()
-    x = np.linspace(-5., 5., 100)
-    f1 = model.__call__
-    f2 = partial(model.eval, mean=1., sigma=1.)
-    plt.figure('Test partial')
-    plt.plot(x, f1(x))
-    plt.plot(x, f2(x, 1.))
-
-
-# def test_fixed_parameter():
-#     """Perform a simple fit with a bound on a parameter.
-#     """
-#     model = Gaussian()
-#     model.status.freeze_parameter('mean', 0.)
-#     _test_model(model, rng.generator.normal(size=100000), figname='Gaussian fixed')
 
 
 if __name__ == '__main__':
     test_models()
     test_bound_parameter()
-    test_partial()
     plt.show()
