@@ -17,7 +17,6 @@
 """Fit models.
 """
 
-
 from typing import Tuple
 
 import numpy as np
@@ -70,7 +69,7 @@ class FitStatus:
             return (np.full(self.num_parameters, -np.inf), np.full(self.num_parameters, np.inf))
         if len(parameter_bounds) != 2:
             raise RuntimeError(f'Invalid parameter bounds {parameter_bounds}')
-        return tuple([np.array(bounds) for bounds in parameter_bounds])
+        return tuple(np.array(bounds) for bounds in parameter_bounds)
 
     def _parameter_index(self, parameter_name : str) -> int:
         """Convenience method returning the index within the parameter vector
@@ -133,7 +132,7 @@ class FitStatus:
         text = ''
         for name, value, error, min_bound, max_bound in self:
             text += f'{name:18s} {value:.3e} +/- {error:.3e} ({min_bound:.3e} / {max_bound:.3e})\n'
-        text += f'Chisquare = {self.chisquare} / {self.ndof} dof'
+        text += f'Chisquare = {self.chisquare:.2f} / {self.ndof} dof'
         return text
 
 
@@ -257,7 +256,8 @@ class FitModelBase:
         """
         raise NotImplementedError
 
-    def _calculate_chisquare(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> float:
+    def _calculate_chisquare(self, xdata : np.ndarray, ydata : np.ndarray,
+        sigma : np.ndarray) -> float:
         """Calculate the chisquare for the current parameter values, given
         some input data.
         """
@@ -338,6 +338,7 @@ class FitModelBase:
             Keyword arguments passed to `leastsq` for ``method='lm'`` or
             `least_squares` otherwise.
         """
+        # pylint: disable=too-many-arguments, too-many-locals
         # Select data based on the x-axis range passed as an argument.
         mask = np.logical_and(xdata >= xmin, xdata <= xmax)
         xdata = xdata[mask]
@@ -352,7 +353,7 @@ class FitModelBase:
         # If the model has a Jacobian defined, go ahead and use it.
         try:
             jac = self.jacobian
-        except:
+        except AttributeError:
             jac = None
         # If we are not passing default starting points for the model parameters,
         # try and do something sensible.
@@ -396,8 +397,9 @@ class FitModelBase:
         histogram : ixpeHistogram1d instance
             The histogram to be fitted.
         """
+        # pylint: disable=too-many-arguments
         if histogram.num_axes != 1:
-            raise RuntimeError(f'Histogram is not one-dimensional')
+            raise RuntimeError('Histogram is not one-dimensional')
         mask = (histogram.content > 0)
         xdata = histogram.bin_centers(0)[mask]
         ydata = histogram.content[mask]
@@ -488,8 +490,7 @@ class FitModelBase:
     def __str__(self):
         """String formatting.
         """
-        text = f'{self.name()} (chisq/ndof = {self.status.chisquare:.2f} / {self.status.ndof})\n{self.status}'
-        return text
+        return f'{self.name()} fit status\n{self.status}'
 
 
 
@@ -614,7 +615,6 @@ class DoubleGaussian(_DoubleGaussian):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
-        pass
 
 
 
