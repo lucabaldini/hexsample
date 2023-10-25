@@ -214,34 +214,21 @@ class FitModelBase:
     The class features a number of static members that derived class should redefine
     as needed:
 
-    * ``PARAMETER_NAMES`` is a list containing the names of the model parameters.
-    * ``PARAMETER_DEFAULT_VALUES`` is a list containing the default values
-      of the model parameters---when a concrete model object is instantiated
-      these are the values being attached to it at creation time.
-    * ``PARAMETER_DEFAULT_BOUNDS`` is a tuple containing the default values
-      of the parameter bounds to be used for the fitting. The values in the
-      tuple are attached to each model object at creation time and are
-      intended to be passed as the ``bounds`` argument of the
-      ``scipy.optimize.curve_fit()`` function. From the ``scipy`` documentation:
-      Lower and upper bounds on independent variables. Defaults to no bounds.
-      Each element of the tuple must be either an array with the length equal
-      to the number of parameters, or a scalar (in which case the bound is
-      taken to be the same for all parameters.) Use np.inf with an appropriate
-      sign to disable bounds on all or some parameters. By default
-      models have no built-in bounds.
+    * ``PAR_NAMES`` is a list containing the names of the model parameters;
+    * ``PAR_DEFAULT_VALUES`` is a list containing the default values
+      of the model parameters;
+    * ``PAR_DEFAULT_BOUNDS`` is a tuple containing the default values
+      of the parameter bounds to be used for the fitting;
     * ``DEFAULT_RANGE`` is a two-element list with the default support
-      (x-axis range) for the model. This is automatically updated at runtime
-      depending on the input data when the model is used in a fit.
+      (x-axis range) for the model. (This is automatically updated at runtime
+      depending on the input data when the model is used in a fit.)
 
    In addition, each derived class should override the following methods:
 
-    * the ``eval(x, *args)`` static method: this should return the value of
-      the model at a given point for a given set of values of the underlying
-      parameters;
-    * (optionally) the ``jacobian(x, *args)`` static method. (If defined, this
-      is passed to the underlying fit engine allowing to reduce the number of
-      function calls in the fit; otherwise the jacobian is calculated
-      numerically.)
+    * the ``eval(x, *args)`` should return the value of the model at a given x
+      for a given set of values of the underlying parameters;
+    * the ``jacobian(x, *args)`` method, if defined, is passed to the underlying
+      fit engine allowing to reduce the number of function calls in the fit.
 
     Finally, if there is a sensible way to initialize the model parameters
     based on a set of input data, derived classes should overload the
@@ -255,16 +242,15 @@ class FitModelBase:
 
     # pylint: disable=too-many-instance-attributes
 
-    PARAMETER_NAMES = None
-    PARAMETER_DEFAULT_VALUES = None
-    PARAMETER_DEFAULT_BOUNDS = None
+    PAR_NAMES = None
+    PAR_DEFAULT_VALUES = None
+    PAR_DEFAULT_BOUNDS = None
     DEFAULT_RANGE = (0., 1.)
 
     def __init__(self) -> None:
         """Constructor.
         """
-        args = self.PARAMETER_NAMES, self.PARAMETER_DEFAULT_VALUES, self.PARAMETER_DEFAULT_BOUNDS
-        self.status = FitStatus(*args)
+        self.status = FitStatus(self.PAR_NAMES, self.PAR_DEFAULT_VALUES, self.PAR_DEFAULT_BOUNDS)
         self._xmin, self._xmax = self.DEFAULT_RANGE
 
     def name(self) -> str:
@@ -274,6 +260,14 @@ class FitModelBase:
 
     def set_range(self, xmin : float, xmax : float) -> None:
         """Set the function range.
+
+        Arguments
+        ---------
+        xmin : float
+            The minimum x-range value.
+
+        xmax : float
+            The maximum x-range value.
         """
         self._xmin = xmin
         self._xmax = xmax
@@ -493,25 +487,25 @@ class FitModelBase:
         classes.
         """
         mrg = FitModelBase._merge_class_attributes
-        par_names = mrg(lambda i, c: [f'{name}{i}' for name in c.PARAMETER_NAMES], *components)
-        par_default_values = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_VALUES), *components)
+        par_names = mrg(lambda i, c: [f'{name}{i}' for name in c.PAR_NAMES], *components)
+        par_default_values = mrg(lambda i, c: list(c.PAR_DEFAULT_VALUES), *components)
         xmin = min([c.DEFAULT_RANGE[0] for c in components])
         xmax = max([c.DEFAULT_RANGE[1] for c in components])
-        par_bound_min = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_BOUNDS[0]), *components)
-        par_bound_max = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_BOUNDS[1]), *components)
+        par_bound_min = mrg(lambda i, c: list(c.PAR_DEFAULT_BOUNDS[0]), *components)
+        par_bound_max = mrg(lambda i, c: list(c.PAR_DEFAULT_BOUNDS[1]), *components)
         par_slices = []
         i = 0
         for c in components:
-            num_params = len(c.PARAMETER_NAMES)
+            num_params = len(c.PAR_NAMES)
             par_slices.append(slice(i, i + num_params))
             i += num_params
 
         class _model(FitModelBase):
 
-            PARAMETER_NAMES = par_names
-            PARAMETER_DEFAULT_VALUES = par_default_values
+            PAR_NAMES = par_names
+            PAR_DEFAULT_VALUES = par_default_values
             DEFAULT_RANGE = (xmin, xmax)
-            PARAMETER_DEFAULT_BOUNDS = (par_bound_min, par_bound_max)
+            PAR_DEFAULT_BOUNDS = (par_bound_min, par_bound_max)
 
             def __init__(self):
                 FitModelBase.__init__(self)
@@ -564,9 +558,8 @@ class Constant(FitModelBase):
        f(x; C) = C
     """
 
-    PARAMETER_NAMES = ('constant',)
-    PARAMETER_DEFAULT_VALUES = (1.,)
-    PARAMETER_DEFAULT_BOUNDS = ((-np.inf,), (np.inf,))
+    PAR_NAMES = ('constant',)
+    PAR_DEFAULT_VALUES = (1.,)
 
     @staticmethod
     def eval(x : np.ndarray, constant : float) -> np.ndarray:
@@ -598,9 +591,8 @@ class Line(FitModelBase):
        f(x; m, q) = mx + q
     """
 
-    PARAMETER_NAMES = ('intercept', 'slope')
-    PARAMETER_DEFAULT_VALUES = (1., 1.)
-    PARAMETER_DEFAULT_BOUNDS = ((-np.inf,), (np.inf,))
+    PAR_NAMES = ('intercept', 'slope')
+    PAR_DEFAULT_VALUES = (1., 1.)
 
     @staticmethod
     def eval(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
@@ -628,9 +620,9 @@ class Gaussian(FitModelBase):
       f(x; N, \\mu, \\sigma) = N e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}
     """
 
-    PARAMETER_NAMES = ('normalization', 'mean', 'sigma')
-    PARAMETER_DEFAULT_VALUES = (1., 0., 1.)
-    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf, 0.), (np.inf, np.inf, np.inf))
+    PAR_NAMES = ('normalization', 'mean', 'sigma')
+    PAR_DEFAULT_VALUES = (1., 0., 1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf, 0.), (np.inf, np.inf, np.inf))
     DEFAULT_RANGE = (-5., 5.)
     SIGMA_TO_FWHM = 2.3548200450309493
 
@@ -688,9 +680,9 @@ class PowerLaw(FitModelBase):
       f(x; N, \\Gamma) = N x^\\Gamma
     """
 
-    PARAMETER_NAMES = ('normalization', 'index')
-    PARAMETER_DEFAULT_VALUES = (1., -1.)
-    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
+    PAR_NAMES = ('normalization', 'index')
+    PAR_DEFAULT_VALUES = (1., -1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
     DEFAULT_RANGE = (1.e-2, 1.)
 
     @staticmethod
@@ -719,9 +711,9 @@ class Exponential(FitModelBase):
       f(x; N, \\lambda) = N e^{\\frac{x}{\\lambda}}
     """
 
-    PARAMETER_NAMES = ('normalization', 'scale')
-    PARAMETER_DEFAULT_VALUES = (1., -1.)
-    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
+    PAR_NAMES = ('normalization', 'scale')
+    PAR_DEFAULT_VALUES = (1., -1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
 
     @staticmethod
     def eval(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
