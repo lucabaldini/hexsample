@@ -32,26 +32,42 @@ from hexsample.plot import plt, PlotCard, last_line_color
 class FitStatus:
 
     """Small container class holding the fit status.
+
+    Arguments
+    ---------
+    par_names : tuple of strings
+        The names of the fit parameters.
+
+    par_values : array_like
+        The initial values of the fit parameters. This must an iterable of the same
+        length of the parameter names, and is converted to a numpy array in the
+        constructor.
+
+    par_bounds : tuple, optional
+        The initial bounds for the fit parameters. This is either None (in which ]
+        case the bounds are assumed to be -np.inf--np.inf for all the fit parameters)
+        or a 2-element tuple of iterables of the the same length of the parameter
+        names expressing the minimum and maximum bound for each parameter.
     """
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, parameter_names : Tuple, parameter_values : np.ndarray,
-        parameter_bounds : Tuple = None) -> None:
+    def __init__(self, par_names : Tuple[str], par_values : np.ndarray,
+        par_bounds : Tuple = None) -> None:
         """Constructor.
         """
-        if len(parameter_names) != len(parameter_values):
+        if len(par_names) != len(par_values):
             raise RuntimeError('Mismatch between parameter names and values')
-        self.parameter_names = parameter_names
-        self.parameter_values = np.array(parameter_values)
-        self.num_parameters = len(self.parameter_names)
-        self.parameter_bounds = self._process_bounds(parameter_bounds)
-        self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype=float)
+        self.par_names = par_names
+        self.par_values = np.array(par_values)
+        self.num_params = len(self.par_names)
+        self.par_bounds = self._process_bounds(par_bounds)
+        self.par_covariance = np.zeros((self.num_params, self.num_params), dtype=float)
         self.chisquare = -1.
         self.ndof = -1
-        self._parameter_index_dict = {name : i for i, name in enumerate(self.parameter_names)}
+        self._index_dict = {name : i for i, name in enumerate(self.par_names)}
 
-    def _process_bounds(self, parameter_bounds : Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
+    def _process_bounds(self, par_bounds : Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
         """Small utility functions to process the parameter bounds for later use.
 
         Verbatim from the scipy documentation, there are two ways to specify the bounds:
@@ -65,66 +81,120 @@ class FitStatus:
         Since we want to keep track of the bounds and, possibly, change them,
         we turn all allowed possibilities, here, into a 2-tuple of numpy arrays.
         """
-        if parameter_bounds is None:
-            return (np.full(self.num_parameters, -np.inf), np.full(self.num_parameters, np.inf))
-        if len(parameter_bounds) != 2:
-            raise RuntimeError(f'Invalid parameter bounds {parameter_bounds}')
-        return tuple(np.array(bounds) for bounds in parameter_bounds)
+        if par_bounds is None:
+            return (np.full(self.num_params, -np.inf), np.full(self.num_params, np.inf))
+        if len(par_bounds) != 2:
+            raise RuntimeError(f'Invalid parameter bounds {par_bounds}')
+        return tuple(np.array(bounds) for bounds in par_bounds)
 
-    def _parameter_index(self, parameter_name : str) -> int:
+    def _index(self, par_name : str) -> int:
         """Convenience method returning the index within the parameter vector
         for a given parameter name.
         """
         try:
-            return self._parameter_index_dict[parameter_name]
+            return self._index_dict[par_name]
         except KeyError as exception:
-            raise KeyError(f'Unknown parameter "{parameter_name}"') from exception
+            raise KeyError(f'Unknown parameter "{par_name}"') from exception
 
-    def parameter_value(self, parameter_name : str) -> float:
+    def parameter_value(self, par_name : str) -> float:
         """Return the parameter value for a given parameter indexed by name.
-        """
-        return self.parameter_values[self._parameter_index(parameter_name)]
 
-    def __getitem__(self, parameter_name : str) -> float:
-        """Convenience shortcut to retrieve the value of a parameter.
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
         """
-        return self.parameter_value(parameter_name)
+        return self.par_values[self._index(par_name)]
+
+    def __getitem__(self, par_name : str) -> float:
+        """Convenience shortcut to retrieve the value of a parameter.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+        """
+        return self.parameter_value(par_name)
 
     def parameter_errors(self) -> np.ndarray:
         """Return the vector of parameter errors, that is, the square root of the
         diagonal elements of the covariance matrix.
         """
-        return np.sqrt(self.covariance_matrix.diagonal())
+        return np.sqrt(self.par_covariance.diagonal())
 
-    def parameter_error(self, parameter_name : str) -> float:
+    def parameter_error(self, par_name : str) -> float:
         """Return the parameter error by name.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
         """
-        index = self._parameter_index(parameter_name)
-        return np.sqrt(self.covariance_matrix[index][index])
+        index = self._index(par_name)
+        return np.sqrt(self.par_covariance[index][index])
+
+    def __iter__(self):
+        """Iterate over the fit parameters as (name, value, error).
+        """
+        return zip(self.par_names, self.par_values, self.parameter_errors(), *self.par_bounds)
 
     def reduced_chisquare(self) -> float:
         """Return the reduced chisquare.
         """
         return self.chisquare / self.ndof if self.ndof > 0 else -1.
 
-    def set_parameter_bounds(self, parameter_name : str, min_bound : float,
-        max_bound : float) -> None:
+    def set_parameter_bounds(self, par_name : str, min_ : float, max_ : float) -> None:
         """Set the baounds for a given parameter.
-        """
-        index = self._parameter_index(parameter_name)
-        self.parameter_bounds[0][index] = min_bound
-        self.parameter_bounds[1][index] = max_bound
 
-    def set_parameter(self, parameter_name : str, value : float) -> None:
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+
+        min_ : float
+            The minimum bound.
+
+        max_ : float
+            The maximum bound.
+        """
+        index = self._index(par_name)
+        self.par_bounds[0][index] = min_
+        self.par_bounds[1][index] = max_
+
+    def set_parameter(self, par_name : str, value : float) -> None:
         """Set the value for a given parameter (indexed by name).
-        """
-        self.parameter_values[self._parameter_index(parameter_name)] = value
 
-    def __iter__(self):
-        """Iterate over the fit parameters as (name, value, error).
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+
+        value : float
+            The parameter value.
         """
-        return zip(self.parameter_names, self.parameter_values, self.parameter_errors(),\
-            *self.parameter_bounds)
+        self.par_values[self._index(par_name)] = value
+
+    def update(self, popt : np.ndarray, pcov : np.ndarray, chisq : float, ndof : int) -> None:
+        """Update the data structure after a fit.
+
+        Arguments
+        ---------
+        popt : array_like
+            The array of best-fit parameters from scipy.optimize.curve_fit().
+
+        pcov : array_like
+            The covariance matrix of the paremeters from scipy.optimize.curve_fit().
+
+        chisq : float
+            The value of the chisquare.
+
+        ndof : int
+            The number of degrees of freedom from the fit.
+        """
+        self.par_values = popt
+        self.par_covariance = pcov
+        self.chisquare = chisq
+        self.ndof = ndof
 
     def __str__(self):
         """String representation.
@@ -242,10 +312,10 @@ class FitModelBase:
         it to plot the model after the fit.
         """
         num_params = len(parameters)
-        if num_params == self.status.num_parameters:
+        if num_params == self.status.num_params:
             return self.eval(x, *parameters)
         if num_params == 0:
-            return self.eval(x, *self.status.parameter_values)
+            return self.eval(x, *self.status.par_values)
         raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
 
     @staticmethod
@@ -255,13 +325,6 @@ class FitModelBase:
         This needs to be overloaded by any derived classes.
         """
         raise NotImplementedError
-
-    def _calculate_chisquare(self, xdata : np.ndarray, ydata : np.ndarray,
-        sigma : np.ndarray) -> float:
-        """Calculate the chisquare for the current parameter values, given
-        some input data.
-        """
-        return (((ydata - self(xdata)) / sigma)**2).sum()
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Assign a sensible set of values to the model parameters, based on a data
@@ -342,7 +405,7 @@ class FitModelBase:
         # Select data based on the x-axis range passed as an argument.
         mask = np.logical_and(xdata >= xmin, xdata <= xmax)
         xdata = xdata[mask]
-        if len(xdata) <= self.status.num_parameters:
+        if len(xdata) <= self.status.num_params:
             raise RuntimeError(f'Not enough data to fit ({len(xdata)} points)')
         ydata = ydata[mask]
         # If sigma is None, assume all the errors are 1---we need to do this
@@ -359,18 +422,17 @@ class FitModelBase:
         # try and do something sensible.
         if p0 is None:
             self.init_parameters(xdata, ydata)
-            p0 = self.status.parameter_values
+            p0 = self.status.par_values
             if verbose:
                 logger.debug(f'{self.name()} parameters initialized to {p0}.')
         # The actual call to the glorious scipy.optimize.curve_fit() method.
         popt, pcov = curve_fit(self, xdata, ydata, p0, sigma, absolute_sigma,
-            check_finite, self.status.parameter_bounds, method, jac, **kwargs)
+            check_finite, self.status.par_bounds, method, jac, **kwargs)
         # Update the model parameters.
         self.set_range(xdata.min(), xdata.max())
-        self.status.parameter_values = popt
-        self.status.covariance_matrix = pcov
-        self.status.chisquare = self._calculate_chisquare(xdata, ydata, sigma)
-        self.status.ndof = len(ydata) - self.status.num_parameters
+        chisq = (((ydata - self(xdata, *popt)) / sigma)**2).sum()
+        ndof = len(ydata) - self.status.num_params
+        self.status.update(popt, pcov, chisq, ndof)
         if verbose:
             print(self)
 
@@ -440,9 +502,9 @@ class FitModelBase:
         par_slices = []
         i = 0
         for c in components:
-            num_parameters = len(c.PARAMETER_NAMES)
-            par_slices.append(slice(i, i + num_parameters))
-            i += num_parameters
+            num_params = len(c.PARAMETER_NAMES)
+            par_slices.append(slice(i, i + num_params))
+            i += num_params
 
         class _model(FitModelBase):
 
@@ -475,7 +537,7 @@ class FitModelBase:
                 plt.plot(x, self(x), **kwargs)
                 color = last_line_color()
                 for c, s in zip(components, par_slices):
-                    plt.plot(x, c.eval(x, *self.status.parameter_values[s]),
+                    plt.plot(x, c.eval(x, *self.status.par_values[s]),
                         ls='dashed', color=color)
 
         return _model
