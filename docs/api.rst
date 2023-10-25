@@ -23,8 +23,10 @@ List of modules
    hexagon
    fileio
    mc
+   modeling
    pprint
    recon
+   rng
    roi
    sensor
    source

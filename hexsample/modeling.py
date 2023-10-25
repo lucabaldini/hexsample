@@ -14,336 +14,556 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from __future__ import print_function, division
+"""Fit models.
+"""
 
+from typing import Tuple
 
 import numpy as np
+from scipy.optimize import curve_fit
 
-from hexsample.plot import plt, PlotCard
+from hexsample import logger
+from hexsample.hist import Histogram1d
+from hexsample.plot import plt, PlotCard, last_line_color
 
 # pylint: disable=invalid-name
+
+
+class FitStatus:
+
+    """Small container class holding the fit status.
+
+    Arguments
+    ---------
+    par_names : tuple of strings
+        The names of the fit parameters.
+
+    par_values : array_like
+        The initial values of the fit parameters. This must an iterable of the same
+        length of the parameter names, and is converted to a numpy array in the
+        constructor.
+
+    par_bounds : tuple, optional
+        The initial bounds for the fit parameters. This is either None (in which ]
+        case the bounds are assumed to be -np.inf--np.inf for all the fit parameters)
+        or a 2-element tuple of iterables of the the same length of the parameter
+        names expressing the minimum and maximum bound for each parameter.
+    """
+
+    # pylint: disable=too-many-instance-attributes
+
+    def __init__(self, par_names : Tuple[str], par_values : np.ndarray,
+        par_bounds : Tuple = None) -> None:
+        """Constructor.
+        """
+        if len(par_names) != len(par_values):
+            raise RuntimeError('Mismatch between parameter names and values')
+        self.par_names = par_names
+        self.par_values = np.array(par_values)
+        self.num_params = len(self.par_names)
+        self.par_bounds = self._process_bounds(par_bounds)
+        self.par_covariance = np.zeros((self.num_params, self.num_params), dtype=float)
+        self.chisquare = -1.
+        self.ndof = -1
+        self._index_dict = {name : i for i, name in enumerate(self.par_names)}
+
+    def _process_bounds(self, par_bounds : Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
+        """Small utility functions to process the parameter bounds for later use.
+
+        Verbatim from the scipy documentation, there are two ways to specify the bounds:
+
+        * Instance of Bounds class.
+        * 2-tuple of array_like: Each element of the tuple must be either an array
+          with the length equal to the number of parameters, or a scalar (in which
+          case the bound is taken to be the same for all parameters). Use np.inf with
+          an appropriate sign to disable bounds on all or some parameters.
+
+        Since we want to keep track of the bounds and, possibly, change them,
+        we turn all allowed possibilities, here, into a 2-tuple of numpy arrays.
+        """
+        if par_bounds is None:
+            return (np.full(self.num_params, -np.inf), np.full(self.num_params, np.inf))
+        if len(par_bounds) != 2:
+            raise RuntimeError(f'Invalid parameter bounds {par_bounds}')
+        return tuple(np.array(bounds) for bounds in par_bounds)
+
+    def _index(self, par_name : str) -> int:
+        """Convenience method returning the index within the parameter vector
+        for a given parameter name.
+        """
+        try:
+            return self._index_dict[par_name]
+        except KeyError as exception:
+            raise KeyError(f'Unknown parameter "{par_name}"') from exception
+
+    def parameter_value(self, par_name : str) -> float:
+        """Return the parameter value for a given parameter indexed by name.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+        """
+        return self.par_values[self._index(par_name)]
+
+    def __getitem__(self, par_name : str) -> float:
+        """Convenience shortcut to retrieve the value of a parameter.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+        """
+        return self.parameter_value(par_name)
+
+    def parameter_errors(self) -> np.ndarray:
+        """Return the vector of parameter errors, that is, the square root of the
+        diagonal elements of the covariance matrix.
+        """
+        return np.sqrt(self.par_covariance.diagonal())
+
+    def parameter_error(self, par_name : str) -> float:
+        """Return the parameter error by name.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+        """
+        index = self._index(par_name)
+        return np.sqrt(self.par_covariance[index][index])
+
+    def __iter__(self):
+        """Iterate over the fit parameters as (name, value, error).
+        """
+        return zip(self.par_names, self.par_values, self.parameter_errors(), *self.par_bounds)
+
+    def reduced_chisquare(self) -> float:
+        """Return the reduced chisquare.
+        """
+        return self.chisquare / self.ndof if self.ndof > 0 else -1.
+
+    def set_parameter_bounds(self, par_name : str, min_ : float, max_ : float) -> None:
+        """Set the baounds for a given parameter.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+
+        min_ : float
+            The minimum bound.
+
+        max_ : float
+            The maximum bound.
+        """
+        index = self._index(par_name)
+        self.par_bounds[0][index] = min_
+        self.par_bounds[1][index] = max_
+
+    def set_parameter(self, par_name : str, value : float) -> None:
+        """Set the value for a given parameter (indexed by name).
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+
+        value : float
+            The parameter value.
+        """
+        self.par_values[self._index(par_name)] = value
+
+    def update(self, popt : np.ndarray, pcov : np.ndarray, chisq : float, ndof : int) -> None:
+        """Update the data structure after a fit.
+
+        Arguments
+        ---------
+        popt : array_like
+            The array of best-fit parameters from scipy.optimize.curve_fit().
+
+        pcov : array_like
+            The covariance matrix of the paremeters from scipy.optimize.curve_fit().
+
+        chisq : float
+            The value of the chisquare.
+
+        ndof : int
+            The number of degrees of freedom from the fit.
+        """
+        self.par_values = popt
+        self.par_covariance = pcov
+        self.chisquare = chisq
+        self.ndof = ndof
+
+    def __str__(self):
+        """String representation.
+        """
+        text = ''
+        for name, value, error, min_bound, max_bound in self:
+            text += f'{name:18s} {value:.3e} +/- {error:.3e} ({min_bound:.3e} / {max_bound:.3e})\n'
+        text += f'Chisquare = {self.chisquare:.2f} / {self.ndof} dof'
+        return text
+
 
 
 class FitModelBase:
 
     """Base class for a fittable model.
 
-    This base class isn't really doing anything useful, the idea being that
-    actual models that can be instantiated subclass FitModelBase overloading
-    the relevant class members.
+    The class features a number of static members that derived class should redefine
+    as needed:
 
-    The class features a number of static members that derived class
-    should redefine as needed:
+    * ``PAR_NAMES`` is a list containing the names of the model parameters;
+    * ``PAR_DEFAULT_VALUES`` is a list containing the default values
+      of the model parameters;
+    * ``PAR_DEFAULT_BOUNDS`` is a tuple containing the default values
+      of the parameter bounds to be used for the fitting;
+    * ``DEFAULT_RANGE`` is a two-element list with the default support
+      (x-axis range) for the model. (This is automatically updated at runtime
+      depending on the input data when the model is used in a fit.)
 
-    * ``PARAMETER_NAMES`` is a list containing the names of the model
-      parameters. (It goes without saying thet its length should match the
-      number of parameters in the model.)
-    * ``PARAMETER_DEFAULT_VALUES`` is a list containing the default values
-      of the model parameters. When a concrete model object is instantiated
-      these are the values being attached to it at creation time.
-    * ``PARAMETER_DEFAULT_BOUNDS`` is a tuple containing the default values
-      of the parameter bounds to be used for the fitting. The values in the
-      tuple are attached to each model object at creation time and are
-      intended to be passed as the ``bounds`` argument of the
-      ``scipy.optimize.curve_fit()`` function. From the ``scipy`` documentation:
-      Lower and upper bounds on independent variables. Defaults to no bounds.
-      Each element of the tuple must be either an array with the length equal
-      to the number of parameters, or a scalar (in which case the bound is
-      taken to be the same for all parameters.) Use np.inf with an appropriate
-      sign to disable bounds on all or some parameters. By default
-      models have no built-in bounds.
-    * ``DEFAULT_PLOTTING_RANGE`` is a two-element list with the default support
-      (x-axis range) for the model. This is automatically updated at runtime
-      depending on the input data when the model is used in a fit.
-    * ``DEFAULT_STAT_BOX_POSITION`` is the default location of the stat box for
-      the model.
+   In addition, each derived class should override the following methods:
 
-   In addition, each derived class should override the following things:
-
-    * the ``value(x, *args)`` static method: this should return the value of
-      the model at a given point for a given set of values of the underlying
-      parameters;
-    * (optionally) the ``jacobian(x, *args)`` static method. (If defined, this
-      is passed to the underlying fit engine allowing to reduce the number of
-      function calls in the fit; otherwise the jacobian is calculated
-      numerically.)
+    * the ``eval(x, *args)`` should return the value of the model at a given x
+      for a given set of values of the underlying parameters;
+    * the ``jacobian(x, *args)`` method, if defined, is passed to the underlying
+      fit engine allowing to reduce the number of function calls in the fit.
 
     Finally, if there is a sensible way to initialize the model parameters
     based on a set of input data, derived classes should overload the
-    ``init_parameters(xdata, ydata, sigma)`` method of the base class, as the
+    ``init_parameters(xdata, ydata)`` method of the base class, as the
     latter is called by fitting routines if no explicit array of initial values
     are passed as an argument. The default behavior of the class method defined
     in the base class is to do nothing.
 
-    See :class:`modeling.Gaussian` for a working example.
+    See :class:`hexsample.modeling.Gaussian` for a working example.
     """
 
-    PARAMETER_NAMES = ()
-    PARAMETER_DEFAULT_VALUES = ()
-    PARAMETER_DEFAULT_BOUNDS = (-np.inf, np.inf)
-    DEFAULT_PLOTTING_RANGE = (0., 1.)
-    DEFAULT_STAT_BOX_POSITION = 'upper right'
+    # pylint: disable=too-many-instance-attributes
 
-    def __init__(self):
+    PAR_NAMES = None
+    PAR_DEFAULT_VALUES = None
+    PAR_DEFAULT_BOUNDS = None
+    DEFAULT_RANGE = (0., 1.)
+
+    def __init__(self) -> None:
         """Constructor.
-
-        Here we initialize the class members holding the best-fit parameter
-        values and the associated covariance matrix, see the
-        :pymeth:`modeling.FitModelBase.reset()` method.
-
-        We also create a (private) look-up table holding the correspondence
-        between the parameter names and the corresponding position in the
-        parameter list and we cache the default support for the model for
-        plotting purposes.
         """
-        assert len(self.PARAMETER_NAMES) == len(self.PARAMETER_DEFAULT_VALUES)
-        self.__parameter_dict = {}
-        for i, name in enumerate(self.PARAMETER_NAMES):
-            self.__parameter_dict[name] = i
-        self.reset()
+        self.status = FitStatus(self.PAR_NAMES, self.PAR_DEFAULT_VALUES, self.PAR_DEFAULT_BOUNDS)
+        self._xmin, self._xmax = self.DEFAULT_RANGE
 
-    def name(self):
+    def name(self) -> str:
         """Return the model name.
         """
         return self.__class__.__name__
 
-    def reset(self):
-        """Reset all the necessary stuff.
+    def __getitem__(self, par_name : str) -> float:
+        """Convenience shortcut to retrieve the value of a parameter.
 
-        This method initializes all the things that are necessry to keep
-        track of a parametric fit.
-
-        * the parameter values are set to what it specified in
-          ``PARAMETER_DEFAULT_VALUES``;
-        * the covatiance matrix is initialized to a matrix of the proper
-          dimension filled with zeroes;
-        * the minimum and maximum values of the independent variable
-          (relevant for plotting) are set to the values specified in
-          ``DEFAULT_PLOTTING_RANGE``;
-        * the model bounds are set to the values specified in
-          ``PARAMETER_DEFAULT_BOUNDS``;
-        * the chisquare and number of degrees of freedom are initialized to
-          -1.
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
         """
-        self.parameters = np.array(self.PARAMETER_DEFAULT_VALUES, dtype='d')
-        self.covariance_matrix = np.zeros((len(self), len(self)), dtype='d')
-        self.xmin, self.xmax = self.DEFAULT_PLOTTING_RANGE
-        self.bounds = self.PARAMETER_DEFAULT_BOUNDS
-        self.chisq = -1.
-        self.ndof = -1
+        return self.status.parameter_value(par_name)
 
-    def reduced_chisquare(self):
-        """Return the reduced chisquare.
+    def set_parameter(self, par_name : str, value : float) -> None:
+        """Convenience function to set the value for a given parameter in the
+        underlying FitStatus object.
         """
-        if self.ndof > 0:
-            return self.chisq / self.ndof
-        return -1.
+        self.status.set_parameter(par_name, value)
 
-    def __getattr__(self, name):
-        """Short-hand method to retrieve the parameter values by name.
+    def set_range(self, xmin : float, xmax : float) -> None:
+        """Set the function range.
 
-        Note that we manipulate the attribute name by capitalizing the
-        first letter and replacing underscores with spaces.
+        Arguments
+        ---------
+        xmin : float
+            The minimum x-range value.
+
+        xmax : float
+            The maximum x-range value.
         """
-        name = name.title().replace('_', ' ')
-        if name in self.PARAMETER_NAMES:
-            return self.parameter_value(name)
-        else:
-            raise AttributeError
+        self._xmin = xmin
+        self._xmax = xmax
 
-    @staticmethod
-    def value(x, *parameters):
-        """Eval the model at a given point and a given set of parameter values.
-
-        Warning
-        -------
-        This needs to be overloaded in any derived class for the thing to do
-        something sensible.
+    def plot(self, num_points : int = 250, **kwargs) -> None:
+        """Plot the model.
         """
-        raise 'value() not implemented'
+        x = np.linspace(self._xmin, self._xmax, num_points)
+        plt.plot(x, self(x), **kwargs)
 
-    def integral(self, edges):
-        """Calculate the integral of the model within pre-defined edges.
-
-        Note that this assumes that the derived class provides a suitable
-        ``cdf()`` method.
+    def stat_box(self, x : float = 0.95, y : float = 0.95) -> None:
+        """Plot a stat box for the model.
         """
-        try:
-            return self.cdf(edges[1:], *self.parameters) - \
-                self.cdf(edges[:-1], *self.parameters)
-        except Exception as e:
-            raise RuntimeError('%s.integral() not implemened (%s)' % (self.name, e))
-
-    def rvs(self, size=1):
-        """Return random variates from the model.
-
-        Note that this assumes that the derived class provides a suitable
-        ``ppf()`` method.
-        """
-        try:
-            return self.ppf(np.random.random(size), *self.parameters)
-        except Exception as e:
-            raise RuntimeError('%s.rvs() not implemened (%s)' % (self.name(), e))
+        box = PlotCard()
+        box.add_string('Fit model', self.name())
+        box.add_string('Chisquare', f'{self.status.chisquare:.1f} / {self.status.ndof}')
+        for name, value, error, *_ in self.status:
+            box.add_quantity(f'{name.title()}', value, error)
+        box.plot(x, y)
 
     def __call__(self, x, *parameters):
         """Return the value of the model at a given point and a given set of
         parameter values.
 
-        Note that unless the proper number of parameters is passed to the
-        function call, the model is evaluated at the best-fit parameter values.
+        The function accept a variable number of parameters, with the understanding that
 
-        The function is defined with this signature because it is called
-        with a set of parameter values during the fit process, while
-        tipically we want to evaluate it with the current set of parameter
-        values after the fact.
+        * if all the parameters are passed (that is, the number of arguments is the
+          same as the number of the function parameters) then the function is
+          evaluated in correspondence of those parameters;
+        * if no parameter is passed, then the function is evaluated in correspondence
+          of the ``self.parameters`` class member;
+        * a ``RuntimeError`` is raised in all other cases.
+
+        The function signature is designed so that the __call__ dunder can be
+        called by ``curve_fit`` during the fitting process, and then we can reuse
+        it to plot the model after the fit.
         """
-        if len(parameters) == len(self):
-            return self.value(x, *parameters)
-        else:
-            return self.value(x, *self.parameters)
+        num_params = len(parameters)
+        if num_params == self.status.num_params:
+            return self.eval(x, *parameters)
+        if num_params == 0:
+            return self.eval(x, *self.status.par_values)
+        raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
 
-    def __parameter_index(self, name):
-        """Convenience method returning the index within the parameter vector
-        for a given parameter name.
+    @staticmethod
+    def eval(x : np.ndarray, *parameters) -> np.ndarray:
+        """Eval the model at a given x and a given set of parameter values.
+
+        This needs to be overloaded by any derived classes.
         """
-        assert(name in self.PARAMETER_NAMES)
-        return self.__parameter_dict[name]
+        raise NotImplementedError
 
-    def parameter_value(self, name):
-        """Return the parameter value by name.
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+        """Assign a sensible set of values to the model parameters, based on a data
+        set to be fitted.
+
+        In the base class the method is not doing anything, but it can be reimplemented
+        in derived classes to help make sure the fit converges without too much manual intervention.
+
+        Arguments
+        ---------
+        xdata : array_like
+            The x data.
+
+        ydata : array_like
+            The y data.
         """
-        index = self.__parameter_index(name)
-        return self.parameters[index]
 
-    def parameter_error(self, name):
-        """Return the parameter error by name.
+    def fit(self, xdata : np.ndarray, ydata : np.ndarray, p0 : np.ndarray = None,
+        sigma : np.ndarray = None, xmin : float = -np.inf, xmax : float = np.inf,
+        absolute_sigma : bool = True, check_finite : bool =True, method : str = None,
+        verbose : bool = True, **kwargs):
+        """Lightweight wrapper over the ``scipy.optimize.curve_fit()`` function
+        to take advantage of the modeling facilities. More specifically, in addition
+        to performing the actual fit, we update all the model parameters so that,
+        after the fact, we do have a complete picture of the fit outcome.
+
+        Parameters
+        ----------
+        model : :py:class:`modeling.FitModelBase` instance callable
+            The model function, f(x, ...).  It must take the independent
+            variable as the first argument and the parameters to fit as
+            separate remaining arguments.
+
+        xdata : array_like
+            The independent variable where the data is measured.
+
+        ydata : array_like
+            The dependent data --- nominally f(xdata, ...)
+
+        p0 : None, scalar, or sequence, optional
+            Initial guess for the parameters. If None, then the initial
+            values will all be 1.
+
+        sigma : None or array_like, optional
+            Uncertainties in `ydata`. If None, all the uncertainties are set to
+            1 and the fit becomes effectively unweighted.
+
+        xmin : float
+            The minimum value for the input x-values.
+
+        xmax : float
+            The maximum value for the input x-values.
+
+        absolute_sigma : bool, optional
+            If True, `sigma` is used in an absolute sense and the estimated
+            parameter covariance `pcov` reflects these absolute values.
+            If False, only the relative magnitudes of the `sigma` values matter.
+            The returned parameter covariance matrix `pcov` is based on scaling
+            `sigma` by a constant factor. This constant is set by demanding that the
+            reduced `chisq` for the optimal parameters `popt` when using the
+            *scaled* `sigma` equals unity.
+
+        method : {'lm', 'trf', 'dogbox'}, optional
+            Method to use for optimization.  See `least_squares` for more details.
+            Default is 'lm' for unconstrained problems and 'trf' if `bounds` are
+            provided. The method 'lm' won't work when the number of observations
+            is less than the number of variables, use 'trf' or 'dogbox' in this
+            case.
+
+        verbose : bool
+            Print the model if True.
+
+        kwargs
+            Keyword arguments passed to `leastsq` for ``method='lm'`` or
+            `least_squares` otherwise.
         """
-        index = self.__parameter_index(name)
-        return np.sqrt(self.covariance_matrix[index][index])
+        # pylint: disable=too-many-arguments, too-many-locals
+        # If sigma is None, assume all the errors are 1---we need to do this
+        # explicitely in order to calculate the chisquare downstream.
+        if sigma is None:
+            sigma = np.full(len(ydata), 1.)
+        # Select data based on the x-axis range passed as an argument.
+        mask = np.logical_and(xdata >= xmin, xdata <= xmax)
+        xdata = xdata[mask]
+        if len(xdata) <= self.status.num_params:
+            raise RuntimeError(f'Not enough data to fit ({len(xdata)} points)')
+        ydata = ydata[mask]
+        sigma = sigma[mask]
+        # If the model has a Jacobian defined, go ahead and use it.
+        try:
+            jac = self.jacobian
+        except AttributeError:
+            jac = None
+        # If we are not passing default starting points for the model parameters,
+        # try and do something sensible.
+        if p0 is None:
+            self.init_parameters(xdata, ydata)
+            p0 = self.status.par_values
+            if verbose:
+                logger.debug(f'{self.name()} parameters initialized to {p0}.')
+        # The actual call to the glorious scipy.optimize.curve_fit() method.
+        popt, pcov = curve_fit(self, xdata, ydata, p0, sigma, absolute_sigma,
+            check_finite, self.status.par_bounds, method, jac, **kwargs)
+        # Update the model parameters.
+        self.set_range(xdata.min(), xdata.max())
+        chisq = (((ydata - self(xdata, *popt)) / sigma)**2).sum()
+        ndof = len(ydata) - self.status.num_params
+        self.status.update(popt, pcov, chisq, ndof)
+        if verbose:
+            print(self)
 
-    def parameter_values(self):
-        """Return the vector of parameter values.
+    def fit_histogram(self, histogram : Histogram1d, p0 : np.ndarray=None,
+        xmin : float = -np.inf, xmax : float = np.inf, absolute_sigma : bool = True,
+        check_finite : bool = True, method : str = None, verbose : bool = True, **kwargs):
+        """Fit a histogram to a given model.
+
+        This is basically calling :meth:`ixpeobssim.core.fitting.fit` with some
+        pre-processing to turn the histogram bin edges and content into
+        x-y data. Particularly, the bin centers are taken as the independent
+        data series, the bin contents are taken as the dependent data saries,
+        and the square root of the counts as the Poisson error.
+
+        For additional parameters look at the documentation of the
+        :meth:`ixpeobssim.core.fitting.fit`
+
+        Parameters
+        ----------
+        model : :py:class:`modeling.FitModelBase` instance or
+            callable
+            The fit model.
+
+        histogram : ixpeHistogram1d instance
+            The histogram to be fitted.
         """
-        return self.parameters
+        # pylint: disable=too-many-arguments
+        if histogram.num_axes != 1:
+            raise RuntimeError('Histogram is not one-dimensional')
+        mask = (histogram.content > 0)
+        xdata = histogram.bin_centers(0)[mask]
+        ydata = histogram.content[mask]
+        sigma = histogram.errors()[mask]
+        return self.fit(xdata, ydata, p0, sigma, xmin, xmax, absolute_sigma, check_finite,
+            method, verbose, **kwargs)
 
-    def parameter_errors(self):
-        """Return the vector of parameter errors.
+    @staticmethod
+    def _merge_class_attributes(func, *components : type) -> Tuple:
+        """Basic function to merge class attributes while summing models.
+
+        This is heavily used in the model sum factory below, as it turns out that
+        this is the besic signature that is needed to merge the class attributes
+        when summing models.
+
+        Note that we are not using the native Python sum(*args, start=[]), here,
+        as it is not supported in Python 3.7.
         """
-        return np.sqrt(self.covariance_matrix.diagonal())
+        attrs = []
+        for i, comp in enumerate(components):
+            attrs += func(i, comp)
+        return tuple(attrs)
 
-    def parameter_status(self):
-        """Return the complete status of the model in the form of a tuple
-        of tuples (parameter_name, parameter_value, parameter_error).
+    @staticmethod
+    def model_sum_factory(*components : type) -> type:
+        """Class factory to sum class models.
 
-        Note this can be overloaded by derived classes if more information
-        needs to be added.
+        Here we have worked out the math to sum up an arbitrary number of model
+        classes.
         """
-        return tuple(zip(self.PARAMETER_NAMES, self.parameter_values(),
-                         self.parameter_errors()))
-
-    def set_parameters(self, *pars):
-        """Set all the parameter values.
-
-        Note that the arguments must be passed in the right order.
-        """
-        self.parameters = np.array(pars, dtype='d')
-
-    def set_parameter(self, name, value):
-        """Set a parameter value.
-        """
-        index = self.__parameter_index(name)
-        self.parameters[index] = value
-
-    def init_parameters(self, xdata, ydata, sigma):
-        """Assign a sensible set of values to the model parameters, based
-        on a data set to be fitted.
-
-        Note that in the base class the method is not doing anything, but it
-        can be reimplemented in derived classes to help make sure the
-        fit converges without too much manual intervention.
-        """
-        pass
-
-    def set_plotting_range(self, xmin, xmax):
-        """Set the plotting range.
-        """
-        self.xmin = xmin
-        self.xmax = xmax
-
-    def plot(self, *parameters, **kwargs):
-        """Plot the model.
-
-        Note that when this is called with a full set of parameters, the
-        self.parameters class member is overwritten so that the right values
-        can then be picked up if the stat box is plotted.
-        """
-        if len(parameters) == len(self):
-            self.parameters = parameters
-        x = np.linspace(self.xmin, self.xmax, 1000)
-        y = self(x, *parameters)
-        plt.plot(x, y, **kwargs)
-
-    def stat_box(self, **kwargs):
-        """Plot a ROOT-style stat box for the model.
-        """
-        box = PlotCard()
-        box.add_string('Fit model', self.name())
-        box.add_string('Chisquare', '%.1f / %d' % (self.chisq, self.ndof))
-        for name, value, error in self.parameter_status():
-            box.add_quantity(name, value, error)
-        box.plot(**kwargs)
-
-    def __len__(self):
-        """Return the number of model parameters.
-        """
-        return len(self.PARAMETER_NAMES)
-
-    def __add__(self, other):
-        """Add two models.
-
-        Warning
-        -------
-        This is highly experimental and guaranteed to contain bugs. Enjoy.
-        """
-        m1 = self
-        m2 = other
-        xmin = min(m1.DEFAULT_PLOTTING_RANGE[0], m2.DEFAULT_PLOTTING_RANGE[0])
-        xmax = max(m1.DEFAULT_PLOTTING_RANGE[1], m2.DEFAULT_PLOTTING_RANGE[1])
-        name = '%s + %s' % (m1.__class__.__name__, m2.__class__.__name__)
+        mrg = FitModelBase._merge_class_attributes
+        par_names = mrg(lambda i, c: [f'{name}{i}' for name in c.PAR_NAMES], *components)
+        par_default_values = mrg(lambda i, c: list(c.PAR_DEFAULT_VALUES), *components)
+        xmin = min([c.DEFAULT_RANGE[0] for c in components])
+        xmax = max([c.DEFAULT_RANGE[1] for c in components])
+        par_bound_min = mrg(lambda i, c: list(c.PAR_DEFAULT_BOUNDS[0]), *components)
+        par_bound_max = mrg(lambda i, c: list(c.PAR_DEFAULT_BOUNDS[1]), *components)
+        par_slices = []
+        i = 0
+        for c in components:
+            num_params = len(c.PAR_NAMES)
+            par_slices.append(slice(i, i + num_params))
+            i += num_params
 
         class _model(FitModelBase):
 
-            PARAMETER_NAMES = [f'{name}1' for name in m1.PARAMETER_NAMES] + \
-                [f'{name}2' for name in m2.PARAMETER_NAMES]
-            PARAMETER_DEFAULT_VALUES = m1.PARAMETER_DEFAULT_VALUES + \
-                m2.PARAMETER_DEFAULT_VALUES
-            DEFAULT_PLOTTING_RANGE = (xmin, xmax)
-            PARAMETER_DEFAULT_BOUNDS = (-np.inf, np.inf)
+            PAR_NAMES = par_names
+            PAR_DEFAULT_VALUES = par_default_values
+            DEFAULT_RANGE = (xmin, xmax)
+            PAR_DEFAULT_BOUNDS = (par_bound_min, par_bound_max)
 
             def __init__(self):
-                self.__class__.__name__ = name
                 FitModelBase.__init__(self)
 
             @staticmethod
-            def value(x, *parameters):
-                return m1.value(x, *parameters[:len(m1)]) +\
-                    m2.value(x, *parameters[len(m1):])
+            def eval(x, *pars):
+                """Overloaded method.
+                """
+                return sum([c.eval(x, *pars[s]) for c, s in zip(components, par_slices)])
 
             @staticmethod
-            def jacobian(x, *parameters):
-                return np.hstack((m1.jacobian(x, *parameters[:len(m1)]),
-                                     m2.jacobian(x, *parameters[len(m1):])))
+            def jacobian(x, *pars):
+                """Overloaded method.
+                """
+                return np.hstack([c.jacobian(x, *pars[s]) for c, s in zip(components, par_slices)])
 
-        return _model()
+            def plot(self, num_points : int = 250, **kwargs) -> None:
+                """Overloaded method.
+
+                In addition to the total model, here we overplot the single components.
+                """
+                x = np.linspace(self._xmin, self._xmax, num_points)
+                plt.plot(x, self(x), **kwargs)
+                color = last_line_color()
+                for c, s in zip(components, par_slices):
+                    plt.plot(x, c.eval(x, *self.status.par_values[s]),
+                        ls='dashed', color=color)
+
+        return _model
+
+    def __add__(self, other):
+        """Add two models.
+        """
+        model = self.model_sum_factory(self.__class__, other.__class__)
+        model.__name__ = f'{self.name()} + {other.name()}'
+        return model()
 
     def __str__(self):
         """String formatting.
         """
-        text = '%s model (chisq/ndof = %.2f / %d)' % (self.__class__.__name__,
-                                                      self.chisq, self.ndof)
-        for name, value, error in self.parameter_status():
-            text += '\n%15s: %.5e +- %.5e' % (name, value, error)
-        return text
+        return f'{self.name()} fit status\n{self.status}'
+
 
 
 class Constant(FitModelBase):
@@ -351,40 +571,31 @@ class Constant(FitModelBase):
     """Constant model.
 
     .. math::
-      f(x; C) = C
+       f(x; C) = C
     """
 
-    PARAMETER_NAMES = ('Constant',)
-    PARAMETER_DEFAULT_VALUES = (1.,)
-    DEFAULT_PLOTTING_RANGE = (0., 1.)
+    PAR_NAMES = ('constant',)
+    PAR_DEFAULT_VALUES = (1.,)
 
     @staticmethod
-    def value(x, constant):
-        """Overloaded value() method.
+    def eval(x : np.ndarray, constant : float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ
         return np.full(x.shape, constant)
 
     @staticmethod
-    def jacobian(x, constant):
-        """Overloaded jacobian() method.
+    def jacobian(x : np.ndarray, constant: float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ, unused-argument
         d_constant = np.full((len(x),), 1.)
         return np.array([d_constant]).transpose()
 
-    def cdf(self, x):
-        """Overloaded cdf() method.
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+        """Overloaded method.
         """
-        return self.Constant * x
-
-    def ppf(self, q):
-        """Overloaded ppf() method.
-        """
-        return self.xmin + q * (self.xmax - self.xmin)
-
-    def init_parameters(self, xdata, ydata, sigma):
-        """Overloaded init_parameters() method.
-        """
-        self.set_parameter('Constant', np.mean(ydata))
+        self.set_parameter('constant', np.mean(ydata))
 
 
 
@@ -393,23 +604,24 @@ class Line(FitModelBase):
     """Straight-line model.
 
     .. math::
-      f(x; m, q) = mx + q
+       f(x; m, q) = mx + q
     """
 
-    PARAMETER_NAMES = ('Intercept', 'Slope')
-    PARAMETER_DEFAULT_VALUES = (1., 1.)
-    DEFAULT_PLOTTING_RANGE = (0., 1.)
+    PAR_NAMES = ('intercept', 'slope')
+    PAR_DEFAULT_VALUES = (1., 1.)
 
     @staticmethod
-    def value(x, intercept, slope):
-        """Overloaded value() method.
+    def eval(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ
         return intercept + slope * x
 
     @staticmethod
-    def jacobian(x, intercept, slope):
-        """Overloaded jacobian() method.
+    def jacobian(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ, unused-argument
         d_intercept = np.full((len(x),), 1.)
         d_slope = x
         return np.array([d_intercept, d_slope]).transpose()
@@ -421,86 +633,72 @@ class Gaussian(FitModelBase):
     """One-dimensional Gaussian model.
 
     .. math::
-      f(x; A, \\mu, \\sigma) = A e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}
+      f(x; N, \\mu, \\sigma) = N e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}
     """
 
-    PARAMETER_NAMES = ('Amplitude', 'Peak', 'Sigma')
-    PARAMETER_DEFAULT_VALUES = (1., 0., 1.)
-    PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf, 0], [np.inf] * 3)
-    DEFAULT_PLOTTING_RANGE = (-5., 5.)
+    PAR_NAMES = ('normalization', 'mean', 'sigma')
+    PAR_DEFAULT_VALUES = (1., 0., 1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf, 0.), (np.inf, np.inf, np.inf))
+    DEFAULT_RANGE = (-5., 5.)
     SIGMA_TO_FWHM = 2.3548200450309493
 
     @staticmethod
-    def value(x, amplitude, peak, sigma):
-        """Overloaded value() method.
+    def eval(x : np.ndarray, normalization : float, mean : float, sigma : float) -> np.ndarray:
+        """Overloaded method.
         """
-        return amplitude * np.exp(-0.5 * ((x - peak)**2. / sigma**2.))
+        # pylint: disable=arguments-differ
+        return normalization * np.exp(-0.5 * ((x - mean)**2. / sigma**2.))
 
     @staticmethod
-    def der_amplitude(x, amplitude, peak, sigma):
-        """Return the amplitude derivative of the function, to be used in the
-        calculation of the Jacobian.
+    def jacobian(x : np.ndarray, normalization : float, mean : float, sigma : float) -> np.ndarray:
+        """Overloaded method.
         """
-        return np.exp(-0.5 / sigma**2. * (x - peak)**2.)
+        # pylint: disable=arguments-differ
+        d_normalization = np.exp(-0.5 / sigma**2. * (x - mean)**2.)
+        d_mean = normalization * d_normalization * (x - mean) / sigma**2.
+        d_sigma = normalization * d_normalization * (x - mean)**2. / sigma**3.
+        return np.array([d_normalization, d_mean, d_sigma]).transpose()
 
-    @staticmethod
-    def der_peak(x, amplitude, d_amplitude, peak, sigma):
-        """Return the peak derivative of the function, to be used in the
-        calculation of the Jacobian.
-
-        Note that we pass the pre-calculated values of the amplitude derivatives
-        in order not to repeat the same calculation more times than strictly
-        necessary.
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+        """Overloaded method.
         """
-        return amplitude * d_amplitude * (x - peak) / sigma**2.
+        mean = np.average(xdata, weights=ydata)
+        sigma = np.sqrt(np.average((xdata - mean)**2., weights=ydata))
+        self.set_parameter('normalization', np.max(ydata))
+        self.set_parameter('mean', mean)
+        self.set_parameter('sigma', sigma)
 
-    @staticmethod
-    def der_sigma(x, amplitude, d_amplitude, peak, sigma):
-        """Return the sigma derivative of the function, to be used in the
-        calculation of the Jacobian.
-
-        Note that we pass the pre-calculated values of the amplitude derivatives
-        in order not to repeat the same calculation more times than strictly
-        necessary.
-        """
-        return amplitude * d_amplitude * (x - peak)**2. / sigma**3.
-
-    @staticmethod
-    def jacobian(x, amplitude, peak, sigma):
-        """Overloaded jacobian() method.
-        """
-        d_amplitude = Gaussian.der_amplitude(x, amplitude, peak, sigma)
-        d_peak = Gaussian.der_peak(x, amplitude, d_amplitude, peak, sigma)
-        d_sigma = Gaussian.der_sigma(x, amplitude, d_amplitude, peak, sigma)
-        return np.array([d_amplitude, d_peak, d_sigma]).transpose()
-
-    def init_parameters(self, xdata, ydata, sigma):
-        """Overloaded init_parameters() method.
-        """
-        self.set_parameter('Amplitude', np.max(ydata))
-        self.set_parameter('Peak', np.mean(xdata))
-        self.set_parameter('Sigma', np.std(xdata))
-
-    def fwhm(self):
+    def fwhm(self) -> float:
         """Return the absolute FWHM of the model.
         """
-        return self.SIGMA_TO_FWHM * self.sigma
+        return self.SIGMA_TO_FWHM * self.status['sigma']
 
-    def resolution(self):
-        """Return the resolution of the model, i.e., the FWHM divided by the
-        peak value.
-        """
-        if self.peak > 0:
-            return self.fwhm() / self.peak
-        return 0.
 
-    def resolution_error(self):
-        """Return the error on the resolution.
+
+_DoubleGaussian = FitModelBase.model_sum_factory(Gaussian, Gaussian)
+
+class DoubleGaussian(_DoubleGaussian):
+
+    """Implementation of a double gaussian.
+    """
+
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+        """Overloaded method.
         """
-        if self.peak > 0 and self.parameter_error('Sigma') > 0:
-            return self.resolution() * self.parameter_error('Sigma') /\
-                self.parameter_value('Sigma')
-        return 0.
+        model = Gaussian()
+        model.fit(xdata, ydata, p0=(ydata.max(), xdata[np.argmax(ydata)], 1.))
+        norm, mean, sigma = model.status.par_values
+        xmin = mean - 2. * sigma
+        xmax = mean + 2. * sigma
+        model.fit(xdata, ydata, p0=(norm, mean, sigma), xmin=xmin, xmax=xmax)
+        self.set_parameter('normalization0', model['normalization'])
+        self.set_parameter('mean0', model['mean'])
+        self.set_parameter('sigma0', model['sigma'])
+        y = ydata - model(xdata)
+        model.fit(xdata, y, p0=(y.max(), xdata[np.argmax(y)], 1.))
+        self.set_parameter('normalization1', model['normalization'])
+        self.set_parameter('mean1', model['mean'])
+        self.set_parameter('sigma1', model['sigma'])
 
 
 
@@ -512,23 +710,25 @@ class PowerLaw(FitModelBase):
       f(x; N, \\Gamma) = N x^\\Gamma
     """
 
-    PARAMETER_NAMES = ('Normalization', 'Index')
-    PARAMETER_DEFAULT_VALUES = (1., -1.)
-    PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf], [np.inf, np.inf])
-    DEFAULT_PLOTTING_RANGE = (1.e-2, 1.)
+    PAR_NAMES = ('normalization', 'index')
+    PAR_DEFAULT_VALUES = (1., -1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
+    DEFAULT_RANGE = (1.e-2, 1.)
 
     @staticmethod
-    def value(x, normalization, index):
-        """Overloaded value() method.
+    def eval(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
+        """Overloaded method.
         """
-        return normalization * (x**index)
+        # pylint: disable=arguments-differ
+        return normalization * x**index
 
     @staticmethod
-    def jacobian(x, normalization, index):
-        """Overloaded jacobian() method.
+    def jacobian(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
+        """Overloaded method.
         """
-        d_normalization = (x**index)
-        d_index = np.log(x) * normalization * (x**index)
+        # pylint: disable=arguments-differ
+        d_normalization = x**index
+        d_index = np.log(x) * d_normalization * normalization
         return np.array([d_normalization, d_index]).transpose()
 
 
@@ -538,25 +738,31 @@ class Exponential(FitModelBase):
     """Exponential model.
 
     .. math::
-      f(x; N, \\alpha) = N e^{\\alpha x}
+      f(x; N, \\lambda) = N e^{\\frac{x}{\\lambda}}
     """
 
-    PARAMETER_NAMES = ('Normalization', 'Index')
-    PARAMETER_DEFAULT_VALUES = (1., -1.)
-    PARAMETER_DEFAULT_BOUNDS = ([0., -np.inf], [np.inf]*2)
-    DEFAULT_PLOTTING_RANGE = (0., 1.)
+    PAR_NAMES = ('normalization', 'scale')
+    PAR_DEFAULT_VALUES = (1., -1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
 
     @staticmethod
-    def value(x, normalization, exponent):
-        """Overloaded value() method.
+    def eval(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
+        """Overloaded method.
         """
-        return normalization * np.exp(exponent * x)
+        # pylint: disable=arguments-differ
+        return normalization * np.exp(-x / scale)
 
     @staticmethod
-    def jacobian(x, normalization, exponent):
-        """Overloaded jacobian() method.
+    def jacobian(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
+        """Overloaded method.
         """
+        # pylint: disable=arguments-differ
+        d_normalization = np.exp(-x / scale)
+        d_scale = normalization * d_normalization * x / scale**2.
+        return np.array([d_normalization, d_scale]).transpose()
 
-        d_normalization = np.exp(exponent * x)
-        d_exponent = normalization * x * np.exp(exponent * x)
-        return np.array([d_normalization, d_exponent]).transpose()
+    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+        """Overloaded method.
+        """
+        self.set_parameter('normalization', np.max(ydata))
+        self.set_parameter('scale', np.average(xdata, weights=ydata))

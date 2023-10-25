@@ -6,10 +6,12 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'hexsample'
-copyright = '2023, Luca Baldini'
-author = 'Luca Baldini'
-release = '0.0.0'
+from hexsample import __pkgname__, __version__, __tagdate__
+
+project = __pkgname__
+copyright = f'2023, the {__pkgname__} team'
+author = f'The {__pkgname__} team'
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

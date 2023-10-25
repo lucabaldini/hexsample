@@ -4,6 +4,40 @@ Release notes
 =============
 
 
+*hexsample (0.7.0) - Wed, 25 Oct 2023 14:29:27 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/39
+* Merging https://github.com/lucabaldini/hexsample/pull/38
+* Merging https://github.com/lucabaldini/hexsample/pull/35
+* Major refactoring of the modeling framework, with no (intentional) modification
+  to the public API.
+* New FitStatus class, refactoring of the FitModelBase class, with fit() and
+  fit_histogram() now class members (as opposed to loose functions in the
+  fitting module).
+* Fit with parameter bounds now supported.
+* Specific class for a double gaussian fit, with sensible initial values.
+
+
+*hexsample (0.6.0) - Thu, 19 Oct 2023 23:23:07 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/35
+* New random number generation scheme, (sort of) following the best practices
+  suggested on the numpy documentation.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/24
+
+
+*hexsample (0.5.2) - Wed, 18 Oct 2023 21:45:47 +0200*
+
+* New attempt at compiling the docs on github pages.
+
+
+*hexsample (0.5.1) - Wed, 18 Oct 2023 21:30:42 +0200*
+
+* Merging https://github.com/lucabaldini/hexsample/pull/3
+* Attempt at compiling the docs on github pages whenever a new tag is created.
+
+
 *hexsample (0.5.0) - Tue, 17 Oct 2023 22:37:49 +0200*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/29

@@ -20,11 +20,13 @@ from loguru import logger
 
 import numpy as np
 
-from hexsample.fitting import fit_histogram
+from hexsample import rng
 from hexsample.hist import Histogram1d
 from hexsample.modeling import Exponential
 from hexsample.plot import plt, setup_gca
 from hexsample.sensor import Silicon, SiliconSensor
+
+rng.initialize()
 
 
 def test_efficiency():
@@ -59,14 +61,13 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     h = Histogram1d(np.linspace(0., thickness, 100)).fill(d)
     h.plot()
     setup_gca(xlabel='Absorption depth [cm]', logy=True)
-    model = fit_histogram(Exponential(), h)
+    model = Exponential()
+    model.fit_histogram(h)
     model.plot()
     model.stat_box()
-    index = model.parameter_value('Index')
-    sigma_index = model.parameter_error('Index')
-    lambda_ = -1. / index
-    sigma_lambda = sigma_index / index**2.
-    delta = (Silicon.photoelectric_attenuation_length(energy) - lambda_) / sigma_lambda
+    scale = model.status.parameter_value('scale')
+    sigma_scale = model.status.parameter_error('scale')
+    delta = (Silicon.photoelectric_attenuation_length(energy) - scale) / sigma_scale
     assert delta < 5.
 
 def test_absz(thickness=0.05, energy=8000., num_photons=100000):
