@@ -17,7 +17,6 @@
 """Fit models.
 """
 
-
 from typing import Tuple
 
 import numpy as np
@@ -33,26 +32,42 @@ from hexsample.plot import plt, PlotCard, last_line_color
 class FitStatus:
 
     """Small container class holding the fit status.
+
+    Arguments
+    ---------
+    par_names : tuple of strings
+        The names of the fit parameters.
+
+    par_values : array_like
+        The initial values of the fit parameters. This must an iterable of the same
+        length of the parameter names, and is converted to a numpy array in the
+        constructor.
+
+    par_bounds : tuple, optional
+        The initial bounds for the fit parameters. This is either None (in which ]
+        case the bounds are assumed to be -np.inf--np.inf for all the fit parameters)
+        or a 2-element tuple of iterables of the the same length of the parameter
+        names expressing the minimum and maximum bound for each parameter.
     """
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, parameter_names : Tuple, parameter_values : np.ndarray,
-        parameter_bounds : Tuple = None) -> None:
+    def __init__(self, par_names : Tuple[str], par_values : np.ndarray,
+        par_bounds : Tuple = None) -> None:
         """Constructor.
         """
-        if len(parameter_names) != len(parameter_values):
+        if len(par_names) != len(par_values):
             raise RuntimeError('Mismatch between parameter names and values')
-        self.parameter_names = parameter_names
-        self.parameter_values = np.array(parameter_values)
-        self.num_parameters = len(self.parameter_names)
-        self.parameter_bounds = self._process_bounds(parameter_bounds)
-        self.covariance_matrix = np.zeros((self.num_parameters, self.num_parameters), dtype=float)
+        self.par_names = par_names
+        self.par_values = np.array(par_values)
+        self.num_params = len(self.par_names)
+        self.par_bounds = self._process_bounds(par_bounds)
+        self.par_covariance = np.zeros((self.num_params, self.num_params), dtype=float)
         self.chisquare = -1.
         self.ndof = -1
-        self._parameter_index_dict = {name : i for i, name in enumerate(self.parameter_names)}
+        self._index_dict = {name : i for i, name in enumerate(self.par_names)}
 
-    def _process_bounds(self, parameter_bounds : Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
+    def _process_bounds(self, par_bounds : Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
         """Small utility functions to process the parameter bounds for later use.
 
         Verbatim from the scipy documentation, there are two ways to specify the bounds:
@@ -66,66 +81,120 @@ class FitStatus:
         Since we want to keep track of the bounds and, possibly, change them,
         we turn all allowed possibilities, here, into a 2-tuple of numpy arrays.
         """
-        if parameter_bounds is None:
-            return (np.full(self.num_parameters, -np.inf), np.full(self.num_parameters, np.inf))
-        if len(parameter_bounds) != 2:
-            raise RuntimeError(f'Invalid parameter bounds {parameter_bounds}')
-        return tuple([np.array(bounds) for bounds in parameter_bounds])
+        if par_bounds is None:
+            return (np.full(self.num_params, -np.inf), np.full(self.num_params, np.inf))
+        if len(par_bounds) != 2:
+            raise RuntimeError(f'Invalid parameter bounds {par_bounds}')
+        return tuple(np.array(bounds) for bounds in par_bounds)
 
-    def _parameter_index(self, parameter_name : str) -> int:
+    def _index(self, par_name : str) -> int:
         """Convenience method returning the index within the parameter vector
         for a given parameter name.
         """
         try:
-            return self._parameter_index_dict[parameter_name]
+            return self._index_dict[par_name]
         except KeyError as exception:
-            raise KeyError(f'Unknown parameter "{parameter_name}"') from exception
+            raise KeyError(f'Unknown parameter "{par_name}"') from exception
 
-    def parameter_value(self, parameter_name : str) -> float:
+    def parameter_value(self, par_name : str) -> float:
         """Return the parameter value for a given parameter indexed by name.
-        """
-        return self.parameter_values[self._parameter_index(parameter_name)]
 
-    def __getitem__(self, parameter_name : str) -> float:
-        """Convenience shortcut to retrieve the value of a parameter.
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
         """
-        return self.parameter_value(parameter_name)
+        return self.par_values[self._index(par_name)]
+
+    def __getitem__(self, par_name : str) -> float:
+        """Convenience shortcut to retrieve the value of a parameter.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+        """
+        return self.parameter_value(par_name)
 
     def parameter_errors(self) -> np.ndarray:
         """Return the vector of parameter errors, that is, the square root of the
         diagonal elements of the covariance matrix.
         """
-        return np.sqrt(self.covariance_matrix.diagonal())
+        return np.sqrt(self.par_covariance.diagonal())
 
-    def parameter_error(self, parameter_name : str) -> float:
+    def parameter_error(self, par_name : str) -> float:
         """Return the parameter error by name.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
         """
-        index = self._parameter_index(parameter_name)
-        return np.sqrt(self.covariance_matrix[index][index])
+        index = self._index(par_name)
+        return np.sqrt(self.par_covariance[index][index])
+
+    def __iter__(self):
+        """Iterate over the fit parameters as (name, value, error).
+        """
+        return zip(self.par_names, self.par_values, self.parameter_errors(), *self.par_bounds)
 
     def reduced_chisquare(self) -> float:
         """Return the reduced chisquare.
         """
         return self.chisquare / self.ndof if self.ndof > 0 else -1.
 
-    def set_parameter_bounds(self, parameter_name : str, min_bound : float,
-        max_bound : float) -> None:
+    def set_parameter_bounds(self, par_name : str, min_ : float, max_ : float) -> None:
         """Set the baounds for a given parameter.
-        """
-        index = self._parameter_index(parameter_name)
-        self.parameter_bounds[0][index] = min_bound
-        self.parameter_bounds[1][index] = max_bound
 
-    def set_parameter(self, parameter_name : str, value : float) -> None:
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+
+        min_ : float
+            The minimum bound.
+
+        max_ : float
+            The maximum bound.
+        """
+        index = self._index(par_name)
+        self.par_bounds[0][index] = min_
+        self.par_bounds[1][index] = max_
+
+    def set_parameter(self, par_name : str, value : float) -> None:
         """Set the value for a given parameter (indexed by name).
-        """
-        self.parameter_values[self._parameter_index(parameter_name)] = value
 
-    def __iter__(self):
-        """Iterate over the fit parameters as (name, value, error).
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+
+        value : float
+            The parameter value.
         """
-        return zip(self.parameter_names, self.parameter_values, self.parameter_errors(),\
-            *self.parameter_bounds)
+        self.par_values[self._index(par_name)] = value
+
+    def update(self, popt : np.ndarray, pcov : np.ndarray, chisq : float, ndof : int) -> None:
+        """Update the data structure after a fit.
+
+        Arguments
+        ---------
+        popt : array_like
+            The array of best-fit parameters from scipy.optimize.curve_fit().
+
+        pcov : array_like
+            The covariance matrix of the paremeters from scipy.optimize.curve_fit().
+
+        chisq : float
+            The value of the chisquare.
+
+        ndof : int
+            The number of degrees of freedom from the fit.
+        """
+        self.par_values = popt
+        self.par_covariance = pcov
+        self.chisquare = chisq
+        self.ndof = ndof
 
     def __str__(self):
         """String representation.
@@ -133,7 +202,7 @@ class FitStatus:
         text = ''
         for name, value, error, min_bound, max_bound in self:
             text += f'{name:18s} {value:.3e} +/- {error:.3e} ({min_bound:.3e} / {max_bound:.3e})\n'
-        text += f'Chisquare = {self.chisquare} / {self.ndof} dof'
+        text += f'Chisquare = {self.chisquare:.2f} / {self.ndof} dof'
         return text
 
 
@@ -145,34 +214,21 @@ class FitModelBase:
     The class features a number of static members that derived class should redefine
     as needed:
 
-    * ``PARAMETER_NAMES`` is a list containing the names of the model parameters.
-    * ``PARAMETER_DEFAULT_VALUES`` is a list containing the default values
-      of the model parameters---when a concrete model object is instantiated
-      these are the values being attached to it at creation time.
-    * ``PARAMETER_DEFAULT_BOUNDS`` is a tuple containing the default values
-      of the parameter bounds to be used for the fitting. The values in the
-      tuple are attached to each model object at creation time and are
-      intended to be passed as the ``bounds`` argument of the
-      ``scipy.optimize.curve_fit()`` function. From the ``scipy`` documentation:
-      Lower and upper bounds on independent variables. Defaults to no bounds.
-      Each element of the tuple must be either an array with the length equal
-      to the number of parameters, or a scalar (in which case the bound is
-      taken to be the same for all parameters.) Use np.inf with an appropriate
-      sign to disable bounds on all or some parameters. By default
-      models have no built-in bounds.
+    * ``PAR_NAMES`` is a list containing the names of the model parameters;
+    * ``PAR_DEFAULT_VALUES`` is a list containing the default values
+      of the model parameters;
+    * ``PAR_DEFAULT_BOUNDS`` is a tuple containing the default values
+      of the parameter bounds to be used for the fitting;
     * ``DEFAULT_RANGE`` is a two-element list with the default support
-      (x-axis range) for the model. This is automatically updated at runtime
-      depending on the input data when the model is used in a fit.
+      (x-axis range) for the model. (This is automatically updated at runtime
+      depending on the input data when the model is used in a fit.)
 
    In addition, each derived class should override the following methods:
 
-    * the ``eval(x, *args)`` static method: this should return the value of
-      the model at a given point for a given set of values of the underlying
-      parameters;
-    * (optionally) the ``jacobian(x, *args)`` static method. (If defined, this
-      is passed to the underlying fit engine allowing to reduce the number of
-      function calls in the fit; otherwise the jacobian is calculated
-      numerically.)
+    * the ``eval(x, *args)`` should return the value of the model at a given x
+      for a given set of values of the underlying parameters;
+    * the ``jacobian(x, *args)`` method, if defined, is passed to the underlying
+      fit engine allowing to reduce the number of function calls in the fit.
 
     Finally, if there is a sensible way to initialize the model parameters
     based on a set of input data, derived classes should overload the
@@ -186,16 +242,15 @@ class FitModelBase:
 
     # pylint: disable=too-many-instance-attributes
 
-    PARAMETER_NAMES = None
-    PARAMETER_DEFAULT_VALUES = None
-    PARAMETER_DEFAULT_BOUNDS = None
+    PAR_NAMES = None
+    PAR_DEFAULT_VALUES = None
+    PAR_DEFAULT_BOUNDS = None
     DEFAULT_RANGE = (0., 1.)
 
     def __init__(self) -> None:
         """Constructor.
         """
-        args = self.PARAMETER_NAMES, self.PARAMETER_DEFAULT_VALUES, self.PARAMETER_DEFAULT_BOUNDS
-        self.status = FitStatus(*args)
+        self.status = FitStatus(self.PAR_NAMES, self.PAR_DEFAULT_VALUES, self.PAR_DEFAULT_BOUNDS)
         self._xmin, self._xmax = self.DEFAULT_RANGE
 
     def name(self) -> str:
@@ -203,8 +258,32 @@ class FitModelBase:
         """
         return self.__class__.__name__
 
+    def __getitem__(self, par_name : str) -> float:
+        """Convenience shortcut to retrieve the value of a parameter.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+        """
+        return self.status.parameter_value(par_name)
+
+    def set_parameter(self, par_name : str, value : float) -> None:
+        """Convenience function to set the value for a given parameter in the
+        underlying FitStatus object.
+        """
+        self.status.set_parameter(par_name, value)
+
     def set_range(self, xmin : float, xmax : float) -> None:
         """Set the function range.
+
+        Arguments
+        ---------
+        xmin : float
+            The minimum x-range value.
+
+        xmax : float
+            The maximum x-range value.
         """
         self._xmin = xmin
         self._xmax = xmax
@@ -243,10 +322,10 @@ class FitModelBase:
         it to plot the model after the fit.
         """
         num_params = len(parameters)
-        if num_params == self.status.num_parameters:
+        if num_params == self.status.num_params:
             return self.eval(x, *parameters)
         if num_params == 0:
-            return self.eval(x, *self.status.parameter_values)
+            return self.eval(x, *self.status.par_values)
         raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
 
     @staticmethod
@@ -256,12 +335,6 @@ class FitModelBase:
         This needs to be overloaded by any derived classes.
         """
         raise NotImplementedError
-
-    def _calculate_chisquare(self, xdata : np.ndarray, ydata : np.ndarray, sigma : np.ndarray) -> float:
-        """Calculate the chisquare for the current parameter values, given
-        some input data.
-        """
-        return (((ydata - self(xdata)) / sigma)**2).sum()
 
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Assign a sensible set of values to the model parameters, based on a data
@@ -338,38 +411,38 @@ class FitModelBase:
             Keyword arguments passed to `leastsq` for ``method='lm'`` or
             `least_squares` otherwise.
         """
-        # Select data based on the x-axis range passed as an argument.
-        mask = np.logical_and(xdata >= xmin, xdata <= xmax)
-        xdata = xdata[mask]
-        if len(xdata) <= self.status.num_parameters:
-            raise RuntimeError(f'Not enough data to fit ({len(xdata)} points)')
-        ydata = ydata[mask]
+        # pylint: disable=too-many-arguments, too-many-locals
         # If sigma is None, assume all the errors are 1---we need to do this
         # explicitely in order to calculate the chisquare downstream.
         if sigma is None:
             sigma = np.full(len(ydata), 1.)
+        # Select data based on the x-axis range passed as an argument.
+        mask = np.logical_and(xdata >= xmin, xdata <= xmax)
+        xdata = xdata[mask]
+        if len(xdata) <= self.status.num_params:
+            raise RuntimeError(f'Not enough data to fit ({len(xdata)} points)')
+        ydata = ydata[mask]
         sigma = sigma[mask]
         # If the model has a Jacobian defined, go ahead and use it.
         try:
             jac = self.jacobian
-        except:
+        except AttributeError:
             jac = None
         # If we are not passing default starting points for the model parameters,
         # try and do something sensible.
         if p0 is None:
             self.init_parameters(xdata, ydata)
-            p0 = self.status.parameter_values
+            p0 = self.status.par_values
             if verbose:
                 logger.debug(f'{self.name()} parameters initialized to {p0}.')
         # The actual call to the glorious scipy.optimize.curve_fit() method.
         popt, pcov = curve_fit(self, xdata, ydata, p0, sigma, absolute_sigma,
-            check_finite, self.status.parameter_bounds, method, jac, **kwargs)
+            check_finite, self.status.par_bounds, method, jac, **kwargs)
         # Update the model parameters.
         self.set_range(xdata.min(), xdata.max())
-        self.status.parameter_values = popt
-        self.status.covariance_matrix = pcov
-        self.status.chisquare = self._calculate_chisquare(xdata, ydata, sigma)
-        self.status.ndof = len(ydata) - self.status.num_parameters
+        chisq = (((ydata - self(xdata, *popt)) / sigma)**2).sum()
+        ndof = len(ydata) - self.status.num_params
+        self.status.update(popt, pcov, chisq, ndof)
         if verbose:
             print(self)
 
@@ -396,8 +469,9 @@ class FitModelBase:
         histogram : ixpeHistogram1d instance
             The histogram to be fitted.
         """
+        # pylint: disable=too-many-arguments
         if histogram.num_axes != 1:
-            raise RuntimeError(f'Histogram is not one-dimensional')
+            raise RuntimeError('Histogram is not one-dimensional')
         mask = (histogram.content > 0)
         xdata = histogram.bin_centers(0)[mask]
         ydata = histogram.content[mask]
@@ -429,25 +503,25 @@ class FitModelBase:
         classes.
         """
         mrg = FitModelBase._merge_class_attributes
-        par_names = mrg(lambda i, c: [f'{name}{i}' for name in c.PARAMETER_NAMES], *components)
-        par_default_values = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_VALUES), *components)
+        par_names = mrg(lambda i, c: [f'{name}{i}' for name in c.PAR_NAMES], *components)
+        par_default_values = mrg(lambda i, c: list(c.PAR_DEFAULT_VALUES), *components)
         xmin = min([c.DEFAULT_RANGE[0] for c in components])
         xmax = max([c.DEFAULT_RANGE[1] for c in components])
-        par_bound_min = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_BOUNDS[0]), *components)
-        par_bound_max = mrg(lambda i, c: list(c.PARAMETER_DEFAULT_BOUNDS[1]), *components)
+        par_bound_min = mrg(lambda i, c: list(c.PAR_DEFAULT_BOUNDS[0]), *components)
+        par_bound_max = mrg(lambda i, c: list(c.PAR_DEFAULT_BOUNDS[1]), *components)
         par_slices = []
         i = 0
         for c in components:
-            num_parameters = len(c.PARAMETER_NAMES)
-            par_slices.append(slice(i, i + num_parameters))
-            i += num_parameters
+            num_params = len(c.PAR_NAMES)
+            par_slices.append(slice(i, i + num_params))
+            i += num_params
 
         class _model(FitModelBase):
 
-            PARAMETER_NAMES = par_names
-            PARAMETER_DEFAULT_VALUES = par_default_values
+            PAR_NAMES = par_names
+            PAR_DEFAULT_VALUES = par_default_values
             DEFAULT_RANGE = (xmin, xmax)
-            PARAMETER_DEFAULT_BOUNDS = (par_bound_min, par_bound_max)
+            PAR_DEFAULT_BOUNDS = (par_bound_min, par_bound_max)
 
             def __init__(self):
                 FitModelBase.__init__(self)
@@ -473,7 +547,7 @@ class FitModelBase:
                 plt.plot(x, self(x), **kwargs)
                 color = last_line_color()
                 for c, s in zip(components, par_slices):
-                    plt.plot(x, c.eval(x, *self.status.parameter_values[s]),
+                    plt.plot(x, c.eval(x, *self.status.par_values[s]),
                         ls='dashed', color=color)
 
         return _model
@@ -488,8 +562,7 @@ class FitModelBase:
     def __str__(self):
         """String formatting.
         """
-        text = f'{self.name()} (chisq/ndof = {self.status.chisquare:.2f} / {self.status.ndof})\n{self.status}'
-        return text
+        return f'{self.name()} fit status\n{self.status}'
 
 
 
@@ -501,9 +574,8 @@ class Constant(FitModelBase):
        f(x; C) = C
     """
 
-    PARAMETER_NAMES = ('constant',)
-    PARAMETER_DEFAULT_VALUES = (1.,)
-    PARAMETER_DEFAULT_BOUNDS = ((-np.inf,), (np.inf,))
+    PAR_NAMES = ('constant',)
+    PAR_DEFAULT_VALUES = (1.,)
 
     @staticmethod
     def eval(x : np.ndarray, constant : float) -> np.ndarray:
@@ -523,7 +595,7 @@ class Constant(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.status.set_parameter('constant', np.mean(ydata))
+        self.set_parameter('constant', np.mean(ydata))
 
 
 
@@ -535,9 +607,8 @@ class Line(FitModelBase):
        f(x; m, q) = mx + q
     """
 
-    PARAMETER_NAMES = ('intercept', 'slope')
-    PARAMETER_DEFAULT_VALUES = (1., 1.)
-    PARAMETER_DEFAULT_BOUNDS = ((-np.inf,), (np.inf,))
+    PAR_NAMES = ('intercept', 'slope')
+    PAR_DEFAULT_VALUES = (1., 1.)
 
     @staticmethod
     def eval(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
@@ -565,9 +636,9 @@ class Gaussian(FitModelBase):
       f(x; N, \\mu, \\sigma) = N e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}
     """
 
-    PARAMETER_NAMES = ('normalization', 'mean', 'sigma')
-    PARAMETER_DEFAULT_VALUES = (1., 0., 1.)
-    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf, 0.), (np.inf, np.inf, np.inf))
+    PAR_NAMES = ('normalization', 'mean', 'sigma')
+    PAR_DEFAULT_VALUES = (1., 0., 1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf, 0.), (np.inf, np.inf, np.inf))
     DEFAULT_RANGE = (-5., 5.)
     SIGMA_TO_FWHM = 2.3548200450309493
 
@@ -593,9 +664,9 @@ class Gaussian(FitModelBase):
         """
         mean = np.average(xdata, weights=ydata)
         sigma = np.sqrt(np.average((xdata - mean)**2., weights=ydata))
-        self.status.set_parameter('normalization', np.max(ydata))
-        self.status.set_parameter('mean', mean)
-        self.status.set_parameter('sigma', sigma)
+        self.set_parameter('normalization', np.max(ydata))
+        self.set_parameter('mean', mean)
+        self.set_parameter('sigma', sigma)
 
     def fwhm(self) -> float:
         """Return the absolute FWHM of the model.
@@ -614,7 +685,20 @@ class DoubleGaussian(_DoubleGaussian):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
-        pass
+        model = Gaussian()
+        model.fit(xdata, ydata, p0=(ydata.max(), xdata[np.argmax(ydata)], 1.))
+        norm, mean, sigma = model.status.par_values
+        xmin = mean - 2. * sigma
+        xmax = mean + 2. * sigma
+        model.fit(xdata, ydata, p0=(norm, mean, sigma), xmin=xmin, xmax=xmax)
+        self.set_parameter('normalization0', model['normalization'])
+        self.set_parameter('mean0', model['mean'])
+        self.set_parameter('sigma0', model['sigma'])
+        y = ydata - model(xdata)
+        model.fit(xdata, y, p0=(y.max(), xdata[np.argmax(y)], 1.))
+        self.set_parameter('normalization1', model['normalization'])
+        self.set_parameter('mean1', model['mean'])
+        self.set_parameter('sigma1', model['sigma'])
 
 
 
@@ -626,9 +710,9 @@ class PowerLaw(FitModelBase):
       f(x; N, \\Gamma) = N x^\\Gamma
     """
 
-    PARAMETER_NAMES = ('normalization', 'index')
-    PARAMETER_DEFAULT_VALUES = (1., -1.)
-    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
+    PAR_NAMES = ('normalization', 'index')
+    PAR_DEFAULT_VALUES = (1., -1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
     DEFAULT_RANGE = (1.e-2, 1.)
 
     @staticmethod
@@ -657,9 +741,9 @@ class Exponential(FitModelBase):
       f(x; N, \\lambda) = N e^{\\frac{x}{\\lambda}}
     """
 
-    PARAMETER_NAMES = ('normalization', 'scale')
-    PARAMETER_DEFAULT_VALUES = (1., -1.)
-    PARAMETER_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
+    PAR_NAMES = ('normalization', 'scale')
+    PAR_DEFAULT_VALUES = (1., -1.)
+    PAR_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
 
     @staticmethod
     def eval(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
@@ -680,5 +764,5 @@ class Exponential(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.status.set_parameter('normalization', np.max(ydata))
-        self.status.set_parameter('scale', np.average(xdata, weights=ydata))
+        self.set_parameter('normalization', np.max(ydata))
+        self.set_parameter('scale', np.average(xdata, weights=ydata))

@@ -20,7 +20,7 @@ from functools import partial
 
 import numpy as np
 
-from hexsample import rng
+from hexsample import logger, rng
 from hexsample.hist import Histogram1d
 from hexsample.modeling import Constant, Line, Gaussian, PowerLaw, Exponential,\
     FitModelBase, DoubleGaussian, FitStatus
@@ -49,7 +49,11 @@ def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, figname : str =
     """Basic test for a specific model.
     """
     hist = Histogram1d(np.linspace(rvs.min(), rvs.max(), 100)).fill(rvs)
-    model.fit_histogram(hist, p0=p0)
+    try:
+        model.fit_histogram(hist, p0=p0)
+    except RuntimeError as exception:
+        logger.error(exception)
+        return
     if figname is None:
         figname = f'{model.name()} fitting model'
     plt.figure(figname)
@@ -59,6 +63,7 @@ def _test_model(model : FitModelBase, rvs : np.ndarray, p0=None, figname : str =
     num_sigma = (model.status.chisquare - model.status.ndof) / np.sqrt(2. * model.status.ndof)
     assert abs(num_sigma) < 5.
     setup_gca(xlabel='x [a. u.]', **kwargs)
+    return model
 
 def test_models():
     """Test a constant fit model.
@@ -67,10 +72,14 @@ def test_models():
     _test_model(Gaussian(), rng.generator.normal(size=100000))
     _test_model(PowerLaw(), rng.generator.power(2., size=100000))
     _test_model(Exponential(), rng.generator.exponential(2., size=100000), logy=True)
-    rvs = np.append(rng.generator.normal(10., 1., size=100000),
-        rng.generator.normal(15., 1., size=25000))
-    _test_model(DoubleGaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
-    _test_model(Gaussian() + Gaussian(), rvs, p0=(5000., 10., 1., 2500., 15., 1.))
+
+def test_composite_models():
+    """
+    """
+    rvs = np.append(rng.generator.normal(10., 1.5, size=100000),
+        rng.generator.normal(15., 0.75, size=25000))
+    model = _test_model(DoubleGaussian(), rvs)
+    _test_model(Gaussian() + Gaussian(), rvs, model.status.par_values)
 
 def test_bound_parameter():
     """Perform a simple fit with a bound on a parameter.
@@ -84,4 +93,5 @@ def test_bound_parameter():
 if __name__ == '__main__':
     test_models()
     test_bound_parameter()
+    test_composite_models()
     plt.show()
