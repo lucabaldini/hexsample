@@ -258,6 +258,22 @@ class FitModelBase:
         """
         return self.__class__.__name__
 
+    def __getitem__(self, par_name : str) -> float:
+        """Convenience shortcut to retrieve the value of a parameter.
+
+        Arguments
+        ---------
+        par_name : str
+            The parameter name.
+        """
+        return self.status.parameter_value(par_name)
+
+    def set_parameter(self, par_name : str, value : float) -> None:
+        """Convenience function to set the value for a given parameter in the
+        underlying FitStatus object.
+        """
+        self.status.set_parameter(par_name, value)
+
     def set_range(self, xmin : float, xmax : float) -> None:
         """Set the function range.
 
@@ -396,16 +412,16 @@ class FitModelBase:
             `least_squares` otherwise.
         """
         # pylint: disable=too-many-arguments, too-many-locals
+        # If sigma is None, assume all the errors are 1---we need to do this
+        # explicitely in order to calculate the chisquare downstream.
+        if sigma is None:
+            sigma = np.full(len(ydata), 1.)
         # Select data based on the x-axis range passed as an argument.
         mask = np.logical_and(xdata >= xmin, xdata <= xmax)
         xdata = xdata[mask]
         if len(xdata) <= self.status.num_params:
             raise RuntimeError(f'Not enough data to fit ({len(xdata)} points)')
         ydata = ydata[mask]
-        # If sigma is None, assume all the errors are 1---we need to do this
-        # explicitely in order to calculate the chisquare downstream.
-        if sigma is None:
-            sigma = np.full(len(ydata), 1.)
         sigma = sigma[mask]
         # If the model has a Jacobian defined, go ahead and use it.
         try:
@@ -579,7 +595,7 @@ class Constant(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.status.set_parameter('constant', np.mean(ydata))
+        self.set_parameter('constant', np.mean(ydata))
 
 
 
@@ -648,9 +664,9 @@ class Gaussian(FitModelBase):
         """
         mean = np.average(xdata, weights=ydata)
         sigma = np.sqrt(np.average((xdata - mean)**2., weights=ydata))
-        self.status.set_parameter('normalization', np.max(ydata))
-        self.status.set_parameter('mean', mean)
-        self.status.set_parameter('sigma', sigma)
+        self.set_parameter('normalization', np.max(ydata))
+        self.set_parameter('mean', mean)
+        self.set_parameter('sigma', sigma)
 
     def fwhm(self) -> float:
         """Return the absolute FWHM of the model.
@@ -669,6 +685,20 @@ class DoubleGaussian(_DoubleGaussian):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
+        model = Gaussian()
+        model.fit(xdata, ydata, p0=(ydata.max(), xdata[np.argmax(ydata)], 1.))
+        norm, mean, sigma = model.status.par_values
+        xmin = mean - 2. * sigma
+        xmax = mean + 2. * sigma
+        model.fit(xdata, ydata, p0=(norm, mean, sigma), xmin=xmin, xmax=xmax)
+        self.set_parameter('normalization0', model['normalization'])
+        self.set_parameter('mean0', model['mean'])
+        self.set_parameter('sigma0', model['sigma'])
+        y = ydata - model(xdata)
+        model.fit(xdata, y, p0=(y.max(), xdata[np.argmax(y)], 1.))
+        self.set_parameter('normalization1', model['normalization'])
+        self.set_parameter('mean1', model['mean'])
+        self.set_parameter('sigma1', model['sigma'])
 
 
 
@@ -734,5 +764,5 @@ class Exponential(FitModelBase):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
-        self.status.set_parameter('normalization', np.max(ydata))
-        self.status.set_parameter('scale', np.average(xdata, weights=ydata))
+        self.set_parameter('normalization', np.max(ydata))
+        self.set_parameter('scale', np.average(xdata, weights=ydata))
