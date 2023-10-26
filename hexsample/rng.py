@@ -24,7 +24,7 @@ from hexsample import logger
 
 # Default bit generator class---this is the workhorse object that draw random
 # numbers equidistributed in the [0, 1] interval.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, global-statement
 DEFAULT_BIT_GENERATOR = np.random.SFC64
 
 
@@ -44,6 +44,10 @@ class UninitializedGenerator:
         """Basic hook to implement a no-op class.
         """
         raise RuntimeError('Random number generator not initialized.')
+
+
+
+generator = UninitializedGenerator()
 
 
 

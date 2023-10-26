@@ -301,6 +301,7 @@ class HexagonalReadout(HexagonalGrid):
            not trimming the ROI (and the corresponding arrays) to the physical
            dimensions of the chip.
         """
+        # pylint: disable=too-many-arguments, too-many-locals
         # Sum the sampled signal into the 2 x 2 trigger miniclusters.
         trg_signal = self.sum_miniclusters(signal)
         # Zero-suppress the trigger signal below the trigger threshold.

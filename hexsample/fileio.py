@@ -464,11 +464,12 @@ def peek_file_type(file_path : str) -> FileType:
     file_path : str
         The path to the input file.
     """
+    # pylint: disable=protected-access
     with tables.open_file(file_path, 'r') as input_file:
         try:
             return FileType(input_file.root.header._v_attrs['filetype'])
-        except KeyError:
-            raise RuntimeError(f'File {file_path} has no type information.')
+        except KeyError as exception:
+            raise RuntimeError(f'File {file_path} has no type information.') from exception
 
 def open_input_file(file_path : str) -> InputFileBase:
     """Open an input file automatically determining the file type.
