@@ -25,7 +25,8 @@
 import numpy as np
 
 from hexsample.app import ArgumentParser
-from hexsample.fitting import fit_histogram
+from hexsample.modeling import FitModelBase
+from hexsample.fitting import fit_gaussian_iterative
 from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian
@@ -50,32 +51,6 @@ def hxview(**kwargs):
     h_cluster_size,h_energy_tot = pha_analysis(input_file)
     input_file.close()
     plt.show()
-    
-    '''
-    input_file = ReconInputFile(kwargs['infile'])
-    rec_energy = input_file.recon_table.col('energy')
-    mc_energy = input_file.mc_table.col('energy')
-    cluster_size = input_file.recon_table.col('cluster_size')
-    
-    plt.figure('Energy spectrum')
-    binning = np.linspace(rec_energy.min(), rec_energy.max(), 100)
-    h_rec = Histogram1d(binning).fill(rec_energy)
-    h_rec.plot()
-    model = Gaussian() + Gaussian()
-    #model = fit_histogram(GaussianLineForestCuK(), h_rec)
-    fit_histogram(model, h_rec, p0=(1., 8000., 150., 1., 8900., 150.))
-    model.plot()
-    model.stat_box()
-    #h_mc = Histogram1d(binning).fill(mc_energy)
-    #h_mc.plot()
-    plt.figure('Cluster size')
-    binning = np.linspace(-0.5, 5.5, 7)
-    h = Histogram1d(binning).fill(cluster_size)
-    h.plot()
-    input_file.close()
-    plt.show()
-    '''
-
 
 
 if __name__ == '__main__':

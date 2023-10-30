@@ -26,8 +26,11 @@ import numpy as np
 
 from typing import Optional, Tuple
 
-from hexsample.fitting import fit_histogram
+#from hexsample.fitting import fit_histogram
+from hexsample.modeling import FitModelBase
 from hexsample.hist import Histogram1d
+from hexsample.fileio import InputFileBase
+from hexsample.fileio import DigiInputFile
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian
 from hexsample.plot import plt, setup_gca
@@ -47,6 +50,50 @@ def cluster_size_analysis(input_file : ReconInputFile):
     """
     """
     clu_size = input_file.recon_column('cluster_size')
+
+def hist_for_parameter(input_file : InputFileBase, parameter_name : str, number_of_bins : int = None) -> Histogram1d:
+    """
+        This function returns the Histogram1d of the quantity parameter_name
+        taken from digi file. 
+        Input parameters:
+            - input_file : DigiInputFile -> digi input file containing features
+            - parameter_name : list[str] -> str containing parameter name of the quantity 
+                for which the hist will be returned.
+            - number_of_bins : int -> number of bins of the output histogram.
+                this is necessary for two main reasons
+        Features:
+        - Binning is quantity-dependent in order to plot in the best range;
+    """
+    if input_file.root.header._v_attrs['filetype'] == 'Digi': #digi file type
+        #print(f'This is a DigiInputFile')
+        '''
+        For a digi file, the only two interesting quantities to be plotted and analyzed are:
+        - roi_size
+        - pha
+        Being those filled in different ways, for this moment using elif statements. 
+        '''
+        if parameter_name == 'roi_size':
+            rec_quantity = np.array([event.roi.size for event in input_file])
+        elif parameter_name == 'energy':
+            rec_quantity = np.array([pha.sum() for pha in input_file.pha_array])
+        else:
+            print(f'No parameter with this name, returning an empty histogram')
+            rec_quantity = np.zeros(input_file.NROWS.value)
+        range_of_binning = max(rec_quantity) - min(rec_quantity)
+        x_right_lim = max(rec_quantity) + np.floor((range_of_binning*0.05)) #using np.floor for having integer limits for integer quantities
+        x_left_lim = min(rec_quantity) - np.floor((range_of_binning*0.05))
+        binning = np.linspace(x_left_lim, x_right_lim, int(number_of_bins))
+        hist = Histogram1d(binning).fill(rec_quantity)
+    else: #recon file type
+        #print('This is a ReconInputFile')
+        rec_quantity = input_file.recon_table.col(parameter_name)
+        range_of_binning = max(rec_quantity) - min(rec_quantity)
+        x_right_lim = max(rec_quantity) + np.floor((range_of_binning*0.05)) #using np.floor for having integer limits for integer quantities
+        x_left_lim = min(rec_quantity) - np.floor((range_of_binning*0.05))
+        binning = np.linspace(x_left_lim, x_right_lim, int(number_of_bins))
+        hist = Histogram1d(binning).fill(rec_quantity)
+
+    return hist
 
 def pha_analysis(input_file : ReconInputFile, PHA_cut_value : float=0) -> Tuple[Histogram1d]:
     """
@@ -75,11 +122,10 @@ def pha_analysis(input_file : ReconInputFile, PHA_cut_value : float=0) -> Tuple[
     setup_gca(xlabel='Energy [keV]')
     #Inserting a parameter for choosing the fit model? Passing fit model function?
     #Default is sum of two Gaussian pdfs? 
-    model = Gaussian() + Gaussian()
-    fit_histogram(model, h_energy_tot, p0=(1., 8000., 150., 1., 8900., 150.))
-    #model = fit_histogram(Gaussian(), h_energy, p0=(1., 8900., 100.), xmin=8600)
-    model.plot()
-    model.stat_box()
+    gauss_model = Gaussian() + Gaussian()
+    gauss_model.fit_histogram(h_energy_tot, p0=(1., 8000., 150., 1., 8900., 150.), xmin = rec_energy.min(), xmax = rec_energy.max())
+    gauss_model.plot()
+    gauss_model.stat_box()
     #Computing the selection efficiency
     mask = clu_size <= 1 #those are the events that did not trigger the chip or that triggered just one pixel
     frac = mask.sum() / len(mask)

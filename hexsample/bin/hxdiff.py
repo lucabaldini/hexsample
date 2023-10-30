@@ -31,6 +31,7 @@ from hexsample.app import ArgumentParser
 from hexsample.fileio import DigiInputFile
 from hexsample.hist import Histogram1d
 from hexsample.plot import plt, setup_gca
+from hexsample.analysis import pha_analysis, hist_for_parameter
 
 
 __description__ = \
@@ -68,9 +69,22 @@ def _digi_diff_graphical(file1 : DigiInputFile, file2 : DigiInputFile) -> None:
     .. warning::
        This should be borrowing from the analysis facilities, when we do have a
        sensible implementation.
+       The relevant quantities by now are the following:
+       - ROI size ;
+       - Total PHA.
     """
     #file_name1 = pathlib.Path(file1.filename).name
     #file_name2 = pathlib.Path(file2.filename).name
+    #Creating the histograms to compare for roi_size
+    hist_roi_1=hist_for_parameter(file1, 'roi_size', 10)
+    hist_roi_2=hist_for_parameter(file2, 'roi_size', 10)
+    #Creating the histograms to compare for energy
+    hist_energy_1=hist_for_parameter(file1, 'energy', 100)
+    hist_energy_2=hist_for_parameter(file2, 'energy', 100)
+
+    hist_diff_roi = hist_roi_1 - hist_roi_2
+    hist_diff_energy = hist_energy_1 - hist_energy_2
+    '''
     roi_size1 = np.array([event.roi.size for event in file1])
     roi_size2 = np.array([event.roi.size for event in file2])
     pha_sum1 = np.array([pha.sum() for pha in file1.pha_array])
@@ -88,6 +102,23 @@ def _digi_diff_graphical(file1 : DigiInputFile, file2 : DigiInputFile) -> None:
     binning = np.linspace(min_pha, max_pha, 100)
     Histogram1d(binning).fill(pha_sum1).plot()
     Histogram1d(binning).fill(pha_sum2).plot()
+    '''
+    plt.figure('ROI size')
+    plt.xlabel('ROI size')
+    hist_roi_1.plot()
+    hist_roi_2.plot()
+    plt.figure('ROI size delta between simulations')
+    plt.xlabel('ROI size')
+    hist_diff_roi.plot()
+    plt.figure('Total energy')
+    plt.xlabel('Total energy')
+    hist_energy_1.plot()
+    hist_energy_2.plot()
+    plt.figure('Total energy delta simulations')
+    plt.xlabel('Total energy')
+    hist_diff_energy.plot()
+    #file1.close()
+    #file2.close()
 
 def hxdiff(**kwargs):
     """Application main entry point.
@@ -96,7 +127,7 @@ def hxdiff(**kwargs):
     file1 = DigiInputFile(file_path1)
     file2 = DigiInputFile(file_path2)
     _digi_diff_strict(file1, file2)
-    #_digi_diff_graphical(file1, file2)
+    _digi_diff_graphical(file1, file2)
     file1.close()
     file2.close()
 
