@@ -487,7 +487,7 @@ class FitModelBase:
         this is the besic signature that is needed to merge the class attributes
         when summing models.
 
-        Note that we are not using the native Python sum(*args, start=[]), here,
+        Note that we are not using the native Python ``sum(*args, start=[])``, here,
         as it is not supported in Python 3.7.
         """
         attrs = []

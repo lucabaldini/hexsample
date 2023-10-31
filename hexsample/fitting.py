@@ -14,19 +14,18 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+"""Advanced fitting facilities.
+"""
 
-import numpy
-from scipy.optimize import curve_fit
+import numpy as np
 
-from hexsample import logger
 import hexsample.modeling
 
 # pylint: disable=invalid-name
 
 
-def fit_gaussian_iterative(histogram, p0=None, sigma=None, xmin=-numpy.inf,
-    xmax=numpy.inf, absolute_sigma=True, check_finite=True,
-    method=None, verbose=True, num_sigma_left=2., num_sigma_right=2.,
+def fit_gaussian_iterative(histogram, p0=None, xmin=-np.inf, xmax=np.inf, absolute_sigma=True,
+    check_finite=True, method=None, verbose=True, num_sigma_left=2., num_sigma_right=2.,
     num_iterations=2, **kwargs):
     """Fit the core of a gaussian histogram within a given number of sigma
     around the peak.
@@ -51,6 +50,7 @@ def fit_gaussian_iterative(histogram, p0=None, sigma=None, xmin=-numpy.inf,
     num_iterations : int
         The number of iterations of the fit.
     """
+    # pylint: disable=too-many-arguments. too-many-locals
     model = hexsample.modeling.Gaussian()
     model.fit_histogram(histogram, p0, xmin, xmax, absolute_sigma, check_finite,
         method, verbose, **kwargs)
@@ -60,6 +60,6 @@ def fit_gaussian_iterative(histogram, p0=None, sigma=None, xmin=-numpy.inf,
         try:
             model.fit_histogram(histogram, p0, xmin, xmax, absolute_sigma,
                 check_finite, method, verbose, **kwargs)
-        except RuntimeError as e:
-            raise RuntimeError('%s after %d iteration(s)' % (e, i + 1))
+        except RuntimeError as exception:
+            raise RuntimeError(f'Exception after {i + 1} iteration(s)') from exception
     return model

@@ -20,8 +20,9 @@ List of modules
    clustering
    digi
    display
-   hexagon
    fileio
+   fitting
+   hexagon
    mc
    modeling
    pprint
