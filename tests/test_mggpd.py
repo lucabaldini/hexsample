@@ -115,6 +115,11 @@ def test_exposed_dielectric():
     gem_thickness = 0.005
     gem_hole_diameter = 0.003
     gem_hole_surface = np.pi * gem_hole_diameter * gem_thickness * num_holes
+    if True:
+        # Add the GEM rims.
+        r = gem_hole_diameter / 2.
+        dr = 0.0002
+        gem_hole_surface += 2. * np.pi * ((r + dr)**2. - r**2.) * num_holes
     mg_oxyde_surface = strip_length * (strip_thickness + strip_oxyde_width - strip_al_width) * num_strips
     logger.info(f'Number of pixels/GEM holes: {num_holes}')
     logger.info(f'Strip length: {strip_length} cm')
