@@ -19,9 +19,11 @@
 from matplotlib.patches import Rectangle, Circle
 import numpy as np
 
+from hexsample import logger
 from hexsample.hexagon import HexagonalLayout, HexagonalGrid
 from hexsample.display import HexagonalGridDisplay
 from hexsample.plot import plt
+from hexsample.xpol import XPOL3_SIZE, XPOL_PITCH
 
 
 def display_mggpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitch : float = 50.,
@@ -98,11 +100,34 @@ def display_mggpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitc
     plt.margins(0.01, 0.01)
     display.setup_gca()
 
+def test_exposed_dielectric():
+    """All dimensions in cm.
+    """
+    pitch = XPOL_PITCH
+    num_cols, num_rows = XPOL3_SIZE
+    num_holes = num_cols * num_rows
+    num_strips = num_rows
+    strip_length = num_cols * pitch
+    strip_thickness = 0.0002
+    strip_al_width = 0.0006
+    strip_oxyde_width = 0.0010
+    active_area = strip_length * num_rows * pitch * np.sqrt(3.) / 2.
+    gem_thickness = 0.005
+    gem_hole_diameter = 0.003
+    gem_hole_surface = np.pi * gem_hole_diameter * gem_thickness * num_holes
+    mg_oxyde_surface = strip_length * (strip_thickness + strip_oxyde_width - strip_al_width) * num_strips
+    logger.info(f'Number of pixels/GEM holes: {num_holes}')
+    logger.info(f'Strip length: {strip_length} cm')
+    logger.info(f'Active area: {active_area} cm^2')
+    logger.info(f'GEM dielectric surface: {gem_hole_surface} cm^2 ({gem_hole_surface / active_area})')
+    logger.info(f'MGGPD dielectric surface: {mg_oxyde_surface} cm^2 ({mg_oxyde_surface / active_area})')
+
 def test_display():
     """Display the two possible simplest arrangements.
     """
     display_mggpd(True)
     display_mggpd(False)
+    test_exposed_dielectric()
 
 
 
