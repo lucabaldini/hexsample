@@ -1,4 +1,4 @@
-# Copyright (C) 2022 luca.baldini@pi.infn.it
+# Copyright (C) 2023 luca.baldini@pi.infn.it
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@ from hexsample.xpol import XPOL3_SIZE, XPOL_PITCH
 
 
 def display_mugpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitch : float = 50.,
-    layout=HexagonalLayout.ODD_Q, al_width : float = 6., oxyde_width : float = 10.,
-    al_thickness : float = 2., oxyde_thickness : float = 2.):
+    layout=HexagonalLayout.ODD_Q, al_width : float = 6., oxide_width : float = 10.,
+    al_thickness : float = 2., oxide_thickness : float = 2.):
     """Draw a sketch of the muGPD.
     """
     plt.figure(f'mugpd {layout} centered = {centered}', figsize=(15., 9.))
@@ -43,14 +43,14 @@ def display_mugpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitc
         if not centered:
             x0 += 0.5 * grid.secondary_pitch
         # Draw the top view.
-        r = Rectangle((x0 - 0.5 * oxyde_width, ytop), oxyde_width, strip_length, facecolor='white')
+        r = Rectangle((x0 - 0.5 * oxide_width, ytop), oxide_width, strip_length, facecolor='white')
         plt.gca().add_patch(r)
         r = Rectangle((x0 - 0.5 * al_width, ytop), al_width, strip_length, facecolor='black')
         plt.gca().add_patch(r)
         # Draw the side view.
-        r = Rectangle((x0 - 0.5 * oxyde_width, yside), oxyde_width, oxyde_thickness, facecolor='white')
+        r = Rectangle((x0 - 0.5 * oxide_width, yside), oxide_width, oxide_thickness, facecolor='white')
         plt.gca().add_patch(r)
-        r = Rectangle((x0 - 0.5 * al_width, yside + oxyde_thickness), al_width, al_thickness, facecolor='black')
+        r = Rectangle((x0 - 0.5 * al_width, yside + oxide_thickness), al_width, al_thickness, facecolor='black')
         plt.gca().add_patch(r)
         # Complete the side view.
         if col == 0:
@@ -61,12 +61,12 @@ def display_mugpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitc
             radius = 10.
             scale = 5.
             _x, _y = -1.5 * dx, 0.5 * yside
-            x1, y1 = x0, yside + oxyde_thickness
-            x2, y2 =_x, _y + scale * oxyde_thickness
-            r = Rectangle((_x - 0.5 * scale * oxyde_width, _y), scale * oxyde_width,
-                scale * oxyde_thickness, facecolor='white')
+            x1, y1 = x0, yside + oxide_thickness
+            x2, y2 =_x, _y + scale * oxide_thickness
+            r = Rectangle((_x - 0.5 * scale * oxide_width, _y), scale * oxide_width,
+                scale * oxide_thickness, facecolor='white')
             plt.gca().add_patch(r)
-            r = Rectangle((_x - 0.5 * scale * al_width, _y + scale * oxyde_thickness),
+            r = Rectangle((_x - 0.5 * scale * al_width, _y + scale * oxide_thickness),
                 scale * al_width, scale * al_thickness, facecolor='black')
             plt.gca().add_patch(r)
             # Small circle.
@@ -80,11 +80,11 @@ def display_mugpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitc
             s = np.sin(theta)
             c = np.cos(theta)
             plt.plot((x1 + radius * s, x2 - scale * radius * s), (y1 + radius * c, y2 - scale * radius * c), color='black', lw=1.25)
-        # Dimensioning: width of the oxyde strip...
+        # Dimensioning: width of the oxide strip...
         if col == 0:
-            x = (x0 - 0.5 * oxyde_width, x0 + 0.5 * oxyde_width)
+            x = (x0 - 0.5 * oxide_width, x0 + 0.5 * oxide_width)
             plt.vlines(x, ytop - 5., ytop - 50., color='gray', lw=1.)
-            plt.text(x0, ytop - 60., f'{oxyde_width:.0f} $\mu$m', ha='center', va='top')
+            plt.text(x0, ytop - 60., f'{oxide_width:.0f} $\mu$m', ha='center', va='top')
             plt.text(-1.2 * dx, 0., 'Top view', ha='right', va='center')
         # ... width of the Al strip...
         if col == 1:
@@ -100,6 +100,61 @@ def display_mugpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitc
     plt.margins(0.01, 0.01)
     display.setup_gca()
 
+def display_mugpd2d(num_cols : int = 10, num_rows : int = 6, pitch : float = 50.,
+    layout=HexagonalLayout.ODD_Q, al_width : float = 6., oxide_width : float = 10.,
+    al_thickness : float = 2., oxide_thickness : float = 2.):
+    """Draw a sketch of the muGPD in the 2-dimensional falvor.
+    """
+    plt.figure(f'mugpd {layout} 2d', figsize=(9., 9.))
+    grid = HexagonalGrid(layout, num_cols, num_rows, pitch)
+    display = HexagonalGridDisplay(grid)
+    display.draw()
+    strip_length = 1.1 * grid.pitch * num_rows
+    yside = 0.5 * strip_length + 0.5 * grid.pitch
+    ytop = -0.5 * strip_length
+    # First draw the vertical oxide...
+    for col in np.arange(num_cols - 1):
+        x0, _ = grid.pixel_to_world(col, 0)
+        x0 += 0.5 * grid.secondary_pitch
+        r = Rectangle((x0 - 0.5 * oxide_width, ytop), oxide_width, strip_length, facecolor='white')
+        plt.gca().add_patch(r)
+    # ... then the diagonal strips...
+    xmin, ymax = grid.pixel_to_world(0, 0)
+    xmax, ymin = grid.pixel_to_world(num_cols - 1, num_rows - 1)
+    ymax += 0.5 * grid.pitch
+    ymin -= 0.5 * grid.pitch
+    theta = np.radians(30.)
+    sin_ = np.sin(theta)
+    cos_ = np.cos(theta)
+    tan_ = np.tan(theta)
+    delta_oxide = 0.5 * oxide_width / cos_
+    delta_al = 0.5 * al_width / cos_
+    for row in np.arange(num_rows + num_cols // 2 - 1):
+        x1, y1 = grid.pixel_to_world(0, row)
+        y1 -= 0.5 * grid.pitch
+        if y1 < ymin:
+            x1 -= (y1 - ymin) / tan_
+            y1 = ymin
+        y2 = ymax
+        x2 = x1 + (y2 - y1) / tan_
+        if x2 > xmax:
+            y2 += (xmax - x2) * tan_
+            x2 = xmax
+        plt.fill_between((x1, x2), (y1 - delta_oxide, y2 - delta_oxide),
+            (y1 + delta_oxide, y2 + delta_oxide), edgecolor='black', facecolor='white')
+        plt.fill_between((x1, x2), (y1 - delta_al, y2 - delta_al),
+            (y1 + delta_al, y2 + delta_al), color='black')
+    # ... and, finally, the vertical aluminum---this will render the grid as
+    # contiguous.
+    for col in np.arange(num_cols - 1):
+        x0, _ = grid.pixel_to_world(col, 0)
+        x0 += 0.5 * grid.secondary_pitch
+        r = Rectangle((x0 - 0.5 * al_width, ytop), al_width, strip_length, facecolor='black')
+        plt.gca().add_patch(r)
+    # And setup the plot.
+    plt.margins(0.01, 0.01)
+    display.setup_gca()
+
 def test_exposed_dielectric():
     """All dimensions in cm.
     """
@@ -110,7 +165,7 @@ def test_exposed_dielectric():
     strip_length = num_cols * pitch
     strip_thickness = 0.0002
     strip_al_width = 0.0006
-    strip_oxyde_width = 0.0010
+    strip_oxide_width = 0.0010
     active_area = strip_length * num_rows * pitch * np.sqrt(3.) / 2.
     gem_thickness = 0.005
     gem_hole_diameter = 0.003
@@ -120,12 +175,12 @@ def test_exposed_dielectric():
         r = gem_hole_diameter / 2.
         dr = 0.0002
         gem_hole_surface += 2. * np.pi * ((r + dr)**2. - r**2.) * num_holes
-    mg_oxyde_surface = strip_length * (strip_thickness + strip_oxyde_width - strip_al_width) * num_strips
+    mg_oxide_surface = strip_length * (strip_thickness + strip_oxide_width - strip_al_width) * num_strips
     logger.info(f'Number of pixels/GEM holes: {num_holes}')
     logger.info(f'Strip length: {strip_length} cm')
     logger.info(f'Active area: {active_area} cm^2')
     logger.info(f'GEM dielectric surface: {gem_hole_surface} cm^2 ({gem_hole_surface / active_area})')
-    logger.info(f'muGPD dielectric surface: {mg_oxyde_surface} cm^2 ({mg_oxyde_surface / active_area})')
+    logger.info(f'muGPD dielectric surface: {mg_oxide_surface} cm^2 ({mg_oxide_surface / active_area})')
 
 def draw_strip_group(x0, y0, num_strips, length, pitch, pad_pos = None, pad_side=0.025):
     """
@@ -195,6 +250,7 @@ def test_display():
     """
     display_mugpd(True)
     display_mugpd(False)
+    display_mugpd2d()
     test_exposed_dielectric()
 
 
