@@ -182,7 +182,8 @@ def test_exposed_dielectric():
     logger.info(f'GEM dielectric surface: {gem_hole_surface} cm^2 ({gem_hole_surface / active_area})')
     logger.info(f'muGPD dielectric surface: {mg_oxide_surface} cm^2 ({mg_oxide_surface / active_area})')
 
-def draw_strip_group(x0, y0, num_strips, length, pitch, pad_pos = None, pad_side=0.025):
+def draw_strip_group(x0, y0, num_strips, length, pitch, pad_pos=None, pad_side=0.025,
+    bidimensional=False):
     """
     """
     fmt = dict(lw=0.75, color='black')
@@ -192,6 +193,8 @@ def draw_strip_group(x0, y0, num_strips, length, pitch, pad_pos = None, pad_side
     else:
         y = (y0, y0 - length)
     plt.vlines(np.linspace(*x, num_strips), *y, **fmt)
+    if bidimensional:
+        plt.hlines(np.linspace(*y, num_strips), *x, **fmt)
     if pad_pos is not None:
         xpad, ypad = pad_pos
         r = Rectangle(pad_pos, pad_side, pad_side, facecolor='black')
@@ -215,30 +218,44 @@ def test_gain_structures(strip_length=0.3, strip_padding=0.1, pad_padding=0.025)
     plt.figure('muGPD gain structures', figsize=(8., 8.))
     r = Rectangle((-side / 2., -side / 2.), side, side, facecolor='white')
     plt.gca().add_patch(r)
+    label_fmt = dict(ha='center', va='center', backgroundcolor='white', size='x-small',
+        bbox=dict(boxstyle='round,pad=0', fc='white', ec='none'))
     n = 64
     l = 0.9
     # 64 strips at nominal pitch, CENTERED and OFFSET configuration
     x0, y0 = -0.5 * side + strip_padding, -0.5 * side + strip_padding
     xpad, ypad = -0.5 * side + pad_padding, -0.5 * side + pad_padding
     draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad))
+    plt.text(x0 + n // 2 * strip_pitch, y0 + 0.5 * l, f'64 @ 43.3 um\ncenter\n({n * l:.0f} pF)', **label_fmt)
     x0 = 0.5 * side - strip_padding - n * strip_pitch
     xpad = 0.5 * side - 2. * pad_padding
     draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad))
+    plt.text(x0 + n // 2 * strip_pitch, y0 + 0.5 * l, f'64 @ 43.3 um\noffset\n({n * l:.0f} pF)', **label_fmt)
     # 32 strips at nominal pitch, CENTERED and OFFSET configuration
     n = 32
     l = side - 2. * strip_padding
     x0 = -0.2
     xpad = -0.5 * side + 2.5 * pad_padding
     draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad))
+    plt.text(x0 + n // 2 * strip_pitch, y0 + 0.5 * l, f'32 @ 43.3 um\ncenter\n({n * l:.0f} pF)', **label_fmt)
     x0 = -x0 - n * strip_pitch
     xpad = 0.5 * side - 3.5 * pad_padding
     draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad))
+    plt.text(x0 + n // 2 * strip_pitch, y0 + 0.5 * l, f'32 @ 43.3 um\noffset\n({n * l:.0f} pF)', **label_fmt)
     #
     n = 32
     l = 0.3
     x0, y0 = -0.5 * side + strip_padding, 0.5 * side - strip_padding
     xpad, ypad = -0.5 * side + pad_padding, 0.5 * side - 2. * pad_padding
     draw_strip_group(x0, y0, n, l, 2. * strip_pitch, (xpad, ypad))
+    plt.text(x0 + n * strip_pitch, y0 - 0.5 * l, f'32 @ 86.6 um\n({n * l:.0f} pF)', **label_fmt)
+    #
+    n = 64
+    l = 0.3
+    x0, y0 = 0.5 * side - strip_padding - n * strip_pitch, 0.5 * side - strip_padding
+    xpad, ypad = 0.5 * side - 2. * pad_padding, 0.5 * side - 2. * pad_padding
+    draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad), bidimensional=True)
+    plt.text(x0 + n // 2 * strip_pitch, y0 - 0.5 * l, f'2d structure', **label_fmt)
     # Setup the plot.
     plt.gca().set_aspect('equal')
     plt.gca().autoscale()
