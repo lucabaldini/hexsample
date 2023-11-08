@@ -26,12 +26,12 @@ from hexsample.plot import plt
 from hexsample.xpol import XPOL3_SIZE, XPOL_PITCH
 
 
-def display_mggpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitch : float = 50.,
+def display_mugpd(centered : bool, num_cols : int = 10, num_rows : int = 6, pitch : float = 50.,
     layout=HexagonalLayout.ODD_Q, al_width : float = 6., oxyde_width : float = 10.,
     al_thickness : float = 2., oxyde_thickness : float = 2.):
-    """Draw a sketch of the MGGPD.
+    """Draw a sketch of the muGPD.
     """
-    plt.figure(f'MGGPD {layout} centered = {centered}', figsize=(15., 9.))
+    plt.figure(f'mugpd {layout} centered = {centered}', figsize=(15., 9.))
     grid = HexagonalGrid(layout, num_cols, num_rows, pitch)
     display = HexagonalGridDisplay(grid)
     display.draw()
@@ -125,68 +125,66 @@ def test_exposed_dielectric():
     logger.info(f'Strip length: {strip_length} cm')
     logger.info(f'Active area: {active_area} cm^2')
     logger.info(f'GEM dielectric surface: {gem_hole_surface} cm^2 ({gem_hole_surface / active_area})')
-    logger.info(f'MGGPD dielectric surface: {mg_oxyde_surface} cm^2 ({mg_oxyde_surface / active_area})')
+    logger.info(f'muGPD dielectric surface: {mg_oxyde_surface} cm^2 ({mg_oxyde_surface / active_area})')
 
-def test_gain_structures(strip_length=0.3, padding=0.3, pad_side=0.025):
+def draw_strip_group(x0, y0, num_strips, length, pitch, pad_pos = None, pad_side=0.025):
+    """
+    """
+    fmt = dict(lw=0.75, color='black')
+    x = (x0, x0 + num_strips * pitch)
+    if y0 < 0:
+        y = (y0, y0 + length)
+    else:
+        y = (y0, y0 - length)
+    plt.vlines(np.linspace(*x, num_strips), *y, **fmt)
+    if pad_pos is not None:
+        xpad, ypad = pad_pos
+        r = Rectangle(pad_pos, pad_side, pad_side, facecolor='black')
+        plt.gca().add_patch(r)
+        xor = min(x) if xpad < min(x) else max(x)
+        yor = min(y) if ypad < min(y) else max(y)
+        plt.hlines(yor, min(x), max(x), **fmt)
+        if xpad > 0:
+            xpad += pad_side
+        if ypad > 0:
+            ypad += pad_side
+        plt.plot((xpad, xor), (ypad, yor), **fmt)
+
+def test_gain_structures(strip_length=0.3, strip_padding=0.1, pad_padding=0.025):
     """
     """
     pitch = XPOL_PITCH
     strip_pitch = pitch * np.sqrt(3.) / 2.
     num_cols, num_rows = XPOL3_SIZE
     side = num_cols * pitch
-    plt.figure('Gain structures', figsize=(8., 8.))
+    plt.figure('muGPD gain structures', figsize=(8., 8.))
     r = Rectangle((-side / 2., -side / 2.), side, side, facecolor='white')
     plt.gca().add_patch(r)
-    fmt = dict(lw=0.75, color='black')
-    # 64 strips at 43.3 um pitch
-    y0 = -0.5 * side + padding
-    x0 = -0.5 * side + padding
-    plt.text(x0 + 32 * strip_pitch, y0 + strip_length + 0.04, '64 strips at 43.3 $\mu$m pitch', size='x-small', ha='center', va='center')
-    x = (x0, x0 + 63 * strip_pitch)
-    y = (y0, y0 + strip_length)
-    plt.vlines(np.linspace(*x, 64), *y, **fmt)
-    plt.vlines(x, y0 - 0.01, y0 - 0.1, color='gray', lw=1.)
-    dx = (x[1] - x[0]) * 10
-    plt.text(0.5 * sum(x), y0 - 0.12, f'{dx:.2f} mm', ha='center', va='top')
-    plt.hlines(y, x0 - 0.01, x0 - 0.1, color='gray', lw=1.)
-    plt.text(x0 - 0.12, 0.5 * sum(y), f'{strip_length * 10:.2f} mm', ha='center', va='center')
-    r = Rectangle((-side / 2. + pad_side, -side / 2. + pad_side), pad_side, pad_side, facecolor='black')
-    plt.gca().add_patch(r)
-    plt.plot((-side / 2. + pad_side, x0), (-side / 2. + pad_side, y0), **fmt)
-    plt.plot(x, (y0, y0), **fmt)
-    # 32 strips at 43.3 um pitch
-    x0 = 0.5 * side - padding
-    plt.text(x0 - 16 * strip_pitch, y0 + strip_length + 0.04, '32 strips at 43.3 $\mu$m pitch', size='x-small', ha='center', va='center')
-    plt.vlines(np.linspace(x0, x0 - 31 * strip_pitch, 32), y0, y0 + strip_length, **fmt)
-    r = Rectangle((side / 2. - 2. * pad_side, -side / 2. + pad_side), pad_side, pad_side, facecolor='black')
-    plt.gca().add_patch(r)
-    plt.plot((side / 2. - 2. * pad_side, x0), (-side / 2. + 2. * pad_side, y0), **fmt)
-    plt.plot((x0, x0 - 31 * strip_pitch), (y0, y0), **fmt)
-    # 16 strips at 43.3 um pitch
-    #x0 = 0.05
-    #plt.vlines(np.linspace(x0, x0 + 15 * strip_pitch, 16), y0, y0 + strip_length, **fmt)
-    # 32 strips at 86.6 um pitch
-    y0 = 0.5 * side - padding
-    x0 = -0.5 * side + padding
-    plt.text(x0 + 32 * strip_pitch, y0 - strip_length - 0.04, '32 strips at 86.6 $\mu$m pitch', size='x-small', ha='center', va='center')
-    plt.vlines(np.linspace(x0, x0 + 63 * strip_pitch, 32), y0, y0 - strip_length, **fmt)
-    r = Rectangle((-side / 2. + pad_side, side / 2. - 2. * pad_side), pad_side, pad_side, facecolor='black')
-    plt.gca().add_patch(r)
-    plt.plot((-side / 2. + 2. * pad_side, x0), (side / 2. - 2. * pad_side, y0), **fmt)
-    plt.plot((x0, x0 + 63 * strip_pitch), (y0, y0), **fmt)
-    # 16 strips at 86.6 um pitch
-    x0 = 0.5 * side - padding
-    plt.text(x0 - 16 * strip_pitch, y0 - strip_length - 0.04, '16 strips at 86.6 $\mu$m pitch', size='x-small', ha='center', va='center')
-    plt.vlines(np.linspace(x0, x0 - 31 * strip_pitch, 16), y0, y0 - strip_length, **fmt)
-    r = Rectangle((side / 2. - 2. * pad_side, side / 2. - 2. * pad_side), pad_side, pad_side, facecolor='black')
-    plt.gca().add_patch(r)
-    plt.plot((side / 2. - 2. * pad_side, x0), (side / 2. - 2. * pad_side, y0), **fmt)
-    plt.plot((x0, x0 - 31 * strip_pitch), (y0, y0), **fmt)
-    # 16 strips at 86.6 um pitch
-    #x0 = 0.05
-    #plt.vlines(np.linspace(x0, x0 + 15 * strip_pitch, 8), y0, y0 - strip_length, **fmt)
-
-
+    n = 64
+    l = 0.9
+    # 64 strips at nominal pitch, CENTERED and OFFSET configuration
+    x0, y0 = -0.5 * side + strip_padding, -0.5 * side + strip_padding
+    xpad, ypad = -0.5 * side + pad_padding, -0.5 * side + pad_padding
+    draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad))
+    x0 = 0.5 * side - strip_padding - n * strip_pitch
+    xpad = 0.5 * side - 2. * pad_padding
+    draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad))
+    # 32 strips at nominal pitch, CENTERED and OFFSET configuration
+    n = 32
+    l = side - 2. * strip_padding
+    x0 = -0.2
+    xpad = -0.5 * side + 2.5 * pad_padding
+    draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad))
+    x0 = -x0 - n * strip_pitch
+    xpad = 0.5 * side - 3.5 * pad_padding
+    draw_strip_group(x0, y0, n, l, strip_pitch, (xpad, ypad))
+    #
+    n = 32
+    l = 0.3
+    x0, y0 = -0.5 * side + strip_padding, 0.5 * side - strip_padding
+    xpad, ypad = -0.5 * side + pad_padding, 0.5 * side - 2. * pad_padding
+    draw_strip_group(x0, y0, n, l, 2. * strip_pitch, (xpad, ypad))
+    # Setup the plot.
     plt.gca().set_aspect('equal')
     plt.gca().autoscale()
     plt.axis('off')
@@ -195,8 +193,8 @@ def test_gain_structures(strip_length=0.3, padding=0.3, pad_side=0.025):
 def test_display():
     """Display the two possible simplest arrangements.
     """
-    display_mggpd(True)
-    display_mggpd(False)
+    display_mugpd(True)
+    display_mugpd(False)
     test_exposed_dielectric()
 
 
