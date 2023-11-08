@@ -127,6 +127,71 @@ def test_exposed_dielectric():
     logger.info(f'GEM dielectric surface: {gem_hole_surface} cm^2 ({gem_hole_surface / active_area})')
     logger.info(f'MGGPD dielectric surface: {mg_oxyde_surface} cm^2 ({mg_oxyde_surface / active_area})')
 
+def test_gain_structures(strip_length=0.3, padding=0.3, pad_side=0.025):
+    """
+    """
+    pitch = XPOL_PITCH
+    strip_pitch = pitch * np.sqrt(3.) / 2.
+    num_cols, num_rows = XPOL3_SIZE
+    side = num_cols * pitch
+    plt.figure('Gain structures', figsize=(8., 8.))
+    r = Rectangle((-side / 2., -side / 2.), side, side, facecolor='white')
+    plt.gca().add_patch(r)
+    fmt = dict(lw=0.75, color='black')
+    # 64 strips at 43.3 um pitch
+    y0 = -0.5 * side + padding
+    x0 = -0.5 * side + padding
+    plt.text(x0 + 32 * strip_pitch, y0 + strip_length + 0.04, '64 strips at 43.3 $\mu$m pitch', size='x-small', ha='center', va='center')
+    x = (x0, x0 + 63 * strip_pitch)
+    y = (y0, y0 + strip_length)
+    plt.vlines(np.linspace(*x, 64), *y, **fmt)
+    plt.vlines(x, y0 - 0.01, y0 - 0.1, color='gray', lw=1.)
+    dx = (x[1] - x[0]) * 10
+    plt.text(0.5 * sum(x), y0 - 0.12, f'{dx:.2f} mm', ha='center', va='top')
+    plt.hlines(y, x0 - 0.01, x0 - 0.1, color='gray', lw=1.)
+    plt.text(x0 - 0.12, 0.5 * sum(y), f'{strip_length * 10:.2f} mm', ha='center', va='center')
+    r = Rectangle((-side / 2. + pad_side, -side / 2. + pad_side), pad_side, pad_side, facecolor='black')
+    plt.gca().add_patch(r)
+    plt.plot((-side / 2. + pad_side, x0), (-side / 2. + pad_side, y0), **fmt)
+    plt.plot(x, (y0, y0), **fmt)
+    # 32 strips at 43.3 um pitch
+    x0 = 0.5 * side - padding
+    plt.text(x0 - 16 * strip_pitch, y0 + strip_length + 0.04, '32 strips at 43.3 $\mu$m pitch', size='x-small', ha='center', va='center')
+    plt.vlines(np.linspace(x0, x0 - 31 * strip_pitch, 32), y0, y0 + strip_length, **fmt)
+    r = Rectangle((side / 2. - 2. * pad_side, -side / 2. + pad_side), pad_side, pad_side, facecolor='black')
+    plt.gca().add_patch(r)
+    plt.plot((side / 2. - 2. * pad_side, x0), (-side / 2. + 2. * pad_side, y0), **fmt)
+    plt.plot((x0, x0 - 31 * strip_pitch), (y0, y0), **fmt)
+    # 16 strips at 43.3 um pitch
+    #x0 = 0.05
+    #plt.vlines(np.linspace(x0, x0 + 15 * strip_pitch, 16), y0, y0 + strip_length, **fmt)
+    # 32 strips at 86.6 um pitch
+    y0 = 0.5 * side - padding
+    x0 = -0.5 * side + padding
+    plt.text(x0 + 32 * strip_pitch, y0 - strip_length - 0.04, '32 strips at 86.6 $\mu$m pitch', size='x-small', ha='center', va='center')
+    plt.vlines(np.linspace(x0, x0 + 63 * strip_pitch, 32), y0, y0 - strip_length, **fmt)
+    r = Rectangle((-side / 2. + pad_side, side / 2. - 2. * pad_side), pad_side, pad_side, facecolor='black')
+    plt.gca().add_patch(r)
+    plt.plot((-side / 2. + 2. * pad_side, x0), (side / 2. - 2. * pad_side, y0), **fmt)
+    plt.plot((x0, x0 + 63 * strip_pitch), (y0, y0), **fmt)
+    # 16 strips at 86.6 um pitch
+    x0 = 0.5 * side - padding
+    plt.text(x0 - 16 * strip_pitch, y0 - strip_length - 0.04, '16 strips at 86.6 $\mu$m pitch', size='x-small', ha='center', va='center')
+    plt.vlines(np.linspace(x0, x0 - 31 * strip_pitch, 16), y0, y0 - strip_length, **fmt)
+    r = Rectangle((side / 2. - 2. * pad_side, side / 2. - 2. * pad_side), pad_side, pad_side, facecolor='black')
+    plt.gca().add_patch(r)
+    plt.plot((side / 2. - 2. * pad_side, x0), (side / 2. - 2. * pad_side, y0), **fmt)
+    plt.plot((x0, x0 - 31 * strip_pitch), (y0, y0), **fmt)
+    # 16 strips at 86.6 um pitch
+    #x0 = 0.05
+    #plt.vlines(np.linspace(x0, x0 + 15 * strip_pitch, 8), y0, y0 - strip_length, **fmt)
+
+
+    plt.gca().set_aspect('equal')
+    plt.gca().autoscale()
+    plt.axis('off')
+
+
 def test_display():
     """Display the two possible simplest arrangements.
     """
@@ -135,7 +200,7 @@ def test_display():
     test_exposed_dielectric()
 
 
-
 if __name__ == '__main__':
     test_display()
+    test_gain_structures()
     plt.show()
