@@ -307,6 +307,53 @@ def display_process(num_strips=3, al_width=6., oxide_width=10.):
         plt.gca().add_patch(s)
     plt.savefig('mugp_process_5.pdf')
 
+def display_strip_design():
+    """
+    """
+    plt.figure('Strip design', figsize=(8., 5.))
+    pitch = XPOL_PITCH
+    strip_pitch = 10000. * pitch * np.sqrt(3.) / 2.
+    chip_top_thickness = 0.5
+    oxide_thickness = 2.
+    oxide_width = 10.
+    al_thickness = 2.
+    al_width = 6.
+    side = 20.
+    top_layer = Rectangle((0., 0.), side, chip_top_thickness, facecolor='black')
+    plt.gca().add_patch(top_layer)
+    x, y = 0.5 * (side - oxide_width), chip_top_thickness
+    oxide = Rectangle((x, y), oxide_width, oxide_thickness, facecolor='white')
+    plt.gca().add_patch(oxide)
+    plt.text(x + 0.5 * oxide_width, y + 0.5 * oxide_thickness, 'Oxide', ha='center', va='center')
+    x, y = 0.5 * (side - al_width), chip_top_thickness + oxide_thickness
+    al = Rectangle((x, y), al_width, al_thickness, facecolor='black')
+    plt.gca().add_patch(al)
+    plt.text(x + 0.5 * al_width, y + 0.5 * al_thickness, 'Al', color='white', ha='center', va='center')
+    ytop = y + al_thickness
+    plt.vlines((x, x + al_width), ytop + 0.5, ytop + 3., color='gray', lw=1.)
+    plt.text(x + 0.5 * al_width, ytop + 3., f'{al_width:.1f} $\mu$m', ha='center', va='top')
+    plt.hlines((y, ytop), x + 0.85 * oxide_width, 20, color='gray', lw=1.)
+    plt.text(18., y + 0.5 * al_thickness, f'{al_thickness:.1f} $\mu$m', ha='left', va='center')
+    plt.text(18., y - 0.5 * oxide_thickness, f'{oxide_thickness:.1f} $\mu$m', ha='left', va='center')
+    offset = -10.
+    oxide_width = al_width
+    oxide_thickness = 3.
+    top_layer = Rectangle((0., offset), side, chip_top_thickness, facecolor='black')
+    plt.gca().add_patch(top_layer)
+    x, y = 0.5 * (side - oxide_width), offset + chip_top_thickness
+    oxide = Rectangle((x, y), oxide_width, oxide_thickness, facecolor='white')
+    plt.gca().add_patch(oxide)
+    plt.text(x + 0.5 * oxide_width, y + 0.5 * oxide_thickness, 'Oxide', ha='center', va='center')
+    x, y = 0.5 * (side - al_width), offset + chip_top_thickness + oxide_thickness
+    al = Rectangle((x, y), al_width, al_thickness, facecolor='black')
+    plt.gca().add_patch(al)
+    plt.text(x + 0.5 * al_width, y + 0.5 * al_thickness, 'Al', color='white', ha='center', va='center')
+    plt.hlines((y, y + al_thickness), x + 1.1 * oxide_width, 20, color='gray', lw=1.)
+    plt.text(18., y + 0.5 * al_thickness, f'{al_thickness:.1f} $\mu$m', ha='left', va='center')
+    plt.text(18., y - 0.5 * oxide_thickness, f'{oxide_thickness:.1f} $\mu$m', ha='left', va='center')
+    plt.gca().set_aspect('equal')
+    plt.axis('off')
+    plt.gca().autoscale()
 
 
 def test_display():
@@ -318,6 +365,7 @@ def test_display():
     display_mugpd2d()
     test_exposed_dielectric()
     display_process()
+    display_strip_design()
 
 
 
