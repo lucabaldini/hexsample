@@ -261,45 +261,49 @@ def test_gain_structures(strip_length=0.3, strip_padding=0.1, pad_padding=0.025)
     plt.gca().autoscale()
     plt.axis('off')
 
-def display_process():
+def display_process(num_strips=3, al_width=6., oxide_width=10.):
     """Sketch the process.
     """
     pitch = XPOL_PITCH
     strip_pitch = 10000. * pitch * np.sqrt(3.) / 2.
-    side = 4. * strip_pitch
+    side = num_strips * strip_pitch
     bulk_thickness = 20.
-    chip_top_thickness = 0.5
-    oxide_thickness = 2.
-    al_thickness = 2.
-    plt.figure('muGPD process', figsize=(12., 2.))
+    chip_top_thickness = 1.
+    oxide_thickness = 3.
+    al_thickness = 3.
+    text_fmt = dict(va='center', size='small')
+    plt.figure('muGPD process', figsize=(11., 2.))
     plt.gca().set_aspect('equal')
     plt.axis('off')
     bulk = Rectangle((0., -bulk_thickness), side, bulk_thickness, facecolor='white', hatch='//')
     plt.gca().add_patch(bulk)
     top_layer = Rectangle((0., 0.), side, chip_top_thickness, facecolor='black')
     plt.gca().add_patch(top_layer)
+    y = 0.5 * chip_top_thickness
+    plt.text(num_strips * strip_pitch, y, ' ASIC top layer', ha='left', **text_fmt)
     plt.gca().autoscale()
     plt.savefig('mugp_process_1.pdf')
-
     oxide = Rectangle((0., chip_top_thickness), side, oxide_thickness, facecolor='white')
     plt.gca().add_patch(oxide)
+    y = chip_top_thickness + 0.5 * oxide_thickness
+    plt.text(0., y, 'Oxide ', ha='right', **text_fmt)
     plt.savefig('mugp_process_2.pdf')
-
     y = chip_top_thickness + oxide_thickness
     strip = Rectangle((0., y), side, al_thickness, facecolor='black')
     plt.gca().add_patch(strip)
+    y = chip_top_thickness + oxide_thickness + 0.5 * al_thickness
+    plt.text(0., y, 'Metal ', ha='right', **text_fmt)
     plt.savefig('mugp_process_3.pdf')
-
     strip.remove()
-    for i in range(4):
-        s = Rectangle(((i + 0.5) * strip_pitch, y), 5., al_thickness, facecolor='black')
+    y = chip_top_thickness + oxide_thickness
+    for i in range(num_strips):
+        s = Rectangle(((i + 0.5) * strip_pitch, y), al_width, al_thickness, facecolor='black')
         plt.gca().add_patch(s)
     plt.savefig('mugp_process_4.pdf')
-
     oxide.remove()
     y -= al_thickness
-    for i in range(4):
-        s = Rectangle(((i + 0.5) * strip_pitch, y), 5., al_thickness, facecolor='white')
+    for i in range(num_strips):
+        s = Rectangle(((i + 0.5) * strip_pitch - 0.5 * (oxide_width - al_width), y), oxide_width, oxide_thickness, facecolor='white')
         plt.gca().add_patch(s)
     plt.savefig('mugp_process_5.pdf')
 
@@ -308,13 +312,15 @@ def display_process():
 def test_display():
     """Display the two possible simplest arrangements.
     """
+    test_gain_structures()
     display_mugpd(True)
     display_mugpd(False)
     display_mugpd2d()
     test_exposed_dielectric()
     display_process()
 
+
+
 if __name__ == '__main__':
     test_display()
-    test_gain_structures()
     plt.show()
