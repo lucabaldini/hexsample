@@ -32,6 +32,7 @@ from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian
 from hexsample.plot import plt
 from hexsample.analysis import pha_analysis
+from hexsample.analysis import hist_for_parameter, hist_fit, hxthickenc
 
 
 __description__ = \
@@ -46,11 +47,19 @@ HXVIEW_ARGPARSER.add_infile()
 def hxview(**kwargs):
     """View the file content.
     """
-    
     input_file = ReconInputFile(kwargs['infile'])
-    h_cluster_size,h_energy_tot = pha_analysis(input_file)
+    h_cluster_size = hist_for_parameter(input_file, 'cluster_size', 10)
+    h_energy_tot = hist_for_parameter(input_file, 'energy', 100)
+    plt.figure('Cluster size')
+    h_cluster_size.plot()
+
+    plt.figure('Energy')
+    plt.xlabel('Energy')
+    h_energy_tot.plot()
     input_file.close()
     plt.show()
+
+    
 
 
 if __name__ == '__main__':
