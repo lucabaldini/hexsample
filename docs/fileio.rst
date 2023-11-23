@@ -61,6 +61,17 @@ ground truth information for the event.
    :pyobject: MonteCarloDescription
 
 
+Reconstructed data
+------------------
+
+Reconstructed files contain all the reconstruction output, that is: all the quantities
+in the underlying digi file that are relevant for science analysis (i.e., timestamp
+and ROI size), and all the additional quantities that are calculated as part of
+the standard reconstruction (i.e., energy and position).
+
+.. literalinclude:: ../hexsample/fileio.py
+   :pyobject: ReconDescription
+
 
 
 Module documentation
