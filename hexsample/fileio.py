@@ -407,6 +407,16 @@ class DigiInputFile(InputFileBase):
         self.mc_table = self.root.mc.mc_table
         self.__index = -1
 
+    def column(self, name : str) -> np.ndarray:
+        """Return a given column in the digi table.
+        """
+        return self.digi_table.col(name)
+
+    def mc_column(self, name : str) -> np.ndarray:
+        """Return a given column in the Monte Carlo table.
+        """
+        return self.mc_table.col(name)
+
     def digi_event(self, row_index : int) -> DigiEvent:
         """Random access to the DigiEvent part of the event contribution.
 
@@ -459,7 +469,7 @@ class ReconInputFile(InputFileBase):
         self.recon_table = self.root.recon.recon_table
         self.mc_table = self.root.mc.mc_table
 
-    def recon_column(self, name : str) -> np.ndarray:
+    def column(self, name : str) -> np.ndarray:
         """Return a given column in the recon table.
         """
         return self.recon_table.col(name)
