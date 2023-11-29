@@ -15,9 +15,11 @@
 
 """Test suite for hexsample.analysis
 """
+import numpy as np
 
-from hexsample.analysis import create_histogram
+from hexsample.analysis import create_histogram, fit_histogram
 from hexsample.fileio import DigiInputFile, ReconInputFile
+from hexsample.modeling import Gaussian
 from hexsample.pipeline import hxsim, hxrecon
 from hexsample.plot import plt
 
@@ -38,9 +40,31 @@ def test_histograms(num_events : int = 1000):
     energy = recon_file.column('energy')
     mask = energy < 8500
     hist = create_histogram(recon_file, 'energy', mask=mask)
+    recon_file.close()
+    digi_file.close()
     hist.plot()
 
+    #Is it fine to test the fit inside test_histograms or is better to create another test?
+
+def test_fit_histogram(num_events : int = 1000):
+    """
+    """
+    digi_file_path = hxsim(numevents=num_events)
+    recon_file_path = hxrecon(infile=digi_file_path)
+    digi_file = DigiInputFile(digi_file_path)
+    recon_file = ReconInputFile(recon_file_path)
+    hist = create_histogram(recon_file, 'energy')
+    plt.figure('Fitted energy - DoubleGaussian')
+    fitstatus = fit_histogram(hist, show_figure = True)
+    energy = recon_file.column('energy')
+    mask = energy < 8500
+    hist = create_histogram(recon_file, 'energy', mask=mask)
+    fitstatus = fit_histogram(hist, fit_model=Gaussian, p0=np.array([1., 8000., 150.]), show_figure = False)
+    print(f'A second fit has been done with a Gaussian FitModelBase but not plotted. Parameters are: \n{fitstatus}')
+    recon_file.close()
+    digi_file.close()
 
 if __name__ == '__main__':
     test_histograms()
+    test_fit_histogram()
     plt.show()
