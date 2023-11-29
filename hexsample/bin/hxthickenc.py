@@ -31,10 +31,8 @@ from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian, DoubleGaussian
 from hexsample.plot import plt
-from hexsample.analysis import pha_analysis
-from hexsample.analysis import hist_for_parameter
-from hexsample.analysis import hist_fit
-from hexsample.analysis import overlapped_pcolormeshes
+from hexsample.analysis import create_histogram, fit_histogram, double_heatmap
+
 
 
 __description__ = \
@@ -48,81 +46,76 @@ __description__ = \
     
 """
 
-
 # Parser object.
 HXTHICKENC_ARGPARSER = ArgumentParser(description=__description__)
-#HXTHICKENC_ARGPARSER.add_infile()
 
-def hxthickenc(**kwargs):
-    # Defining the interesting thicknesses and encs to look at. 
-    #thickness=np.array([200])
-    #enc=np.array([0])
-    thickness = np.array([50,100,200,300,500])
-    enc = np.array([0,10,20,30,40])
+def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
+    """Opens files, creates histograms, fits them and create figures of some relevant 
+        quantities. 
+
+        Arguments
+        ---------
+        thickness : np.array
+            An array containing the thickness values to span
+        enc : np.array
+            An array containing the enc values to span
+    """
     # Defining arrays where results are contained for all the thick-enc combinations,
     # one for K_alpha (Ka), one for K_beta (Kb).
     # Two arrays: one without cuts on px number, one for 1px events.
     params_matrix = np.empty((len(thickness),len(enc)), dtype=object)
     params_matrix_1px = np.empty((len(thickness),len(enc)), dtype=object)
-    #Defining matrix for saving sigma of fit
-    sigmas_ka = np.empty((len(thickness),len(enc)))
-    sigmas_ka_1px = np.empty((len(thickness),len(enc)))
-    sigmas_kb = np.empty((len(thickness),len(enc)))
-    sigmas_kb_1px = np.empty((len(thickness),len(enc)))
-    #Defining matrix for savign means of fit
-    mean_energy_ka = np.empty((len(thickness),len(enc)))
-    mean_energy_ka_1px = np.empty((len(thickness),len(enc)))
-    mean_energy_kb = np.empty((len(thickness),len(enc)))
-    mean_energy_kb_1px = np.empty((len(thickness),len(enc)))
+    #Defining matrix for saving sigma of fit. 3-dimensional bc every element is a matrix.
+    #One for alpha peak fit params, one for beta peaks fit params. 
+    sigmas = np.empty((2,len(thickness),len(enc)))
+    sigmas_1px = np.empty((2,len(thickness),len(enc)))
+    #Defining matrix for saving means of fit
+    mean_energy = np.empty((2,len(thickness),len(enc)))
+    mean_energy_1px = np.empty((2,len(thickness),len(enc)))
 
+    #Opening file, fitting and filling matrices with fitted values
     for thick_idx, thick in np.ndenumerate(thickness):
         for e_idx, e in np.ndenumerate(enc):
             thr = 2 * e
             file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{e}enc_recon_nn2_thr{thr}.h5'
             recon_file = ReconInputFile(file_path)
-            energy_hist_all=hist_for_parameter(recon_file, 'energy', number_of_bins = 100)
-            energy_hist_1px=hist_for_parameter(recon_file, 'energy', max_number_of_pixels = 1, number_of_bins = 100)
-            fitted_model_all = hist_fit(energy_hist_all, DoubleGaussian, plot_figure=False)
+            #Constructing the 1px mask 
+            cluster_size = recon_file.column('cluster_size')
+            mask = cluster_size < 2
+            energy_hist = create_histogram(recon_file, 'energy', binning = 100)
+            energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
+            fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = False)
+            fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = True)
             #Check at which fit parameter is associated the mean of Ka and Kb
-            params_matrix[thick_idx][e_idx] = fitted_model_all
-            if fitted_model_all.parameter_value('mean0') < fitted_model_all.parameter_value('mean1'):
+            params_matrix[thick_idx][e_idx] = fitted_model
+            if fitted_model.parameter_value('mean0') < fitted_model.parameter_value('mean1'):
                 # Ka associated to index 0, Kb to index 1
                 # filling the matrix with the energy resolution
-                sigmas_ka[thick_idx][e_idx] = fitted_model_all.parameter_value('sigma0')
-                sigmas_kb[thick_idx][e_idx] = fitted_model_all.parameter_value('sigma1')
+                sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma0') #alpha peak
+                sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma1') #beta peak
+                # Redoing everything for the events with 1px
+                sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0') #alpha peak
+                sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1') #beta peak
                 # filling the matrix with the means
-                mean_energy_ka[thick_idx][e_idx] = fitted_model_all.parameter_value('mean0')
-                mean_energy_kb[thick_idx][e_idx] = fitted_model_all.parameter_value('mean1')
+                mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
+                mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
+                # Redoing everything for the events with 1px
+                mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
+                mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
             else:
                 # Kb associated to index 0, Ka to index 1
                 # filling the matrix with the energy resolution
-                sigmas_ka[thick_idx][e_idx] = fitted_model_all.parameter_value('sigma0')
-                sigmas_kb[thick_idx][e_idx] = fitted_model_all.parameter_value('sigma1')
+                sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma0')
+                sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma1')
+                # Redoing everything for the events with 1px
+                sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0')
+                sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1')
                 # filling the matrix with the means
-                mean_energy_ka[thick_idx][e_idx] = fitted_model_all.parameter_value('mean1')
-                mean_energy_kb[thick_idx][e_idx] = fitted_model_all.parameter_value('mean0')
-
-            # Redoing everything for the events with 1px
-
-            fitted_model_1px = hist_fit(energy_hist_1px, DoubleGaussian, plot_figure=False)
-            params_matrix_1px[thick_idx][e_idx] = fitted_model_1px
-            if fitted_model_1px.parameter_value('mean0') < fitted_model_1px.parameter_value('mean1'):
-                # Ka associated to index 0, Kb to index 1
-                # filling the matrix with the energy resolution
-                sigmas_ka_1px[thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0')
-                sigmas_kb_1px[thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1')
-                # filling the matrix with the means
-                mean_energy_ka_1px[thick_idx][e_idx] = fitted_model_all.parameter_value('mean0')
-                mean_energy_kb_1px[thick_idx][e_idx] = fitted_model_all.parameter_value('mean1')
-            else:
-                # Kb associated to index 0, Ka to index 1
-                # filling the matrix with the energy resolution
-                sigmas_ka_1px[thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0')
-                sigmas_kb_1px[thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1')
-                # filling the matrix with the means
-                mean_energy_ka_1px[thick_idx][e_idx] = fitted_model_all.parameter_value('mean1')
-                mean_energy_kb_1px[thick_idx][e_idx] = fitted_model_all.parameter_value('mean0')
-
+                mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
+                mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
+                # Redoing everything for the events with 1px
+                mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
+                mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
             
             recon_file.close()
     # After having saved the interesting quantities in arrays, analysis is performed.
@@ -130,14 +123,21 @@ def hxthickenc(**kwargs):
     mu_true_alpha = 8039.68
     mu_true_beta = 8903.57
     #constructing the metric for the shift of the mean
-    z_alpha = 1 - abs(mean_energy_ka-mu_true_alpha)/mu_true_alpha
-    z_beta = 1 - abs(mean_energy_kb-mu_true_beta)/mu_true_beta
+    mean_shift_ka = 1 - abs(mean_energy[0]-mu_true_alpha)/mu_true_alpha
+    mean_shift_kb = 1 - abs(mean_energy[0]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
-    res_en_ka = sigmas_ka/mean_energy_ka
-    res_en_kb = sigmas_kb/mean_energy_kb
+    energy_res_ka = sigmas[0]/mean_energy[0]
+    energy_res_kb = sigmas[1]/mean_energy[1]
+
+    #Repeating for the 1px quantities
+    mean_shift_ka_1px = 1 - abs(mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha
+    mean_shift_kb_1px = 1 - abs(mean_energy_1px[0]-mu_true_beta)/mu_true_beta
+    #constructing the energy resolution
+    energy_res_ka_1px = sigmas_1px[0]/mean_energy_1px[0]
+    energy_res_kb_1px = sigmas_1px[1]/mean_energy_1px[1]
 
     # Plotting the overlapped heatmaps and customizing them.
-    fig,ax = overlapped_pcolormeshes(enc, thickness, z_alpha.flatten(), z_beta.flatten())
+    fig,ax = double_heatmap(enc, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
     plt.title(r'$\Delta = 1-\frac{|\mu_{E}-E_{K}|}{E_{K}}$, as a function of detector thickness and readout noise')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
@@ -149,8 +149,31 @@ def hxthickenc(**kwargs):
         ticks = np.append(ticks, [r'$\alpha$',r'$\beta$'], axis=0)
     twin1.yaxis.set(ticks=np.arange(0.5, len(thickness)*2), ticklabels=ticks)
 
-    fig2,ax2 = overlapped_pcolormeshes(enc, thickness, res_en_ka.flatten(), res_en_kb.flatten())
+    fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka.flatten(), energy_res_kb.flatten())
     plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of detector thickness and readout noise')
+    plt.ylabel(r'Thickness $\mu$m')
+    plt.xlabel('Noise [ENC]')
+    # custom yticks. Setting a right yaxis 
+    twin1 = ax2.twinx()
+    twin1.set(ylim=(0, len(enc)*2))
+    twin1.yaxis.set(ticks=np.arange(0.5, len(thickness)*2), ticklabels=ticks)
+
+    #Repeating everything for 1px 
+    # Plotting the overlapped heatmaps and customizing them.
+    fig,ax = double_heatmap(enc, thickness, mean_shift_ka_1px.flatten(), mean_shift_kb_1px.flatten())
+    plt.title(r'$\Delta = 1-\frac{|\mu_{E}-E_{K}|}{E_{K}}$, as a function of detector thickness and readout noise for 1px tracks')
+    plt.ylabel(r'Thickness $\mu$m')
+    plt.xlabel('Noise [ENC]')
+    # custom yticks. Setting a right yaxis 
+    twin1 = ax.twinx()
+    twin1.set(ylim=(0, len(enc)*2))
+    ticks = []
+    for i in range (len(enc)):
+        ticks = np.append(ticks, [r'$\alpha$',r'$\beta$'], axis=0)
+    twin1.yaxis.set(ticks=np.arange(0.5, len(thickness)*2), ticklabels=ticks)
+
+    fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten())
+    plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of detector thickness and readout noise for 1px tracks')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
@@ -160,12 +183,8 @@ def hxthickenc(**kwargs):
 
 
 
-
-
-
-
-
     plt.show()
 
 if __name__ == '__main__':
-    hxthickenc(**vars(HXTHICKENC_ARGPARSER.parse_args()))
+    #hxthickenc(np.array([50,100,200,300,500]), np.array([0,10,20,30,40]), **vars(HXTHICKENC_ARGPARSER.parse_args()))
+    hxthickenc(np.array([300]), np.array([30]), **vars(HXTHICKENC_ARGPARSER.parse_args()))
