@@ -85,7 +85,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
             energy_hist = create_histogram(recon_file, 'energy', binning = 100)
             energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
             fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = False)
-            fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = True)
+            fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = False)
             #Check at which fit parameter is associated the mean of Ka and Kb
             params_matrix[thick_idx][e_idx] = fitted_model
             if fitted_model.parameter_value('mean0') < fitted_model.parameter_value('mean1'):
@@ -142,12 +142,15 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
+    len_yaxis = len(thickness)
+    len_yticks = len(thickness)*2
+    len_xticks = len(enc)
     twin1 = ax.twinx()
-    twin1.set(ylim=(0, len(enc)*2))
+    twin1.set(ylim=(0, len_yaxis))
     ticks = []
-    for i in range (len(enc)):
+    for i in range (len_yaxis):
         ticks = np.append(ticks, [r'$\alpha$',r'$\beta$'], axis=0)
-    twin1.yaxis.set(ticks=np.arange(0.5, len(thickness)*2), ticklabels=ticks)
+    twin1.yaxis.set(ticks=np.arange(0.5, len_yticks), ticklabels=ticks)
 
     fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka.flatten(), energy_res_kb.flatten())
     plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of detector thickness and readout noise')
@@ -155,8 +158,8 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
     twin1 = ax2.twinx()
-    twin1.set(ylim=(0, len(enc)*2))
-    twin1.yaxis.set(ticks=np.arange(0.5, len(thickness)*2), ticklabels=ticks)
+    twin1.set(ylim=(0, len_yaxis))
+    twin1.yaxis.set(ticks=np.arange(0.5, len_yticks), ticklabels=ticks)
 
     #Repeating everything for 1px 
     # Plotting the overlapped heatmaps and customizing them.
@@ -166,11 +169,11 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
     twin1 = ax.twinx()
-    twin1.set(ylim=(0, len(enc)*2))
+    twin1.set(ylim=(0, len_yaxis))
     ticks = []
-    for i in range (len(enc)):
+    for i in range (len_yaxis):
         ticks = np.append(ticks, [r'$\alpha$',r'$\beta$'], axis=0)
-    twin1.yaxis.set(ticks=np.arange(0.5, len(thickness)*2), ticklabels=ticks)
+    twin1.yaxis.set(ticks=np.arange(0.5, len_yticks), ticklabels=ticks)
 
     fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten())
     plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of detector thickness and readout noise for 1px tracks')
@@ -178,13 +181,18 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
     twin1 = ax2.twinx()
-    twin1.set(ylim=(0, len(enc)*2))
-    twin1.yaxis.set(ticks=np.arange(0.5, len(thickness)*2), ticklabels=ticks)
+    twin1.set(ylim=(0, len_yaxis))
+    twin1.yaxis.set(ticks=np.arange(0.5, len_yticks), ticklabels=ticks)
 
 
 
     plt.show()
 
 if __name__ == '__main__':
+    #Choosing values of enc and thickness from simulated ones. 
+    enc = np.array([20, 25, 30, 35, 40, 45, 50])
+    thickness = np.array([0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.055, 0.06])*(1e4)
+    #Turning array into ints for reading filename correctly
+    thickness = thickness.astype(int)
     #hxthickenc(np.array([50,100,200,300,500]), np.array([0,10,20,30,40]), **vars(HXTHICKENC_ARGPARSER.parse_args()))
-    hxthickenc(np.array([300]), np.array([30]), **vars(HXTHICKENC_ARGPARSER.parse_args()))
+    hxthickenc(thickness, enc, **vars(HXTHICKENC_ARGPARSER.parse_args()))
