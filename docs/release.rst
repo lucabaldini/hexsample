@@ -4,6 +4,12 @@ Release notes
 =============
 
 
+* Merging https://github.com/lucabaldini/hexsample/pull/42
+* New functions in the analysis module.
+* New ``scripts`` foldes, and first script to analyze the output of a
+  thickness-noise scan.
+
+
 *hexsample (0.7.0) - Wed, 25 Oct 2023 14:29:27 +0200*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/39
