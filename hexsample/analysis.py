@@ -89,9 +89,9 @@ def create_histogram(input_file : InputFileBase, column_name : str, mc : bool = 
         binning = np.linspace(values.min(), values.max(), binning)
     return Histogram1d(binning, xlabel=column_name).fill(values)
 
-def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian, 
-                  p0 : np.array = np.array([1., 8000., 150., 1., 8900., 150.]), 
-                  show_figure : bool = True) -> np.array:
+def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
+    p0 : np.array = np.array([1., 8000., 150., 1., 8900., 150.]),
+    show_figure : bool = True) -> np.array:
     """Fit an histogram given as argument.
 
     Arguments
@@ -104,19 +104,19 @@ def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
         The FitModelBase instance containing the model used for fitting the histogram.
         Default is DoubleGaussian.
     p0 : np.array
-        The array containing the initial parameters of the fit. It must have the same 
-        len() as the number of parameters of the FitModelBase used for the fit. 
-    plot_figure : bool 
+        The array containing the initial parameters of the fit. It must have the same
+        len() as the number of parameters of the FitModelBase used for the fit.
+    plot_figure : bool
         Bool that states if the figure containing the histogram and the best fit has
         to be shown.
-    
+
     Return
     ------
     model_status : FitModelStatus
         The FitModelStatus instance returned by fit routine.
     """
     model = fit_model()
-    model.fit_histogram(hist, p0=p0, xmin = hist.binning[0][0], xmax = hist.binning[0][-1])
+    model.fit_histogram(hist, p0=p0)
     if show_figure is True:
         hist.plot()
         model.plot()
@@ -124,12 +124,13 @@ def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
     return model.status
 
 def double_heatmap(column_vals : np.array, row_vals : np.array , heatmap_values1 : np.array, heatmap_values2 : np.array):
-    '''Creates a figure containing two different heatmaps (with the same size) constructed row by row. 
+    """Creates a figure containing two different heatmaps (with the same size)
+    constructed row by row.
 
-    Even rows (counting from 0) are the rows of the heatmap1 heatmap, odd rows are the rows of the 
-    heatmap2 heatmap. 
-    heatmap_values1 and heatmap_values2 must have the same size and share the same axes. 
-    The resulting figure will have the following dimensions: 2*len(row_vals) x len(column_vals). 
+    Even rows (counting from 0) are the rows of the heatmap1 heatmap, odd rows
+    are the rows of the heatmap2 heatmap.
+    heatmap_values1 and heatmap_values2 must have the same size and share the same axes.
+    The resulting figure will have the following dimensions: 2*len(row_vals) x len(column_vals).
 
     Arguments
     ---------
@@ -141,15 +142,15 @@ def double_heatmap(column_vals : np.array, row_vals : np.array , heatmap_values1
         A flatten array containing the values of every cell of the first heatmap.
     heatmap_values1 : np.array
         A flatten array containing the values of every cell of the second heatmap.
-    
+
     Return
     ------
     fig : matplotlib.figure.Figure
         Figure contaning the heatmap.
     ax : matplotlib.axes._axes.Axes
         Axes of fig.
-    '''
-    #Defining some useful quantities 
+    """
+    #Defining some useful quantities
     column_number = len(column_vals)
     row_number = len(row_vals)
     # Constructing first row of the matrix in order to use np.concatenate() on it.
@@ -186,4 +187,4 @@ def double_heatmap(column_vals : np.array, row_vals : np.array , heatmap_values1
     ax.yaxis.set(ticks=np.arange(1, row_number*2, 2), ticklabels=row_vals)
     fig.tight_layout()
     plt.colorbar() #plotting colorbar
-    return fig,ax
+    return fig, ax
