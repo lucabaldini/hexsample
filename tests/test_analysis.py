@@ -64,7 +64,9 @@ def test_fit_histogram(num_events : int = 1000):
     recon_file.close()
     digi_file.close()
 
+
+
 if __name__ == '__main__':
     test_histograms()
     test_fit_histogram()
-    #plt.show()
+    plt.show()
