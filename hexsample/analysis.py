@@ -123,7 +123,8 @@ def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
         model.stat_box()
     return model.status
 
-def double_heatmap(column_vals : np.array, row_vals : np.array , heatmap_values1 : np.array, heatmap_values2 : np.array):
+def double_heatmap(column_vals : np.array, row_vals : np.array , heatmap_values1 : np.array,
+    heatmap_values2 : np.array):
     """Creates a figure containing two different heatmaps (with the same size)
     constructed row by row.
 
