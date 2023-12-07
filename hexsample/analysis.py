@@ -20,15 +20,12 @@
 """Analysis facilities.
 """
 
-from typing import Optional, Tuple
-
-from matplotlib.colors import ListedColormap
 import numpy as np
 
-from hexsample.fileio import InputFileBase, DigiInputFile, ReconInputFile, FileType
+from hexsample.fileio import InputFileBase
 from hexsample.hist import Histogram1d
-from hexsample.modeling import FitStatus, FitModelBase, Gaussian, DoubleGaussian
-from hexsample.plot import plt, setup_gca
+from hexsample.modeling import FitModelBase, DoubleGaussian
+from hexsample.plot import plt
 
 
 
@@ -77,6 +74,7 @@ def create_histogram(input_file : InputFileBase, column_name : str, mc : bool = 
         An optional mask on the input values. The length of the mask must match
         that of the values in the input column.
     """
+    # pylint: disable=invalid-name
     if mc:
         values = input_file.mc_column(column_name)
     else:
@@ -115,6 +113,7 @@ def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
     model_status : FitModelStatus
         The FitModelStatus instance returned by fit routine.
     """
+    # pylint: disable=invalid-name
     model = fit_model()
     model.fit_histogram(hist, p0=p0)
     if show_figure is True:
@@ -123,8 +122,8 @@ def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
         model.stat_box()
     return model.status
 
-def double_heatmap(column_vals : np.array, row_vals : np.array , heatmap_values1 : np.array,
-    heatmap_values2 : np.array):
+def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: np.array,
+    heatmap_values2: np.array):
     """Creates a figure containing two different heatmaps (with the same size)
     constructed row by row.
 
@@ -151,25 +150,26 @@ def double_heatmap(column_vals : np.array, row_vals : np.array , heatmap_values1
     ax : matplotlib.axes._axes.Axes
         Axes of fig.
     """
+    # pylint: disable=invalid-name, too-many-locals
     #Defining some useful quantities
     column_number = len(column_vals)
     row_number = len(row_vals)
     # Constructing first row of the matrix in order to use np.concatenate() on it.
-    double_heatmap=np.array([heatmap_values1[0:column_number]])
+    heatmap = np.array([heatmap_values1[0:column_number]])
     # Constructing the right np.arange to loop over for constructing the matrix
     # row by row.
     idxes = np.arange(0,row_number)
-    # The matrix double_heatmap contains both heatmaps.
+    # The matrix heatmap contains both heatmaps.
     # Concatenating all rows.
     for i in idxes:
         slice_start = i*column_number
         slice_stop = (i+1)*column_number
         if i == 0:
             tmp = [heatmap_values2[slice_start:slice_stop]]
-            double_heatmap = np.concatenate((double_heatmap, tmp))
+            heatmap = np.concatenate((heatmap, tmp))
         else:
-            double_heatmap = np.concatenate((double_heatmap, [heatmap_values1[slice_start:slice_stop]]))
-            double_heatmap = np.concatenate((double_heatmap, [heatmap_values2[slice_start:slice_stop]]))
+            heatmap = np.concatenate((heatmap, [heatmap_values1[slice_start:slice_stop]]))
+            heatmap = np.concatenate((heatmap, [heatmap_values2[slice_start:slice_stop]]))
 
     #Creating the custom colormap (it is useful if it is needed to customize it)
     my_cmap = plt.cm.get_cmap('inferno')
@@ -177,12 +177,12 @@ def double_heatmap(column_vals : np.array, row_vals : np.array , heatmap_values1
     #Plotting the map and make it pretty
     fig = plt.figure()
     ax = plt.gca()
-    plt.pcolormesh(double_heatmap, cmap=my_cmap, edgecolors='k', linewidths=1, shading='flat')
+    plt.pcolormesh(heatmap, cmap=my_cmap, edgecolors='k', linewidths=1, shading='flat')
     # Loop over data dimensions and create text annotations.
-    for i in range(row_number*2):
+    fmt = dict(ha='center', va='center', color='b')
+    for i in range(row_number * 2):
         for j in range(column_number):
-            text = ax.text(j+0.5, i+0.5, "{:.4f}".format(double_heatmap[i, j]),
-                        ha="center", va="center", color="b")
+            ax.text(j + 0.5, i + 0.5, f'{heatmap[i, j]:.4f}', **fmt)
     # Shifting ticks on center
     ax.xaxis.set(ticks=np.arange(0.5, column_number), ticklabels=column_vals)
     ax.yaxis.set(ticks=np.arange(1, row_number*2, 2), ticklabels=row_vals)
