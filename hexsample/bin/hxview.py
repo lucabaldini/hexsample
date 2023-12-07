@@ -25,11 +25,14 @@
 import numpy as np
 
 from hexsample.app import ArgumentParser
-from hexsample.fitting import fit_histogram
+from hexsample.modeling import FitModelBase
+from hexsample.fitting import fit_gaussian_iterative
 from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian
 from hexsample.plot import plt
+from hexsample.analysis import pha_analysis
+from hexsample.analysis import hist_for_parameter, hist_fit, hxthickenc
 
 
 __description__ = \
@@ -45,27 +48,18 @@ def hxview(**kwargs):
     """View the file content.
     """
     input_file = ReconInputFile(kwargs['infile'])
-    rec_energy = input_file.recon_table.col('energy')
-    mc_energy = input_file.mc_table.col('energy')
-    cluster_size = input_file.recon_table.col('cluster_size')
-    plt.figure('Energy spectrum')
-    binning = np.linspace(rec_energy.min(), rec_energy.max(), 100)
-    h_rec = Histogram1d(binning).fill(rec_energy)
-    h_rec.plot()
-    model = Gaussian() + Gaussian()
-    #model = fit_histogram(GaussianLineForestCuK(), h_rec)
-    fit_histogram(model, h_rec, p0=(1., 8000., 150., 1., 8900., 150.))
-    model.plot()
-    model.stat_box()
-    #h_mc = Histogram1d(binning).fill(mc_energy)
-    #h_mc.plot()
+    h_cluster_size = hist_for_parameter(input_file, 'cluster_size', 10)
+    h_energy_tot = hist_for_parameter(input_file, 'energy', 100)
     plt.figure('Cluster size')
-    binning = np.linspace(-0.5, 5.5, 7)
-    h = Histogram1d(binning).fill(cluster_size)
-    h.plot()
+    h_cluster_size.plot()
+
+    plt.figure('Energy')
+    plt.xlabel('Energy')
+    h_energy_tot.plot()
     input_file.close()
     plt.show()
 
+    
 
 
 if __name__ == '__main__':

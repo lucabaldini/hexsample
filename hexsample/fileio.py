@@ -363,7 +363,12 @@ class InputFileBase(tables.File):
         logger.info(f'Opening input file {file_path}...')
         super().__init__(file_path, 'r')
         self.header = self._user_attributes(self.root.header)
-        self.file_type = FileType(self.header_value('filetype'))
+        # The try/except block is for backward compatibility with old files,
+        # but it should be removed at some point.
+        try:
+            self.file_type = FileType(self.header_value('filetype'))
+        except ValueError:
+            self.file_type = None
         logger.info(f'File type: {self.file_type}')
 
     @staticmethod
@@ -401,6 +406,16 @@ class DigiInputFile(InputFileBase):
         self.pha_array = self.root.digi.pha
         self.mc_table = self.root.mc.mc_table
         self.__index = -1
+
+    def column(self, name : str) -> np.ndarray:
+        """Return a given column in the digi table.
+        """
+        return self.digi_table.col(name)
+
+    def mc_column(self, name : str) -> np.ndarray:
+        """Return a given column in the Monte Carlo table.
+        """
+        return self.mc_table.col(name)
 
     def digi_event(self, row_index : int) -> DigiEvent:
         """Random access to the DigiEvent part of the event contribution.
@@ -453,6 +468,16 @@ class ReconInputFile(InputFileBase):
         self.digi_header = self._user_attributes(self.root.digi_header)
         self.recon_table = self.root.recon.recon_table
         self.mc_table = self.root.mc.mc_table
+
+    def column(self, name : str) -> np.ndarray:
+        """Return a given column in the recon table.
+        """
+        return self.recon_table.col(name)
+
+    def mc_column(self, name : str) -> np.ndarray:
+        """Return a given column in the Monte Carlo table.
+        """
+        return self.mc_table.col(name)
 
 
 
