@@ -4,6 +4,8 @@ Release notes
 =============
 
 
+*hexsample (0.8.0) - Thu, 07 Dec 2023 12:24:46 +0100*
+
 * Merging https://github.com/lucabaldini/hexsample/pull/42
 * New functions in the analysis module.
 * New ``scripts`` foldes, and first script to analyze the output of a
