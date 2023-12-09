@@ -28,9 +28,9 @@ from hexsample.pipeline import hxsim, hxrecon
 # Number of events to be generated for each configuration.
 NUM_EVENTS = 100000
 # Detector thickness grid in cm.
-THICKNESS = (0.005, 0.01, 0.02, 0.03, 0.05)
+THICKNESS = (0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05)
 # Equivalent noise charge grid in e.
-NOISE = (0, 10, 20, 30, 40)
+NOISE = (0, 10, 20, 25, 30, 35, 40)
 # Zero-suppression threshold, expressed in units of enc.
 SIGMA_THRESHOLD = 2.
 # Number of neighbors for the clustering.
