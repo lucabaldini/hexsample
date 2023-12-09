@@ -123,22 +123,22 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     mu_true_alpha = 8039.68
     mu_true_beta = 8903.57
     #constructing the metric for the shift of the mean
-    mean_shift_ka = 1 - abs(mean_energy[0]-mu_true_alpha)/mu_true_alpha
-    mean_shift_kb = 1 - abs(mean_energy[0]-mu_true_beta)/mu_true_beta
+    mean_shift_ka = abs(mean_energy[0]-mu_true_alpha)/mu_true_alpha
+    mean_shift_kb = abs(mean_energy[0]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
     energy_res_ka = sigmas[0]/mean_energy[0]
     energy_res_kb = sigmas[1]/mean_energy[1]
 
     #Repeating for the 1px quantities
-    mean_shift_ka_1px = 1 - abs(mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha
-    mean_shift_kb_1px = 1 - abs(mean_energy_1px[0]-mu_true_beta)/mu_true_beta
+    mean_shift_ka_1px = abs(mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha
+    mean_shift_kb_1px = abs(mean_energy_1px[0]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
     energy_res_ka_1px = sigmas_1px[0]/mean_energy_1px[0]
     energy_res_kb_1px = sigmas_1px[1]/mean_energy_1px[1]
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
-    plt.title(r'$\Delta = 1-\frac{|\mu_{E}-E_{K}|}{E_{K}}$, as a function of detector thickness and readout noise')
+    plt.title(r'$\Delta = \frac{|\mu_{E}-E_{K}|}{E_{K}}$, as a function of detector thickness and readout noise')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
@@ -150,7 +150,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     ticks = []
     for i in range (len_yaxis):
         ticks = np.append(ticks, [r'$\alpha$',r'$\beta$'], axis=0)
-    twin1.yaxis.set(ticks=np.arange(0.5, len_yticks), ticklabels=ticks)
+    twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
     fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka.flatten(), energy_res_kb.flatten())
     plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of detector thickness and readout noise')
@@ -159,12 +159,12 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     # custom yticks. Setting a right yaxis 
     twin1 = ax2.twinx()
     twin1.set(ylim=(0, len_yaxis))
-    twin1.yaxis.set(ticks=np.arange(0.5, len_yticks), ticklabels=ticks)
+    twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
     #Repeating everything for 1px 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka_1px.flatten(), mean_shift_kb_1px.flatten())
-    plt.title(r'$\Delta = 1-\frac{|\mu_{E}-E_{K}|}{E_{K}}$, as a function of detector thickness and readout noise for 1px tracks')
+    plt.title(r'$\Delta = \frac{|\mu_{E}-E_{K}|}{E_{K}}$, as a function of detector thickness and readout noise for 1px tracks')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
@@ -173,7 +173,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     ticks = []
     for i in range (len_yaxis):
         ticks = np.append(ticks, [r'$\alpha$',r'$\beta$'], axis=0)
-    twin1.yaxis.set(ticks=np.arange(0.5, len_yticks), ticklabels=ticks)
+    twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
     fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten())
     plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of detector thickness and readout noise for 1px tracks')
@@ -182,7 +182,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     # custom yticks. Setting a right yaxis 
     twin1 = ax2.twinx()
     twin1.set(ylim=(0, len_yaxis))
-    twin1.yaxis.set(ticks=np.arange(0.5, len_yticks), ticklabels=ticks)
+    twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
 
 
@@ -190,8 +190,8 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
 
 if __name__ == '__main__':
     #Choosing values of enc and thickness from simulated ones. 
-    enc = np.array([20, 25, 30, 35, 40, 45, 50])
-    thickness = np.array([0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.055, 0.06])*(1e4)
+    enc = np.array([0, 10, 20, 25, 30, 35, 40])
+    thickness = np.array([0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05])*(1e4)
     #Turning array into ints for reading filename correctly
     thickness = thickness.astype(int)
     #hxthickenc(np.array([50,100,200,300,500]), np.array([0,10,20,30,40]), **vars(HXTHICKENC_ARGPARSER.parse_args()))
