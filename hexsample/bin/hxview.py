@@ -31,8 +31,7 @@ from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian
 from hexsample.plot import plt
-from hexsample.analysis import pha_analysis
-from hexsample.analysis import hist_for_parameter, hist_fit, hxthickenc
+from hexsample.analysis import create_histogram, fit_histogram
 
 
 __description__ = \
@@ -42,20 +41,25 @@ __description__ = \
 # Parser object.
 HXVIEW_ARGPARSER = ArgumentParser(description=__description__)
 HXVIEW_ARGPARSER.add_infile()
+HXVIEW_ARGPARSER.add_argument("attribute", type=str, help='Attribute to be viewed.\
+                               To be taken from\ the following list: \
+                               trigger_id (int),  timestamp (float),  livetime (int)  \
+                               roi_size (int), energy (float), position (Tuple[float,float])\
+                               cluster_size (int), roi_size (int)')
+HXVIEW_ARGPARSER.add_argument("mc_table", type=bool, help='Tells if the quantities are in mc table')
 
 
 def hxview(**kwargs):
     """View the file content.
+       Shows histograms of energy and cluster_size. 
     """
     input_file = ReconInputFile(kwargs['infile'])
-    h_cluster_size = hist_for_parameter(input_file, 'cluster_size', 10)
-    h_energy_tot = hist_for_parameter(input_file, 'energy', 100)
-    plt.figure('Cluster size')
-    h_cluster_size.plot()
-
-    plt.figure('Energy')
-    plt.xlabel('Energy')
-    h_energy_tot.plot()
+    attribute = kwargs['attribute']
+    is_mc = kwargs['mc_table']
+    histo = create_histogram(input_file, attribute, mc = is_mc)
+    plt.figure()
+    histo.plot()
+    plt.xlabel(attribute)
     input_file.close()
     plt.show()
 
