@@ -90,32 +90,38 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
             params_matrix[thick_idx][e_idx] = fitted_model
             if fitted_model.parameter_value('mean0') < fitted_model.parameter_value('mean1'):
                 # Ka associated to index 0, Kb to index 1
-                # filling the matrix with the energy resolution
+                # filling the matrix with the sigma
                 sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma0') #alpha peak
                 sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma1') #beta peak
-                # Redoing everything for the events with 1px
-                sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0') #alpha peak
-                sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1') #beta peak
                 # filling the matrix with the means
                 mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
                 mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
-                # Redoing everything for the events with 1px
-                mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
-                mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
             else:
                 # Kb associated to index 0, Ka to index 1
-                # filling the matrix with the energy resolution
+                # filling the matrix with the sigma
                 sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma0')
                 sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma1')
-                # Redoing everything for the events with 1px
-                sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0')
-                sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1')
                 # filling the matrix with the means
                 mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
                 mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
-                # Redoing everything for the events with 1px
+
+            # Redoing everything for the events with 1px
+            if fitted_model_1px.parameter_value('mean0') < fitted_model_1px.parameter_value('mean1'):
+                #filling the matrix with the means
+                mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
+                mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
+                #filling the matrix with the sigma 
+                sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0') #alpha peak
+                sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1') #beta peak
+            else:
+                #filling the matrix with the means
                 mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
                 mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
+                #filling the matrix with the sigma
+                sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0')
+                sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1')
+
+            
             
             recon_file.close()
     # After having saved the interesting quantities in arrays, analysis is performed.
