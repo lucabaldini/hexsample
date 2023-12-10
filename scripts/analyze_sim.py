@@ -41,6 +41,7 @@ def analyze_sim(thickness : int, enc : int, **kwargs) -> None:
     #Creating histograms - for all evts and for only evts with 1px
     energy_hist = create_histogram(recon_file, 'energy', binning = 100)
     energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
+    print(f'The number of events is: {energy_hist.content.sum()}')
     plt.figure()
     fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = True)
     plt.title(fr'Energy histogram for t = {thickness} $\mu$m, ENC = {enc}')
@@ -52,6 +53,6 @@ def analyze_sim(thickness : int, enc : int, **kwargs) -> None:
 
 
 if __name__ == '__main__':
-    thickness = 300
-    enc = 25
+    thickness = 500
+    enc = 40
     analyze_sim(thickness, enc, **vars(ANALYZESIM_ARGPARSER.parse_args()))
