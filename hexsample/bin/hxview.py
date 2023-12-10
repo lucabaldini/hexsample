@@ -46,7 +46,8 @@ HXVIEW_ARGPARSER.add_argument("attribute", type=str, help='Attribute to be viewe
                                trigger_id (int),  timestamp (float),  livetime (int)  \
                                roi_size (int), energy (float), position (Tuple[float,float])\
                                cluster_size (int), roi_size (int)')
-HXVIEW_ARGPARSER.add_argument("mc_table", type=bool, help='Tells if the quantities are in mc table')
+HXVIEW_ARGPARSER.add_argument("mc_table", type=str, help='Tells if the quantities are in mc table\
+                              accepts True or False.')
 
 
 def hxview(**kwargs):
@@ -55,7 +56,8 @@ def hxview(**kwargs):
     """
     input_file = ReconInputFile(kwargs['infile'])
     attribute = kwargs['attribute']
-    is_mc = kwargs['mc_table']
+    is_mc = eval(kwargs['mc_table'])
+    print(is_mc)
     histo = create_histogram(input_file, attribute, mc = is_mc)
     plt.figure()
     histo.plot()
