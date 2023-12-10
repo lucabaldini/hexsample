@@ -47,9 +47,11 @@ __description__ = \
 """
 
 # Parser object.
-HXTHICKENC_ARGPARSER = ArgumentParser(description=__description__)
+ANALYZE_GRID_ARGPARSER = ArgumentParser(description=__description__)
+ANALYZE_GRID_ARGPARSER.add_argument('1px_ratio_correction', type=str, help='Tells if correcting the 1px evts\
+                                  with the ratio 1px_evts/tot_evts. Accepts True or False')
 
-def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
+def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
     """Opens files, creates histograms, fits them and create figures of some relevant 
         quantities. 
 
@@ -60,11 +62,14 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
         enc : np.array
             An array containing the enc values to span
     """
+    correct_1px_ratio = eval(kwargs['1px_ratio_correction'])
     # Defining arrays where results are contained for all the thick-enc combinations,
     # one for K_alpha (Ka), one for K_beta (Kb).
     # Two arrays: one without cuts on px number, one for 1px events.
     params_matrix = np.empty((len(thickness),len(enc)), dtype=object)
     params_matrix_1px = np.empty((len(thickness),len(enc)), dtype=object)
+    #Saving the relative ratio of 1px evts wrt tot evts
+    onepx_evts_ratio = np.ones((len(thickness),len(enc)))
     #Defining matrix for saving sigma of fit. 3-dimensional bc every element is a matrix.
     #One for alpha peak fit params, one for beta peaks fit params. 
     sigmas = np.empty((2,len(thickness),len(enc)))
@@ -72,6 +77,10 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     #Defining matrix for saving means of fit
     mean_energy = np.empty((2,len(thickness),len(enc)))
     mean_energy_1px = np.empty((2,len(thickness),len(enc)))
+
+    # Saving true energy values (coming from MC).
+    mu_true_alpha = 8039.68
+    mu_true_beta = 8903.57
 
     #Opening file, fitting and filling matrices with fitted values
     for thick_idx, thick in np.ndenumerate(thickness):
@@ -88,8 +97,9 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
             fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = False)
             #Check at which fit parameter is associated the mean of Ka and Kb
             params_matrix[thick_idx][e_idx] = fitted_model
+
             if fitted_model.parameter_value('mean0') < fitted_model.parameter_value('mean1'):
-                # Ka associated to index 0, Kb to index 1
+                # Standard indexing: Ka associated to index 0, Kb to index 1
                 # filling the matrix with the sigma
                 sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma0') #alpha peak
                 sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma1') #beta peak
@@ -97,7 +107,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
                 mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
                 mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
             else:
-                # Kb associated to index 0, Ka to index 1
+                # Swapped indexing: Kb associated to index 0, Ka to index 1
                 # filling the matrix with the sigma
                 sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma0')
                 sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma1')
@@ -107,6 +117,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
 
             # Redoing everything for the events with 1px
             if fitted_model_1px.parameter_value('mean0') < fitted_model_1px.parameter_value('mean1'):
+                # Standard indexing: Ka associated to index 0, Kb to index 1
                 #filling the matrix with the means
                 mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
                 mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
@@ -114,6 +125,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
                 sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0') #alpha peak
                 sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1') #beta peak
             else:
+                # Swapped indexing: Kb associated to index 0, Ka to index 1
                 #filling the matrix with the means
                 mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
                 mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
@@ -121,26 +133,25 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
                 sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0')
                 sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1')
 
-            
-            
+            #Saving the ratio of 1px wrt all evts if correction is required
+            if correct_1px_ratio is True:
+                onepx_evts_ratio[thick_idx][e_idx] = energy_hist_1px.content.sum()/energy_hist.content.sum()
             recon_file.close()
     # After having saved the interesting quantities in arrays, analysis is performed.
-    # Saving true energy values (coming from MC).
-    mu_true_alpha = 8039.68
-    mu_true_beta = 8903.57
     #constructing the metric for the shift of the mean
     mean_shift_ka = abs(mean_energy[0]-mu_true_alpha)/mu_true_alpha
-    mean_shift_kb = abs(mean_energy[0]-mu_true_beta)/mu_true_beta
+    mean_shift_kb = abs(mean_energy[1]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
     energy_res_ka = sigmas[0]/mean_energy[0]
     energy_res_kb = sigmas[1]/mean_energy[1]
 
     #Repeating for the 1px quantities
-    mean_shift_ka_1px = abs(mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha
-    mean_shift_kb_1px = abs(mean_energy_1px[0]-mu_true_beta)/mu_true_beta
+    mean_shift_ka_1px = (abs(mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)*onepx_evts_ratio
+    mean_shift_kb_1px = (abs(mean_energy_1px[1]-mu_true_beta)/mu_true_beta)*onepx_evts_ratio
+    print(onepx_evts_ratio)
     #constructing the energy resolution
-    energy_res_ka_1px = sigmas_1px[0]/mean_energy_1px[0]
-    energy_res_kb_1px = sigmas_1px[1]/mean_energy_1px[1]
+    energy_res_ka_1px = (sigmas_1px[0]/mean_energy_1px[0])*onepx_evts_ratio
+    energy_res_kb_1px = (sigmas_1px[1]/mean_energy_1px[1])*onepx_evts_ratio
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
@@ -170,7 +181,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     #Repeating everything for 1px 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka_1px.flatten(), mean_shift_kb_1px.flatten())
-    plt.title(r'$\Delta = \frac{|\mu_{E}-E_{K}|}{E_{K}}$, as a function of detector thickness and readout noise for 1px tracks')
+    plt.title(fr'$\Delta = \frac{{|\mu_{{E}}-E_{{K}}|}}{{E_{{K}}}}$, for 1px tracks, correction = {correct_1px_ratio}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
@@ -182,7 +193,7 @@ def hxthickenc(thickness : np.array, enc : np.array, **kwargs) -> None:
     twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
     fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten())
-    plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of detector thickness and readout noise for 1px tracks')
+    plt.title(fr'Energy resolution $\frac{{\sigma_{{E}}}}{{E}}$, for 1px tracks, correction = {correct_1px_ratio}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
@@ -201,4 +212,4 @@ if __name__ == '__main__':
     #Turning array into ints for reading filename correctly
     thickness = thickness.astype(int)
     #hxthickenc(np.array([50,100,200,300,500]), np.array([0,10,20,30,40]), **vars(HXTHICKENC_ARGPARSER.parse_args()))
-    hxthickenc(thickness, enc, **vars(HXTHICKENC_ARGPARSER.parse_args()))
+    analyze_grid(thickness, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
