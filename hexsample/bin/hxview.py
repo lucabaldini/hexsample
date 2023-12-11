@@ -21,17 +21,14 @@
 
 """Event file viewer.
 """
+from ast import literal_eval
 
 import numpy as np
 
 from hexsample.app import ArgumentParser
-from hexsample.modeling import FitModelBase
-from hexsample.fitting import fit_gaussian_iterative
-from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
-from hexsample.modeling import Gaussian
 from hexsample.plot import plt
-from hexsample.analysis import create_histogram, fit_histogram
+from hexsample.analysis import create_histogram
 
 
 __description__ = \
@@ -42,21 +39,20 @@ __description__ = \
 HXVIEW_ARGPARSER = ArgumentParser(description=__description__)
 HXVIEW_ARGPARSER.add_infile()
 HXVIEW_ARGPARSER.add_argument("attribute", type=str, help='Attribute to be viewed.\
-                               To be taken from\ the following list: \
+                               To be taken from\ the following list:\
                                trigger_id (int),  timestamp (float),  livetime (int)  \
                                roi_size (int), energy (float), position (Tuple[float,float])\
                                cluster_size (int), roi_size (int)')
 HXVIEW_ARGPARSER.add_argument("mc_table", type=str, help='Tells if the quantities are in mc table\
                               accepts True or False.')
 
-
 def hxview(**kwargs):
     """View the file content.
-       Shows histograms of energy and cluster_size. 
+    Shows histograms of energy and cluster_size. 
     """
     input_file = ReconInputFile(kwargs['infile'])
     attribute = kwargs['attribute']
-    is_mc = eval(kwargs['mc_table'])
+    is_mc = literal_eval(kwargs['mc_table'])
     print(is_mc)
     histo = create_histogram(input_file, attribute, mc = is_mc)
     plt.figure()
@@ -64,9 +60,6 @@ def hxview(**kwargs):
     plt.xlabel(attribute)
     input_file.close()
     plt.show()
-
-    
-
 
 if __name__ == '__main__':
     hxview(**vars(HXVIEW_ARGPARSER.parse_args()))

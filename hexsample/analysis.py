@@ -192,7 +192,7 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
 
 
 def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_values : np.array):
-    """Creates a figure containing an heatmap having in every cell printed the 
+    """Creates a figure containing an heatmap having in every cell printed the
     value of the cell itself.
 
     Arguments
@@ -220,16 +220,15 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_value
     row_number = len(row_vals)
     #Plotting the map and make it pretty
     fig = plt.figure()
-    ax = plt.gca()
+    axes = plt.gca()
     plt.pcolormesh(heatmap_values, cmap=my_cmap, edgecolors='k', linewidths=1, shading='flat')
     # Loop over data dimensions and create text annotations.
     fmt = dict(ha='center', va='center', color='b')
     for i in range(row_number):
         for j in range(column_number):
-            ax.text(j + 0.5, i + 0.5, f'{heatmap_values[i, j]:.4f}', **fmt)
-    ax.xaxis.set(ticks=np.arange(0.5, column_number), ticklabels=column_vals)
-    ax.yaxis.set(ticks=np.arange(0.5, row_number), ticklabels=row_vals)
+            axes.text(j + 0.5, i + 0.5, f'{heatmap_values[i, j]:.4f}', **fmt)
+    axes.xaxis.set(ticks=np.arange(0.5, column_number), ticklabels=column_vals)
+    axes.yaxis.set(ticks=np.arange(0.5, row_number), ticklabels=row_vals)
     fig.tight_layout()
     plt.colorbar() #plotting colorbar
-    return fig, ax
-
+    return fig, axes
