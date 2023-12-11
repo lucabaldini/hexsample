@@ -21,6 +21,7 @@
 
 """Event file viewer.
 """
+from ast import literal_eval
 
 import numpy as np
 
@@ -31,7 +32,7 @@ from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import Gaussian, DoubleGaussian
 from hexsample.plot import plt
-from hexsample.analysis import create_histogram, fit_histogram, double_heatmap
+from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, heatmap_with_labels
 
 
 
@@ -62,7 +63,8 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
         enc : np.array
             An array containing the enc values to span
     """
-    correct_1px_ratio = eval(kwargs['1px_ratio_correction'])
+    #Defining the grid pf correcting factors for 1px events. 
+    correct_1px_ratio = literal_eval(kwargs['1px_ratio_correction'])
     # Defining arrays where results are contained for all the thick-enc combinations,
     # one for K_alpha (Ka), one for K_beta (Kb).
     # Two arrays: one without cuts on px number, one for 1px events.
@@ -95,9 +97,11 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
             energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
             fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = False)
             fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = False)
-            #Check at which fit parameter is associated the mean of Ka and Kb
+            #Saving the matrix containing the whole FitStatus for further (optional) use
             params_matrix[thick_idx][e_idx] = fitted_model
+            params_matrix_1px[thick_idx][e_idx] = fitted_model_1px
 
+            #Filling the matrix of sigmas and means **warning: swap peaks issue
             if fitted_model.parameter_value('mean0') < fitted_model.parameter_value('mean1'):
                 # Standard indexing: Ka associated to index 0, Kb to index 1
                 # filling the matrix with the sigma
@@ -139,15 +143,15 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
             recon_file.close()
     # After having saved the interesting quantities in arrays, analysis is performed.
     #constructing the metric for the shift of the mean
-    mean_shift_ka = abs(mean_energy[0]-mu_true_alpha)/mu_true_alpha
-    mean_shift_kb = abs(mean_energy[1]-mu_true_beta)/mu_true_beta
+    mean_shift_ka = (mean_energy[0]-mu_true_alpha)/mu_true_alpha
+    mean_shift_kb = (mean_energy[1]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
     energy_res_ka = sigmas[0]/mean_energy[0]
     energy_res_kb = sigmas[1]/mean_energy[1]
 
     #Repeating for the 1px quantities
-    mean_shift_ka_1px = (abs(mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)*onepx_evts_ratio
-    mean_shift_kb_1px = (abs(mean_energy_1px[1]-mu_true_beta)/mu_true_beta)*onepx_evts_ratio
+    mean_shift_ka_1px = ((mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)*onepx_evts_ratio
+    mean_shift_kb_1px = ((mean_energy_1px[1]-mu_true_beta)/mu_true_beta)*onepx_evts_ratio
     print(onepx_evts_ratio)
     #constructing the energy resolution
     energy_res_ka_1px = (sigmas_1px[0]/mean_energy_1px[0])*onepx_evts_ratio
@@ -155,7 +159,7 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
-    plt.title(r'$\Delta = \frac{|\mu_{E}-E_{K}|}{E_{K}}$, as a function of detector thickness and readout noise')
+    plt.title(r'$\Delta = \frac{\mu_{E}-E_{K}}{E_{K}}$, as a function of detector thickness and readout noise')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
@@ -181,7 +185,7 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
     #Repeating everything for 1px 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka_1px.flatten(), mean_shift_kb_1px.flatten())
-    plt.title(fr'$\Delta = \frac{{|\mu_{{E}}-E_{{K}}|}}{{E_{{K}}}}$, for 1px tracks, correction = {correct_1px_ratio}')
+    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, for 1px tracks, correction = {correct_1px_ratio}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis 
@@ -201,7 +205,11 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
     twin1.set(ylim=(0, len_yaxis))
     twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
-
+    if correct_1px_ratio is True:
+        heatmap_with_labels(enc, thickness, onepx_evts_ratio)
+        plt.title(r'Fraction of events with 1 px on readout $f = \frac{n_{evts1px}}{n_{evts}}$')
+        plt.xlabel('Noise [ENC]')
+        plt.ylabel(r'thickness $\mu$m')
 
     plt.show()
 

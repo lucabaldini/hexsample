@@ -6,17 +6,14 @@
 
 """Event file viewer.
 """
-
+# pylint: disable=trailing-whitespace
 import numpy as np
 
 from hexsample.app import ArgumentParser
-from hexsample.modeling import FitModelBase
-from hexsample.fitting import fit_gaussian_iterative
-from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
-from hexsample.modeling import Gaussian, DoubleGaussian
+from hexsample.modeling import DoubleGaussian
 from hexsample.plot import plt
-from hexsample.analysis import create_histogram, fit_histogram, double_heatmap
+from hexsample.analysis import create_histogram, fit_histogram
 
 __description__ = \
 """ 
@@ -30,10 +27,19 @@ __description__ = \
 
 # Parser object.
 ANALYZESIM_ARGPARSER = ArgumentParser(description=__description__)
+def analyze_sim(thick : int, noise : int) -> None:
+    """Creates the energy histogram of all events for a certain thickness and enc
+    of detector and readout. 
 
-def analyze_sim(thickness : int, enc : int, **kwargs) -> None:
-    thr = 2 * enc
-    file_path = f'/Users/chiara/hexsampledata/sim_{thickness}um_{enc}enc_recon_nn2_thr{thr}.h5'
+    Arguments
+    ---------
+    - thick : int 
+        Thickness of silicon detector in mu m 
+    - noise : int
+        Noise og the detector readout in enc    
+    """
+    thr = 2 * noise
+    file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_recon_nn2_thr{thr}.h5'
     recon_file = ReconInputFile(file_path)
     #Constructing the 1px mask 
     cluster_size = recon_file.column('cluster_size')
@@ -43,16 +49,15 @@ def analyze_sim(thickness : int, enc : int, **kwargs) -> None:
     energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
     print(f'The number of events is: {energy_hist.content.sum()}')
     plt.figure()
-    fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = True)
-    plt.title(fr'Energy histogram for t = {thickness} $\mu$m, ENC = {enc}')
+    fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = False)
+    plt.title(fr'Energy histogram for t = {thick} $\mu$m, ENC = {noise} - 1px evts')
     plt.xlabel('Energy [eV]')
-    fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = False)
+    fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = True)
     recon_file.close()
 
     plt.show()
 
-
 if __name__ == '__main__':
-    thickness = 500
-    enc = 40
-    analyze_sim(thickness, enc, **vars(ANALYZESIM_ARGPARSER.parse_args()))
+    THICKNESS = 500
+    ENC = 40
+    analyze_sim(THICKNESS, ENC, **vars(ANALYZESIM_ARGPARSER.parse_args()))
