@@ -700,6 +700,28 @@ class DoubleGaussian(_DoubleGaussian):
         self.set_parameter('mean1', model['mean'])
         self.set_parameter('sigma1', model['sigma'])
 
+    def fit(self, *args, **kwargs):
+        """Overloaded fit method.
+
+        This is to ensure that, at the end of the fit, the order of the two gaussians
+        is fixed, i.e., the one with the smallest mean come first.
+        """
+        super().fit(*args, **kwargs)
+        if self.status.parameter_value('mean0') > self.status.parameter_value('mean1'):
+            logger.debug('Swapping parameter sets...')
+            # Note that we really need to make a full copy of the parameter
+            # vector and the associated covariance matrix for the thing to work.
+            popt = self.status.par_values.copy()
+            pcov = self.status.par_covariance.copy()
+            # Swap the parameter values.
+            self.status.par_values[0:3] = popt[3:6]
+            self.status.par_values[3:6] = popt[0:3]
+            # Swap the proper block in the covariance matrix.
+            self.status.par_covariance[0:3, 0:3] = pcov[3:6, 3:6]
+            self.status.par_covariance[3:6, 3:6] = pcov[0:3, 0:3]
+            self.status.par_covariance[0:3, 3:6] = pcov[3:6, 0:3]
+            self.status.par_covariance[3:6, 0:3] = pcov[0:3, 3:6]
+
 
 
 class PowerLaw(FitModelBase):
