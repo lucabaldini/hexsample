@@ -1,0 +1,1126 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hexsample.modeling — Fitting models &#8212; hexsample 0.8.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script src="_static/documentation_options.js?v=ec16d22d"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'modeling';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="hexsample.pprint — Pretty printing" href="pprint.html" />
+    <link rel="prev" title="hexsample.mc — Monte Carlo facilities" href="mc.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">hexsample 0.8.1 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="api.html">
+                        API
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="release.html">
+                        Release notes
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary" tabindex="0">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item">
+<nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="api.html">
+                        API
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="release.html">
+                        Release notes
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="analysis.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.analysis</span></code> — Analysis facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clustering.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.clustering</span></code> — Clustering facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="digi.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.digi</span></code> — Digitization facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.display</span></code> — Display facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fileio.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fileio</span></code> — Input/Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fitting.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fitting</span></code> — Advanced fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hexagon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.hexagon</span></code> — Hexagonal sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mc.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.mc</span></code> — Monte Carlo facilities</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.modeling</span></code> — Fitting models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pprint.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.pprint</span></code> — Pretty printing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.recon</span></code> — Event reconstruction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rng.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.rng</span></code> — Random numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roi.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.roi</span></code> — Region of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sensor.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.sensor</span></code> — Sensor active media</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.source</span></code> — X-ray sources</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="api.html" class="nav-link">API</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><code...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="hexsample-modeling-fitting-models">
+<h1><a class="reference internal" href="#module-hexsample.modeling" title="hexsample.modeling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.modeling</span></code></a> — Fitting models<a class="headerlink" href="#hexsample-modeling-fitting-models" title="Link to this heading">#</a></h1>
+<section id="module-hexsample.modeling">
+<span id="module-documentation"></span><h2>Module documentation<a class="headerlink" href="#module-hexsample.modeling" title="Link to this heading">#</a></h2>
+<p>Fit models.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">FitStatus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">par_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">par_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">par_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.modeling.FitStatus" title="Link to this definition">#</a></dt>
+<dd><p>Small container class holding the fit status.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>par_names</strong> (<em>tuple</em><em> of </em><em>strings</em>) – The names of the fit parameters.</p></li>
+<li><p><strong>par_values</strong> (<em>array_like</em>) – The initial values of the fit parameters. This must an iterable of the same
+length of the parameter names, and is converted to a numpy array in the
+constructor.</p></li>
+<li><p><strong>par_bounds</strong> (<em>tuple</em><em>, </em><em>optional</em>) – The initial bounds for the fit parameters. This is either None (in which ]
+case the bounds are assumed to be -np.inf–np.inf for all the fit parameters)
+or a 2-element tuple of iterables of the the same length of the parameter
+names expressing the minimum and maximum bound for each parameter.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus._process_bounds">
+<span class="sig-name descname"><span class="pre">_process_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">par_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus._process_bounds" title="Link to this definition">#</a></dt>
+<dd><p>Small utility functions to process the parameter bounds for later use.</p>
+<p>Verbatim from the scipy documentation, there are two ways to specify the bounds:</p>
+<ul class="simple">
+<li><p>Instance of Bounds class.</p></li>
+<li><p>2-tuple of array_like: Each element of the tuple must be either an array
+with the length equal to the number of parameters, or a scalar (in which
+case the bound is taken to be the same for all parameters). Use np.inf with
+an appropriate sign to disable bounds on all or some parameters.</p></li>
+</ul>
+<p>Since we want to keep track of the bounds and, possibly, change them,
+we turn all allowed possibilities, here, into a 2-tuple of numpy arrays.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus._index">
+<span class="sig-name descname"><span class="pre">_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">par_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus._index" title="Link to this definition">#</a></dt>
+<dd><p>Convenience method returning the index within the parameter vector
+for a given parameter name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus.parameter_value">
+<span class="sig-name descname"><span class="pre">parameter_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">par_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus.parameter_value" title="Link to this definition">#</a></dt>
+<dd><p>Return the parameter value for a given parameter indexed by name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>par_name</strong> (<em>str</em>) – The parameter name.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus.parameter_errors">
+<span class="sig-name descname"><span class="pre">parameter_errors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus.parameter_errors" title="Link to this definition">#</a></dt>
+<dd><p>Return the vector of parameter errors, that is, the square root of the
+diagonal elements of the covariance matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus.parameter_error">
+<span class="sig-name descname"><span class="pre">parameter_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">par_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus.parameter_error" title="Link to this definition">#</a></dt>
+<dd><p>Return the parameter error by name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>par_name</strong> (<em>str</em>) – The parameter name.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus.reduced_chisquare">
+<span class="sig-name descname"><span class="pre">reduced_chisquare</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus.reduced_chisquare" title="Link to this definition">#</a></dt>
+<dd><p>Return the reduced chisquare.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus.set_parameter_bounds">
+<span class="sig-name descname"><span class="pre">set_parameter_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">par_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus.set_parameter_bounds" title="Link to this definition">#</a></dt>
+<dd><p>Set the baounds for a given parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>par_name</strong> (<em>str</em>) – The parameter name.</p></li>
+<li><p><strong>min</strong> (<em>float</em>) – The minimum bound.</p></li>
+<li><p><strong>max</strong> (<em>float</em>) – The maximum bound.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus.set_parameter">
+<span class="sig-name descname"><span class="pre">set_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">par_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus.set_parameter" title="Link to this definition">#</a></dt>
+<dd><p>Set the value for a given parameter (indexed by name).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>par_name</strong> (<em>str</em>) – The parameter name.</p></li>
+<li><p><strong>value</strong> (<em>float</em>) – The parameter value.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitStatus.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">popt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pcov</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chisq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndof</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.FitStatus.update" title="Link to this definition">#</a></dt>
+<dd><p>Update the data structure after a fit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>popt</strong> (<em>array_like</em>) – The array of best-fit parameters from scipy.optimize.curve_fit().</p></li>
+<li><p><strong>pcov</strong> (<em>array_like</em>) – The covariance matrix of the paremeters from scipy.optimize.curve_fit().</p></li>
+<li><p><strong>chisq</strong> (<em>float</em>) – The value of the chisquare.</p></li>
+<li><p><strong>ndof</strong> (<em>int</em>) – The number of degrees of freedom from the fit.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">FitModelBase</span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase" title="Link to this definition">#</a></dt>
+<dd><p>Base class for a fittable model.</p>
+<blockquote>
+<div><p>The class features a number of static members that derived class should redefine
+as needed:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PAR_NAMES</span></code> is a list containing the names of the model parameters;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAR_DEFAULT_VALUES</span></code> is a list containing the default values
+of the model parameters;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAR_DEFAULT_BOUNDS</span></code> is a tuple containing the default values
+of the parameter bounds to be used for the fitting;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DEFAULT_RANGE</span></code> is a two-element list with the default support
+(x-axis range) for the model. (This is automatically updated at runtime
+depending on the input data when the model is used in a fit.)</p></li>
+</ul>
+</div></blockquote>
+<p>In addition, each derived class should override the following methods:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>the <code class="docutils literal notranslate"><span class="pre">eval(x,</span> <span class="pre">*args)</span></code> should return the value of the model at a given x
+for a given set of values of the underlying parameters;</p></li>
+<li><p>the <code class="docutils literal notranslate"><span class="pre">jacobian(x,</span> <span class="pre">*args)</span></code> method, if defined, is passed to the underlying
+fit engine allowing to reduce the number of function calls in the fit.</p></li>
+</ul>
+<p>Finally, if there is a sensible way to initialize the model parameters
+based on a set of input data, derived classes should overload the
+<code class="docutils literal notranslate"><span class="pre">init_parameters(xdata,</span> <span class="pre">ydata)</span></code> method of the base class, as the
+latter is called by fitting routines if no explicit array of initial values
+are passed as an argument. The default behavior of the class method defined
+in the base class is to do nothing.</p>
+<p>See <a class="reference internal" href="#hexsample.modeling.Gaussian" title="hexsample.modeling.Gaussian"><code class="xref py py-class docutils literal notranslate"><span class="pre">hexsample.modeling.Gaussian</span></code></a> for a working example.</p>
+</div></blockquote>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.PAR_NAMES">
+<span class="sig-name descname"><span class="pre">PAR_NAMES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hexsample.modeling.FitModelBase.PAR_NAMES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.PAR_DEFAULT_VALUES">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_VALUES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hexsample.modeling.FitModelBase.PAR_DEFAULT_VALUES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.PAR_DEFAULT_BOUNDS">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_BOUNDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hexsample.modeling.FitModelBase.PAR_DEFAULT_BOUNDS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.DEFAULT_RANGE">
+<span class="sig-name descname"><span class="pre">DEFAULT_RANGE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0.0,</span> <span class="pre">1.0)</span></em><a class="headerlink" href="#hexsample.modeling.FitModelBase.DEFAULT_RANGE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase.name" title="Link to this definition">#</a></dt>
+<dd><p>Return the model name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.set_parameter">
+<span class="sig-name descname"><span class="pre">set_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">par_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase.set_parameter" title="Link to this definition">#</a></dt>
+<dd><p>Convenience function to set the value for a given parameter in the
+underlying FitStatus object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.set_range">
+<span class="sig-name descname"><span class="pre">set_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase.set_range" title="Link to this definition">#</a></dt>
+<dd><p>Set the function range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xmin</strong> (<em>float</em>) – The minimum x-range value.</p></li>
+<li><p><strong>xmax</strong> (<em>float</em>) – The maximum x-range value.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">250</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase.plot" title="Link to this definition">#</a></dt>
+<dd><p>Plot the model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.stat_box">
+<span class="sig-name descname"><span class="pre">stat_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.95</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase.stat_box" title="Link to this definition">#</a></dt>
+<dd><p>Plot a stat box for the model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.eval">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">parameters</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase.eval" title="Link to this definition">#</a></dt>
+<dd><p>Eval the model at a given x and a given set of parameter values.</p>
+<p>This needs to be overloaded by any derived classes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.init_parameters">
+<span class="sig-name descname"><span class="pre">init_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase.init_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Assign a sensible set of values to the model parameters, based on a data
+set to be fitted.</p>
+<p>In the base class the method is not doing anything, but it can be reimplemented
+in derived classes to help make sure the fit converges without too much manual intervention.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xdata</strong> (<em>array_like</em>) – The x data.</p></li>
+<li><p><strong>ydata</strong> (<em>array_like</em>) – The y data.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">absolute_sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_finite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.modeling.FitModelBase.fit" title="Link to this definition">#</a></dt>
+<dd><p>Lightweight wrapper over the <code class="docutils literal notranslate"><span class="pre">scipy.optimize.curve_fit()</span></code> function
+to take advantage of the modeling facilities. More specifically, in addition
+to performing the actual fit, we update all the model parameters so that,
+after the fact, we do have a complete picture of the fit outcome.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">modeling.FitModelBase</span></code> instance callable) – The model function, f(x, …).  It must take the independent
+variable as the first argument and the parameters to fit as
+separate remaining arguments.</p></li>
+<li><p><strong>xdata</strong> (<em>array_like</em>) – The independent variable where the data is measured.</p></li>
+<li><p><strong>ydata</strong> (<em>array_like</em>) – The dependent data — nominally f(xdata, …)</p></li>
+<li><p><strong>p0</strong> (<em>None</em><em>, </em><em>scalar</em><em>, or </em><em>sequence</em><em>, </em><em>optional</em>) – Initial guess for the parameters. If None, then the initial
+values will all be 1.</p></li>
+<li><p><strong>sigma</strong> (<em>None</em><em> or </em><em>array_like</em><em>, </em><em>optional</em>) – Uncertainties in <cite>ydata</cite>. If None, all the uncertainties are set to
+1 and the fit becomes effectively unweighted.</p></li>
+<li><p><strong>xmin</strong> (<em>float</em>) – The minimum value for the input x-values.</p></li>
+<li><p><strong>xmax</strong> (<em>float</em>) – The maximum value for the input x-values.</p></li>
+<li><p><strong>absolute_sigma</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, <cite>sigma</cite> is used in an absolute sense and the estimated
+parameter covariance <cite>pcov</cite> reflects these absolute values.
+If False, only the relative magnitudes of the <cite>sigma</cite> values matter.
+The returned parameter covariance matrix <cite>pcov</cite> is based on scaling
+<cite>sigma</cite> by a constant factor. This constant is set by demanding that the
+reduced <cite>chisq</cite> for the optimal parameters <cite>popt</cite> when using the
+<em>scaled</em> <cite>sigma</cite> equals unity.</p></li>
+<li><p><strong>method</strong> (<em>{'lm'</em><em>, </em><em>'trf'</em><em>, </em><em>'dogbox'}</em><em>, </em><em>optional</em>) – Method to use for optimization.  See <cite>least_squares</cite> for more details.
+Default is ‘lm’ for unconstrained problems and ‘trf’ if <cite>bounds</cite> are
+provided. The method ‘lm’ won’t work when the number of observations
+is less than the number of variables, use ‘trf’ or ‘dogbox’ in this
+case.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – Print the model if True.</p></li>
+<li><p><strong>kwargs</strong> – Keyword arguments passed to <cite>leastsq</cite> for <code class="docutils literal notranslate"><span class="pre">method='lm'</span></code> or
+<cite>least_squares</cite> otherwise.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.fit_histogram">
+<span class="sig-name descname"><span class="pre">fit_histogram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">histogram</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Histogram1d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">absolute_sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_finite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.modeling.FitModelBase.fit_histogram" title="Link to this definition">#</a></dt>
+<dd><p>Fit a histogram to a given model.</p>
+<p>This is basically calling <code class="xref py py-meth docutils literal notranslate"><span class="pre">ixpeobssim.core.fitting.fit()</span></code> with some
+pre-processing to turn the histogram bin edges and content into
+x-y data. Particularly, the bin centers are taken as the independent
+data series, the bin contents are taken as the dependent data saries,
+and the square root of the counts as the Poisson error.</p>
+<p>For additional parameters look at the documentation of the
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">ixpeobssim.core.fitting.fit()</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">modeling.FitModelBase</span></code> instance or) – callable
+The fit model.</p></li>
+<li><p><strong>histogram</strong> (<em>ixpeHistogram1d instance</em>) – The histogram to be fitted.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase._merge_class_attributes">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_merge_class_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">components</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase._merge_class_attributes" title="Link to this definition">#</a></dt>
+<dd><p>Basic function to merge class attributes while summing models.</p>
+<p>This is heavily used in the model sum factory below, as it turns out that
+this is the besic signature that is needed to merge the class attributes
+when summing models.</p>
+<p>Note that we are not using the native Python <code class="docutils literal notranslate"><span class="pre">sum(*args,</span> <span class="pre">start=[])</span></code>, here,
+as it is not supported in Python 3.7.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.FitModelBase.model_sum_factory">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">model_sum_factory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">components</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="headerlink" href="#hexsample.modeling.FitModelBase.model_sum_factory" title="Link to this definition">#</a></dt>
+<dd><p>Class factory to sum class models.</p>
+<p>Here we have worked out the math to sum up an arbitrary number of model
+classes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.modeling.Constant">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">Constant</span></span><a class="headerlink" href="#hexsample.modeling.Constant" title="Link to this definition">#</a></dt>
+<dd><p>Constant model.</p>
+<div class="math notranslate nohighlight">
+\[f(x; C) = C\]</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Constant.PAR_NAMES">
+<span class="sig-name descname"><span class="pre">PAR_NAMES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('constant',)</span></em><a class="headerlink" href="#hexsample.modeling.Constant.PAR_NAMES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Constant.PAR_DEFAULT_VALUES">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_VALUES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1.0,)</span></em><a class="headerlink" href="#hexsample.modeling.Constant.PAR_DEFAULT_VALUES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Constant.eval">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.Constant.eval" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Constant.jacobian">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.Constant.jacobian" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Constant.init_parameters">
+<span class="sig-name descname"><span class="pre">init_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.Constant.init_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.modeling.Line">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">Line</span></span><a class="headerlink" href="#hexsample.modeling.Line" title="Link to this definition">#</a></dt>
+<dd><p>Straight-line model.</p>
+<div class="math notranslate nohighlight">
+\[f(x; m, q) = mx + q\]</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Line.PAR_NAMES">
+<span class="sig-name descname"><span class="pre">PAR_NAMES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('intercept',</span> <span class="pre">'slope')</span></em><a class="headerlink" href="#hexsample.modeling.Line.PAR_NAMES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Line.PAR_DEFAULT_VALUES">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_VALUES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1.0,</span> <span class="pre">1.0)</span></em><a class="headerlink" href="#hexsample.modeling.Line.PAR_DEFAULT_VALUES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Line.eval">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intercept</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.Line.eval" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Line.jacobian">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intercept</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.Line.jacobian" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">Gaussian</span></span><a class="headerlink" href="#hexsample.modeling.Gaussian" title="Link to this definition">#</a></dt>
+<dd><p>One-dimensional Gaussian model.</p>
+<div class="math notranslate nohighlight">
+\[f(x; N, \mu, \sigma) = N e^{-\frac{(x - \mu)^2}{2\sigma^2}}\]</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.PAR_NAMES">
+<span class="sig-name descname"><span class="pre">PAR_NAMES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('normalization',</span> <span class="pre">'mean',</span> <span class="pre">'sigma')</span></em><a class="headerlink" href="#hexsample.modeling.Gaussian.PAR_NAMES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.PAR_DEFAULT_VALUES">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_VALUES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1.0,</span> <span class="pre">0.0,</span> <span class="pre">1.0)</span></em><a class="headerlink" href="#hexsample.modeling.Gaussian.PAR_DEFAULT_VALUES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.PAR_DEFAULT_BOUNDS">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_BOUNDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">((0.0,</span> <span class="pre">-inf,</span> <span class="pre">0.0),</span> <span class="pre">(inf,</span> <span class="pre">inf,</span> <span class="pre">inf))</span></em><a class="headerlink" href="#hexsample.modeling.Gaussian.PAR_DEFAULT_BOUNDS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.DEFAULT_RANGE">
+<span class="sig-name descname"><span class="pre">DEFAULT_RANGE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(-5.0,</span> <span class="pre">5.0)</span></em><a class="headerlink" href="#hexsample.modeling.Gaussian.DEFAULT_RANGE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.SIGMA_TO_FWHM">
+<span class="sig-name descname"><span class="pre">SIGMA_TO_FWHM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.3548200450309493</span></em><a class="headerlink" href="#hexsample.modeling.Gaussian.SIGMA_TO_FWHM" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.eval">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.Gaussian.eval" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.jacobian">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.Gaussian.jacobian" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.init_parameters">
+<span class="sig-name descname"><span class="pre">init_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.Gaussian.init_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Gaussian.fwhm">
+<span class="sig-name descname"><span class="pre">fwhm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#hexsample.modeling.Gaussian.fwhm" title="Link to this definition">#</a></dt>
+<dd><p>Return the absolute FWHM of the model.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling._DoubleGaussian">
+<span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">_DoubleGaussian</span></span><a class="headerlink" href="#hexsample.modeling._DoubleGaussian" title="Link to this definition">#</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">_model</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.modeling.DoubleGaussian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">DoubleGaussian</span></span><a class="headerlink" href="#hexsample.modeling.DoubleGaussian" title="Link to this definition">#</a></dt>
+<dd><p>Implementation of a double gaussian.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.DoubleGaussian.init_parameters">
+<span class="sig-name descname"><span class="pre">init_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.DoubleGaussian.init_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.DoubleGaussian.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.modeling.DoubleGaussian.fit" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded fit method.</p>
+<p>This is to ensure that, at the end of the fit, the order of the two gaussians
+is fixed, i.e., the one with the smallest mean come first.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.modeling.PowerLaw">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">PowerLaw</span></span><a class="headerlink" href="#hexsample.modeling.PowerLaw" title="Link to this definition">#</a></dt>
+<dd><p>Power law model.</p>
+<div class="math notranslate nohighlight">
+\[f(x; N, \Gamma) = N x^\Gamma\]</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.PowerLaw.PAR_NAMES">
+<span class="sig-name descname"><span class="pre">PAR_NAMES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('normalization',</span> <span class="pre">'index')</span></em><a class="headerlink" href="#hexsample.modeling.PowerLaw.PAR_NAMES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.PowerLaw.PAR_DEFAULT_VALUES">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_VALUES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1.0,</span> <span class="pre">-1.0)</span></em><a class="headerlink" href="#hexsample.modeling.PowerLaw.PAR_DEFAULT_VALUES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.PowerLaw.PAR_DEFAULT_BOUNDS">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_BOUNDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">((0.0,</span> <span class="pre">-inf),</span> <span class="pre">(inf,</span> <span class="pre">inf))</span></em><a class="headerlink" href="#hexsample.modeling.PowerLaw.PAR_DEFAULT_BOUNDS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.PowerLaw.DEFAULT_RANGE">
+<span class="sig-name descname"><span class="pre">DEFAULT_RANGE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0.01,</span> <span class="pre">1.0)</span></em><a class="headerlink" href="#hexsample.modeling.PowerLaw.DEFAULT_RANGE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.PowerLaw.eval">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.PowerLaw.eval" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.PowerLaw.jacobian">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.PowerLaw.jacobian" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.modeling.Exponential">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.modeling.</span></span><span class="sig-name descname"><span class="pre">Exponential</span></span><a class="headerlink" href="#hexsample.modeling.Exponential" title="Link to this definition">#</a></dt>
+<dd><p>Exponential model.</p>
+<div class="math notranslate nohighlight">
+\[f(x; N, \lambda) = N e^{\frac{x}{\lambda}}\]</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Exponential.PAR_NAMES">
+<span class="sig-name descname"><span class="pre">PAR_NAMES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('normalization',</span> <span class="pre">'scale')</span></em><a class="headerlink" href="#hexsample.modeling.Exponential.PAR_NAMES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Exponential.PAR_DEFAULT_VALUES">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_VALUES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1.0,</span> <span class="pre">-1.0)</span></em><a class="headerlink" href="#hexsample.modeling.Exponential.PAR_DEFAULT_VALUES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.modeling.Exponential.PAR_DEFAULT_BOUNDS">
+<span class="sig-name descname"><span class="pre">PAR_DEFAULT_BOUNDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">((0.0,</span> <span class="pre">-inf),</span> <span class="pre">(inf,</span> <span class="pre">inf))</span></em><a class="headerlink" href="#hexsample.modeling.Exponential.PAR_DEFAULT_BOUNDS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Exponential.eval">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.Exponential.eval" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Exponential.jacobian">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.modeling.Exponential.jacobian" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.modeling.Exponential.init_parameters">
+<span class="sig-name descname"><span class="pre">init_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.modeling.Exponential.init_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="mc.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.mc</span></code> — Monte Carlo facilities</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="pprint.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.pprint</span></code> — Pretty printing</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-hexsample.modeling">Module documentation</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus"><code class="docutils literal notranslate"><span class="pre">FitStatus</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus._process_bounds"><code class="docutils literal notranslate"><span class="pre">FitStatus._process_bounds()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus._index"><code class="docutils literal notranslate"><span class="pre">FitStatus._index()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus.parameter_value"><code class="docutils literal notranslate"><span class="pre">FitStatus.parameter_value()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus.parameter_errors"><code class="docutils literal notranslate"><span class="pre">FitStatus.parameter_errors()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus.parameter_error"><code class="docutils literal notranslate"><span class="pre">FitStatus.parameter_error()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus.reduced_chisquare"><code class="docutils literal notranslate"><span class="pre">FitStatus.reduced_chisquare()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus.set_parameter_bounds"><code class="docutils literal notranslate"><span class="pre">FitStatus.set_parameter_bounds()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus.set_parameter"><code class="docutils literal notranslate"><span class="pre">FitStatus.set_parameter()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitStatus.update"><code class="docutils literal notranslate"><span class="pre">FitStatus.update()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase"><code class="docutils literal notranslate"><span class="pre">FitModelBase</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.PAR_NAMES"><code class="docutils literal notranslate"><span class="pre">FitModelBase.PAR_NAMES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.PAR_DEFAULT_VALUES"><code class="docutils literal notranslate"><span class="pre">FitModelBase.PAR_DEFAULT_VALUES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.PAR_DEFAULT_BOUNDS"><code class="docutils literal notranslate"><span class="pre">FitModelBase.PAR_DEFAULT_BOUNDS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.DEFAULT_RANGE"><code class="docutils literal notranslate"><span class="pre">FitModelBase.DEFAULT_RANGE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.name"><code class="docutils literal notranslate"><span class="pre">FitModelBase.name()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.set_parameter"><code class="docutils literal notranslate"><span class="pre">FitModelBase.set_parameter()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.set_range"><code class="docutils literal notranslate"><span class="pre">FitModelBase.set_range()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.plot"><code class="docutils literal notranslate"><span class="pre">FitModelBase.plot()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.stat_box"><code class="docutils literal notranslate"><span class="pre">FitModelBase.stat_box()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.eval"><code class="docutils literal notranslate"><span class="pre">FitModelBase.eval()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.init_parameters"><code class="docutils literal notranslate"><span class="pre">FitModelBase.init_parameters()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.fit"><code class="docutils literal notranslate"><span class="pre">FitModelBase.fit()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.fit_histogram"><code class="docutils literal notranslate"><span class="pre">FitModelBase.fit_histogram()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase._merge_class_attributes"><code class="docutils literal notranslate"><span class="pre">FitModelBase._merge_class_attributes()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.FitModelBase.model_sum_factory"><code class="docutils literal notranslate"><span class="pre">FitModelBase.model_sum_factory()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Constant"><code class="docutils literal notranslate"><span class="pre">Constant</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Constant.PAR_NAMES"><code class="docutils literal notranslate"><span class="pre">Constant.PAR_NAMES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Constant.PAR_DEFAULT_VALUES"><code class="docutils literal notranslate"><span class="pre">Constant.PAR_DEFAULT_VALUES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Constant.eval"><code class="docutils literal notranslate"><span class="pre">Constant.eval()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Constant.jacobian"><code class="docutils literal notranslate"><span class="pre">Constant.jacobian()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Constant.init_parameters"><code class="docutils literal notranslate"><span class="pre">Constant.init_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Line"><code class="docutils literal notranslate"><span class="pre">Line</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Line.PAR_NAMES"><code class="docutils literal notranslate"><span class="pre">Line.PAR_NAMES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Line.PAR_DEFAULT_VALUES"><code class="docutils literal notranslate"><span class="pre">Line.PAR_DEFAULT_VALUES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Line.eval"><code class="docutils literal notranslate"><span class="pre">Line.eval()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Line.jacobian"><code class="docutils literal notranslate"><span class="pre">Line.jacobian()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian"><code class="docutils literal notranslate"><span class="pre">Gaussian</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.PAR_NAMES"><code class="docutils literal notranslate"><span class="pre">Gaussian.PAR_NAMES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.PAR_DEFAULT_VALUES"><code class="docutils literal notranslate"><span class="pre">Gaussian.PAR_DEFAULT_VALUES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.PAR_DEFAULT_BOUNDS"><code class="docutils literal notranslate"><span class="pre">Gaussian.PAR_DEFAULT_BOUNDS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.DEFAULT_RANGE"><code class="docutils literal notranslate"><span class="pre">Gaussian.DEFAULT_RANGE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.SIGMA_TO_FWHM"><code class="docutils literal notranslate"><span class="pre">Gaussian.SIGMA_TO_FWHM</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.eval"><code class="docutils literal notranslate"><span class="pre">Gaussian.eval()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.jacobian"><code class="docutils literal notranslate"><span class="pre">Gaussian.jacobian()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.init_parameters"><code class="docutils literal notranslate"><span class="pre">Gaussian.init_parameters()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Gaussian.fwhm"><code class="docutils literal notranslate"><span class="pre">Gaussian.fwhm()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling._DoubleGaussian"><code class="docutils literal notranslate"><span class="pre">_DoubleGaussian</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.DoubleGaussian"><code class="docutils literal notranslate"><span class="pre">DoubleGaussian</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.DoubleGaussian.init_parameters"><code class="docutils literal notranslate"><span class="pre">DoubleGaussian.init_parameters()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.DoubleGaussian.fit"><code class="docutils literal notranslate"><span class="pre">DoubleGaussian.fit()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.PowerLaw"><code class="docutils literal notranslate"><span class="pre">PowerLaw</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.PowerLaw.PAR_NAMES"><code class="docutils literal notranslate"><span class="pre">PowerLaw.PAR_NAMES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.PowerLaw.PAR_DEFAULT_VALUES"><code class="docutils literal notranslate"><span class="pre">PowerLaw.PAR_DEFAULT_VALUES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.PowerLaw.PAR_DEFAULT_BOUNDS"><code class="docutils literal notranslate"><span class="pre">PowerLaw.PAR_DEFAULT_BOUNDS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.PowerLaw.DEFAULT_RANGE"><code class="docutils literal notranslate"><span class="pre">PowerLaw.DEFAULT_RANGE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.PowerLaw.eval"><code class="docutils literal notranslate"><span class="pre">PowerLaw.eval()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.PowerLaw.jacobian"><code class="docutils literal notranslate"><span class="pre">PowerLaw.jacobian()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Exponential"><code class="docutils literal notranslate"><span class="pre">Exponential</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Exponential.PAR_NAMES"><code class="docutils literal notranslate"><span class="pre">Exponential.PAR_NAMES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Exponential.PAR_DEFAULT_VALUES"><code class="docutils literal notranslate"><span class="pre">Exponential.PAR_DEFAULT_VALUES</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Exponential.PAR_DEFAULT_BOUNDS"><code class="docutils literal notranslate"><span class="pre">Exponential.PAR_DEFAULT_BOUNDS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Exponential.eval"><code class="docutils literal notranslate"><span class="pre">Exponential.eval()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Exponential.jacobian"><code class="docutils literal notranslate"><span class="pre">Exponential.jacobian()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.modeling.Exponential.init_parameters"><code class="docutils literal notranslate"><span class="pre">Exponential.init_parameters()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/modeling.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023, the hexsample team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
