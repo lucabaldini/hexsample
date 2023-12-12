@@ -88,22 +88,25 @@ def create_histogram(input_file : InputFileBase, column_name : str, mc : bool = 
     return Histogram1d(binning, xlabel=column_name).fill(values)
 
 def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
-    p0 = None,
-    show_figure : bool = True) -> np.array:
+    p0 = None, show_figure : bool = True) -> np.array:
     """Fit an histogram given as argument.
 
     Arguments
     ---------
     input_file : DigiInputFile
         The input (digi or recon) file.
+
     hist : Histogram1D
         The histogram to be fitted.
+
     fitting_model : FitModelBase
         The FitModelBase instance containing the model used for fitting the histogram.
         Default is DoubleGaussian.
+
     p0 : np.array
         The array containing the initial parameters of the fit. It must have the same
         len() as the number of parameters of the FitModelBase used for the fit.
+
     plot_figure : bool
         Bool that states if the figure containing the histogram and the best fit has
         to be shown.
