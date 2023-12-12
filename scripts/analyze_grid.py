@@ -26,11 +26,8 @@ from ast import literal_eval
 import numpy as np
 
 from hexsample.app import ArgumentParser
-from hexsample.modeling import FitModelBase
-from hexsample.fitting import fit_gaussian_iterative
-from hexsample.hist import Histogram1d
 from hexsample.fileio import ReconInputFile
-from hexsample.modeling import Gaussian, DoubleGaussian
+from hexsample.modeling import DoubleGaussian
 from hexsample.plot import plt
 from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, heatmap_with_labels
 
@@ -39,7 +36,7 @@ from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, 
 __description__ = \
 """ 
     Preliminary analysis of a grid scan of simulations as a function of:
-    - thickness of the silicon detector [\mu m];
+    - thickness of the silicon detector [mu m];
     - noise of the detector readout [ENC].
 
     The functions performs the fit with a DoubleGaussian model for all combinations 
@@ -49,8 +46,9 @@ __description__ = \
 
 # Parser object.
 ANALYZE_GRID_ARGPARSER = ArgumentParser(description=__description__)
-ANALYZE_GRID_ARGPARSER.add_argument('1px_ratio_correction', type=str, help='Tells if correcting the 1px evts\
-                                  with the ratio 1px_evts/tot_evts. Accepts True or False')
+ANALYZE_GRID_ARGPARSER.add_argument('1px_ratio_correction', type=str, help='Tells if correcting the\
+                                    1px evts with the ratio 1px_evts/tot_evts.\
+                                    Accepts True or False')
 
 def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
     """Opens files, creates histograms, fits them and create figures of some relevant 
@@ -63,17 +61,16 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
         enc : np.array
             An array containing the enc values to span
     """
-    #Defining the grid pf correcting factors for 1px events. 
+    #Defining the grid of correction factors for 1px events.
     correct_1px_ratio = literal_eval(kwargs['1px_ratio_correction'])
-    # Defining arrays where results are contained for all the thick-enc combinations,
+    # Defining arrays where results are contained for all thick-enc combinations,
     # one for K_alpha (Ka), one for K_beta (Kb).
-    # Two arrays: one without cuts on px number, one for 1px events.
     params_matrix = np.empty((len(thickness),len(enc)), dtype=object)
     params_matrix_1px = np.empty((len(thickness),len(enc)), dtype=object)
     #Saving the relative ratio of 1px evts wrt tot evts
     onepx_evts_ratio = np.ones((len(thickness),len(enc)))
     #Defining matrix for saving sigma of fit. 3-dimensional bc every element is a matrix.
-    #One for alpha peak fit params, one for beta peaks fit params. 
+    #One for alpha peak fit params, one for beta peaks fit params.
     sigmas = np.empty((2,len(thickness),len(enc)))
     sigmas_1px = np.empty((2,len(thickness),len(enc)))
     #Defining matrix for saving means of fit
@@ -90,52 +87,36 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
             thr = 2 * e
             file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{e}enc_recon_nn2_thr{thr}.h5'
             recon_file = ReconInputFile(file_path)
-            #Constructing the 1px mask 
+            #Constructing the 1px mask
             cluster_size = recon_file.column('cluster_size')
             mask = cluster_size < 2
+            #Creating histogram for all events
             energy_hist = create_histogram(recon_file, 'energy', binning = 100)
+            fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = True)
+            plt.show()
+            #Creating histogram for events with 1px on readout
             energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
-            fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = False)
-            fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = False)
+            fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = True)
+            plt.show()
             #Saving the matrix containing the whole FitStatus for further (optional) use
             params_matrix[thick_idx][e_idx] = fitted_model
             params_matrix_1px[thick_idx][e_idx] = fitted_model_1px
 
-            #Filling the matrix of sigmas and means **warning: swap peaks issue
-            if fitted_model.parameter_value('mean0') < fitted_model.parameter_value('mean1'):
-                # Standard indexing: Ka associated to index 0, Kb to index 1
-                # filling the matrix with the sigma
-                sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma0') #alpha peak
-                sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma1') #beta peak
-                # filling the matrix with the means
-                mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
-                mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
-            else:
-                # Swapped indexing: Kb associated to index 0, Ka to index 1
-                # filling the matrix with the sigma
-                sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma0')
-                sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma1')
-                # filling the matrix with the means
-                mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
-                mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
+            #Filling the matrix of sigmas and means
+            # filling the matrix with the sigma
+            sigmas[0][thick_idx][e_idx] = fitted_model.parameter_value('sigma0') #alpha peak
+            sigmas[1][thick_idx][e_idx] = fitted_model.parameter_value('sigma1') #beta peak
+            # filling the matrix with the means
+            mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
+            mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
 
             # Redoing everything for the events with 1px
-            if fitted_model_1px.parameter_value('mean0') < fitted_model_1px.parameter_value('mean1'):
-                # Standard indexing: Ka associated to index 0, Kb to index 1
-                #filling the matrix with the means
-                mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
-                mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
-                #filling the matrix with the sigma 
-                sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0') #alpha peak
-                sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1') #beta peak
-            else:
-                # Swapped indexing: Kb associated to index 0, Ka to index 1
-                #filling the matrix with the means
-                mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
-                mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
-                #filling the matrix with the sigma
-                sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0')
-                sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1')
+            #filling the matrix with the means
+            mean_energy_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean0')
+            mean_energy_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('mean1')
+            #filling the matrix with the sigma
+            sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0') #alpha peak
+            sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1') #beta peak
 
             #Saving the ratio of 1px wrt all evts if correction is required
             if correct_1px_ratio is True:
@@ -159,36 +140,40 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
-    plt.title(r'$\Delta = \frac{\mu_{E}-E_{K}}{E_{K}}$, as a function of detector thickness and readout noise')
+    plt.title(r'$\Delta = \frac{\mu_{E}-E_{K}}{E_{K}}$, as a function of\
+                detector thickness and readout noise')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
-    # custom yticks. Setting a right yaxis 
+    # custom yticks. Setting a right yaxis
     len_yaxis = len(thickness)
     len_yticks = len(thickness)*2
     len_xticks = len(enc)
     twin1 = ax.twinx()
     twin1.set(ylim=(0, len_yaxis))
     ticks = []
-    for i in range (len_yaxis):
+    for i in range(len_yaxis):
         ticks = np.append(ticks, [r'$\alpha$',r'$\beta$'], axis=0)
     twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
     fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka.flatten(), energy_res_kb.flatten())
-    plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of detector thickness and readout noise')
+    plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of\
+               detector thickness and readout noise')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
-    # custom yticks. Setting a right yaxis 
+    # custom yticks. Setting a right yaxis
     twin1 = ax2.twinx()
     twin1.set(ylim=(0, len_yaxis))
     twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
-    #Repeating everything for 1px 
+    #Repeating everything for 1px
     # Plotting the overlapped heatmaps and customizing them.
-    fig,ax = double_heatmap(enc, thickness, mean_shift_ka_1px.flatten(), mean_shift_kb_1px.flatten())
-    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, for 1px tracks, correction = {correct_1px_ratio}')
+    fig,ax = double_heatmap(enc, thickness, mean_shift_ka_1px.flatten(),\
+                            mean_shift_kb_1px.flatten())
+    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$,\
+                for 1px tracks, correction = {correct_1px_ratio}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
-    # custom yticks. Setting a right yaxis 
+    # custom yticks. Setting a right yaxis
     twin1 = ax.twinx()
     twin1.set(ylim=(0, len_yaxis))
     ticks = []
@@ -197,10 +182,11 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
     twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
 
     fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten())
-    plt.title(fr'Energy resolution $\frac{{\sigma_{{E}}}}{{E}}$, for 1px tracks, correction = {correct_1px_ratio}')
+    plt.title(fr'Energy resolution $\frac{{\sigma_{{E}}}}{{E}}$,\
+                for 1px tracks, correction = {correct_1px_ratio}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
-    # custom yticks. Setting a right yaxis 
+    # custom yticks. Setting a right yaxis
     twin1 = ax2.twinx()
     twin1.set(ylim=(0, len_yaxis))
     twin1.yaxis.set(ticks=np.arange(0.25, len_yticks/2, 0.5), ticklabels=ticks)
@@ -214,10 +200,9 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
     plt.show()
 
 if __name__ == '__main__':
-    #Choosing values of enc and thickness from simulated ones. 
-    enc = np.array([0, 10, 20, 25, 30, 35, 40])
-    thickness = np.array([0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05])*(1e4)
+    #Choosing values of enc and thickness from simulated ones.
+    enc_ = np.array([0, 10, 20, 25, 30, 35, 40])
+    thickness_ = np.array([0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05])*(1e4)
     #Turning array into ints for reading filename correctly
-    thickness = thickness.astype(int)
-    #hxthickenc(np.array([50,100,200,300,500]), np.array([0,10,20,30,40]), **vars(HXTHICKENC_ARGPARSER.parse_args()))
-    analyze_grid(thickness, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    thickness_ = thickness_.astype(int)
+    analyze_grid(thickness_, enc_, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
