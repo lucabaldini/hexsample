@@ -93,11 +93,9 @@ def analyze_grid(thickness : np.array, enc : np.array, **kwargs) -> None:
             #Creating histogram for all events
             energy_hist = create_histogram(recon_file, 'energy', binning = 100)
             fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = True)
-            plt.show()
             #Creating histogram for events with 1px on readout
             energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
             fitted_model_1px = fit_histogram(energy_hist_1px, DoubleGaussian, show_figure = True)
-            plt.show()
             #Saving the matrix containing the whole FitStatus for further (optional) use
             params_matrix[thick_idx][e_idx] = fitted_model
             params_matrix_1px[thick_idx][e_idx] = fitted_model_1px
