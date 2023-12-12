@@ -724,6 +724,10 @@ class DoubleGaussian(_DoubleGaussian):
         # Now subtract the fitted main peak from the data and fit what
         # remains to another gaussian.
         y = ydata - model(xdata)
+        # Set to zero all the stuff under the main peak, so that we don't risk
+        # ending up on the fluctuations of the residuals.
+        mask = np.logical_and(xdata > xmin, xdata < xmax)
+        y[mask] = 0.
         logger.debug(f'Single gaussian fit on the secondary peak...')
         model.fit(xdata, y, p0=(y.max(), xdata[np.argmax(y)], sigma))
         self.set_parameter('normalization1', model['normalization'])
