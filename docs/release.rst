@@ -4,6 +4,12 @@ Release notes
 =============
 
 
+* Merging https://github.com/lucabaldini/hexsample/pull/45
+* Better parameter initialization for the DoubleGaussian model.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/44
+
+
 *hexsample (0.8.0) - Thu, 07 Dec 2023 12:24:46 +0100*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/42
