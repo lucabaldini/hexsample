@@ -76,8 +76,8 @@ def test_models():
 def test_composite_models():
     """
     """
-    rvs = np.append(rng.generator.normal(10., 1.5, size=100000),
-        rng.generator.normal(15., 0.75, size=25000))
+    rvs = np.append(rng.generator.normal(10000., 1500., size=100000),
+        rng.generator.normal(15000., 750., size=25000))
     model = _test_model(DoubleGaussian(), rvs)
     _test_model(Gaussian() + Gaussian(), rvs, model.status.par_values)
 

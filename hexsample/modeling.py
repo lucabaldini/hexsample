@@ -431,6 +431,8 @@ class FitModelBase:
         # If we are not passing default starting points for the model parameters,
         # try and do something sensible.
         if p0 is None:
+            if verbose:
+                logger.debug(f'Auto-initializing parameters for {self.name()}...')
             self.init_parameters(xdata, ydata)
             p0 = self.status.par_values
             if verbose:
@@ -685,20 +687,74 @@ class DoubleGaussian(_DoubleGaussian):
     def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
         """Overloaded method.
         """
+        # Take all the data and make a first pass to a single-gaussian fit...
         model = Gaussian()
-        model.fit(xdata, ydata, p0=(ydata.max(), xdata[np.argmax(ydata)], 1.))
+        # ... with a normalization and mean that are set to the position and value
+        # of the highest input data point...
+        norm = ydata.max()
+        max_index = np.argmax(ydata)
+        mean = xdata[max_index]
+        # ... and the sigma is initialized moving away from the main peak
+        # and gauging the FWHM
+        y = norm
+        i = 1
+        while y > 0.5 * norm:
+            y = 0.5 * (ydata[max_index - i] + ydata[max_index + i])
+            i += 1
+        sigma = abs(xdata[max_index - i] - xdata[max_index + i]) / Gaussian.SIGMA_TO_FWHM
+        p0 = (norm, mean, sigma)
+        logger.debug(f'First single-gaussian fit on all data with p0={p0}...')
+        model.fit(xdata, ydata, p0=p0)
+        # Second pass, where we refine the single gaussian fit to the main peak
+        # starting from the parameters at the previous pass and restricting
+        # ourselves to +/- 2 sigma around the peak.
+        # Note that, since we are not passing the errors to this method, even
+        # at this stage the chisquare makes no sense.
         norm, mean, sigma = model.status.par_values
         xmin = mean - 2. * sigma
         xmax = mean + 2. * sigma
-        model.fit(xdata, ydata, p0=(norm, mean, sigma), xmin=xmin, xmax=xmax)
+        p0 = (norm, mean, sigma)
+        logger.debug(f'Second single-gaussian fit in [{xmin}--{xmax}] with p0={p0}...')
+        model.fit(xdata, ydata, p0=p0, xmin=xmin, xmax=xmax)
+        # Cache the single-gaussian fit parameters at the second step, as they
+        # are the initial parameters for the first gaussian in the model.
         self.set_parameter('normalization0', model['normalization'])
         self.set_parameter('mean0', model['mean'])
         self.set_parameter('sigma0', model['sigma'])
+        # Now subtract the fitted main peak from the data and fit what
+        # remains to another gaussian.
         y = ydata - model(xdata)
-        model.fit(xdata, y, p0=(y.max(), xdata[np.argmax(y)], 1.))
+        # Set to zero all the stuff under the main peak, so that we don't risk
+        # ending up on the fluctuations of the residuals.
+        mask = np.logical_and(xdata > xmin, xdata < xmax)
+        y[mask] = 0.
+        logger.debug(f'Single gaussian fit on the secondary peak...')
+        model.fit(xdata, y, p0=(y.max(), xdata[np.argmax(y)], sigma))
         self.set_parameter('normalization1', model['normalization'])
         self.set_parameter('mean1', model['mean'])
         self.set_parameter('sigma1', model['sigma'])
+
+    def fit(self, *args, **kwargs):
+        """Overloaded fit method.
+
+        This is to ensure that, at the end of the fit, the order of the two gaussians
+        is fixed, i.e., the one with the smallest mean come first.
+        """
+        super().fit(*args, **kwargs)
+        if self.status.parameter_value('mean0') > self.status.parameter_value('mean1'):
+            logger.debug('Swapping parameter sets...')
+            # Note that we really need to make a full copy of the parameter
+            # vector and the associated covariance matrix for the thing to work.
+            popt = self.status.par_values.copy()
+            pcov = self.status.par_covariance.copy()
+            # Swap the parameter values.
+            self.status.par_values[0:3] = popt[3:6]
+            self.status.par_values[3:6] = popt[0:3]
+            # Swap the proper block in the covariance matrix.
+            self.status.par_covariance[0:3, 0:3] = pcov[3:6, 3:6]
+            self.status.par_covariance[3:6, 3:6] = pcov[0:3, 0:3]
+            self.status.par_covariance[0:3, 3:6] = pcov[3:6, 0:3]
+            self.status.par_covariance[3:6, 0:3] = pcov[0:3, 3:6]
 
 
 
