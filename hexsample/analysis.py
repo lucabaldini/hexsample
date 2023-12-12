@@ -88,7 +88,7 @@ def create_histogram(input_file : InputFileBase, column_name : str, mc : bool = 
     return Histogram1d(binning, xlabel=column_name).fill(values)
 
 def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
-    p0 : np.array = np.array([1., 8000., 150., 1., 8900., 150.]),
+    p0 = None,
     show_figure : bool = True) -> np.array:
     """Fit an histogram given as argument.
 
@@ -115,7 +115,7 @@ def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
     """
     # pylint: disable=invalid-name
     model = fit_model()
-    model.fit_histogram(hist, p0=p0)
+    model.fit_histogram(hist, p0)
     if show_figure is True:
         hist.plot()
         model.plot()
