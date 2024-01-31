@@ -26,6 +26,11 @@ from hexsample.plot import plt
 from hexsample.xpol import XPOL3_SIZE, XPOL_PITCH
 
 
+SAMPLE_PIXELS = ((12, 2), (9, 3), (12, 6), (9, 7), (13, 11), (9, 11), (13, 15))
+BLOCK_COLOR = '#888'
+RECT_COLOR = '#ddd'
+EVENT_COLOR = '#bbb'
+
 
 def display_adc_7(num_cols: int = 15, num_rows: int = 18, pitch: float = 50.,
     layout=HexagonalLayout.EVEN_R):
@@ -33,6 +38,7 @@ def display_adc_7(num_cols: int = 15, num_rows: int = 18, pitch: float = 50.,
     """
     magic_sequence = (0, 1, 5, 6, 2, 3, 4)
     start_adc = (0, 2, 5, 4, 2, 1, 4, 6, 1, 3, 6, 0, 3, 5)
+    block_pixels = ((0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 1))
     plt.figure(f'XPOL 4 readout 7', figsize=(9., 9.))
     grid = HexagonalGrid(layout, num_cols, num_rows, pitch)
     display = HexagonalGridDisplay(grid)
@@ -40,13 +46,13 @@ def display_adc_7(num_cols: int = 15, num_rows: int = 18, pitch: float = 50.,
     color = np.full((num_cols, num_rows), 'none')
     for i in range(7):
         for j in range(14):
-            color[i, j] = '#bbb'
-    for i, j in ((0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 1)):
-        color[i, j] = '#888'
-    for pixel in ((12, 2), (9, 3), (12, 6), (9, 7), (13, 11), (9, 11), (13, 15)):
-        color[pixel] = '#bbb'
+            color[i, j] = RECT_COLOR
+    for i, j in block_pixels:
+        color[i, j] = BLOCK_COLOR
+    for pixel in SAMPLE_PIXELS:
+        color[pixel] = EVENT_COLOR
         for i, j in grid.neighbors(*pixel):
-            color[i, j] = '#bbb'
+            color[i, j] = EVENT_COLOR
     collection.set_facecolor(color.transpose().flatten())
     for col in np.arange(num_cols):
         for row in np.arange(num_rows):
@@ -62,17 +68,18 @@ def display_adc_9(num_cols: int = 15, num_rows: int = 18, pitch: float = 50.,
     layout=HexagonalLayout.EVEN_R):
     """Draw a sketch of the muGPD.
     """
+    block_pixels = ((0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2))
     plt.figure(f'XPOL 4 readout 9', figsize=(9., 9.))
     grid = HexagonalGrid(layout, num_cols, num_rows, pitch)
     display = HexagonalGridDisplay(grid)
     collection = display.draw()
     color = np.full((num_cols, num_rows), 'none')
-    for i, j in ((0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)):
-        color[i, j] = '#888'
-    for pixel in ((2, 5), (6, 5), (10, 5), (2, 9), (6, 9), (10, 9), (6, 13)):
-        color[pixel] = '#bbb'
+    for i, j in block_pixels:
+        color[i, j] = BLOCK_COLOR
+    for pixel in SAMPLE_PIXELS:
+        color[pixel] = EVENT_COLOR
         for i, j in grid.neighbors(*pixel):
-            color[i, j] = '#bbb'
+            color[i, j] = EVENT_COLOR
     collection.set_facecolor(color.transpose().flatten())
     for col in np.arange(num_cols):
         for row in np.arange(num_rows):
