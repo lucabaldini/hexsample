@@ -61,21 +61,24 @@ class TriggerReadout:
     def readout_after_trigger(self, event_times: np.array):
         """This function takes as input the event times. considering the system dead
         time, it cancels the times of the unread events and counts how many they are.
-        It returns the list of times and the number of dead events.
+        It returns the list of times of the read evts and the number of dead evts.
         """
         last_read_event_idx = 0
         n_dead_events = 0
         read_events_times = [event_times[last_read_event_idx]]
-        for idx, evt_time in enumerate(event_times[1:]):
-            if (event_times[idx]-event_times[last_read_event_idx]) <= self.system_reading_time: #the event cannot be read, counted as dead
+        for idx, evt_time in enumerate(event_times):
+            if idx == 0:
+                continue
+            elif (event_times[idx]-event_times[last_read_event_idx]) <= self.system_reading_time: 
+            #the event cannot be read, counted as dead
                 n_dead_events+=1
             else: #the event time has to be saved because has been read so it is passed to buffer
                 read_events_times.append(evt_time) #event saved
-                last_read_event_idx = idx #changing the index of the last event read, is the new reference point
+                #changing the index of the last event read, is the new reference point
+                last_read_event_idx = idx 
+
         t_arrival_read = np.array(read_events_times)
-
         return t_arrival_read, n_dead_events
-
 
 class Buffer:
 
@@ -128,7 +131,7 @@ class Buffer:
         w = np.concatenate((np.full(event_times.shape, 1), np.full(service_times.shape, -1)))
         w = w[idxes] #this is the array to give as input to the buffer.
 
-        for evt in times:
+        for evt in w:
             if evt > 0: #events in input
                 if self.queue[-1] < self._max_queue_lenght: #all ok
                     self.queue.append(self.queue[-1]+evt)
@@ -148,27 +151,30 @@ class Readout: #probably useless..l let's think about it
         self.triggerreadout = triggerreadout
         self.buffer = buffer
 
-    def effective_rate_entering_buffer(self, event_times: np.array):
+    def effective_rate_entering_buffer(self, event_times: np.array) -> float:
         event_times_to_buffer = self.triggerreadout.readout_after_trigger(event_times)[0]
         return np.mean(1/(np.diff(event_times_to_buffer)))
 
-    def deadevts_before_buffer(self, event_times: np.array):
+    def deadevts_before_buffer(self, event_times: np.array) -> float:
         return self.triggerreadout.readout_after_trigger(event_times)[1]
     
-    def fraction_deadevts_before_buffer(self, event_times: np.array):
+    def fraction_deadevts_before_buffer(self, event_times: np.array) -> float:
         return (self.triggerreadout.readout_after_trigger(event_times)[1])/(len(event_times))
     
-    def deadevts_after_buffer(self, event_times: np.array, total_time: float):
+    def deadevts_after_buffer(self, event_times: np.array, total_time: float) -> float:
         event_times_to_buffer = self.triggerreadout.readout_after_trigger(event_times)[0]
+        print(len(event_times_to_buffer))
         self.buffer.event_processing(event_times_to_buffer, total_time)
+        print(f'Number of dead evts: {self.buffer.n_dead_evts}')
         return self.buffer.n_dead_events
     
-    def fraction_deadevts_after_buffer(self, event_times: np.array, total_time: float):
+    def fraction_deadevts_after_buffer(self, event_times: np.array, total_time: float) -> float:
         event_times_to_buffer = self.triggerreadout.readout_after_trigger(event_times)[0]
         self.buffer.event_processing(event_times_to_buffer, total_time)
+        print(f'Number of dead evts: {self.buffer.n_dead_evts}')
         return (self.buffer.n_dead_evts)/(len(event_times_to_buffer))
     
-    def fraction_total_dead_evts(self, event_times: np.array, total_time: float):
+    def fraction_total_dead_evts(self, event_times: np.array, total_time: float) -> float:
         event_times_to_buffer = self.triggerreadout.readout_after_trigger(event_times)[0]
         self.buffer.event_processing(event_times_to_buffer, total_time)
         return (len(event_times)-(self.deadevts_after_buffer(event_times)+\
@@ -178,17 +184,18 @@ if __name__ == "__main__":
     #Defining the features of the system
     total_time = 1 #s
     event_size = 116*2 #bit/evt (116 bits is the expected event size, the *2 is for conservativeness)
-    reading_time=4e-6 #s
+    reading_time = 0
+    #reading_time=4e-6 #s
     readout_thruput = (500.e6)/8 #bits/s
     service_time = event_size / readout_thruput #s
     #Defining the grid of values that we want to simulate
-    average_rate = [1e3, 10e3, 50e3, 70e3, 100e3, 150e3, 200e3] #Hz
+    average_rate = [1e3, 10e3, 50e3, 70e3, 100e3, 150e3, 200e3, 250e3, 500e3] #Hz
     max_buffer_lenght = [1, 2, 4, 8]
     #Defining the Readout objects containing the specifics
     readouts = []
     for buff_lenght in max_buffer_lenght:
         #In the following list there is a Readout object for buffer lenght
-        readouts.append(Readout(TriggerReadout(reading_time), Buffer(service_time,buff_lenght)))
+        readouts.append(Readout(TriggerReadout(reading_time), Buffer(service_time, buff_lenght)))
     for readout in readouts:
         logger.info(f'Service time: {readout.buffer._t_service} s')
         fdead_events_bb = [] #dead evts before buffer
@@ -199,11 +206,18 @@ if __name__ == "__main__":
             fdead_events_bb.append(readout.fraction_deadevts_before_buffer(t_events))
             fdead_events_ab.append(readout.fraction_deadevts_after_buffer(t_events, total_time))
         plt.figure('Fraction of dead events after 1st stage of readout')
-        plt.title('Fraction of dead events after 1st stage of readout')
         plt.grid()
+        plt.title('Fraction of dead events after 1st stage of readout')
         plt.plot(average_rate, fdead_events_bb, label=f'Buffer lenght = {readout.buffer._max_queue_lenght}')
-        plt.xlabel('Rate of events [Hz]')
-        plt.ylabel('Fraction of dead events')
+        plt.xlabel(r'Events rate $\lambda$ [Hz]')
+        plt.ylabel(r'$\frac{\text{dead events}}{\text{all events}}$')
+
+        plt.figure('Fraction of dead events after 2nd stage of readout')
+        plt.grid()
+        plt.title('Fraction of dead events after 2nd stage of readout')
+        plt.plot(average_rate, fdead_events_ab, label=f'Buffer lenght = {readout.buffer._max_queue_lenght}')
+        plt.xlabel(r'Events rate $\lambda$ [Hz]')
+        plt.ylabel(r'$\frac{\text{dead events}}{\text{all events}}$')
 
     plt.legend()
     plt.show()
