@@ -186,7 +186,7 @@ if __name__ == "__main__":
     #Defining the features of the system
     total_time = 1 #s
     event_size = 116*2 #bit/evt (116 bits is the expected event size, the *2 is for conservativeness)
-    reading_time=4e-6 #s
+    reading_time = 4e-6 #s
     readout_thruput = (500.e6)/8 #bits/s
     service_time = event_size / readout_thruput #s
     #Defining the grid of values that we want to simulate
@@ -222,8 +222,10 @@ if __name__ == "__main__":
         plt.grid(True)
         plt.title('Fraction of dead events after buffer stage')
         plt.plot(average_rate, fdead_events_ab, label=fr'$L_{{buffer}}$ = {readout.buffer._max_queue_lenght}, $\rho$={rho:.2f}')
+        #plt.axvline(1/readout.buffer._t_service, linestyle='dashed', color='r', label=r'Buffer service rate $\mu$ [Hz]')
         plt.xlabel(r'Events rate $\lambda$ [Hz]')
         plt.ylabel(r'$\frac{\text{dead events}}{\text{all events}}$')
+        plt.legend()
 
         plt.figure('Effective rates entering buffer')
         plt.title('Effective event rate entering buffer as a function of real event rate')
