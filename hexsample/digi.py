@@ -182,6 +182,26 @@ class DigiEvent:
 class HexagonalReadout(HexagonalGrid):
 
     """Description of a pixel readout chip on a hexagonal matrix.
+
+    Arguments
+    ---------
+    layout : HexagonalLayout
+        The layout of the hexagonal matrix.
+
+    num_cols : int
+        The number of columns in the readout.
+
+    num_rows : int
+        The number of rows in the readout.
+
+    pitch : float
+        The readout pitch in cm.
+
+    enc : float
+        The equivalent noise charge in electrons.
+
+    gain : float
+        The readout gain in ADC counts per electron.
     """
 
     def __init__(self, layout : HexagonalLayout, num_cols : int, num_rows : int,

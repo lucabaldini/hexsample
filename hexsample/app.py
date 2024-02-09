@@ -153,7 +153,7 @@ class ArgumentParser(argparse.ArgumentParser):
         group.add_argument('--numrows', type=int, default=352,
             help='number of rows in the readout chip')
         group.add_argument('--pitch', type=float, default=0.005,
-            help='pitch of the readout chip')
+            help='pitch of the readout chip in cm')
         group.add_argument('--noise', type=float, default=20.,
             help='equivalent noise charge rms in electrons')
         group.add_argument('--gain', type=float, default=1.,
