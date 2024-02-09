@@ -56,14 +56,14 @@ class MonteCarloEvent:
         The number of electron-hole pairs created in the detector active volume.
     """
 
-    timestamp : float
-    energy : float
-    absx : float
-    absy : float
-    absz : float
-    num_pairs : int
+    timestamp: float
+    energy: float
+    absx: float
+    absy: float
+    absz: float
+    num_pairs: int
 
-    def propagate(self, diffusion_sigma : float):
+    def propagate(self, diffusion_sigma: float):
         """Propagate the primary ionization down to the readout plane.
         """
         # pylint: disable=invalid-name
@@ -90,7 +90,7 @@ class PhotonList:
         The number of photons to be simulated.
     """
 
-    def __init__(self, source : Source, sensor : Sensor, num_photons : int) -> None:
+    def __init__(self, source: Source, sensor: Sensor, num_photons: int) -> None:
         """Constructor.
         """
         self.timestamp, self.energy, self.absx, self.absy = source.rvs(num_photons)

@@ -53,7 +53,7 @@ class HexagonCollection(PatchCollection):
         The hexagon orientation in radians---zero means pointy topped.
     """
 
-    def __init__(self, x, y, radius : float, orientation : float = 0., **kwargs) -> None:
+    def __init__(self, x, y, radius: float, orientation: float = 0., **kwargs) -> None:
         """Constructor.
         """
         # pylint: disable = invalid-name
@@ -76,7 +76,7 @@ class HexagonalGridDisplay:
     """Display for an HexagonalGrid object.
     """
 
-    def __init__(self, grid : HexagonalGrid, **kwargs) -> None:
+    def __init__(self, grid: HexagonalGrid, **kwargs) -> None:
         """Constructor.
         """
         self._grid = grid
@@ -99,7 +99,7 @@ class HexagonalGridDisplay:
         HexagonalGridDisplay.setup_gca()
         plt.show()
 
-    def pha_to_colors(self, pha : np.array, zero_sup_threshold : float = None) -> np.array:
+    def pha_to_colors(self, pha: np.array, zero_sup_threshold: float = None) -> np.array:
         """Convert the pha values to colors for display purposes.
         """
         values = pha.flatten()
@@ -110,7 +110,7 @@ class HexagonalGridDisplay:
         return self.color_map(values)
 
     @staticmethod
-    def brightness(color : np.array) -> np.array:
+    def brightness(color: np.array) -> np.array:
         """Quick and dirty proxy for the brighness of a given array of colors.
 
         See https://stackoverflow.com/questions/9733288
@@ -122,7 +122,7 @@ class HexagonalGridDisplay:
         r, g, b, _ = color.T
         return (299 * r + 587 * g + 114 * b) / 1000
 
-    def draw(self, offset : Tuple[float, float] = (0., 0.), pixel_labels : bool = False,
+    def draw(self, offset: Tuple[float, float] = (0., 0.), pixel_labels: bool = False,
         **kwargs) -> HexagonCollection:
         """Draw the full grid display.
         """
@@ -140,8 +140,8 @@ class HexagonalGridDisplay:
                 plt.text(_x + dx, _y + dy, f'({_col}, {_row})', **fmt)
         return collection
 
-    def draw_roi(self, roi : RegionOfInterest, offset : Tuple[float, float] = (0., 0.),
-        indices : bool = True, padding : bool = True, **kwargs) -> HexagonCollection:
+    def draw_roi(self, roi: RegionOfInterest, offset: Tuple[float, float] = (0., 0.),
+        indices: bool = True, padding: bool = True, **kwargs) -> HexagonCollection:
         """Draw a given ROI.
         """
         # pylint: disable = invalid-name, too-many-locals
@@ -172,9 +172,9 @@ class HexagonalGridDisplay:
                 plt.text(x + dx - self._grid.pitch, y + dy, f'{row}', **fmt)
         return collection
 
-    def draw_digi_event(self, event : DigiEvent, offset : Tuple[float, float] = (0., 0.),
-        indices : bool = True, padding : bool = True, zero_sup_threshold : float = 0,
-        values : bool = True, **kwargs) -> HexagonCollection:
+    def draw_digi_event(self, event: DigiEvent, offset: Tuple[float, float] = (0., 0.),
+        indices: bool = True, padding: bool = True, zero_sup_threshold: float = 0,
+        values: bool = True, **kwargs) -> HexagonCollection:
         """Draw an actual event int the parent hexagonal grid.
 
         This is taking over where the draw_roi() hook left, and adding the

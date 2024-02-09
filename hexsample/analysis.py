@@ -29,7 +29,7 @@ from hexsample.plot import plt
 
 
 
-# def absz_analysis(input_file : ReconInputFile):
+# def absz_analysis(input_file: ReconInputFile):
 #     """
 #     """
 #     absz = input_file.mc_column('absz')
@@ -38,13 +38,13 @@ from hexsample.plot import plt
 #     setup_gca(logy=True)
 #
 #
-# def cluster_size_analysis(input_file : ReconInputFile):
+# def cluster_size_analysis(input_file: ReconInputFile):
 #     """
 #     """
 #     clu_size = input_file.column('cluster_size')
 
-def create_histogram(input_file : InputFileBase, column_name : str, mc : bool = False,
-    binning: np.ndarray = None, mask : np.ndarray = None) -> Histogram1d:
+def create_histogram(input_file: InputFileBase, column_name: str, mc: bool = False,
+    binning: np.ndarray = None, mask: np.ndarray = None) -> Histogram1d:
     """Create a histogram from the values in the given column of the input file.
 
     This takes either a digi or a recon file as an input and create a one-dimensional
@@ -87,8 +87,8 @@ def create_histogram(input_file : InputFileBase, column_name : str, mc : bool = 
         binning = np.linspace(values.min(), values.max(), binning)
     return Histogram1d(binning, xlabel=column_name).fill(values)
 
-def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
-    p0 = None, show_figure : bool = True) -> np.array:
+def fit_histogram(hist: Histogram1d, fit_model: FitModelBase = DoubleGaussian,
+    p0 = None, show_figure: bool = True) -> np.array:
     """Fit an histogram given as argument.
 
     Arguments
@@ -139,10 +139,13 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
     ---------
     column_vals : np.array
         Values relative to the columns of the heatmaps.
+
     row_vals : np.array
          Values relative to the row of the heatmaps.
+
     heatmap_values1 : np.array
         A flatten array containing the values of every cell of the first heatmap.
+
     heatmap_values1 : np.array
         A flatten array containing the values of every cell of the second heatmap.
 
@@ -150,6 +153,7 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
     ------
     fig : matplotlib.figure.Figure
         Figure contaning the heatmap.
+
     ax : matplotlib.axes._axes.Axes
         Axes of fig.
     """
@@ -194,7 +198,7 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
     return fig, ax
 
 
-def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_values : np.array):
+def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_values: np.array):
     """Creates a figure containing an heatmap having in every cell printed the
     value of the cell itself.
 
@@ -202,8 +206,10 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_value
     ---------
     column_vals : np.array
         Values relative to the columns of the heatmaps.
+
     row_vals : np.array
          Values relative to the row of the heatmaps.
+
     heatmap_values : np.array
         Values of the heatmap
 
@@ -211,6 +217,7 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_value
     ------
     fig : matplotlib.figure.Figure
         Figure contaning the heatmap.
+
     ax : matplotlib.axes._axes.Axes
         Axes of fig.
     """

@@ -43,7 +43,7 @@ class HexagonalLayout(Enum):
 
 
 
-def neighbors_odd_r(col : int, row : int) -> tuple:
+def neighbors_odd_r(col: int, row: int) -> tuple:
     """Return a tuple with the coordinates of the 6 neighbor pixel for a given
     pixel in a ODD_R hexagonal grid.
 
@@ -59,7 +59,7 @@ def neighbors_odd_r(col : int, row : int) -> tuple:
     return (col + parity, row - 1), (col + 1, row), (col + parity, row + 1),\
         (col + parity - 1, row + 1), (col - 1, row), (col + parity - 1, row - 1)
 
-def neighbors_even_r(col : int, row : int) -> tuple:
+def neighbors_even_r(col: int, row: int) -> tuple:
     """Return a tuple with the coordinates of the 6 neighbor pixel for a given
     pixel in a EVEN_R hexagonal grid.
 
@@ -75,7 +75,7 @@ def neighbors_even_r(col : int, row : int) -> tuple:
     return (col - parity + 1, row - 1), (col + 1, row), (col - parity + 1, row + 1),\
         (col - parity, row + 1), (col - 1, row), (col - parity, row - 1)
 
-def neighbors_odd_q(col : int, row : int) -> tuple:
+def neighbors_odd_q(col: int, row: int) -> tuple:
     """Return a tuple with the coordinates of the 6 neighbor pixel for a given
     pixel in a ODD_Q hexagonal grid.
 
@@ -91,7 +91,7 @@ def neighbors_odd_q(col : int, row : int) -> tuple:
     return (col, row - 1), (col + 1, row + parity - 1), (col + 1, row + parity),\
         (col, row + 1), (col - 1, row + parity), (col - 1, row + parity - 1)
 
-def neighbors_even_q(col : int, row : int) -> tuple:
+def neighbors_even_q(col: int, row: int) -> tuple:
     """Return a tuple with the coordinates of the 6 neighbor pixel for a given
     pixel in a EVEN_Q hexagonal grid.
 
@@ -140,8 +140,8 @@ class HexagonalGrid:
         The grid pitch in mm.
     """
 
-    def __init__(self, layout : HexagonalLayout, num_cols : int, num_rows : int,
-                 pitch : float) -> None:
+    def __init__(self, layout: HexagonalLayout, num_cols: int, num_rows: int,
+                 pitch: float) -> None:
         """Constructor.
         """
         self.layout = layout
@@ -190,7 +190,7 @@ class HexagonalGrid:
         """
         return 0. if self.pointy_topped() else 0.5 * np.pi
 
-    def _parity_offset(self, index : int) -> int:
+    def _parity_offset(self, index: int) -> int:
         """Small convenience function to help with the tranformation.
 
         For any given column or row index, this returns 0 if the index is even
@@ -205,7 +205,7 @@ class HexagonalGrid:
         value = index & 1
         return value if self.even() else - value
 
-    def pixel_to_world(self, col : np.array, row : np.array) -> Tuple[np.array, np.array]:
+    def pixel_to_world(self, col: np.array, row: np.array) -> Tuple[np.array, np.array]:
         """Transform pixel coordinates to world coordinates.
 
         Arguments
@@ -225,7 +225,7 @@ class HexagonalGrid:
             y = self.yoffset - (row - 0.5 * self._parity_offset(col)) * self.pitch
         return x, y
 
-    def _float_axial(self, x : np.array, y : np.array) -> Tuple[np.array, np.array]:
+    def _float_axial(self, x: np.array, y: np.array) -> Tuple[np.array, np.array]:
         """Conversion of a given set of world coordinates into fractional axial
         coordinates, a. k. a. step 1 in the transformation between world coordinates
         to pixel coordinates.
@@ -250,7 +250,7 @@ class HexagonalGrid:
         return q, r
 
     @staticmethod
-    def _axial_round(q : np.array, r : np.array) -> Tuple[np.array, np.array]:
+    def _axial_round(q: np.array, r: np.array) -> Tuple[np.array, np.array]:
         """Rounding to integer of the axial coordinates, a. k. a. step 2 in the
         transformation between world coordinates to pixel coordinates.
 
@@ -276,7 +276,7 @@ class HexagonalGrid:
         r = (rgrid + dr).astype(int)
         return q, r
 
-    def _axial_to_offset(self, q : np.array, r : np.array) -> Tuple[np.array, np.array]:
+    def _axial_to_offset(self, q: np.array, r: np.array) -> Tuple[np.array, np.array]:
         """Conversion from axial to offset coordinates, a. k. a. step 3 in the
         transformation between world coordinates to pixel coordinates.
 
@@ -299,7 +299,7 @@ class HexagonalGrid:
             row = r + (q + self._parity_offset(q)) // 2
         return col, row
 
-    def world_to_pixel(self, x : np.array, y : np.array) -> Tuple[np.array, np.array]:
+    def world_to_pixel(self, x: np.array, y: np.array) -> Tuple[np.array, np.array]:
         """Transform world coordinates to pixel coordinates.
 
         This proceeds in three basic steps (conversion to fractional axial coordinates,

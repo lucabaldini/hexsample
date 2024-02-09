@@ -35,7 +35,7 @@ from hxrecon import HXRECON_ARGPARSER, hxrecon as _hxrecon
 from hxsim import HXSIM_ARGPARSER, hxsim as _hxsim
 
 
-def required_arguments(parser : ArgumentParser) -> list:
+def required_arguments(parser: ArgumentParser) -> list:
     """Return a list of the positional arguments for a given parser.
 
     This is useful to retrieve all the default values from an ArgumentParser
@@ -50,7 +50,7 @@ def required_arguments(parser : ArgumentParser) -> list:
     # pylint: disable=protected-access
     return [action.dest for action in parser._actions if action.required]
 
-def default_arguments(parser : ArgumentParser) -> dict:
+def default_arguments(parser: ArgumentParser) -> dict:
     """Return the default arguments for a given ArgumentParser object.
 
     If the parser has no positional arguments, this is simply achieved via a
@@ -85,7 +85,7 @@ def default_arguments(parser : ArgumentParser) -> dict:
     # And return the two sets separately.
     return args, kwargs
 
-def update_arguments(parser : ArgumentParser, **kwargs) -> dict:
+def update_arguments(parser: ArgumentParser, **kwargs) -> dict:
     """Retrieve the default option from an ArgumentParser object and update
     specific keys based on arbitrary keyword arguments.
 

@@ -86,7 +86,7 @@ class ArgumentParser(argparse.ArgumentParser):
     different applications.
     """
 
-    def __init__(self, prog : str = None, usage : str = None, description : str = None) -> None:
+    def __init__(self, prog: str = None, usage: str = None, description: str = None) -> None:
         """Constructor.
         """
         super().__init__(prog, usage, description, formatter_class=Formatter)
@@ -103,13 +103,13 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('infile', type=str,
             help='path to the input file')
 
-    def add_numevents(self, default : int) -> None:
+    def add_numevents(self, default: int) -> None:
         """Add an option for the number of events.
         """
         self.add_argument('--numevents', '-n', type=int, default=default,
             help='number of events')
 
-    def add_outfile(self, default : str) -> None:
+    def add_outfile(self, default: str) -> None:
         """Add an option for the output file.
 
         Note that we cast the default to a string---this prevents having
@@ -126,7 +126,7 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('--seed', type=int, default=None,
             help='random seed for the simulation')
 
-    def add_suffix(self, default : str) -> None:
+    def add_suffix(self, default: str) -> None:
         """Add an option for the output suffix.
         """
         self.add_argument('--suffix', type=str, default=default,

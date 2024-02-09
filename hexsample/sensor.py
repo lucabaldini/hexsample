@@ -49,8 +49,8 @@ class Material:
     This will work for either an element or a compound, provided that the
     symbol is recognized by xraydb.
     """
-    def __init__(self, symbol : str, fano_factor : float, density : float = None,
-        ionization_potential : float = None) -> None:
+    def __init__(self, symbol: str, fano_factor: float, density: float = None,
+        ionization_potential: float = None) -> None:
         """Constructor.
         """
         self.symbol = symbol
@@ -58,7 +58,7 @@ class Material:
         self.density = density or xraydb.atomic_density(self.symbol)
         self.ionization_potential = ionization_potential or xraydb.ionization_potential(self.symbol)
 
-    def _attenuation_length(self, energy : np.ndarray, kind : CrossSection) -> np.ndarray:
+    def _attenuation_length(self, energy: np.ndarray, kind: CrossSection) -> np.ndarray:
         """Return the attenuation length (in cm) for the material.
 
         Arguments
@@ -71,7 +71,7 @@ class Material:
         """
         return 1. / xraydb.material_mu(self.symbol, energy, self.density, kind.value)
 
-    def coherent_attenuation_length(self, energy : np.ndarray) -> np.ndarray:
+    def coherent_attenuation_length(self, energy: np.ndarray) -> np.ndarray:
         """Return the coherent attenuation length (in cm) for the material.
 
         Arguments
@@ -81,7 +81,7 @@ class Material:
         """
         return self._attenuation_length(energy, CrossSection.COHERENT)
 
-    def incoherent_attenuation_length(self, energy : np.ndarray) -> np.ndarray:
+    def incoherent_attenuation_length(self, energy: np.ndarray) -> np.ndarray:
         """Return the incoherent attenuation length (in cm) for the material.
 
         Arguments
@@ -91,7 +91,7 @@ class Material:
         """
         return self._attenuation_length(energy, CrossSection.INCOHERENT)
 
-    def photoelectric_attenuation_length(self, energy : np.ndarray) -> np.ndarray:
+    def photoelectric_attenuation_length(self, energy: np.ndarray) -> np.ndarray:
         """Return the photoelectric attenuation length (in cm) for the material.
 
         Arguments
@@ -101,7 +101,7 @@ class Material:
         """
         return self._attenuation_length(energy, CrossSection.PHOTOELECTRIC)
 
-    def total_attenuation_length(self, energy : np.ndarray) -> np.ndarray:
+    def total_attenuation_length(self, energy: np.ndarray) -> np.ndarray:
         """Return the total length (in cm) for the material.
 
         Arguments
@@ -111,7 +111,7 @@ class Material:
         """
         return self._attenuation_length(energy, CrossSection.TOTAL)
 
-    def _mu_components(self, energy : np.ndarray, kind : CrossSection) -> dict:
+    def _mu_components(self, energy: np.ndarray, kind: CrossSection) -> dict:
         """Return the absorption coefficients (in cm^{-1}) for the various elements in a
         compound.
 
@@ -125,7 +125,7 @@ class Material:
         """
         return xraydb.material_mu_components(self.symbol, energy, self.density, kind.value)
 
-    def coherent_mu_components(self, energy : np.ndarray) -> np.ndarray:
+    def coherent_mu_components(self, energy: np.ndarray) -> np.ndarray:
         """Return the coherent absorption coefficients (in cm^{-1}) for the
         various elements in a compound.
 
@@ -136,7 +136,7 @@ class Material:
         """
         return self._mu_components(energy, CrossSection.COHERENT)
 
-    def incoherent_mu_components(self, energy : np.ndarray) -> np.ndarray:
+    def incoherent_mu_components(self, energy: np.ndarray) -> np.ndarray:
         """Return the incoherent absorption coefficients (in cm^{-1}) for the
         various elements in a compound.
 
@@ -147,7 +147,7 @@ class Material:
         """
         return self._mu_components(energy, CrossSection.INCOHERENT)
 
-    def photoelectric_mu_components(self, energy : np.ndarray) -> np.ndarray:
+    def photoelectric_mu_components(self, energy: np.ndarray) -> np.ndarray:
         """Return the photoelectric absorption coefficients (in cm^{-1}) for the
         various elements in a compound.
 
@@ -158,7 +158,7 @@ class Material:
         """
         return self._mu_components(energy, CrossSection.PHOTOELECTRIC)
 
-    def total_mu_components(self, energy : np.ndarray) -> np.ndarray:
+    def total_mu_components(self, energy: np.ndarray) -> np.ndarray:
         """Return the total absorption coefficients (in cm^{-1}) for the
         various elements in a compound.
 
@@ -169,7 +169,7 @@ class Material:
         """
         return self._mu_components(energy, CrossSection.TOTAL)
 
-    def fluorescence_yield(self, edge : str, line : str, energy : np.ndarray) -> np.ndarray:
+    def fluorescence_yield(self, edge: str, line: str, energy: np.ndarray) -> np.ndarray:
         """Return the fluorescence yield for an X-ray emission line or family of lines.
 
         Arguments

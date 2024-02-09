@@ -54,13 +54,13 @@ class ReconEvent:
         The reconstructed cluster for the event.
     """
 
-    trigger_id : int
-    timestamp : float
-    livetime : int
-    roi_size : int
-    cluster : Cluster
+    trigger_id: int
+    timestamp: float
+    livetime: int
+    roi_size: int
+    cluster: Cluster
 
-    def energy(self, ionization_potential : float = DEFAULT_IONIZATION_POTENTIAL) -> float:
+    def energy(self, ionization_potential: float = DEFAULT_IONIZATION_POTENTIAL) -> float:
         """Return the energy of the event in eV.
 
         .. warning::

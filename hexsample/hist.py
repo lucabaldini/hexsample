@@ -63,7 +63,7 @@ class HistogramBase:
 
     PLOT_OPTIONS = {}
 
-    def __init__(self, binning : Tuple[np.array], labels : Tuple[str]) -> None:
+    def __init__(self, binning: Tuple[np.array], labels: Tuple[str]) -> None:
         """Constructor.
         """
         assert len(labels) == len(binning) + 1
@@ -75,7 +75,7 @@ class HistogramBase:
         self.entries = np.zeros(shape=self.shape, dtype=float)
         self.sumw2 = np.zeros(shape=self.shape, dtype=float)
 
-    def fill(self, *data : np.array, weights : Optional[np.array] = None) -> HistogramBase:
+    def fill(self, *data: np.array, weights: Optional[np.array] = None) -> HistogramBase:
         """Fill the histogram from unbinned data.
 
         Note this method is returning the histogram instance, so that the function
@@ -94,8 +94,8 @@ class HistogramBase:
         self.sumw2 += sumw2
         return self
 
-    def set_content(self, content : np.array, entries : Optional[np.array] = None,
-                    errors : Optional[np.array] = None) -> HistogramBase:
+    def set_content(self, content: np.array, entries: Optional[np.array] = None,
+        errors: Optional[np.array] = None) -> HistogramBase:
         """Set the bin contents programmatically from binned data.
 
         Note this method is returning the histogram instance, so that the function
@@ -115,30 +115,30 @@ class HistogramBase:
         """
         return np.sqrt(self.sumw2)
 
-    def set_errors(self, errors : np.array) -> None:
+    def set_errors(self, errors: np.array) -> None:
         """Set the bin errors.
         """
         assert errors.shape == self.shape
         self.sumw2 = errors**2.
 
-    def bin_centers(self, axis : int = 0) -> np.array:
+    def bin_centers(self, axis: int = 0) -> np.array:
         """Return the bin centers for a specific axis.
         """
         return 0.5 * (self.binning[axis][1:] + self.binning[axis][:-1])
 
-    def bin_widths(self, axis : int = 0) -> np.array:
+    def bin_widths(self, axis: int = 0) -> np.array:
         """Return the bin widths for a specific axis.
         """
         return np.diff(self.binning[axis])
 
     @staticmethod
-    def bisect(binning, values : np.array, side : str = 'left') -> int:
+    def bisect(binning, values: np.array, side: str = 'left') -> int:
         """Return the indices corresponding to a given array of values for a
         given binning.
         """
         return np.searchsorted(binning, values, side) - 1
 
-    def find_bin(self, *coords : float) -> Tuple[int]:
+    def find_bin(self, *coords: float) -> Tuple[int]:
         """Find the bin corresponding to a given set of "physical" coordinates
         on the histogram axes.
 
@@ -147,7 +147,7 @@ class HistogramBase:
         """
         return tuple(self.bisect(binning, value) for binning, value in zip(self.binning, coords))
 
-    def find_bin_value(self, *coords : float) -> float:
+    def find_bin_value(self, *coords: float) -> float:
         """Find the histogram content corresponding to a given set of "physical"
         coordinates on the histogram axes.
         """
@@ -165,7 +165,7 @@ class HistogramBase:
         hist.set_content(self.content.copy(), self.entries.copy())
         return hist
 
-    def __add__(self, other : HistogramBase) -> HistogramBase:
+    def __add__(self, other: HistogramBase) -> HistogramBase:
         """Histogram addition.
         """
         hist = self.empty_copy()
@@ -173,7 +173,7 @@ class HistogramBase:
             self.sumw2 + other.sumw2)
         return hist
 
-    def __sub__(self, other : HistogramBase) -> HistogramBase:
+    def __sub__(self, other: HistogramBase) -> HistogramBase:
         """Histogram subtraction.
         """
         hist = self.empty_copy()
@@ -181,19 +181,19 @@ class HistogramBase:
             self.sumw2 + other.sumw2)
         return hist
 
-    def __mul__(self, value : np.array) -> HistogramBase:
+    def __mul__(self, value: np.array) -> HistogramBase:
         """Histogram multiplication by a scalar.
         """
         hist = self.empty_copy()
         hist.set_content(self.content * value, self.entries, self.errors() * value)
         return hist
 
-    def __rmul__(self, value : np.array) -> HistogramBase:
+    def __rmul__(self, value: np.array) -> HistogramBase:
         """Histogram multiplication by a scalar.
         """
         return self.__mul__(value)
 
-    def set_axis_label(self, axis : int, label : str) -> None:
+    def set_axis_label(self, axis: int, label: str) -> None:
         """Set the label for a given axis.
         """
         self.labels[axis] = label
@@ -240,13 +240,13 @@ class Histogram2d(HistogramBase):
 
     PLOT_OPTIONS = dict(cmap=plt.get_cmap('hot'))
 
-    def __init__(self, xbins : np.array, ybins : np.array, xlabel : str = '',
-                 ylabel : str = '', zlabel : str = 'Entries/bin') -> None:
+    def __init__(self, xbins: np.array, ybins: np.array, xlabel: str = '',
+                 ylabel: str = '', zlabel: str = 'Entries/bin') -> None:
         """Constructor.
         """
         HistogramBase.__init__(self, (xbins, ybins), [xlabel, ylabel, zlabel])
 
-    def _plot(self, logz : bool = False, **kwargs) -> None:
+    def _plot(self, logz: bool = False, **kwargs) -> None:
         """Overloaded make_plot() method.
         """
         x, y = (v.flatten() for v in np.meshgrid(self.bin_centers(0), self.bin_centers(1)))
@@ -274,9 +274,9 @@ class Histogram3d(HistogramBase):
 
     # pylint: disable = abstract-method
 
-    def __init__(self, xbins : np.array, ybins : np.array, zbins : np.array,
-                 xlabel : str = '', ylabel : str = '', zlabel : str = '',
-                 wlabel : str = 'Entries/bin') -> None:
+    def __init__(self, xbins: np.array, ybins: np.array, zbins: np.array,
+                 xlabel: str = '', ylabel: str = '', zlabel: str = '',
+                 wlabel: str = 'Entries/bin') -> None:
         """Constructor.
         """
         HistogramBase.__init__(self, (xbins, ybins, zbins), [xlabel, ylabel, zlabel, wlabel])

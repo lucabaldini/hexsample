@@ -50,7 +50,7 @@ class MonteCarloDescription(tables.IsDescription):
     absz = tables.Float32Col(pos=4)
     num_pairs = tables.Int32Col(pos=5)
 
-def _fill_mc_row(row : tables.tableextension.Row, event : MonteCarloEvent) -> None:
+def _fill_mc_row(row: tables.tableextension.Row, event: MonteCarloEvent) -> None:
     """Helper function to fill an output table row, given a MonteCarloEvent object.
 
     .. note::
@@ -89,7 +89,7 @@ class DigiDescription(tables.IsDescription):
     padding_bottom = tables.Int8Col(pos=10)
     padding_left = tables.Int8Col(pos=11)
 
-def _fill_digi_row(row : tables.tableextension.Row, event : DigiEvent) -> None:
+def _fill_digi_row(row: tables.tableextension.Row, event: DigiEvent) -> None:
     """Helper function to fill an output table row, given a DigiEvent object.
 
     .. note::
@@ -130,7 +130,7 @@ class ReconDescription(tables.IsDescription):
     posx = tables.Float32Col(pos=6)
     posy = tables.Float32Col(pos=7)
 
-def _fill_recon_row(row : tables.tableextension.Row, event : ReconEvent) -> None:
+def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     """Helper function to fill an output table row, given a ReconEvent object.
 
     .. note::
@@ -180,7 +180,7 @@ class OutputFileBase(tables.File):
     _DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
     _FILE_TYPE = None
 
-    def __init__(self, file_path : str) -> None:
+    def __init__(self, file_path: str) -> None:
         """Constructor.
         """
         logger.info(f'Opening output file {file_path}...')
@@ -197,14 +197,14 @@ class OutputFileBase(tables.File):
         self.update_user_attributes(self.header_group, **kwargs)
 
     @staticmethod
-    def _set_user_attribute(group : tables.group.Group, name : str, value : Any) -> None:
+    def _set_user_attribute(group: tables.group.Group, name: str, value: Any) -> None:
         """Set a user attribute for a given group.
         """
         # pylint: disable=protected-access
         group._v_attrs[name] = value
 
     @staticmethod
-    def update_user_attributes(group : tables.group.Group, **kwargs) -> None:
+    def update_user_attributes(group: tables.group.Group, **kwargs) -> None:
         """Update the user attributes for a given group.
 
         The basic rules, here, are that all the keys of the keyword arguments
@@ -265,7 +265,7 @@ class DigiOutputFile(OutputFileBase):
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
-    def __init__(self, file_path : str):
+    def __init__(self, file_path: str):
         """Constructor.
         """
         super().__init__(file_path)
@@ -275,7 +275,7 @@ class DigiOutputFile(OutputFileBase):
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
         self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
 
-    def add_row(self, digi_event : DigiEvent, mc_event : MonteCarloEvent) -> None:
+    def add_row(self, digi_event: DigiEvent, mc_event: MonteCarloEvent) -> None:
         """Add one row to the file.
 
         Arguments
@@ -314,7 +314,7 @@ class ReconOutputFile(OutputFileBase):
     RECON_TABLE_SPECS = ('recon_table', ReconDescription, 'Recon data')
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
-    def __init__(self, file_path : str):
+    def __init__(self, file_path: str):
         """Constructor.
         """
         super().__init__(file_path)
@@ -329,7 +329,7 @@ class ReconOutputFile(OutputFileBase):
         """
         self.update_user_attributes(self.digi_header_group, **kwargs)
 
-    def add_row(self, recon_event : ReconEvent, mc_event : MonteCarloEvent) -> None:
+    def add_row(self, recon_event: ReconEvent, mc_event: MonteCarloEvent) -> None:
         """Add one row to the file.
 
         Arguments
@@ -357,7 +357,7 @@ class InputFileBase(tables.File):
     """Base class for input files.
     """
 
-    def __init__(self, file_path : str):
+    def __init__(self, file_path: str):
         """Constructor.
         """
         logger.info(f'Opening input file {file_path}...')
@@ -372,16 +372,16 @@ class InputFileBase(tables.File):
         logger.info(f'File type: {self.file_type}')
 
     @staticmethod
-    def _user_attributes(group : tables.group.Group) -> dict:
+    def _user_attributes(group: tables.group.Group) -> dict:
         """Return all the user attributes for a given group in the form of a
         Python dictionary.
 
         This is used, e.g, to rebuild the header information.
         """
         # pylint: disable=protected-access
-        return {key : group._v_attrs[key] for key in group._v_attrs._f_list('user')}
+        return {key: group._v_attrs[key] for key in group._v_attrs._f_list('user')}
 
-    def header_value(self, key : str, default : Any = None) -> Any:
+    def header_value(self, key: str, default: Any = None) -> Any:
         """Return the header value corresponding to a given key.
         """
         return self.header.get(key, default)
@@ -398,7 +398,7 @@ class DigiInputFile(InputFileBase):
     an implementation of the iterator protocol to make event loops easier.
     """
 
-    def __init__(self, file_path : str):
+    def __init__(self, file_path: str):
         """Constructor.
         """
         super().__init__(file_path)
@@ -407,17 +407,17 @@ class DigiInputFile(InputFileBase):
         self.mc_table = self.root.mc.mc_table
         self.__index = -1
 
-    def column(self, name : str) -> np.ndarray:
+    def column(self, name: str) -> np.ndarray:
         """Return a given column in the digi table.
         """
         return self.digi_table.col(name)
 
-    def mc_column(self, name : str) -> np.ndarray:
+    def mc_column(self, name: str) -> np.ndarray:
         """Return a given column in the Monte Carlo table.
         """
         return self.mc_table.col(name)
 
-    def digi_event(self, row_index : int) -> DigiEvent:
+    def digi_event(self, row_index: int) -> DigiEvent:
         """Random access to the DigiEvent part of the event contribution.
 
         Arguments
@@ -429,7 +429,7 @@ class DigiInputFile(InputFileBase):
         pha = self.pha_array[row_index]
         return DigiEvent.from_digi(row, pha)
 
-    def mc_event(self, row_index : int) -> MonteCarloEvent:
+    def mc_event(self, row_index: int) -> MonteCarloEvent:
         """Random access to the MonteCarloEvent part of the event contribution.
 
         Arguments
@@ -461,7 +461,7 @@ class ReconInputFile(InputFileBase):
     """Description of a reconstructed input file.
     """
 
-    def __init__(self, file_path : str):
+    def __init__(self, file_path: str):
         """Constructor.
         """
         super().__init__(file_path)
@@ -469,19 +469,19 @@ class ReconInputFile(InputFileBase):
         self.recon_table = self.root.recon.recon_table
         self.mc_table = self.root.mc.mc_table
 
-    def column(self, name : str) -> np.ndarray:
+    def column(self, name: str) -> np.ndarray:
         """Return a given column in the recon table.
         """
         return self.recon_table.col(name)
 
-    def mc_column(self, name : str) -> np.ndarray:
+    def mc_column(self, name: str) -> np.ndarray:
         """Return a given column in the Monte Carlo table.
         """
         return self.mc_table.col(name)
 
 
 
-def peek_file_type(file_path : str) -> FileType:
+def peek_file_type(file_path: str) -> FileType:
     """Peek into the header of a HDF5 file and determing the file type.
 
     Arguments
@@ -496,7 +496,7 @@ def peek_file_type(file_path : str) -> FileType:
         except KeyError as exception:
             raise RuntimeError(f'File {file_path} has no type information.') from exception
 
-def open_input_file(file_path : str) -> InputFileBase:
+def open_input_file(file_path: str) -> InputFileBase:
     """Open an input file automatically determining the file type.
 
     Arguments
