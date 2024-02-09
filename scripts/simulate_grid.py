@@ -31,6 +31,9 @@ NUM_EVENTS = 100000
 THICKNESS = (0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05)
 # Equivalent noise charge grid in e.
 NOISE = (0, 10, 20, 25, 30, 35, 40)
+# Chip pitch in mm
+PITCH = (0.050, 0.055, 0.060, 0.080, 0.1) 
+
 # Zero-suppression threshold, expressed in units of enc.
 SIGMA_THRESHOLD = 2.
 # Number of neighbors for the clustering.
@@ -39,13 +42,14 @@ NUM_NEIGHBORS = 2
 
 for thickness in THICKNESS:
     for noise in NOISE:
-        # Simulate...
-        file_name = f'sim_{1.e4 * thickness:.0f}um_{noise:.0f}enc.h5'
-        file_path = HEXSAMPLE_DATA / file_name
-        kwargs = dict(outfile=file_path, thickness=thickness, noise=noise)
-        file_path = hxsim(numevents=NUM_EVENTS, **kwargs)
-        # ... and reconstruct.
-        threshold = noise * SIGMA_THRESHOLD
-        suffix = f'recon_nn{NUM_NEIGHBORS}_thr{threshold:.0f}'
-        kwargs = dict(zsupthreshold=threshold, nneighbors=NUM_NEIGHBORS, suffix=suffix)
-        hxrecon(infile=file_path, **kwargs)
+        for pitch in PITCH:
+            # Simulate...
+            file_name = f'sim_{1.e4 * thickness:.0f}um_{noise:.0f}enc_{1e3 * pitch:.0f}pitch.h5'
+            file_path = HEXSAMPLE_DATA / file_name
+            kwargs = dict(outfile=file_path, thickness=thickness, noise=noise, pitch=pitch)
+            file_path = hxsim(numevents=NUM_EVENTS, **kwargs)
+            # ... and reconstruct.
+            threshold = noise * SIGMA_THRESHOLD
+            suffix = f'recon_nn{NUM_NEIGHBORS}_thr{threshold:.0f}'
+            kwargs = dict(zsupthreshold=threshold, nneighbors=NUM_NEIGHBORS, suffix=suffix)
+            hxrecon(infile=file_path, **kwargs)

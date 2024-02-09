@@ -26,19 +26,22 @@ __description__ = \
 
 # Parser object.
 ANALYZESIM_ARGPARSER = ArgumentParser(description=__description__)
-def analyze_sim(thick : int, noise : int) -> None:
-    """Creates the energy histogram of all events for a certain thickness and enc
-    of detector and readout. 
+def analyze_sim(thick : int, noise : int, pitch : int) -> None:
+    """Creates the energy histogram of all events for a certain thickness, enc
+    and pitch of detector and readout. 
 
     Arguments
     ---------
     - thick : int 
         Thickness of silicon detector in mu m 
     - noise : int
-        Noise og the detector readout in enc    
+        Noise og the detector readout in enc 
+    - pitch : int
+        Pitch og the detector readout in mu m   
     """
-    thr = 2 * noise
-    file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_recon_nn2_thr{thr}.h5'
+    thr = 2 * noise 
+    file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_{pitch}pitch_recon_nn2_thr{thr}.h5'
+    print(file_path)
     recon_file = ReconInputFile(file_path)
     #Constructing the 1px mask
     cluster_size = recon_file.column('cluster_size')
@@ -48,14 +51,18 @@ def analyze_sim(thick : int, noise : int) -> None:
     energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
     plt.figure()
     #fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = False)
-    plt.title(fr'Energy histogram for t = {thick} $\mu$m, ENC = {noise} - 1px evts')
+    plt.title(fr'Energy histogram for t = {thick} $\mu$m, ENC = {noise}, pitch = {pitch} - 1px evts')
     plt.xlabel('Energy [eV]')
     fitted_model_1px = fit_histogram(energy_hist_1px, fit_model=DoubleGaussian, show_figure = True)
+    plt.figure()
+    cluster_size_hist = create_histogram(recon_file, 'cluster_size', binning = 100)
+    cluster_size_hist.plot()
     recon_file.close()
 
     plt.show()
 
 if __name__ == '__main__':
-    THICKNESS = 50
-    ENC = 10
-    analyze_sim(THICKNESS, ENC, **vars(ANALYZESIM_ARGPARSER.parse_args()))
+    THICKNESS = 500
+    ENC = 40
+    PITCH = 50
+    analyze_sim(THICKNESS, ENC, PITCH, **vars(ANALYZESIM_ARGPARSER.parse_args()))
