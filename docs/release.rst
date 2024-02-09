@@ -4,6 +4,10 @@ Release notes
 =============
 
 
+* Minor tweaks to the docs to make clear that all the lengths are in cm.
+* Minor formatting changes.
+
+
 *hexsample (0.8.1) - Tue, 12 Dec 2023 15:10:55 +0100*
 
 * Merging https://github.com/lucabaldini/hexsample/pull/45
