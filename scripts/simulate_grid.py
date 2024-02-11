@@ -31,8 +31,8 @@ NUM_EVENTS = 100000
 THICKNESS = (0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05)
 # Equivalent noise charge grid in e.
 NOISE = (0, 10, 20, 25, 30, 35, 40)
-# Chip pitch in mm
-PITCH = (0.050, 0.055, 0.060, 0.080, 0.1) 
+# Chip pitch in cm
+PITCH = (0.0050, 0.0055, 0.0060, 0.0080, 0.01)
 
 # Zero-suppression threshold, expressed in units of enc.
 SIGMA_THRESHOLD = 2.
@@ -44,7 +44,7 @@ for thickness in THICKNESS:
     for noise in NOISE:
         for pitch in PITCH:
             # Simulate...
-            file_name = f'sim_{1.e4 * thickness:.0f}um_{noise:.0f}enc_{1e3 * pitch:.0f}pitch.h5'
+            file_name = f'sim_{1.e4 * thickness:.0f}um_{noise:.0f}enc_{1e4 * pitch:.0f}pitch.h5'
             file_path = HEXSAMPLE_DATA / file_name
             kwargs = dict(outfile=file_path, thickness=thickness, noise=noise, pitch=pitch)
             file_path = hxsim(numevents=NUM_EVENTS, **kwargs)
