@@ -130,16 +130,16 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
     mean_shift_ka = (mean_energy[0]-mu_true_alpha)/mu_true_alpha
     mean_shift_kb = (mean_energy[1]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
-    energy_res_ka = sigmas[0]/mean_energy[0]
-    energy_res_kb = sigmas[1]/mean_energy[1]
+    energy_res_ka = sigmas[0]/mean_energy[0]*(mu_true_alpha*2.35/3.6) #number of electrons
+    energy_res_kb = sigmas[1]/mean_energy[1]*(mu_true_beta*2.35/3.6) #number of electrons
 
     #Repeating for the 1px quantities
     mean_shift_ka_1px = ((mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)*onepx_evts_ratio
     mean_shift_kb_1px = ((mean_energy_1px[1]-mu_true_beta)/mu_true_beta)*onepx_evts_ratio
     #print(onepx_evts_ratio)
     #constructing the energy resolution
-    energy_res_ka_1px = (sigmas_1px[0]/mean_energy_1px[0])*onepx_evts_ratio
-    energy_res_kb_1px = (sigmas_1px[1]/mean_energy_1px[1])*onepx_evts_ratio
+    energy_res_ka_1px = (sigmas_1px[0]/mean_energy_1px[0])*onepx_evts_ratio*(mu_true_alpha*2.35/3.6) #number of electrons
+    energy_res_kb_1px = (sigmas_1px[1]/mean_energy_1px[1])*onepx_evts_ratio*(mu_true_beta*2.35/3.6) #number of electrons
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
@@ -307,16 +307,16 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     mean_shift_ka = (mean_energy[0]-mu_true_alpha)/mu_true_alpha
     mean_shift_kb = (mean_energy[1]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
-    energy_res_ka = sigmas[0]/mean_energy[0]
-    energy_res_kb = sigmas[1]/mean_energy[1]
+    energy_res_ka = (sigmas[0]/mean_energy[0])*(mu_true_alpha*2.35/3.6) #number of electrons
+    energy_res_kb = sigmas[1]/mean_energy[1]*(mu_true_beta*2.35/3.6) #number of electrons
 
     #Repeating for the 1px quantities
     mean_shift_ka_1px = ((mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)*onepx_evts_ratio
     mean_shift_kb_1px = ((mean_energy_1px[1]-mu_true_beta)/mu_true_beta)*onepx_evts_ratio
     #print(onepx_evts_ratio)
     #constructing the energy resolution
-    energy_res_ka_1px = (sigmas_1px[0]/mean_energy_1px[0])*onepx_evts_ratio
-    energy_res_kb_1px = (sigmas_1px[1]/mean_energy_1px[1])*onepx_evts_ratio
+    energy_res_ka_1px = (sigmas_1px[0]/mean_energy_1px[0])*(mu_true_alpha*2.35/3.6) #number of electrons
+    energy_res_kb_1px = (sigmas_1px[1]/mean_energy_1px[1])*(mu_true_beta*2.35/3.6) #number of electrons
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(pitch, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
@@ -351,7 +351,7 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(pitch, thickness, mean_shift_ka_1px.flatten(),\
                             mean_shift_kb_1px.flatten())
-    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, for 1px tracks, correction = {correct_1px_ratio} for enc = {enc}')
+    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$ for 1px tracks for enc = {enc}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel(r'Pitch [$\mu$m]')
     # custom yticks. Setting a right yaxis
@@ -365,7 +365,7 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
             plt.savefig(f'{save_path}/mean_shift_1px_evts.pdf')
 
     fig2,ax2 = double_heatmap(pitch, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten())
-    plt.title(fr'Energy resolution $\frac{{\sigma_{{E}}}}{{E}}$, for 1px tracks, correction = {correct_1px_ratio} for enc = {enc}')
+    plt.title(fr'Energy resolution $\frac{{\sigma_{{E}}}}{{E}}$ for 1px tracks for enc = {enc}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel(r'Pitch [$\mu$m]')
     # custom yticks. Setting a right yaxis
@@ -391,9 +391,9 @@ if __name__ == '__main__':
     n_events = 100000
     enc_ = np.array([0, 10, 20, 25, 30, 35, 40])
     thickness_ = np.array([0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05])*(1e4)
-    pitch = 0.050*1e3
-    pitch_ = np.array([0.050, 0.055, 0.060, 0.080, 0.1])*(1e3)
-    enc = 0
+    pitch = 50
+    pitch_ = np.array([0.0050, 0.0055, 0.0060, 0.0080, 0.01])*(1e4)
+    enc = 40
     #Turning arrays into ints for reading filename correctly
     thickness_ = thickness_.astype(int)
     pitch_ = pitch_.astype(int)
