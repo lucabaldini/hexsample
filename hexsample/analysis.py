@@ -126,7 +126,7 @@ def fit_histogram(hist : Histogram1d, fit_model : FitModelBase = DoubleGaussian,
     return model.status
 
 def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: np.array,
-    heatmap_values2: np.array):
+    heatmap_values2: np.array, n_digits: int=3):
     """Creates a figure containing two different heatmaps (with the same size)
     constructed row by row.
 
@@ -145,6 +145,9 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
         A flatten array containing the values of every cell of the first heatmap.
     heatmap_values1 : np.array
         A flatten array containing the values of every cell of the second heatmap.
+    n_digits : int
+        Number of digits in the text label format string of every cell. Default is 3
+        that corresponds to .:3f format. 
 
     Return
     ------
@@ -185,7 +188,7 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
     fmt = dict(ha='center', va='center', color='b')
     for i in range(row_number * 2):
         for j in range(column_number):
-            ax.text(j + 0.5, i + 0.5, f'{heatmap[i, j]:.4f}', **fmt)
+            ax.text(j + 0.5, i + 0.5, f'{heatmap[i, j]:.{n_digits}f}', **fmt)
     # Shifting ticks on center
     ax.xaxis.set(ticks=np.arange(0.5, column_number), ticklabels=column_vals)
     ax.yaxis.set(ticks=np.arange(1, row_number*2, 2), ticklabels=row_vals)
@@ -194,7 +197,8 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
     return fig, ax
 
 
-def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_values : np.array):
+def heatmap_with_labels(column_vals: np.array, row_vals: np.array, 
+                        heatmap_values : np.array, n_digits: int=3):
     """Creates a figure containing an heatmap having in every cell printed the
     value of the cell itself.
 
@@ -206,6 +210,9 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_value
          Values relative to the row of the heatmaps.
     heatmap_values : np.array
         Values of the heatmap
+    n_digits : int
+        Number of digits in the text label format string of every cell. Default is 3
+        that corresponds to .:3f format. 
 
     Return
     ------
@@ -229,7 +236,7 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_value
     fmt = dict(ha='center', va='center', color='b')
     for i in range(row_number):
         for j in range(column_number):
-            axes.text(j + 0.5, i + 0.5, f'{heatmap_values[i, j]:.4f}', **fmt)
+            axes.text(j + 0.5, i + 0.5, f'{heatmap_values[i, j]:.{n_digits}f}', **fmt)
     axes.xaxis.set(ticks=np.arange(0.5, column_number), ticklabels=column_vals)
     axes.yaxis.set(ticks=np.arange(0.5, row_number), ticklabels=row_vals)
     fig.tight_layout()
