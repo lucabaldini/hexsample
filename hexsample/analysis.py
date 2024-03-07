@@ -21,6 +21,7 @@
 """
 
 import numpy as np
+from scipy.stats import norm
 
 from hexsample.fileio import InputFileBase
 from hexsample.hist import Histogram1d
@@ -242,3 +243,81 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array,
     fig.tight_layout()
     plt.colorbar() #plotting colorbar
     return fig, axes
+
+def Gini_index(node_threshold: np.array, data_feature: np.array, data_label: np.array) -> float:
+    """The following function computes the Gini index for a binomial node depending
+    from a single feature and having two possible classes. 
+
+    Arguments
+    ---------
+    - node_threshold : list | np.array
+        Threshold values of the feature that define the division between the two binomial nodes.
+    - data_feature : list | np.array
+        Array-like containing the value of the interesting feature 
+    (that can be continuous);
+    - data_label : list | np.array [bool]
+        Array-like containing the classification labels of every dataset, must
+        contain only 0 and 1, must be of same lenght of data_feature; 
+
+    Returns
+    ------
+    - gini_index : np.array
+        Value of the Gini index for the node_threshold(s) given as input.
+    """
+    gini_idx = []
+    for thr in node_threshold:
+        #Defining the variable containing the Gini index value
+        #Defining the mask that divides data objects into the two nodes
+        mask0 = (data_label == 0)
+        mask1 = (data_label == 1)
+        mask_under_thr = (data_feature < thr)
+        mask_overeq_thr = (data_feature >= thr)
+        #Computing Gini index for first node
+        #Computing p0 and p1 for node0
+        p0 = len(data_feature[np.logical_and(mask0, mask_under_thr)])/len(data_feature)
+        p1 = len(data_feature[np.logical_and(mask1, mask_under_thr)])/len(data_feature)
+        gini_idx_node0 = 1-(p0**2 + p1**2)
+        #Computing Gini index for second node
+        #Computing p0 and p1 for node1
+        p0 = len(data_feature[np.logical_and(mask0, mask_overeq_thr)])/len(data_feature)
+        p1 = len(data_feature[np.logical_and(mask1, mask_overeq_thr)])/len(data_feature)
+        gini_idx_node1 = 1-(p0**2 + p1**2)
+        #Computing the overall Gini index
+        #Gini index with weights 
+        gini_idx_tmp = (len(data_label[mask0])/len(data_label))*gini_idx_node0\
+        + (len(data_label[mask1])/len(data_label))*gini_idx_node1
+        #Gini index without weights
+        #gini_idx_tmp = gini_idx_node0 + gini_idx_node1
+        gini_idx.append(gini_idx_tmp)
+    
+    return np.array(gini_idx)
+
+def energy_threshold_computation(fit_model: FitModelBase = DoubleGaussian, contamination_beta_on_alpha: float=0.02):
+    """The following function computes the energy threshold for the classification
+    of alpha and beta photons on Cu source.
+    The threshold computation is chosen fixing the contamination of beta photons
+    on alpha photons signal. The corresponding efficiency on alpha signal is then
+    computed and returned. 
+
+    Arguments
+    ---------
+    - fit_model : FitModelBase = DoubleGaussian
+        The fitted model for the Cu spectrum. Default is set to DoubleGaussian
+        and shouldn't be changed by now. 
+    - contamination_of_beta_on_alpha : float
+        Fixed contamination of beta photons on alpha photons signal. 
+
+    Return
+    ------
+    - energy_thr : float
+        Energy threshold for alpha/beta classification
+    - efficiency_on_alpha : float
+        Efficiency on alpha signal obtained using energy_thr for classification.
+    """
+    percentile = contamination_beta_on_alpha #we want to compute the energy corresponding to this percentile
+    energy_thr = norm.ppf(percentile, fit_model.parameter_value('mean1'), fit_model.parameter_value('sigma1'))
+    efficiency_on_alpha = norm.cdf(energy_thr, fit_model.parameter_value('mean0'), fit_model.parameter_value('sigma0'))
+    print(f"The energy thr corresponding to a contamination of beta on alpha signal\
+           = {contamination_beta_on_alpha*100}% is {energy_thr}, with a corresponding\
+           efficiency of alpha signal = {efficiency_on_alpha*100}%")
+    return energy_thr, efficiency_on_alpha
