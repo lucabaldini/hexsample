@@ -29,8 +29,7 @@ from hexsample.app import ArgumentParser
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import DoubleGaussian
 from hexsample.plot import plt
-from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, heatmap_with_labels
-
+from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, heatmap_with_labels, energy_threshold_computation
 
 
 __description__ = \
@@ -81,6 +80,11 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
     #Defining matrix for saving means of fit
     mean_energy = np.empty((2,len(thickness),len(enc)))
     mean_energy_1px = np.empty((2,len(thickness),len(enc)))
+    #Creating a matrix for saving the mean cluster size
+    mean_cluster_size = np.empty((len(thickness), len(enc)))
+    #Creating a matrix for saving the efficiency on alpha signal
+    efficiency_on_alpha = np.empty((len(thickness), len(enc)))
+    efficiency_on_alpha_1px = np.empty((len(thickness), len(enc)))
 
     # Saving true energy values (coming from MC).
     mu_true_alpha = 8039.68
@@ -104,6 +108,7 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
             #Saving the matrix containing the whole FitStatus for further (optional) use
             evt_matrix[thick_idx][e_idx] = fitted_model
             evt_matrix_1px[thick_idx][e_idx] = fitted_model_1px
+            
 
             #Filling the matrix of sigmas and means
             # filling the matrix with the sigma
@@ -112,6 +117,9 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
             # filling the matrix with the means
             mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
             mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
+            #Computing energy threshold for classification and relative efficiency
+            energy_thr, efficiency = energy_threshold_computation(fitted_model) #contamination set to 2%
+            efficiency_on_alpha[thick_idx][e_idx] = efficiency
 
             # Redoing everything for the events with 1px
             #filling the matrix with the means
@@ -120,6 +128,13 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
             #filling the matrix with the sigma
             sigmas_1px[0][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma0') #alpha peak
             sigmas_1px[1][thick_idx][e_idx] = fitted_model_1px.parameter_value('sigma1') #beta peak
+            #Computing energy threshold for classification and relative efficiency
+            energy_thr, efficiency = energy_threshold_computation(fitted_model_1px) #contamination set to 2%
+            efficiency_on_alpha_1px[thick_idx][e_idx] = efficiency
+
+
+            #Constructing the mean cluster size
+            mean_cluster_size[thick_idx][e_idx] = np.mean(cluster_size)
 
             #Saving the ratio of 1px wrt all evts if correction is required
             if correct_1px_ratio is True:
@@ -130,22 +145,20 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
     mean_shift_ka = (mean_energy[0]-mu_true_alpha)/mu_true_alpha
     mean_shift_kb = (mean_energy[1]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
-    energy_res_ka = sigmas[0]/mean_energy[0]*(mu_true_alpha*2.35/3.6) #number of electrons
-    energy_res_kb = sigmas[1]/mean_energy[1]*(mu_true_beta*2.35/3.6) #number of electrons
+    energy_res_ka = sigmas[0]*2.35 #eV (FWHM)
+    energy_res_kb = sigmas[1]*2.35 #eV (FWHM)
 
     #Repeating for the 1px quantities
-    mean_shift_ka_1px = ((mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)*onepx_evts_ratio
-    mean_shift_kb_1px = ((mean_energy_1px[1]-mu_true_beta)/mu_true_beta)*onepx_evts_ratio
+    mean_shift_ka_1px = ((mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)
+    mean_shift_kb_1px = ((mean_energy_1px[1]-mu_true_beta)/mu_true_beta)
     #print(onepx_evts_ratio)
     #constructing the energy resolution
-    energy_res_ka_1px = (sigmas_1px[0]/mean_energy_1px[0])*onepx_evts_ratio*(mu_true_alpha*2.35/3.6) #number of electrons
-    energy_res_kb_1px = (sigmas_1px[1]/mean_energy_1px[1])*onepx_evts_ratio*(mu_true_beta*2.35/3.6) #number of electrons
+    energy_res_ka_1px = (sigmas_1px[0])*2.35 #eV (FWHM)
+    energy_res_kb_1px = (sigmas_1px[1])*2.35 #eV (FWHM)
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
-    plt.figure('mean_shift_all_evts')
-    plt.title(r'$\Delta = \frac{\mu_{E}-E_{K}}{E_{K}}$, as a function of\
-                detector thickness and readout noise')
+    plt.title(r'$\Delta = \frac{\mu_{E}-E_{K}}{E_{K}}$')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis
@@ -161,9 +174,8 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
     if save_path is not None:
         plt.savefig(f'{save_path}/mean_shift_all_evts.pdf')
 
-    fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka.flatten(), energy_res_kb.flatten())
-    plt.title(r'Energy resolution $\frac{\sigma_{E}}{E}$, as a function of\
-               detector thickness and readout noise')
+    fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka.flatten(), energy_res_kb.flatten(), 0)
+    plt.title(r'Energy resolution FWHM [eV]')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis
@@ -173,12 +185,27 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
     if save_path is not None:
         plt.savefig(f'{save_path}/energy_res_all_evts.pdf')
 
+    heatmap_with_labels(enc, thickness, mean_cluster_size, 2)
+    plt.title(rf'Mean cluster size')
+    plt.xlabel('Noise [ENC]')
+    plt.ylabel(r'thickness $\mu$m')
+    if save_path is not None:
+        plt.savefig(f'{save_path}/mean_cluster_size.pdf')
+
+    heatmap_with_labels(enc, thickness, efficiency, 2)
+    plt.title(rf'Efficiency on $\alpha$ signal')
+    plt.xlabel('Noise [ENC]')
+    plt.ylabel(r'thickness $\mu$m')
+    if save_path is not None:
+        plt.savefig(f'{save_path}/efficiency.pdf')
+
+        
+
     #Repeating everything for 1px
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka_1px.flatten(),\
                             mean_shift_kb_1px.flatten())
-    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$,\
-                for 1px tracks, correction = {correct_1px_ratio}')
+    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, 1px tracks')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis
@@ -192,9 +219,8 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, *
         plt.savefig(f'{save_path}/mean_shift_1px_evts.pdf')
     
 
-    fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten())
-    plt.title(fr'Energy resolution $\frac{{\sigma_{{E}}}}{{E}}$,\
-                for 1px tracks, correction = {correct_1px_ratio}')
+    fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten(), 0)
+    plt.title(fr'Energy resolution FWHM [eV], 1px tracks')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel('Noise [ENC]')
     # custom yticks. Setting a right yaxis
@@ -250,7 +276,8 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     mean_energy_1px = np.empty((2,len(thickness),len(pitch)))
     #Defining matrix for saving the quantum efficiency of the detector
     #This is a single number for both peaks so it is a 2D matrix.
-    quantum_efficiency = np.empty((len(thickness), len(pitch)))
+    mean_cluster_size = np.empty((len(thickness), len(pitch)))
+    #quantum_efficiency = np.empty((len(thickness), len(pitch)))
 
     # Saving true energy values (coming from MC).
     mu_true_alpha = 8039.68
@@ -293,34 +320,34 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
             sigmas_1px[0][thick_idx][p_idx] = fitted_model_1px.parameter_value('sigma0') #alpha peak
             sigmas_1px[1][thick_idx][p_idx] = fitted_model_1px.parameter_value('sigma1') #beta peak
 
-            #Constructing the quantum efficiency
-            #that is: number of events with nonzero px/number of events simulated
-            quantum_efficiency[thick_idx][p_idx] = (n_events-len(cluster_size))/n_events
+            #Constructing the mean cluster size
+            mean_cluster_size[thick_idx][p_idx] = np.mean(cluster_size)
+            #quantum_efficiency[thick_idx][p_idx] = (n_events-len(cluster_size))/n_events
 
             #Saving the ratio of 1px wrt all evts if correction is required
             if correct_1px_ratio is True:
                 onepx_evts_ratio[thick_idx][p_idx] = energy_hist_1px.content.sum()/energy_hist.content.sum()
             recon_file.close()
     # After having saved the interesting quantities in arrays, analysis is performed.
-    print(quantum_efficiency)
+    #print(quantum_efficiency)
     #constructing the metric for the shift of the mean
     mean_shift_ka = (mean_energy[0]-mu_true_alpha)/mu_true_alpha
     mean_shift_kb = (mean_energy[1]-mu_true_beta)/mu_true_beta
     #constructing the energy resolution
-    energy_res_ka = (sigmas[0]/mean_energy[0])*(mu_true_alpha*2.35/3.6) #number of electrons
-    energy_res_kb = sigmas[1]/mean_energy[1]*(mu_true_beta*2.35/3.6) #number of electrons
+    energy_res_ka = sigmas[0]*2.35 #eV (FWHM)
+    energy_res_kb = sigmas[1]*2.35 #eV (FWHM)
 
     #Repeating for the 1px quantities
-    mean_shift_ka_1px = ((mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)*onepx_evts_ratio
-    mean_shift_kb_1px = ((mean_energy_1px[1]-mu_true_beta)/mu_true_beta)*onepx_evts_ratio
+    mean_shift_ka_1px = ((mean_energy_1px[0]-mu_true_alpha)/mu_true_alpha)
+    mean_shift_kb_1px = ((mean_energy_1px[1]-mu_true_beta)/mu_true_beta)
     #print(onepx_evts_ratio)
     #constructing the energy resolution
-    energy_res_ka_1px = (sigmas_1px[0]/mean_energy_1px[0])*(mu_true_alpha*2.35/3.6) #number of electrons
-    energy_res_kb_1px = (sigmas_1px[1]/mean_energy_1px[1])*(mu_true_beta*2.35/3.6) #number of electrons
+    energy_res_ka_1px = sigmas_1px[0]*2.35 #eV (FWHM)
+    energy_res_kb_1px = sigmas_1px[1]*2.35 #eV (FWHM)
 
     # Plotting the overlapped heatmaps and customizing them.
-    fig,ax = double_heatmap(pitch, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
-    plt.title(rf'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, as a function of detector thickness and readout pitch for enc = {enc}')
+    fig,ax = double_heatmap(pitch, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten(), 3)
+    plt.title(rf'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, ENC = {enc}')
     plt.ylabel(r'Thickness [$\mu$m]')
     plt.xlabel(r'Pitch [$\mu$m]')
     # custom yticks. Setting a right yaxis
@@ -336,8 +363,8 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     if save_path is not None:
             plt.savefig(f'{save_path}/mean_shift_all_evts.pdf')
 
-    fig2,ax2 = double_heatmap(pitch, thickness, energy_res_ka.flatten(), energy_res_kb.flatten())
-    plt.title(rf'Energy resolution $\frac{{\sigma_{{E}}}}{{E}}$, as a function of detector thickness and readout pitch for enc = {enc}')
+    fig2,ax2 = double_heatmap(pitch, thickness, energy_res_ka.flatten(), energy_res_kb.flatten(), 0)
+    plt.title(rf'Energy resolution FWHM [eV], ENC = {enc}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel(r'Pitch [$\mu$m]')
     # custom yticks. Setting a right yaxis
@@ -347,11 +374,21 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     if save_path is not None:
             plt.savefig(f'{save_path}/energy_res_all_evts.pdf')
 
+    heatmap_with_labels(pitch, thickness, mean_cluster_size, 2)
+    plt.title(rf'Mean cluster size')
+    plt.xlabel(r'Pitch [$\mu$m]')
+    plt.ylabel(r'thickness $\mu$m')
+    if save_path is not None:
+        plt.savefig(f'{save_path}/mean_cluster_size.pdf')
+
+
+    
+
     #Repeating everything for 1px
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(pitch, thickness, mean_shift_ka_1px.flatten(),\
-                            mean_shift_kb_1px.flatten())
-    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$ for 1px tracks for enc = {enc}')
+                            mean_shift_kb_1px.flatten(), 3)
+    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, 1px tracks, ENC = {enc}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel(r'Pitch [$\mu$m]')
     # custom yticks. Setting a right yaxis
@@ -364,8 +401,8 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     if save_path is not None:
             plt.savefig(f'{save_path}/mean_shift_1px_evts.pdf')
 
-    fig2,ax2 = double_heatmap(pitch, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten())
-    plt.title(fr'Energy resolution $\frac{{\sigma_{{E}}}}{{E}}$ for 1px tracks for enc = {enc}')
+    fig2,ax2 = double_heatmap(pitch, thickness, energy_res_ka_1px.flatten(), energy_res_kb_1px.flatten(), 0)
+    plt.title(fr'Energy resolution FWHM [eV], 1px tracks, ENC = {enc}')
     plt.ylabel(r'Thickness $\mu$m')
     plt.xlabel(r'Pitch [$\mu$m]')
     # custom yticks. Setting a right yaxis
@@ -377,8 +414,8 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     
 
     if correct_1px_ratio is True:
-        heatmap_with_labels(pitch, thickness, onepx_evts_ratio)
-        plt.title(rf'Fraction of events with 1 px on readout $f = \frac{{n_{{evts1px}}}}{{n_{{evts}}}}$ for enc = {enc}')
+        heatmap_with_labels(pitch, thickness, onepx_evts_ratio, 3)
+        plt.title(rf'Fraction of events with 1 px on readout $f = \frac{{n_{{evts1px}}}}{{n_{{evts}}}}$, enc = {enc}')
         plt.xlabel(r'Pitch [$\mu$m]')
         plt.ylabel(r'thickness $\mu$m')
         if save_path is not None:
@@ -393,7 +430,7 @@ if __name__ == '__main__':
     thickness_ = np.array([0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05])*(1e4)
     pitch = 50
     pitch_ = np.array([0.0050, 0.0055, 0.0060, 0.0080, 0.01])*(1e4)
-    enc = 40
+    enc = 30
     #Turning arrays into ints for reading filename correctly
     thickness_ = thickness_.astype(int)
     pitch_ = pitch_.astype(int)
