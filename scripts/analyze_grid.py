@@ -26,10 +26,11 @@ from ast import literal_eval
 import numpy as np
 
 from hexsample.app import ArgumentParser
+from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, heatmap_with_labels, energy_threshold_computation
 from hexsample.fileio import ReconInputFile
 from hexsample.modeling import DoubleGaussian
 from hexsample.plot import plt
-from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, heatmap_with_labels, energy_threshold_computation
+from hexsample.sensor import Silicon, SiliconSensor
 
 
 __description__ = \
@@ -93,6 +94,9 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
 
     #Opening file, fitting and filling matrices with fitted values
     for thick_idx, thick in np.ndenumerate(thickness):
+        sensor = SiliconSensor(thick*1e-4)
+        QE_alpha = sensor.photabsorption_efficiency(np.mean(8039.68))
+        QE_beta = sensor.photabsorption_efficiency(np.mean(8903.57))
         for e_idx, e in np.ndenumerate(enc):
             thr = 2 * e
             file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{e}enc_{pitch}pitch_recon_nn2_thr{thr}.h5'
@@ -119,7 +123,7 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
             mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
             #Computing energy threshold for classification and relative efficiency
             energy_thr, efficiency = energy_threshold_computation(fitted_model) #contamination set to 2%
-            efficiency_on_alpha[thick_idx][e_idx] = efficiency
+            efficiency_on_alpha[thick_idx][e_idx] = efficiency*QE_alpha
             #Constructing the mean cluster size
             mean_cluster_size[thick_idx][e_idx] = np.mean(cluster_size[mask])
 
@@ -232,6 +236,10 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
 
     #Opening file, fitting and filling matrices with fitted values
     for thick_idx, thick in np.ndenumerate(thickness):
+        sensor = SiliconSensor(thick*1e-4)
+        QE_alpha = sensor.photabsorption_efficiency(8039.68)
+        print(f'Thickness:{thick}, QE={QE_alpha}')
+        QE_beta = sensor.photabsorption_efficiency(8903.57)
         for p_idx, p in np.ndenumerate(pitch):
             thr = 2 * enc
             file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{enc}enc_{p}pitch_recon_nn2_thr{thr}.h5'
@@ -258,7 +266,7 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
             mean_energy[1][thick_idx][p_idx] = fitted_model.parameter_value('mean1')
             #Computing energy threshold for classification and relative efficiency
             energy_thr, efficiency = energy_threshold_computation(fitted_model) #contamination set to 2%
-            efficiency_on_alpha[thick_idx][p_idx] = efficiency
+            efficiency_on_alpha[thick_idx][p_idx] = efficiency*QE_alpha
 
             #Constructing the mean cluster size
             mean_cluster_size[thick_idx][p_idx] = np.mean(cluster_size[mask])
