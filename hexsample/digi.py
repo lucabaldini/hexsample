@@ -212,17 +212,10 @@ class HexagonalReadoutBase(HexagonalGrid):
         self.gain = gain
         self.shape = (self.num_rows, self.num_cols)
         self.trigger_id = -1
-
-
-
-class HexagonalReadoutSparse(HexagonalReadoutBase):
-
-    """
-    """
-
+    
     @staticmethod
     def zero_suppress(array: np.ndarray, threshold: float) -> None:
-        """Utility function to zero-suppress an generic array.
+        """Utility function to zero-suppress a generic array.
 
         This is returning an array of the same shape of the input where all the
         values lower or equal than the zero suppression threshold are set to zero.
@@ -276,7 +269,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         if self.enc > 0:
             pha += rng.generator.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
-        pha *= self.gain
+        pha = pha*self.gain
         # ... round to the neirest integer...
         pha = np.round(pha).astype(int)
         # ... if necessary, add the offset for diagnostic events...
@@ -287,9 +280,39 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         # array as the BEE would have.
         return pha.flatten()
 
+
+
+class HexagonalReadoutSparse(HexagonalReadoutBase):
+
+    """Description of a pixel sparse readout chip on a hexagonal matrix.
+    In the following readout, no ROI is formed, every (and only) triggered pixel of
+    the event is kept with its positional information in (col, row) format on the 
+    hexagonal grid.
+
+    Arguments
+    ---------
+    layout : HexagonalLayout
+        The layout of the hexagonal matrix.
+
+    num_cols : int
+        The number of columns in the readout.
+
+    num_rows : int
+        The number of rows in the readout.
+
+    pitch : float
+        The readout pitch in cm.
+
+    enc : float
+        The equivalent noise charge in electrons.
+
+    gain : float
+        The readout gain in ADC counts per electron.
+    """
+
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
         zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventSparse:
-        """Readout an event.
+        """Sparse readout an event.
 
         Arguments
         ---------
@@ -316,6 +339,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         # Trigger missing here!
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
+        return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
         
 
 

@@ -35,7 +35,7 @@ def test_digi_event_base():
     print(event.timestamp())
 
 def test_digi_event_sparse():
-    """
+    """Test for sparse digi event class.
     """
     pha = np.array([50., 150., 25.])
     rows = np.array([1, 2, 3])
@@ -58,16 +58,24 @@ def test_digi_event_sparse():
 def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
     gain: float = 0.5, num_pairs: int = 1000, trg_threshold: float = 200.):
-    """
+    """Test for sparse event digitalization class.
     """
     readout = digi.HexagonalReadoutSparse(layout, num_cols, num_rows, pitch, enc, gain)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
-    logger.debug(f'Testing pixel ({col}, {row})...')
+    col1, row1= num_cols // 6, num_rows // 3
+    logger.debug(f'Testing pixel ({col}, {row}) and ({col1}, {row1})...')
     # ... create the x and y arrays of the pair positions in the center of the pixel.
     x0, y0 = readout.pixel_to_world(col, row)
-    x, y = np.full(num_pairs, x0), np.full(num_pairs, y0)
-    a = readout.read(0., x, y, 100.)
+    x1, y1 = readout.pixel_to_world(col1, row1)
+    x, y = np.full(int(num_pairs), x0), np.full(int(num_pairs), y0)
+    print(len(y))
+    x = np.append(x, np.full(int(num_pairs), x1))
+    y = np.append(y, np.full(int(num_pairs), y1))
+    print(x,y)
+    print(len(x), len(y))
+    a = readout.read(0., x, y, 100.) #this is a DigiEventSparse
+    print(a.ascii())
 
 def test_digi_event(min_col: int = 106, max_col: int = 113, min_row: int = 15,
     max_row: int = 22, padding: Padding = Padding(1, 2, 3, 4)):
