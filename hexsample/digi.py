@@ -20,6 +20,7 @@
 """Digitization facilities.
 """
 
+from collections import Counter
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -33,6 +34,299 @@ from hexsample.roi import Padding, RegionOfInterest
 from hexsample import xpol
 
 
+
+@dataclass
+class DigiEventBase:
+
+    """Base class for a digitized event.
+
+    This includes alll the timing information that is common to the different digitized
+    event structure, as well as the PHA content of the pixels in the event, but no
+    information about the physical location on the latter within the readout chip.
+    It is responsibility of the derived classes to provide this information, in the
+    way that is more conventient, depending on the particular readout strategy.
+
+    Arguments
+    ---------
+    trigger_id : int
+        The trigger identifier.
+
+    seconds : int
+        The integer part of the timestamp.
+
+    microseconds : int
+        The fractional part of the timestamp.
+
+    pha : np.ndarray
+        The pixel content of the event, in the form of a 1-dimensional array.
+    """
+
+    trigger_id: int
+    seconds: int
+    microseconds: int
+    livetime: int
+    pha: np.ndarray
+
+    def __eq__(self, other) -> bool:
+        """Overloaded comparison operator.
+        """
+        return (self.trigger_id, self.seconds, self.microseconds, self.livetime) == \
+            (other.trigger_id, other.seconds, other.microseconds, other.livetime) and \
+            np.allclose(self.pha, other.pha)
+
+    def timestamp(self) -> float:
+        """Return the timestamp of the event, that is, the sum of the second and
+        microseconds parts of the DigiEvent contributions as a floating point number.
+        """
+        return self.seconds + 1.e-6 * self.microseconds
+
+    def ascii(self, pha_width: int = 5):
+        """
+        """
+        raise NotImplementedError
+
+
+
+@dataclass
+class DigiEventSparse(DigiEventBase):
+
+    """Sparse digitized event.
+
+    In this particular incarnation of a digitized event we have no ROI structure,
+    nor any rule as to the shape or morphology of the particular set of pixels
+    being read out. The event represent an arbitrary collection of pixels, and we
+    carry over the arrays of their row and column identifiers, in the form of
+    two arrays whose length must match that of the PHA values.
+
+    Arguments
+    ---------
+    columns : np.ndarray
+        The column identifier of the pixels in the event (must have the same length
+        of the pha class member).
+
+    rows : np.ndarray
+        The row identifier of the pixels in the event (must have the same length
+        of the pha class member).
+    """
+
+    columns: np.ndarray
+    rows: np.ndarray
+
+    def __post_init__(self) -> None:
+        """Post-initialization code.
+        """
+        if not len(self.rows) == len(self.columns) == len(self.pha):
+            raise RuntimeError(f'{self.__class__.__name__} has {len(self.rows)} rows'
+                f', {len(self.columns)} columns, and {len(self.pha)} PHA values')
+
+    def as_dict(self) -> dict:
+        """Return the pixel content of the event in the form of a {(col, row): pha}
+        value.
+
+        This is useful to address the pixel content at a given coordinate. We refrain,
+        for the moment, from implementing a __call__() hook on top of this, as the
+        semantics would be fundamentally different from that implemented with a
+        rectangular ROI, where the access happen in ROI coordinates, and not in chip
+        coordinates, but we might want to come back to this.
+        """
+        return {(col, row): pha for col, row, pha in zip(self.columns, self.rows, self.pha)}
+
+    def ascii(self, pha_width: int = 5) -> str:
+        """Ascii representation.
+        """
+        pha_dict = self.as_dict()
+        fmt = f'%{pha_width}d'
+        cols = np.arange(self.columns.min(), self.columns.max() + 1)
+        num_cols = cols[-1] - cols[0] + 1
+        rows = np.arange(self.rows.min(), self.rows.max() + 1)
+        big_space = space(2 * pha_width + 1)
+        text = f'\n{big_space}'
+        text += ''.join([fmt % col for col in cols])
+        text += f'\n{big_space}+{line(pha_width * num_cols)}\n'
+        for row in rows:
+            text += f'    {fmt % row}  |'
+            for col in cols:
+                try:
+                    pha = fmt % pha_dict[(col, row)]
+                except KeyError:
+                    pha = ' ' * pha_width
+                text += pha
+            text += f'\n{big_space}|\n'
+        return text
+
+
+
+@dataclass
+class DigiEventRectangular(DigiEventBase):
+
+    """
+    """
+
+    roi: RegionOfInterest
+
+
+
+@dataclass
+class DigiEventCircular(DigiEventBase):
+
+    """
+    """
+
+    row: int
+    column: int
+
+
+
+class HexagonalReadoutBase(HexagonalGrid):
+
+    """Description of a pixel readout chip on a hexagonal matrix.
+
+    Arguments
+    ---------
+    layout : HexagonalLayout
+        The layout of the hexagonal matrix.
+
+    num_cols : int
+        The number of columns in the readout.
+
+    num_rows : int
+        The number of rows in the readout.
+
+    pitch : float
+        The readout pitch in cm.
+
+    enc : float
+        The equivalent noise charge in electrons.
+
+    gain : float
+        The readout gain in ADC counts per electron.
+    """
+
+    def __init__(self, layout: HexagonalLayout, num_cols: int, num_rows: int,
+                 pitch: float, enc: float, gain: float) -> None:
+        """Constructor.
+        """
+        # pylint: disable=too-many-arguments
+        super().__init__(layout, num_cols, num_rows, pitch)
+        self.enc = enc
+        self.gain = gain
+        self.shape = (self.num_rows, self.num_cols)
+        self.trigger_id = -1
+
+
+
+class HexagonalReadoutSparse(HexagonalReadoutBase):
+
+    """
+    """
+
+    @staticmethod
+    def zero_suppress(array: np.ndarray, threshold: float) -> None:
+        """Utility function to zero-suppress an generic array.
+
+        This is returning an array of the same shape of the input where all the
+        values lower or equal than the zero suppression threshold are set to zero.
+
+        Arguments
+        ---------
+        array : array_like
+            The input array.
+
+        threshold : float
+            The zero suppression threshold.
+        """
+        array[array <= threshold] = 0
+
+    @staticmethod
+    def latch_timestamp(timestamp: float) -> Tuple[int, int, int]:
+        """Latch the event timestamp and return the corresponding fields of the
+        digi event contribution: seconds, microseconds and livetime.
+
+        .. warning::
+           The livetime calculation is not implemented, yet.
+
+        Arguments
+        ---------
+        timestamp : float
+            The ground-truth event timestamp from the event generator.
+        """
+        microseconds, seconds = np.modf(timestamp)
+        livetime = 0
+        return int(seconds), int(1000000 * microseconds), livetime
+
+    def digitize(self, pha: np.ndarray, zero_sup_threshold: int = 0,
+        offset: int = 0) -> np.ndarray:
+        """Digitize the actual signal within a given ROI.
+
+        Arguments
+        ---------
+        signal : array_like
+            The input array of pixel signals to be digitized.
+
+        roi : RegionOfInterest
+            The target ROI.
+
+        zero_sup_threshold : int
+            Zero-suppression threshold in ADC counts.
+
+        offset : int
+            Optional offset in ADC counts to be applied before the zero suppression.
+        """
+        # Add the noise.
+        if self.enc > 0:
+            pha += rng.generator.normal(0., self.enc, size=pha.shape)
+        # ... apply the conversion between electrons and ADC counts...
+        pha *= self.gain
+        # ... round to the neirest integer...
+        pha = np.round(pha).astype(int)
+        # ... if necessary, add the offset for diagnostic events...
+        pha += offset
+        # ... zero suppress the thing...
+        self.zero_suppress(pha, zero_sup_threshold)
+        # ... flatten the array to simulate the serial readout and return the
+        # array as the BEE would have.
+        return pha.flatten()
+
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
+        zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventSparse:
+        """Readout an event.
+
+        Arguments
+        ---------
+        timestamp : float
+            The event timestamp.
+
+        x : array_like
+            The physical x coordinates of the input charge.
+
+        y : array_like
+            The physical x coordinates of the input charge.
+
+        trg_threshold : float
+            Trigger threshold in electron equivalent.
+
+        zero_sup_threshold : int
+            Zero suppression threshold in ADC counts.
+
+        offset : int
+            Optional offset in ADC counts to be applied before the zero suppression.
+        """
+        signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
+        columns, rows, pha = np.array([[*key, value] for key, value in signal.items()]).T
+        # Trigger missing here!
+        pha = self.digitize(pha, zero_sup_threshold, offset)
+        seconds, microseconds, livetime = self.latch_timestamp(timestamp)
+        
+
+
+
+
+
+
+
+
+
+# The stuff below is going away as soon as we have the new class hierarchy in place.
 
 @dataclass
 class DigiEvent:
@@ -110,7 +404,7 @@ class DigiEvent:
             pad_top, pad_right, pad_bottom, pad_left = row
         padding = Padding(pad_top, pad_right, pad_bottom, pad_left)
         roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
-        return cls(trigger_id, seconds, microseconds, livetime, roi, pha)
+        return cls(trigger_id, seconds, microseconds, livetime, pha, roi)
 
     def __call__(self, col: int, row: int) -> int:
         """Retrieve the pha content of the event for a given column and row.
