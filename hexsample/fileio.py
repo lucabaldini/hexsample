@@ -32,7 +32,7 @@ import tables
 
 from hexsample import __version__, __tagdate__
 from hexsample.mc import MonteCarloEvent
-from hexsample.digi import DigiEvent
+from hexsample.digi import DigiEventBase, DigiEvent
 from hexsample.recon import ReconEvent
 
 
@@ -66,6 +66,97 @@ def _fill_mc_row(row: tables.tableextension.Row, event: MonteCarloEvent) -> None
     row['absz'] = event.absz
     row['num_pairs'] = event.num_pairs
     row.append()
+
+
+class DigiDescriptionBase(tables.IsDescription):
+
+    """
+    """
+
+    trigger_id = tables.Int32Col(pos=0)
+    seconds = tables.Int32Col(pos=1)
+    microseconds = tables.Int32Col(pos=2)
+    livetime = tables.Int32Col(pos=3)
+
+    def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
+        """Helper function to fill an output table row, given a DigiEvent object.
+
+        Note that this method of the base class is not calling the row.appen() hook,
+        which is delegated to the implementations in derived classes.
+
+        .. note::
+           This would have naturally belonged to the DigiDescription class as
+           a @staticmethod, but doing so is apparently breaking something into the
+           tables internals, and all of a sudden you get an exception due to the
+           fact that a staticmethod cannot be pickled.
+        """
+        row['trigger_id'] = event.trigger_id
+        row['seconds'] = event.seconds
+        row['microseconds'] = event.microseconds
+        row['livetime'] = event.livetime
+
+
+
+class DigiDescriptionSparse(DigiDescriptionBase):
+
+    """
+    """
+
+    def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
+        """Overloaded method.
+        """
+        DigiDescriptionBase._fill_digi_row(row, event)
+        row.append()
+
+
+
+class DigiDescriptionRectangular(DigiDescriptionBase):
+
+    """
+    """
+
+    min_col = tables.Int16Col(pos=4)
+    max_col = tables.Int16Col(pos=5)
+    min_row = tables.Int16Col(pos=6)
+    max_row = tables.Int16Col(pos=7)
+    padding_top = tables.Int8Col(pos=8)
+    padding_right = tables.Int8Col(pos=9)
+    padding_bottom = tables.Int8Col(pos=10)
+    padding_left = tables.Int8Col(pos=11)
+
+    def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
+        """Overloaded method.
+        """
+        DigiDescriptionBase._fill_digi_row(row, event)
+        row['min_col'] = event.roi.min_col
+        row['max_col'] = event.roi.max_col
+        row['min_row'] = event.roi.min_row
+        row['max_row'] = event.roi.max_row
+        row['padding_top'] = event.roi.padding.top
+        row['padding_right'] = event.roi.padding.right
+        row['padding_bottom'] = event.roi.padding.bottom
+        row['padding_left'] = event.roi.padding.left
+        row.append()
+
+
+
+class DigiDescriptionCircular(DigiDescriptionBase):
+
+    """
+    """
+
+    column = tables.Int16Col(pos=4)
+    row = tables.Int16Col(pos=5)
+    pha = tables.Int16Col(shape=7, pos=6)
+
+    def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
+        """Overloaded method.
+        """
+        DigiDescriptionBase._fill_digi_row(row, event)
+        row['column'] = event.column
+        row['row'] = event.row
+        row['pha'] = event.pha
+        row.append()
 
 
 
