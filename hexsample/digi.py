@@ -555,46 +555,10 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
 
 
-
-
-
-# The stuff below is going away as soon as we have the new class hierarchy in place.
-
-class HexagonalReadout(HexagonalGrid):
+class HexagonalReadoutRectangular(HexagonalReadoutBase):
 
     """Description of a pixel readout chip on a hexagonal matrix.
-
-    Arguments
-    ---------
-    layout : HexagonalLayout
-        The layout of the hexagonal matrix.
-
-    num_cols : int
-        The number of columns in the readout.
-
-    num_rows : int
-        The number of rows in the readout.
-
-    pitch : float
-        The readout pitch in cm.
-
-    enc : float
-        The equivalent noise charge in electrons.
-
-    gain : float
-        The readout gain in ADC counts per electron.
     """
-
-    def __init__(self, layout: HexagonalLayout, num_cols: int, num_rows: int,
-                 pitch: float, enc: float, gain: float) -> None:
-        """Constructor.
-        """
-        # pylint: disable=too-many-arguments
-        super().__init__(layout, num_cols, num_rows, pitch)
-        self.enc = enc
-        self.gain = gain
-        self.shape = (self.num_rows, self.num_cols)
-        self.trigger_id = -1
 
     @staticmethod
     def sum_miniclusters(array: np.ndarray) -> np.ndarray:
@@ -605,23 +569,6 @@ class HexagonalReadout(HexagonalGrid):
         """
         num_rows, num_cols = array.shape
         return array.reshape((num_rows // 2, 2, num_cols // 2, 2)).sum(-1).sum(1)
-
-    @staticmethod
-    def zero_suppress(array: np.ndarray, threshold: float) -> None:
-        """Utility function to zero-suppress an generic array.
-
-        This is returning an array of the same shape of the input where all the
-        values lower or equal than the zero suppression threshold are set to zero.
-
-        Arguments
-        ---------
-        array : array_like
-            The input array.
-
-        threshold : float
-            The zero suppression threshold.
-        """
-        array[array <= threshold] = 0
 
     @staticmethod
     def is_odd(value: int) -> bool:
@@ -636,7 +583,7 @@ class HexagonalReadout(HexagonalGrid):
     def is_even(value: int) -> bool:
         """Return whether the input integer is even.
         """
-        return not HexagonalReadout.is_odd(value)
+        return not HexagonalReadoutRectangular.is_odd(value)
 
     def sample(self, x: np.ndarray, y: np.ndarray) -> Tuple[Tuple[int, int], np.ndarray]:
         """Spatially sample a pair of arrays of x and y coordinates in physical
@@ -731,56 +678,6 @@ class HexagonalReadout(HexagonalGrid):
         self.trigger_id += 1
         return roi, pha
 
-    def digitize(self, pha: np.ndarray, zero_sup_threshold: int = 0,
-        offset: int = 0) -> np.ndarray:
-        """Digitize the actual signal within a given ROI.
-
-        Arguments
-        ---------
-        signal : array_like
-            The input array of pixel signals to be digitized.
-
-        roi : RegionOfInterest
-            The target ROI.
-
-        zero_sup_threshold : int
-            Zero-suppression threshold in ADC counts.
-
-        offset : int
-            Optional offset in ADC counts to be applied before the zero suppression.
-        """
-        # Add the noise.
-        if self.enc > 0:
-            pha += rng.generator.normal(0., self.enc, size=pha.shape)
-        # ... apply the conversion between electrons and ADC counts...
-        pha *= self.gain
-        # ... round to the neirest integer...
-        pha = np.round(pha).astype(int)
-        # ... if necessary, add the offset for diagnostic events...
-        pha += offset
-        # ... zero suppress the thing...
-        self.zero_suppress(pha, zero_sup_threshold)
-        # ... flatten the array to simulate the serial readout and return the
-        # array as the BEE would have.
-        return pha.flatten()
-
-    @staticmethod
-    def latch_timestamp(timestamp: float) -> Tuple[int, int, int]:
-        """Latch the event timestamp and return the corresponding fields of the
-        digi event contribution: seconds, microseconds and livetime.
-
-        .. warning::
-           The livetime calculation is not implemented, yet.
-
-        Arguments
-        ---------
-        timestamp : float
-            The ground-truth event timestamp from the event generator.
-        """
-        microseconds, seconds = np.modf(timestamp)
-        livetime = 0
-        return int(seconds), int(1000000 * microseconds), livetime
-
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
         padding: Padding, zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventRectangular:
         """Readout an event.
@@ -817,7 +714,7 @@ class HexagonalReadout(HexagonalGrid):
 
 
 
-class Xpol3(HexagonalReadout):
+class Xpol3(HexagonalReadoutRectangular):
 
     """Derived class representing the XPOL-III readout chip.
     """

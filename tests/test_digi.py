@@ -129,7 +129,7 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     num_pairs: int = 1000, trg_threshold: float = 200., padding: Padding = Padding(1)):
     """Create a fake digi event and test all the steps of the digitization.
     """
-    readout = digi.HexagonalReadout(layout, num_cols, num_rows, pitch, enc, gain)
+    readout = digi.HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc, gain)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f'Testing pixel ({col}, {row})...')

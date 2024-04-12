@@ -17,7 +17,7 @@
 """
 
 
-from hexsample.digi import HexagonalReadout, Padding
+from hexsample.digi import HexagonalReadoutRectangular, Padding
 from hexsample.display import HexagonalGridDisplay
 from hexsample.hexagon import HexagonalGrid, HexagonalLayout
 from hexsample.mc import MonteCarloEvent
@@ -30,7 +30,7 @@ def test_diffusion(diff_sigma=40.):
     grid = HexagonalGrid(HexagonalLayout.ODD_R, 2, 2, 0.005)
     evt = MonteCarloEvent(0., 8000., 0., 0., 0.05, 3000)
     x, y = evt.propagate(diff_sigma)
-    readout = HexagonalReadout(HexagonalLayout.ODD_R, 10, 10, 0.005, 40., 1.)
+    readout = HexagonalReadoutRectangular(HexagonalLayout.ODD_R, 10, 10, 0.005, 40., 1.)
     padding = Padding(1)
     digi_event = readout.read(evt.timestamp, x, y, 500., padding, 80, 0)
     print(digi_event.ascii())

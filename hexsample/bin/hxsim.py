@@ -29,7 +29,7 @@ from tqdm import tqdm
 from hexsample import rng
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
-from hexsample.digi import HexagonalReadout
+from hexsample.digi import HexagonalReadoutRectangular
 from hexsample.fileio import DigiOutputFile
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
@@ -65,7 +65,7 @@ def hxsim(**kwargs):
     photon_list = PhotonList(source, sensor, kwargs['numevents'])
     args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
         kwargs['pitch'], kwargs['noise'], kwargs['gain']
-    readout = HexagonalReadout(*args)
+    readout = HexagonalReadoutRectangular(*args)
     logger.info(f'Readout chip: {readout}')
     output_file_path = kwargs.get('outfile')
     output_file = DigiOutputFile(output_file_path)

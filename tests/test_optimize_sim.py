@@ -27,7 +27,7 @@ import pytest
 
 from hexsample import logger
 from hexsample import xpol
-from hexsample.digi import HexagonalReadout
+from hexsample.digi import HexagonalReadoutRectangular
 from hexsample.hexagon import HexagonalLayout
 from hexsample.fileio import DigiEventRectangular
 from hexsample.mc import PhotonList
@@ -37,7 +37,7 @@ from hexsample.roi import RegionOfInterest, Padding
 
 
 
-class HexagonalReadoutCompat(HexagonalReadout):
+class HexagonalReadoutCompat(HexagonalReadoutRectangular):
 
     """Compatibility class implementing the readout behavior up to hexsample 0.3.1,
     i.e., before the simulation optimization described in
@@ -214,7 +214,7 @@ class HexagonalReadoutCompat(HexagonalReadout):
 # Note that we set the noise to 0. in order to allow for a deterministic
 # comparison among the two readouts.
 OLD_READOUT = HexagonalReadoutCompat(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, 0., 1.)
-NEW_READOUT = HexagonalReadout(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, 0., 1.)
+NEW_READOUT = HexagonalReadoutRectangular(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, 0., 1.)
 
 
 def _compare_readouts(x, y, trg_threshold=200., padding=Padding(2)):

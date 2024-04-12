@@ -24,7 +24,7 @@
 
 from hexsample import logger
 from hexsample.app import ArgumentParser
-from hexsample.digi import HexagonalReadout
+from hexsample.digi import HexagonalReadoutRectangular
 from hexsample.display import HexagonalGridDisplay
 from hexsample.fileio import DigiInputFile
 from hexsample.hexagon import HexagonalLayout
@@ -48,7 +48,7 @@ def hxdisplay(**kwargs):
     header = input_file.header
     args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
         header['pitch'], header['noise'], header['gain']
-    readout = HexagonalReadout(*args)
+    readout = HexagonalReadoutRectangular(*args)
     logger.info(f'Readout chip: {readout}')
     display = HexagonalGridDisplay(readout)
     for event in input_file:
