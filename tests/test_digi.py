@@ -62,20 +62,25 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     """
     readout = digi.HexagonalReadoutSparse(layout, num_cols, num_rows, pitch, enc, gain)
     # Pick out a particular pixel...
-    col, row = num_cols // 3, num_rows // 4
-    col1, row1= num_cols // 6, num_rows // 3
-    logger.debug(f'Testing pixel ({col}, {row}) and ({col1}, {row1})...')
+    col1, row1 = num_cols // 3, num_rows // 4
+    col2, row2 = col1 + 8, row1 + 5
+    col3, row3 = col1 + 4, row1 + 2
+    logger.debug(f'Testing pixel ({col1}, {row1}) and ({col2}, {row2})...')
     # ... create the x and y arrays of the pair positions in the center of the pixel.
-    x0, y0 = readout.pixel_to_world(col, row)
     x1, y1 = readout.pixel_to_world(col1, row1)
-    x, y = np.full(int(num_pairs), x0), np.full(int(num_pairs), y0)
-    print(len(y))
-    x = np.append(x, np.full(int(num_pairs), x1))
-    y = np.append(y, np.full(int(num_pairs), y1))
-    print(x,y)
-    print(len(x), len(y))
-    a = readout.read(0., x, y, 100.) #this is a DigiEventSparse
-    print(a.ascii())
+    x2, y2 = readout.pixel_to_world(col2, row2)
+    x, y = np.full(int(num_pairs), x1), np.full(int(num_pairs), y1)
+    x = np.append(x, np.full(num_pairs, x2))
+    y = np.append(y, np.full(num_pairs, y2))
+    # Add one more pixel below the trigger threshold, that we want to see disappear
+    # in the final event.
+    logger.debug(f'Adding pixel ({col3}, {row3}) below teh trigger threshold...')
+    x3, y3 = readout.pixel_to_world(col3, row3)
+    n = int(0.5 * trg_threshold)
+    x = np.append(x, np.full(n, x3))
+    y = np.append(y, np.full(n, y3))
+    event = readout.read(0., x, y, 100.) #this is a DigiEventSparse
+    print(event.ascii())
 
 def test_digi_event(min_col: int = 106, max_col: int = 113, min_row: int = 15,
     max_row: int = 22, padding: Padding = Padding(1, 2, 3, 4)):
