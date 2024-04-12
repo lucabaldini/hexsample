@@ -42,6 +42,7 @@ def test_digi_event_sparse():
     columns = np.array([11, 12, 12])
     event = digi.DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
     print(event)
+    #print(event.highest_pixel())
     print(event.timestamp())
     print(event.ascii())
     # Make sure that the check on the dimensions of the row and column arrays is
@@ -77,6 +78,19 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     a = readout.read(0., x, y, 100.) #this is a DigiEventSparse
     print(a.ascii())
 
+def test_digi_event_circular():
+    """Test for circular digi event class.
+    """
+    pha = np.array([50., 150., 25.])
+    rows = np.array([1, 2, 3])
+    columns = np.array([11, 12, 12])
+    event = digi.DigiEventCircular(0, 0, 0, 0, pha, rows, columns)
+    print(event)
+    print(event.timestamp())
+    print(event.ascii())
+    # Make sure that the check on the dimensions of the row and column arrays is
+    # at work
+
 def test_digi_event(min_col: int = 106, max_col: int = 113, min_row: int = 15,
     max_row: int = 22, padding: Padding = Padding(1, 2, 3, 4)):
     """Build a digi event and make sure it makes sense.
@@ -85,6 +99,7 @@ def test_digi_event(min_col: int = 106, max_col: int = 113, min_row: int = 15,
     # The pha is basically the serial readout order, here.
     pha = np.arange(roi.size)
     evt = digi.DigiEvent(0, 0, 0, 0, roi, pha)
+    print(evt.highest_pixel())
     print(evt.ascii())
     i, j = 0, 2
     assert evt.pha[i, j] == 2

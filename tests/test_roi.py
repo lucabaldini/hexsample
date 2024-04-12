@@ -17,7 +17,7 @@
 """
 
 
-from hexsample.roi import Padding, RegionOfInterest
+from hexsample.roi import Padding, RegionOfInterest, CircularRegionOfInterest
 
 
 def test_padding(top : int = 2, right : int = 4, bottom : int = 3, left : int = 5) -> None:
@@ -88,6 +88,17 @@ def test_roi(min_col : int = 0, max_col : int = 5, min_row : int = 25,
     print(roi.serial_readout_indexes())
     print(roi.rot_slice())
     print(roi.rot_mask())
+
+def test_circular_roi():
+    """Unit test for CircularRegionOfInterest class.
+    """
+    circ_roi = CircularRegionOfInterest(1, 1)
+    print(circ_roi)
+    print(circ_roi.at_border((5,5)))
+    circ_roi_at_border = CircularRegionOfInterest(5, 5)
+    print(circ_roi_at_border)
+    print(circ_roi_at_border.at_border((5,5)))
+
 
 def test_roi_comparison():
     """Test the equality operator for ROI objects.

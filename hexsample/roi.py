@@ -206,3 +206,30 @@ class RegionOfInterest:
             row >= self.min_row + self.padding.top,
             row <= self.max_row - self.padding.bottom
         ))
+    
+@dataclass
+class CircularRegionOfInterest:
+    """Class describing a circular region of interest.
+
+    A region of interest is the datum of the logical coorinates of its center
+    It contains a method that return a boolean, indicating if the center is at
+    chip borders (True) or not (False). Those information should be exhaustive
+    for finding the circular ROI pixels.
+    """
+
+    col: int
+    row: int
+
+    def at_border(self, chip_size: Tuple[int, int]):
+        """Return True if the highest PHA pixel is on the border for a given chip_size.
+        Note that differently from RegionOfInterest class, here the absolute coordinates
+        of the center pixel are the actual members of the class, so the comparison with
+        the number of columns and row does not need any +/- 1.
+
+        We should consider making the chip size a class member, because it looks
+        kind of awkward to pass it as an argument here.
+        """
+        num_cols, num_rows = chip_size
+        return self.col == 0 or self.col == num_cols or\
+            self.row == 0 or self.row == num_rows
+

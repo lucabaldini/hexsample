@@ -153,6 +153,24 @@ class DigiEventSparse(DigiEventBase):
                 text += pha
             text += f'\n{big_space}|\n'
         return text
+    
+    def highest_pixel(self, absolute: bool = True) -> Tuple[int, int]:
+        """Return the coordinates (col, row) of the highest pixel.
+
+        Arguments
+        ---------
+        absolute : bool
+            If true, the absolute coordinates (i.e., those referring to the readout
+            chip) are returned; otherwise the coordinates are intended relative
+            to the readout window (i.e., they can be used to index the pha array).
+        """
+        # Note col and row are swapped, here, due to how the numpy array are indexed.
+        # pylint: disable = unbalanced-tuple-unpacking
+        row, col = np.unravel_index(np.argmax(self.pha), self.pha.shape)
+        #if absolute:
+        #    col += self.roi.min_col
+        #    row += self.roi.min_row
+        return col, row
 
 
 
@@ -167,15 +185,29 @@ class DigiEventRectangular(DigiEventBase):
 
 
 @dataclass
-class DigiEventCircular(DigiEventBase):
+class DigiEventCircular(DigiEventSparse):
 
+    """Circular digitized event.
+
+    In this particular incarnation of a digitized event the ROI is built around
+    a central pixel, that is the one corresponding to maximum PHA. The ROI is then
+    always (except in border-pixel cases) composed by 7 pixels: the central one and
+    its 6 neighbours.
+    
+    Arguments
+    ---------
+    column : int
+        The column identifier of the maximum PHA pixel in the event in pixel
+        coordinates.
+
+    row : int
+        The column identifier of the maximum PHA pixel in the event in pixel
+        coordinates.
     """
-    """
 
-    row: int
-    column: int
-
-
+    def center_coordinates(self):
+        column, row = self.highest_pixel(self)
+        return column, row
 
 class HexagonalReadoutBase(HexagonalGrid):
 
@@ -249,15 +281,12 @@ class HexagonalReadoutBase(HexagonalGrid):
 
     def digitize(self, pha: np.ndarray, zero_sup_threshold: int = 0,
         offset: int = 0) -> np.ndarray:
-        """Digitize the actual signal within a given ROI.
+        """Digitize the actual signal.
 
         Arguments
         ---------
-        signal : array_like
+        pha : array_like
             The input array of pixel signals to be digitized.
-
-        roi : RegionOfInterest
-            The target ROI.
 
         zero_sup_threshold : int
             Zero-suppression threshold in ADC counts.
@@ -269,7 +298,7 @@ class HexagonalReadoutBase(HexagonalGrid):
         if self.enc > 0:
             pha += rng.generator.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
-        pha = pha*self.gain
+        pha *= self.gain
         # ... round to the neirest integer...
         pha = np.round(pha).astype(int)
         # ... if necessary, add the offset for diagnostic events...
@@ -340,10 +369,72 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
-        
+    
+class HexagonalReadoutCircular(HexagonalReadoutBase):
+    """Description of a pixel circular readout chip on a hexagonal matrix.
+    In the following readout, the maximum PHA pixel is found and the ROI
+    formed by that pixel and its 6 adjacent neighbours.
+    The standard shape of columns, rows and pha array is then 7, except
+    for events on border, that will have len<7.
 
+    Arguments
+    ---------
+    layout : HexagonalLayout
+        The layout of the hexagonal matrix.
 
+    num_cols : int
+        The number of columns in the readout.
 
+    num_rows : int
+        The number of rows in the readout.
+
+    pitch : float
+        The readout pitch in cm.
+
+    enc : float
+        The equivalent noise charge in electrons.
+
+    gain : float
+        The readout gain in ADC counts per electron.
+
+    """
+
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
+        zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventCircular:
+        """Circular readout an event.
+
+        Arguments
+        ---------
+        timestamp : float
+            The event timestamp.
+
+        x : float
+            The physical x coordinate of the highest pha pixel.
+
+        y : float
+            The physical y coordinate of the highest pha pixel.
+
+        trg_threshold : float
+            Trigger threshold in electron equivalent.
+
+        zero_sup_threshold : int
+            Zero suppression threshold in ADC counts.
+
+        offset : int
+            Optional offset in ADC counts to be applied before the zero suppression.
+        """
+        signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
+        coords = signal.key[np.argmax(signal.values)]
+        print(coords)
+        #column, row, pha = np.array([[*key, value] for key, value in signal.items()]).T
+        #Checking if there is any px outside the boundaries
+        #and constructing the circular ROI
+        #circular_px_coords = [(x,y), (x, y-1), (x, y+1), (x-1, y), (x+1, y), (x-1, y-1), (x-1, y+1)]
+        #columns, rows, pha = np.array([[*key, value] for key, value in signal.items()]).T
+        # Trigger missing here!
+        #pha = self.digitize(pha, zero_sup_threshold, offset)
+        seconds, microseconds, livetime = self.latch_timestamp(timestamp)
+        #return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
 
 
 
