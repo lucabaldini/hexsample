@@ -21,16 +21,13 @@
 """
 
 from collections import Counter
-from dataclasses import dataclass
 from typing import Tuple
 
-from loguru import logger
 import numpy as np
 
 from hexsample import rng
 from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.hexagon import HexagonalGrid, HexagonalLayout
-from hexsample.pprint import AnsiFontEffect, ansi_format, space, line
 from hexsample.roi import Padding, RegionOfInterest
 from hexsample import xpol
 

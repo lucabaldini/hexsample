@@ -20,18 +20,14 @@
 """Digi event structures.
 """
 
-from collections import Counter
 from dataclasses import dataclass
 from typing import Tuple
 
 from loguru import logger
 import numpy as np
 
-from hexsample import rng
-from hexsample.hexagon import HexagonalGrid, HexagonalLayout
 from hexsample.pprint import AnsiFontEffect, ansi_format, space, line
 from hexsample.roi import Padding, RegionOfInterest
-from hexsample import xpol
 
 
 
@@ -290,7 +286,3 @@ class DigiEventCircular(DigiEventSparse):
 
     column: int
     row: int
-
-    def center_coordinates(self):
-        column, row = self.highest_pixel(self)
-        return column, row
