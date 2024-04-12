@@ -80,8 +80,14 @@ class DigiEventBase:
         """
         return self.seconds + 1.e-6 * self.microseconds
 
-    def ascii(self, pha_width: int = 5):
+    @classmethod
+    def from_digi(cls, *args, **kwargs):
+        """Build an event object from a row in a digitized file.
         """
+        raise NotImplementedError
+
+    def ascii(self, *args, **kwargs):
+        """Ascii representation of the event.
         """
         raise NotImplementedError
 
@@ -154,6 +160,70 @@ class DigiEventSparse(DigiEventBase):
             text += f'\n{big_space}|\n'
         return text
 
+
+
+@dataclass
+class DigiEventRectangular(DigiEventBase):
+
+    """Specialized class for a digitized event based on a rectangular ROI.
+
+    This implements the basic legacy machinery of the XPOL-I and XPOL-III readout chips.
+    """
+
+    roi: RegionOfInterest
+
+    def __post_init__(self) -> None:
+        """Post-initialization code.
+
+        Here we reshape the one-dimensional PHA array coming from the serial
+        readout to the proper ROI shape for all subsequent operations.
+        """
+        try:
+            self.pha = self.pha.reshape(self.roi.shape())
+        except ValueError as error:
+            logger.error(f'Error in {self.__class__.__name__} post-initializaion.')
+            print(self.roi)
+            print(f'ROI size: {self.roi.size}')
+            print(f'pha size: {self.pha.size}')
+            logger.error(error)
+
+    def __eq__(self, other) -> bool:
+        """Overloaded comparison operator.
+        """
+        return DigiEventBase.__eq__(self, other) and self.roi == other.roi
+
+    @classmethod
+    def from_digi(cls, row: np.ndarray, pha: np.ndarray):
+        """Alternative constructor rebuilding an object from a row on a digi file.
+
+        This is used internally when we access event data in a digi file, and
+        we need to reassemble a DigiEvent object from a given row of a digi table.
+        """
+        # pylint: disable=too-many-locals
+        trigger_id, seconds, microseconds, livetime, min_col, max_col, min_row, max_row,\
+            pad_top, pad_right, pad_bottom, pad_left = row
+        padding = Padding(pad_top, pad_right, pad_bottom, pad_left)
+        roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
+        return cls(trigger_id, seconds, microseconds, livetime, pha, roi)
+
+    def __call__(self, col: int, row: int) -> int:
+        """Retrieve the pha content of the event for a given column and row.
+
+        Internally this is subtracting the proper offset to the column and row
+        indexes in order to convert from chip coordinates to indexes of the
+        underlying PHA array. Note that, due to the way arrays are indexed in numpy,
+        we do need to swap the column and the row.
+
+        Arguments
+        ---------
+        col : int
+            The column number (in chip coordinates).
+
+        row : int
+            The row number (in chip coordinates).
+        """
+        return self.pha[row - self.roi.min_row, col - self.roi.min_col]
+
     def highest_pixel(self, absolute: bool = True) -> Tuple[int, int]:
         """Return the coordinates (col, row) of the highest pixel.
 
@@ -167,20 +237,33 @@ class DigiEventSparse(DigiEventBase):
         # Note col and row are swapped, here, due to how the numpy array are indexed.
         # pylint: disable = unbalanced-tuple-unpacking
         row, col = np.unravel_index(np.argmax(self.pha), self.pha.shape)
-        #if absolute:
-        #    col += self.roi.min_col
-        #    row += self.roi.min_row
+        if absolute:
+            col += self.roi.min_col
+            row += self.roi.min_row
         return col, row
 
-
-
-@dataclass
-class DigiEventRectangular(DigiEventBase):
-
-    """
-    """
-
-    roi: RegionOfInterest
+    def ascii(self, pha_width: int = 5):
+        """Ascii representation.
+        """
+        fmt = f'%{pha_width}d'
+        cols = self.roi.col_indexes()
+        rows = self.roi.row_indexes()
+        big_space = space(2 * pha_width + 1)
+        text = f'\n{big_space}'
+        text += ''.join([fmt % col for col in cols])
+        text += f'\n{big_space}'
+        text += ''.join([fmt % (col - self.roi.min_col) for col in cols])
+        text += f'\n{big_space}+{line(pha_width * self.roi.num_cols)}\n'
+        for row in rows:
+            text += f'{fmt % row} {fmt % (row - self.roi.min_row)}|'
+            for col in cols:
+                pha = fmt % self(col, row)
+                if not self.roi.in_rot(col, row):
+                    pha = ansi_format(pha, AnsiFontEffect.FG_BRIGHT_BLUE)
+                text += pha
+            text += f'\n{big_space}|\n'
+        text += f'{self.roi}\n'
+        return text
 
 
 
@@ -204,6 +287,9 @@ class DigiEventCircular(DigiEventSparse):
         The column identifier of the maximum PHA pixel in the event in pixel
         coordinates.
     """
+
+    column: int
+    row: int
 
     def center_coordinates(self):
         column, row = self.highest_pixel(self)
@@ -474,151 +560,6 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
 # The stuff below is going away as soon as we have the new class hierarchy in place.
 
-@dataclass
-class DigiEvent:
-
-    """Descriptor for a digitized event.
-
-    A digitized event is the datum of a RegionOfInterest object, a trigger
-    identifier, a timestamp and a 1-dimensional array of ADC counts, in the
-    readout order. Note that the length of the pha array must match the size of
-    the ROI.
-
-    Note that, since in the simulated digitization process we typically create
-    an ROI first, and only in a second moment a fully fledged event, we prefer
-    composition over inheritance, and deemed more convenient to have a
-    :class:`RegionOfInterest <hexsample.roi.RegionOfInterest>` object as a class
-    member, rather than inherit from :class:`RegionOfInterest <hexsample.roi.RegionOfInterest>`.
-
-    Arguments
-    ---------
-    trigger_id : int
-        The trigger identifier.
-
-    seconds : int
-        The integer part of the timestamp.
-
-    microseconds : int
-        The fractional part of the timestamp.
-
-    roi : RegionOfInterest
-        The region of interest for the event.
-
-    pha : np.ndarray
-        The pixel content of the event, in the form of a 1-dimensional array
-        whose length matches the size of the ROI.
-    """
-
-    trigger_id: int
-    seconds: int
-    microseconds: int
-    livetime: int
-    roi: RegionOfInterest
-    pha: np.ndarray
-
-    def __post_init__(self) -> None:
-        """Post-initialization code.
-
-        Here we reshape the one-dimensional PHA array coming from the serial
-        readout to the proper ROI shape for all subsequent operations.
-        """
-        try:
-            self.pha = self.pha.reshape(self.roi.shape())
-        except ValueError as error:
-            logger.error(f'Error in {self.__class__.__name__} post-initializaion.')
-            print(self.roi)
-            print(f'ROI size: {self.roi.size}')
-            print(f'pha size: {self.pha.size}')
-            logger.error(error)
-
-    def __eq__(self, other) -> bool:
-        """Overloaded comparison operator.
-        """
-        return (self.trigger_id, self.seconds, self.microseconds, self.livetime) == \
-            (other.trigger_id, other.seconds, other.microseconds, other.livetime) and \
-            self.roi == other.roi and np.allclose(self.pha, other.pha)
-
-    @classmethod
-    def from_digi(cls, row: np.ndarray, pha: np.ndarray):
-        """Alternative constructor rebuilding an object from a row on a digi file.
-
-        This is used internally when we access event data in a digi file, and
-        we need to reassemble a DigiEvent object from a given row of a digi table.
-        """
-        # pylint: disable=too-many-locals
-        trigger_id, seconds, microseconds, livetime, min_col, max_col, min_row, max_row,\
-            pad_top, pad_right, pad_bottom, pad_left = row
-        padding = Padding(pad_top, pad_right, pad_bottom, pad_left)
-        roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
-        return cls(trigger_id, seconds, microseconds, livetime, pha, roi)
-
-    def __call__(self, col: int, row: int) -> int:
-        """Retrieve the pha content of the event for a given column and row.
-
-        Internally this is subtracting the proper offset to the column and row
-        indexes in order to convert from chip coordinates to indexes of the
-        underlying PHA array. Note that, due to the way arrays are indexed in numpy,
-        we do need to swap the column and the row.
-
-        Arguments
-        ---------
-        col : int
-            The column number (in chip coordinates).
-
-        row : int
-            The row number (in chip coordinates).
-        """
-        return self.pha[row - self.roi.min_row, col - self.roi.min_col]
-
-    def highest_pixel(self, absolute: bool = True) -> Tuple[int, int]:
-        """Return the coordinates (col, row) of the highest pixel.
-
-        Arguments
-        ---------
-        absolute : bool
-            If true, the absolute coordinates (i.e., those referring to the readout
-            chip) are returned; otherwise the coordinates are intended relative
-            to the readout window (i.e., they can be used to index the pha array).
-        """
-        # Note col and row are swapped, here, due to how the numpy array are indexed.
-        # pylint: disable = unbalanced-tuple-unpacking
-        row, col = np.unravel_index(np.argmax(self.pha), self.pha.shape)
-        if absolute:
-            col += self.roi.min_col
-            row += self.roi.min_row
-        return col, row
-
-    def timestamp(self) -> float:
-        """Return the timestamp of the event, that is, the sum of the second and
-        microseconds parts of the DigiEvent contributions as a floating point number.
-        """
-        return self.seconds + 1.e-6 * self.microseconds
-
-    def ascii(self, pha_width: int = 5):
-        """Ascii representation.
-        """
-        fmt = f'%{pha_width}d'
-        cols = self.roi.col_indexes()
-        rows = self.roi.row_indexes()
-        big_space = space(2 * pha_width + 1)
-        text = f'\n{big_space}'
-        text += ''.join([fmt % col for col in cols])
-        text += f'\n{big_space}'
-        text += ''.join([fmt % (col - self.roi.min_col) for col in cols])
-        text += f'\n{big_space}+{line(pha_width * self.roi.num_cols)}\n'
-        for row in rows:
-            text += f'{fmt % row} {fmt % (row - self.roi.min_row)}|'
-            for col in cols:
-                pha = fmt % self(col, row)
-                if not self.roi.in_rot(col, row):
-                    pha = ansi_format(pha, AnsiFontEffect.FG_BRIGHT_BLUE)
-                text += pha
-            text += f'\n{big_space}|\n'
-        text += f'{self.roi}\n'
-        return text
-
-
-
 class HexagonalReadout(HexagonalGrid):
 
     """Description of a pixel readout chip on a hexagonal matrix.
@@ -841,7 +782,7 @@ class HexagonalReadout(HexagonalGrid):
         return int(seconds), int(1000000 * microseconds), livetime
 
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
-        padding: Padding, zero_sup_threshold: int = 0, offset: int = 0) -> DigiEvent:
+        padding: Padding, zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventRectangular:
         """Readout an event.
 
         Arguments
@@ -872,7 +813,7 @@ class HexagonalReadout(HexagonalGrid):
         roi, pha = self.trigger(signal, trg_threshold, min_col, min_row, padding)
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
-        return DigiEvent(self.trigger_id, seconds, microseconds, livetime, roi, pha)
+        return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 
 
 

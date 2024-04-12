@@ -29,7 +29,7 @@ from hexsample import logger
 from hexsample import xpol
 from hexsample.digi import HexagonalReadout
 from hexsample.hexagon import HexagonalLayout
-from hexsample.fileio import DigiEvent
+from hexsample.fileio import DigiEventRectangular
 from hexsample.mc import PhotonList
 from hexsample.sensor import SiliconSensor
 from hexsample.source import LineForest, GaussianBeam, Source
@@ -175,7 +175,7 @@ class HexagonalReadoutCompat(HexagonalReadout):
         return pha.flatten()
 
     def read(self, timestamp : float, x : np.ndarray, y : np.ndarray, trg_threshold : float,
-        padding : Padding, zero_sup_threshold : int = 0, offset : int = 0) -> DigiEvent:
+        padding : Padding, zero_sup_threshold : int = 0, offset : int = 0) -> DigiEventRectangular:
         """Readout an event.
 
         Arguments
@@ -207,7 +207,7 @@ class HexagonalReadoutCompat(HexagonalReadout):
         roi = self.calculate_roi(trg, padding)
         pha = self.digitize(signal, roi, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
-        return DigiEvent(self.trigger_id, seconds, microseconds, livetime, roi, pha)
+        return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 
 
 # XPOL-III like readouts, with the old and the new, streamlined implementetion.

@@ -25,7 +25,7 @@ from typing import Tuple
 
 import numpy as np
 
-from hexsample.digi import DigiEvent
+from hexsample.digi import DigiEventRectangular
 from hexsample.hexagon import HexagonalGrid
 
 
@@ -80,7 +80,7 @@ class ClusteringBase:
         out[out <= self.zero_sup_threshold] = 0
         return out
 
-    def run(self, event: DigiEvent) -> Cluster:
+    def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
         raise NotImplementedError
@@ -104,7 +104,7 @@ class ClusteringNN(ClusteringBase):
 
     num_neighbors: int
 
-    def run(self, event: DigiEvent) -> Cluster:
+    def run(self, event: DigiEventRectangular) -> Cluster:
         """Overladed method.
 
         .. warning::

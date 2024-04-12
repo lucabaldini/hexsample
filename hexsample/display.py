@@ -27,7 +27,7 @@ from matplotlib.patches import RegularPolygon
 from matplotlib.collections import PatchCollection
 import numpy as np
 
-from hexsample.digi import DigiEvent
+from hexsample.digi import DigiEventRectangular
 from hexsample.hexagon import HexagonalGrid
 from hexsample.plot import plt
 from hexsample.roi import RegionOfInterest
@@ -172,7 +172,7 @@ class HexagonalGridDisplay:
                 plt.text(x + dx - self._grid.pitch, y + dy, f'{row}', **fmt)
         return collection
 
-    def draw_digi_event(self, event: DigiEvent, offset: Tuple[float, float] = (0., 0.),
+    def draw_digi_event(self, event: DigiEventRectangular, offset: Tuple[float, float] = (0., 0.),
         indices: bool = True, padding: bool = True, zero_sup_threshold: float = 0,
         values: bool = True, **kwargs) -> HexagonCollection:
         """Draw an actual event int the parent hexagonal grid.

@@ -20,7 +20,7 @@ from loguru import logger
 import numpy as np
 
 from hexsample import HEXSAMPLE_DATA
-from hexsample.digi import DigiEvent
+from hexsample.digi import DigiEventRectangular
 from hexsample.fileio import DigiInputFile, DigiOutputFile, ReconInputFile, ReconOutputFile,\
     FileType, peek_file_type, open_input_file
 from hexsample.mc import MonteCarloEvent
@@ -33,12 +33,12 @@ def _mc_event(index : int) -> MonteCarloEvent:
     """
     return MonteCarloEvent(0.1 * index, 5.9, 0., 0., 0.02, 1000 + index)
 
-def _digi_event(index : int) -> DigiEvent:
+def _digi_event(index : int) -> DigiEventRectangular:
     """Create a bogus DigiEvent object with index-dependent properties.
     """
     roi = RegionOfInterest(100, 107, 150, 155 + index * 2, Padding(2))
     pha = np.full(roi.size, index)
-    return DigiEvent(index, index, index, 0, roi, pha)
+    return DigiEventRectangular(index, index, index, 0, pha, roi)
 
 def _test_write(file_path, num_events : int = 10):
     """Small test writing a bunch of toy event strcutures to file.

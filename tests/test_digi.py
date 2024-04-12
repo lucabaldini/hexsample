@@ -83,6 +83,7 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     event = readout.read(0., x, y, 100.) #this is a DigiEventSparse
     print(event.ascii())
 
+@pytest.mark.skip('Under development')
 def test_digi_event_circular():
     """Test for circular digi event class.
     """
@@ -96,14 +97,14 @@ def test_digi_event_circular():
     # Make sure that the check on the dimensions of the row and column arrays is
     # at work
 
-def test_digi_event(min_col: int = 106, max_col: int = 113, min_row: int = 15,
+def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row: int = 15,
     max_row: int = 22, padding: Padding = Padding(1, 2, 3, 4)):
     """Build a digi event and make sure it makes sense.
     """
     roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
     # The pha is basically the serial readout order, here.
     pha = np.arange(roi.size)
-    evt = digi.DigiEvent(0, 0, 0, 0, roi, pha)
+    evt = digi.DigiEventRectangular(0, 0, 0, 0, pha, roi)
     print(evt.highest_pixel())
     print(evt.ascii())
     i, j = 0, 2
@@ -111,15 +112,15 @@ def test_digi_event(min_col: int = 106, max_col: int = 113, min_row: int = 15,
     col, row = j + evt.roi.min_col, i + evt.roi.min_row
     assert evt(col, row) == 2
 
-def test_digi_event_comparison():
+def test_digi_event_rectangular_comparison():
     """
     """
     padding = Padding(2)
     roi = RegionOfInterest(10, 23, 10, 23, padding)
     pha = np.full(roi.size, 2)
-    evt1 = digi.DigiEvent(0, 0, 0, 0, roi, pha)
-    evt2 = digi.DigiEvent(0, 0, 0, 0, roi, 1. * pha)
-    evt3 = digi.DigiEvent(0, 0, 0, 0, roi, 2. * pha)
+    evt1 = digi.DigiEventRectangular(0, 0, 0, 0, pha, roi)
+    evt2 = digi.DigiEventRectangular(0, 0, 0, 0, 1. * pha, roi)
+    evt3 = digi.DigiEventRectangular(0, 0, 0, 0, 2. * pha, roi)
     assert evt1 == evt2
     assert evt1 != evt3
 

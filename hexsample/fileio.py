@@ -32,7 +32,7 @@ import tables
 
 from hexsample import __version__, __tagdate__
 from hexsample.mc import MonteCarloEvent
-from hexsample.digi import DigiEventBase, DigiEvent
+from hexsample.digi import DigiEventBase, DigiEventRectangular
 from hexsample.recon import ReconEvent
 
 
@@ -180,7 +180,7 @@ class DigiDescription(tables.IsDescription):
     padding_bottom = tables.Int8Col(pos=10)
     padding_left = tables.Int8Col(pos=11)
 
-def _fill_digi_row(row: tables.tableextension.Row, event: DigiEvent) -> None:
+def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
     """Helper function to fill an output table row, given a DigiEvent object.
 
     .. note::
@@ -366,12 +366,12 @@ class DigiOutputFile(OutputFileBase):
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
         self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
 
-    def add_row(self, digi_event: DigiEvent, mc_event: MonteCarloEvent) -> None:
+    def add_row(self, digi_event: DigiEventRectangular, mc_event: MonteCarloEvent) -> None:
         """Add one row to the file.
 
         Arguments
         ---------
-        digi : DigiEvent
+        digi : DigiEventRectangular
             The digitized event contribution.
 
         mc : MonteCarloEvent
@@ -425,7 +425,7 @@ class ReconOutputFile(OutputFileBase):
 
         Arguments
         ---------
-        digi : DigiEvent
+        digi : DigiEventRectangular
             The digitized event contribution.
 
         mc : MonteCarloEvent
@@ -508,7 +508,7 @@ class DigiInputFile(InputFileBase):
         """
         return self.mc_table.col(name)
 
-    def digi_event(self, row_index: int) -> DigiEvent:
+    def digi_event(self, row_index: int) -> DigiEventRectangular:
         """Random access to the DigiEvent part of the event contribution.
 
         Arguments
@@ -518,7 +518,7 @@ class DigiInputFile(InputFileBase):
         """
         row = self.digi_table[row_index]
         pha = self.pha_array[row_index]
-        return DigiEvent.from_digi(row, pha)
+        return DigiEventRectangular.from_digi(row, pha)
 
     def mc_event(self, row_index: int) -> MonteCarloEvent:
         """Random access to the MonteCarloEvent part of the event contribution.
@@ -537,7 +537,7 @@ class DigiInputFile(InputFileBase):
         self.__index = -1
         return self
 
-    def __next__(self) -> DigiEvent:
+    def __next__(self) -> DigiEventRectangular:
         """Overloaded method for the implementation of the iterator protocol.
         """
         self.__index += 1
