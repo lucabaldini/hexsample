@@ -244,7 +244,20 @@ class HexagonalReadoutBase(HexagonalGrid):
         self.gain = gain
         self.shape = (self.num_rows, self.num_cols)
         self.trigger_id = -1
-    
+
+    @staticmethod
+    def discriminate(array: np.ndarray, threshold: float) -> np.ndarray:
+        """Utility function acting as a simple constant-threshold discriminator
+        over a generic array. This returns a boolean mask with True for all the
+        array elements larger than the threshold.
+
+        This is intented to avoid possible confusion between strict and loose
+        comparison operators (e.g., < vs <=) when comparing the content of an array
+        with a threshold, and all functions downstream doing this (e.g., zero_suppress)
+        should use this and refrain from re-implementing their own logic.
+        """
+        return array > threshold
+
     @staticmethod
     def zero_suppress(array: np.ndarray, threshold: float) -> None:
         """Utility function to zero-suppress a generic array.
@@ -260,7 +273,8 @@ class HexagonalReadoutBase(HexagonalGrid):
         threshold : float
             The zero suppression threshold.
         """
-        array[array <= threshold] = 0
+        mask = np.logical_not(HexagonalReadoutBase.discriminate(array, threshold))
+        array[mask] = 0
 
     @staticmethod
     def latch_timestamp(timestamp: float) -> Tuple[int, int, int]:
@@ -294,11 +308,23 @@ class HexagonalReadoutBase(HexagonalGrid):
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
+        # Note that the array type of the input pha argument is not guaranteed, here.
+        # Over the course of the calculation the pha is bound to be a float (the noise
+        # and the gain are floating-point numbere) before it is rounded to the neirest
+        # integer. In order to take advantage of the automatic type casting that
+        # numpy implements in multiplication and addition, we use the pha = pha +/*
+        # over the pha +/*= form.
+        # See https://stackoverflow.com/questions/38673531
+        #
         # Add the noise.
         if self.enc > 0:
-            pha += rng.generator.normal(0., self.enc, size=pha.shape)
+            pha = pha + rng.generator.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
+<<<<<<< HEAD
         pha *= self.gain
+=======
+        pha = pha * self.gain
+>>>>>>> 76933510c0b14474e048f7609c64033a6f159e73
         # ... round to the neirest integer...
         pha = np.round(pha).astype(int)
         # ... if necessary, add the offset for diagnostic events...
@@ -315,7 +341,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
 
     """Description of a pixel sparse readout chip on a hexagonal matrix.
     In the following readout, no ROI is formed, every (and only) triggered pixel of
-    the event is kept with its positional information in (col, row) format on the 
+    the event is kept with its positional information in (col, row) format on the
     hexagonal grid.
 
     Arguments
@@ -363,12 +389,17 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
+        # Sample the input positions over the readout...
         signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
         columns, rows, pha = np.array([[*key, value] for key, value in signal.items()]).T
-        # Trigger missing here!
+        # ...apply the trigger...
+        trigger_mask = self.discriminate(pha, trg_threshold)
+        columns, rows, pha = columns[trigger_mask], rows[trigger_mask], pha[trigger_mask]
+        # .. and digitize the pha values.
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
+<<<<<<< HEAD
     
 class HexagonalReadoutCircular(HexagonalReadoutBase):
     """Description of a pixel circular readout chip on a hexagonal matrix.
@@ -376,6 +407,9 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
     formed by that pixel and its 6 adjacent neighbours.
     The standard shape of columns, rows and pha array is then 7, except
     for events on border, that will have len<7.
+=======
+
+>>>>>>> 76933510c0b14474e048f7609c64033a6f159e73
 
     Arguments
     ---------
