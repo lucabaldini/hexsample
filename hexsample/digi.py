@@ -212,7 +212,7 @@ class HexagonalReadoutBase(HexagonalGrid):
         self.gain = gain
         self.shape = (self.num_rows, self.num_cols)
         self.trigger_id = -1
-    
+
     @staticmethod
     def zero_suppress(array: np.ndarray, threshold: float) -> None:
         """Utility function to zero-suppress a generic array.
@@ -269,7 +269,7 @@ class HexagonalReadoutBase(HexagonalGrid):
         if self.enc > 0:
             pha += rng.generator.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
-        pha = pha*self.gain
+        pha = pha * self.gain
         # ... round to the neirest integer...
         pha = np.round(pha).astype(int)
         # ... if necessary, add the offset for diagnostic events...
@@ -286,7 +286,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
 
     """Description of a pixel sparse readout chip on a hexagonal matrix.
     In the following readout, no ROI is formed, every (and only) triggered pixel of
-    the event is kept with its positional information in (col, row) format on the 
+    the event is kept with its positional information in (col, row) format on the
     hexagonal grid.
 
     Arguments
@@ -340,7 +340,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
-        
+
 
 
 
