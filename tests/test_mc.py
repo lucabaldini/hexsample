@@ -17,11 +17,12 @@
 """
 
 
-from hexsample.digi import HexagonalReadoutRectangular, Padding
 from hexsample.display import HexagonalGridDisplay
 from hexsample.hexagon import HexagonalGrid, HexagonalLayout
 from hexsample.mc import MonteCarloEvent
 from hexsample.plot import plt
+from hexsample.readout import HexagonalReadoutRectangular
+from hexsample.roi import Padding
 
 
 def test_diffusion(diff_sigma=40.):

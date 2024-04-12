@@ -29,7 +29,7 @@ from tqdm import tqdm
 from hexsample import rng
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
-from hexsample.digi import HexagonalReadoutRectangular
+from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.fileio import DigiOutputFile
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList

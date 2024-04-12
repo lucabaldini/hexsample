@@ -21,8 +21,9 @@ import numpy as np
 from loguru import logger
 import pytest
 
-from hexsample import digi
+from hexsample.digi import DigiEventBase, DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.hexagon import HexagonalLayout
+from hexsample.readout import HexagonalReadoutRectangular, HexagonalReadoutSparse
 from hexsample.roi import Padding, RegionOfInterest
 
 
@@ -30,7 +31,7 @@ def test_digi_event_base():
     """Test for the base event class.
     """
     pha = np.full(3, 100.)
-    event = digi.DigiEventBase(0, 0, 0, 0, pha)
+    event = DigiEventBase(0, 0, 0, 0, pha)
     print(event)
     print(event.timestamp())
 
@@ -40,7 +41,7 @@ def test_digi_event_sparse():
     pha = np.array([50., 150., 25.])
     rows = np.array([1, 2, 3])
     columns = np.array([11, 12, 12])
-    event = digi.DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
+    event = DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
     print(event)
     #print(event.highest_pixel())
     print(event.timestamp())
@@ -50,18 +51,18 @@ def test_digi_event_sparse():
     with pytest.raises(RuntimeError):
         rows = np.array([1, 2, 3])
         columns = np.array([11, 12, 12, 12])
-        event = digi.DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
+        event = DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
     with pytest.raises(RuntimeError):
         rows = np.array([1, 2, 3, 4])
         columns = np.array([11, 12, 12])
-        event = digi.DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
+        event = DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
 
 def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
     gain: float = 0.5, num_pairs: int = 1000, trg_threshold: float = 200.):
     """Test for sparse event digitalization class.
     """
-    readout = digi.HexagonalReadoutSparse(layout, num_cols, num_rows, pitch, enc, gain)
+    readout = HexagonalReadoutSparse(layout, num_cols, num_rows, pitch, enc, gain)
     # Pick out a particular pixel...
     col1, row1 = num_cols // 3, num_rows // 4
     col2, row2 = col1 + 8, row1 + 5
@@ -90,7 +91,7 @@ def test_digi_event_circular():
     pha = np.array([50., 150., 25.])
     rows = np.array([1, 2, 3])
     columns = np.array([11, 12, 12])
-    event = digi.DigiEventCircular(0, 0, 0, 0, pha, rows, columns)
+    event = DigiEventCircular(0, 0, 0, 0, pha, rows, columns)
     print(event)
     print(event.timestamp())
     print(event.ascii())
@@ -104,7 +105,7 @@ def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row:
     roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
     # The pha is basically the serial readout order, here.
     pha = np.arange(roi.size)
-    evt = digi.DigiEventRectangular(0, 0, 0, 0, pha, roi)
+    evt = DigiEventRectangular(0, 0, 0, 0, pha, roi)
     print(evt.highest_pixel())
     print(evt.ascii())
     i, j = 0, 2
@@ -118,9 +119,9 @@ def test_digi_event_rectangular_comparison():
     padding = Padding(2)
     roi = RegionOfInterest(10, 23, 10, 23, padding)
     pha = np.full(roi.size, 2)
-    evt1 = digi.DigiEventRectangular(0, 0, 0, 0, pha, roi)
-    evt2 = digi.DigiEventRectangular(0, 0, 0, 0, 1. * pha, roi)
-    evt3 = digi.DigiEventRectangular(0, 0, 0, 0, 2. * pha, roi)
+    evt1 = DigiEventRectangular(0, 0, 0, 0, pha, roi)
+    evt2 = DigiEventRectangular(0, 0, 0, 0, 1. * pha, roi)
+    evt3 = DigiEventRectangular(0, 0, 0, 0, 2. * pha, roi)
     assert evt1 == evt2
     assert evt1 != evt3
 
@@ -129,7 +130,7 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     num_pairs: int = 1000, trg_threshold: float = 200., padding: Padding = Padding(1)):
     """Create a fake digi event and test all the steps of the digitization.
     """
-    readout = digi.HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc, gain)
+    readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc, gain)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f'Testing pixel ({col}, {row})...')

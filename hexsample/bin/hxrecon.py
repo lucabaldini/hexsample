@@ -27,7 +27,7 @@ from tqdm import tqdm
 from hexsample import logger
 from hexsample.app import ArgumentParser, check_required_args
 from hexsample.clustering import ClusteringNN
-from hexsample.digi import HexagonalReadoutRectangular
+from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.fileio import DigiInputFile, ReconOutputFile
 from hexsample.hexagon import HexagonalLayout
 from hexsample.recon import ReconEvent

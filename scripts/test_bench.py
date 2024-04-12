@@ -24,7 +24,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from hexsample import rng, HEXSAMPLE_DATA
-from hexsample.digi import HexagonalReadoutSparse
+from hexsample.readout import HexagonalReadoutSparse
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.source import LineForest, GaussianBeam, Source

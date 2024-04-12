@@ -27,7 +27,7 @@ import pytest
 
 from hexsample import logger
 from hexsample import xpol
-from hexsample.digi import HexagonalReadoutRectangular
+from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.hexagon import HexagonalLayout
 from hexsample.fileio import DigiEventRectangular
 from hexsample.mc import PhotonList
