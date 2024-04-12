@@ -153,7 +153,7 @@ class DigiEventSparse(DigiEventBase):
                 text += pha
             text += f'\n{big_space}|\n'
         return text
-    
+
     def highest_pixel(self, absolute: bool = True) -> Tuple[int, int]:
         """Return the coordinates (col, row) of the highest pixel.
 
@@ -193,7 +193,7 @@ class DigiEventCircular(DigiEventSparse):
     a central pixel, that is the one corresponding to maximum PHA. The ROI is then
     always (except in border-pixel cases) composed by 7 pixels: the central one and
     its 6 neighbours.
-    
+
     Arguments
     ---------
     column : int
@@ -208,6 +208,8 @@ class DigiEventCircular(DigiEventSparse):
     def center_coordinates(self):
         column, row = self.highest_pixel(self)
         return column, row
+
+
 
 class HexagonalReadoutBase(HexagonalGrid):
 
@@ -320,11 +322,7 @@ class HexagonalReadoutBase(HexagonalGrid):
         if self.enc > 0:
             pha = pha + rng.generator.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
-<<<<<<< HEAD
-        pha *= self.gain
-=======
         pha = pha * self.gain
->>>>>>> 76933510c0b14474e048f7609c64033a6f159e73
         # ... round to the neirest integer...
         pha = np.round(pha).astype(int)
         # ... if necessary, add the offset for diagnostic events...
@@ -399,17 +397,16 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
-<<<<<<< HEAD
-    
+
+
+
 class HexagonalReadoutCircular(HexagonalReadoutBase):
+
     """Description of a pixel circular readout chip on a hexagonal matrix.
     In the following readout, the maximum PHA pixel is found and the ROI
     formed by that pixel and its 6 adjacent neighbours.
     The standard shape of columns, rows and pha array is then 7, except
     for events on border, that will have len<7.
-=======
-
->>>>>>> 76933510c0b14474e048f7609c64033a6f159e73
 
     Arguments
     ---------
@@ -430,7 +427,6 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
     gain : float
         The readout gain in ADC counts per electron.
-
     """
 
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
