@@ -396,6 +396,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         # .. and digitize the pha values.
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
+        self.trigger_id += 1
         return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
 
 
