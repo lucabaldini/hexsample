@@ -211,25 +211,57 @@ class RegionOfInterest:
 class CircularRegionOfInterest:
     """Class describing a circular region of interest.
 
-    A region of interest is the datum of the logical coorinates of its center
-    It contains a method that return a boolean, indicating if the center is at
-    chip borders (True) or not (False). Those information should be exhaustive
-    for finding the circular ROI pixels.
+    A region of interest is the datum of the logical coordinates of its center.
+    The center is, inside the whole event, the pixel with the highest ROI. 
+    The configuration 
     """
 
     col: int
     row: int
 
-    def at_border(self, chip_size: Tuple[int, int]):
-        """Return True if the highest PHA pixel is on the border for a given chip_size.
-        Note that differently from RegionOfInterest class, here the absolute coordinates
-        of the center pixel are the actual members of the class, so the comparison with
-        the number of columns and row does not need any +/- 1.
+    maps = {0 : {'ul' : 5,
+                 'ur' : 6,
+                 'cl' : 4,
+                 'cr' : 1,
+                 'll' : 2,
+                 'lr' : 3},
+            1 : {'ul' : 6,
+                 'ur' : 2,
+                 'cl' : 0,
+                 'cr' : 5,
+                 'll' : 3,
+                 'lr' : 4},
+            2 : {'ul' : 4,
+                 'ur' : 0,
+                 'cl' : 6,
+                 'cr' : 3,
+                 'll' : 1,
+                 'lr' : 5},
+            3 : {'ul' : 0,
+                 'ur' : 1,
+                 'cl' : 2,
+                 'cr' : 4,
+                 'll' : 5,
+                 'lr' : 6},
+            4 : {'ul' : 1,
+                 'ur' : 5,
+                 'cl' : 3,
+                 'cr' : 0,
+                 'll' : 6,
+                 'lr' : 2},
+            5 : {'ul' : 2,
+                 'ur' : 3,
+                 'cl' : 1,
+                 'cr' : 6,
+                 'll' : 4,
+                 'lr' : 0},
+            6 : {'ul' : 3,
+                 'ur' : 4,
+                 'cl' : 5,
+                 'cr' : 2,
+                 'll' : 0,
+                 'lr' : 1}
+        }
+    
 
-        We should consider making the chip size a class member, because it looks
-        kind of awkward to pass it as an argument here.
-        """
-        num_cols, num_rows = chip_size
-        return self.col == 0 or self.col == num_cols or\
-            self.row == 0 or self.row == num_rows
 

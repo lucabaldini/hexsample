@@ -447,15 +447,32 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
-        signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
-        coords = signal.key[np.argmax(signal.values)]
-        print(coords)
-        #column, row, pha = np.array([[*key, value] for key, value in signal.items()]).T
-        #Checking if there is any px outside the boundaries
-        #and constructing the circular ROI
-        #circular_px_coords = [(x,y), (x, y-1), (x, y+1), (x-1, y), (x+1, y), (x-1, y-1), (x-1, y+1)]
-        #columns, rows, pha = np.array([[*key, value] for key, value in signal.items()]).T
-        # Trigger missing here!
-        #pha = self.digitize(pha, zero_sup_threshold, offset)
+        
+        # Sample the input positions over the readout...
+        sparse_signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
+        # ...sampling the input position of the highest PHA pixel over the readout...
+        # Seeking key corresponding to a certain value:
+        # https://stackoverflow.com/questions/8023306/get-key-by-value-in-dictionary
+        col_max, row_max = list(sparse_signal.keys())[list(sparse_signal.values()).\
+                           index(max(sparse_signal.values()))]
+        # ... identifying the 6 neighbours of the central pixel and saving the signal pixels
+        # prepending the cooridnates of the highest one... 
+        neighbors_coords = list(self.neighbors(col_max, row_max)) #returns a list of tuples
+        # ...and prepending the highest pha pixel to the list...
+        neighbors_coords.insert(0, (col_max, row_max)) 
+        # ...saving pha corresponding to every neighbor (and to central pixel)...
+        pha = np.array([sparse_signal[px] if px in sparse_signal.keys() else 0 for px in neighbors_coords], dtype=int)
+        # ...apply the trigger...
+        # Not sure the trigger is needed, the highest px passed
+        # necessarily the trigger or there is no event
+        #trigger_mask = self.discriminate(pha, trg_threshold)
+        # .. and digitize the pha values.
+        pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
-        #return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
+        # Do not forget to update the trigger_id!
+        self.trigger_id += 1
+        #The correspondance between the order in the pha array and the position
+        #of this element is guaranteed, because the function for seeking neighbors
+        #is hard-coded and so returns the tuples always in the same order
+        return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha,
+                col_max, row_max, HexagonalGrid(self.layout, self.num_cols, self.num_rows, self.pitch))

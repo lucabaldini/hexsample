@@ -22,8 +22,8 @@ from loguru import logger
 import pytest
 
 from hexsample.digi import DigiEventBase, DigiEventSparse, DigiEventRectangular, DigiEventCircular
-from hexsample.hexagon import HexagonalLayout
-from hexsample.readout import HexagonalReadoutRectangular, HexagonalReadoutSparse
+from hexsample.hexagon import HexagonalGrid, HexagonalLayout
+from hexsample.readout import HexagonalReadoutRectangular, HexagonalReadoutSparse, HexagonalReadoutCircular
 from hexsample.roi import Padding, RegionOfInterest
 
 
@@ -63,7 +63,7 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     """Test for sparse event digitalization class.
     """
     readout = HexagonalReadoutSparse(layout, num_cols, num_rows, pitch, enc, gain)
-    # Pick out a particular pixel...
+    # Pick out some particular pixels...
     col1, row1 = num_cols // 3, num_rows // 4
     col2, row2 = col1 + 8, row1 + 5
     col3, row3 = col1 + 4, row1 + 2
@@ -84,19 +84,42 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     event = readout.read(0., x, y, 100.) #this is a DigiEventSparse
     print(event.ascii())
 
-@pytest.mark.skip('Under development')
+#@pytest.mark.skip('Under development')
 def test_digi_event_circular():
     """Test for circular digi event class.
     """
-    pha = np.array([50., 150., 25.])
-    rows = np.array([1, 2, 3])
-    columns = np.array([11, 12, 12])
-    event = DigiEventCircular(0, 0, 0, 0, pha, rows, columns)
+    pha = np.array([550., 15., 0., 5., 72., 88, 100])
+    row = 1
+    column = 11
+    # Defining the hexagonal grid
+    grid = HexagonalGrid(HexagonalLayout.ODD_R, 100, 100, 0.1)
+    event = DigiEventCircular(0, 0, 0, 0, pha, row, column, grid)
     print(event)
     print(event.timestamp())
     print(event.ascii())
     # Make sure that the check on the dimensions of the row and column arrays is
     # at work
+
+#@pytest.mark.skip('Under development')
+def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
+    num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
+    gain: float = 0.5, num_pairs: int = 1000, trg_threshold: float = 200.):
+    """Test for circular event digitalization class.
+    """
+    readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc, gain)
+    # Pick out some particular pixels, we expect only the one with higher PHA
+    # to be saved in the DigiEventCircular.
+    col1, row1 = 2, 4
+    col2, row2 = col1 + 8, row1 + 5
+    logger.debug(f'Testing pixel ({col1}, {row1}) and ({col2}, {row2})...')
+    # ... create the x and y arrays of the pair positions in the center of the pixel.
+    x1, y1 = readout.pixel_to_world(col1, row1)
+    x2, y2 = readout.pixel_to_world(col2, row2)
+    x, y = np.full(int(num_pairs), x1), np.full(int(num_pairs), y1)
+    x = np.append(x, np.full(num_pairs, x2))
+    y = np.append(y, np.full(num_pairs, y2))
+    event = readout.read(0., x, y, 100.) #this is a DigiEventCircular
+    print(event.ascii())
 
 def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row: int = 15,
     max_row: int = 22, padding: Padding = Padding(1, 2, 3, 4)):

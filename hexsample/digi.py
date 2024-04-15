@@ -26,6 +26,7 @@ from typing import Tuple
 from loguru import logger
 import numpy as np
 
+from hexsample.hexagon import HexagonalGrid, HexagonalLayout
 from hexsample.pprint import AnsiFontEffect, ansi_format, space, line
 from hexsample.roi import Padding, RegionOfInterest
 
@@ -264,7 +265,7 @@ class DigiEventRectangular(DigiEventBase):
 
 
 @dataclass
-class DigiEventCircular(DigiEventSparse):
+class DigiEventCircular(DigiEventBase):
 
     """Circular digitized event.
 
@@ -282,7 +283,70 @@ class DigiEventCircular(DigiEventSparse):
     row : int
         The column identifier of the maximum PHA pixel in the event in pixel
         coordinates.
+
+    layout : HexagonalLayout
+        The layout of the hexagonal grid of the chip. In a circular digi event it is needed
+        because the map of the coordinates of the neighbors of a central pixel depend on the
+        layout of the hexagonal grid.
     """
 
     column: int
     row: int
+    grid: HexagonalGrid
+
+    def get_neighbors(self):
+        """This function returns the offset coordinates of the signal pixel, that
+        is the highest pixel of the event (as first element), and its neighbors
+        (starting from the upper left, proceiding clockwisely). 
+        The order of the coordinates corresponds in the arrays of pha to the right 
+        value, in order to properly reconstruct the event.
+        """
+        # Identifying the 6 neighbours of the central pixel and saving the signal pixels
+        # prepending the cooridnates of the highest one... 
+        neighbors_coords = list(self.grid.neighbors(self.column, self.row)) #returns a list of tuples
+        # ...and prepending the highest pha pixel to the list...
+        neighbors_coords.insert(0, (self.column, self.row))
+        # ...dividing column and row coordinates in different arrays...
+        columns, rows = zip(*neighbors_coords)
+        columns, rows = np.array(columns), np.array(rows)
+        return columns, rows
+    
+    def as_dict(self) -> dict:
+        """Return the pixel content of the event in the form of a {(col, row): pha}
+        value.
+
+        This is useful to address the pixel content at a given coordinate. We refrain,
+        for the moment, from implementing a __call__() hook on top of this, as the
+        semantics would be fundamentally different from that implemented with a
+        rectangular ROI, where the access happen in ROI coordinates, and not in chip
+        coordinates, but we might want to come back to this.
+        """
+        columns, rows = self.get_neighbors()
+        return {(col, row): pha for col, row, pha in zip(columns, rows, self.pha)}
+    
+
+    def ascii(self, pha_width: int = 5) -> str:
+        """Ascii representation.
+        """
+        columns, rows = self.get_neighbors()
+        pha_dict = self.as_dict()
+        fmt = f'%{pha_width}d'
+        cols = np.arange(columns.min(), columns.max() + 1)
+        num_cols = cols[-1] - cols[0] + 1
+        rows = np.arange(rows.min(), rows.max() + 1)
+        big_space = space(2 * pha_width + 1)
+        text = f'\n{big_space}'
+        text += ''.join([fmt % col for col in cols])
+        text += f'\n{big_space}+{line(pha_width * num_cols)}\n'
+        for row in rows:
+            text += f'    {fmt % row}  |'
+            for col in cols:
+                try:
+                    pha = fmt % pha_dict[(col, row)]
+                except KeyError:
+                    pha = ' ' * pha_width
+                text += pha
+            text += f'\n{big_space}|\n'
+        return text
+    
+    
