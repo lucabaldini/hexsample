@@ -118,6 +118,48 @@ _NEIGHBORS_PROXY_DICT = {
 }
 
 
+_ADC_SEQUENCE_SHORT = (0, 1, 5, 6, 2, 3, 4)
+_ADC_SEQUENCE_SHORT_LENGTH = len(_ADC_SEQUENCE_SHORT)
+_ADC_SEQUENCE_LONG = (0, 2, 5, 4, 2, 1, 4, 6, 1, 3, 6, 0, 3, 5)
+_ADC_SEQUENCE_LONG_LENGTH = len(_ADC_SEQUENCE_LONG)
+
+
+def adc_channel_odd_r(col: int, row: int) -> int:
+    """
+    """
+    return -1
+
+def adc_channel_even_r(col: int, row: int) -> int:
+    """
+    """
+    start = _ADC_SEQUENCE_SHORT.index(_ADC_SEQUENCE_LONG[row % _ADC_SEQUENCE_LONG_LENGTH])
+    index = (col + start) % _ADC_SEQUENCE_SHORT_LENGTH
+    return _ADC_SEQUENCE_SHORT[index]
+
+def adc_channel_odd_q(col: int, row: int) -> int:
+    """
+    """
+    return -1
+
+def adc_channel_even_q(col: int, row: int) -> int:
+    """
+    """
+    start = _ADC_SEQUENCE_SHORT.index(_ADC_SEQUENCE_LONG[col % _ADC_SEQUENCE_LONG_LENGTH])
+    index = (row + start) % _ADC_SEQUENCE_SHORT_LENGTH
+    return _ADC_SEQUENCE_SHORT[index]
+
+
+# Lookup table for .
+_ADC_PROXY_DICT = {
+    HexagonalLayout.ODD_R: adc_channel_odd_r,
+    HexagonalLayout.EVEN_R: adc_channel_even_r,
+    HexagonalLayout.ODD_Q: adc_channel_odd_q,
+    HexagonalLayout.EVEN_Q: adc_channel_even_q,
+}
+
+
+
+
 class HexagonalGrid:
 
     # pylint: disable = too-many-instance-attributes
@@ -161,6 +203,7 @@ class HexagonalGrid:
         # Cache the proper function to retrieve the neighbor pixels from the
         # lookup table---this is used, e.g., for the clustering.
         self.neighbors = _NEIGHBORS_PROXY_DICT[self.layout]
+        self.adc_channel = _ADC_PROXY_DICT[self.layout]
 
     def pointy_topped(self) -> bool:
         """Return True if the layout is pointy-topped.

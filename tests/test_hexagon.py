@@ -18,7 +18,7 @@
 
 import numpy as np
 
-from hexsample.hexagon import HexagonalLayout, HexagonalGrid
+from hexsample.hexagon import HexagonalLayout, HexagonalGrid, adc_channel_even_r
 from hexsample.display import HexagonalGridDisplay
 from hexsample.plot import plt
 
@@ -108,7 +108,8 @@ def test_routing_7(nside: int = 10, pitch: float = 0.1) -> None:
         display.draw(pixel_labels=False)
         col, row, x, y = grid.pixel_physical_coordinates()
         for (_col, _row, _x, _y) in zip(col, row, x, y):
-            plt.text(_x, _y, f'{_col + _row}', **fmt)
+            adc = grid.adc_channel(_col, _row)
+            plt.text(_x, _y, f'{adc}', **fmt)
         display.setup_gca()
 
 
