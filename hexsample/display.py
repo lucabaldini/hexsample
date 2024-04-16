@@ -127,9 +127,7 @@ class HexagonalGridDisplay:
         """Draw the full grid display.
         """
         # pylint: disable = invalid-name, too-many-locals
-        col = np.tile(np.arange(self._grid.num_cols), self._grid.num_rows)
-        row = np.repeat(np.arange(self._grid.num_rows), self._grid.num_cols)
-        x, y = self._grid.pixel_to_world(col, row)
+        col, row, x, y = self._grid.pixel_physical_coordinates()
         dx, dy = offset
         collection = HexagonCollection(x + dx, y + dy, 0.5 * self._grid.pitch,
             self._grid.hexagon_orientation(), **kwargs)

@@ -329,6 +329,29 @@ class HexagonalGrid:
         col, row = self._axial_to_offset(q, r)
         return col, row
 
+    def pixel_logical_coordinates(self) -> Tuple[np.array, np.array]:
+        """Return a 2-element tuple (cols, rows) of numpy arrays containing all the
+        column and row indices that allow to loop over the full matrix. The specific
+        order in which the pixels are looped upon is completely arbitrary and, for
+        the sake of this function, we assume that, e.g., for a 2 x 2 grid we return
+        >>> cols = [0, 1, 0, 1]
+        >>> rows = [0, 0, 1, 1]
+        i.e., we loop with the following order
+        >>> (0, 0), (1, 0), (0, 1), (1, 1)
+        """
+        cols = np.tile(np.arange(self.num_cols), self.num_rows)
+        rows = np.repeat(np.arange(self.num_rows), self.num_cols)
+        return cols, rows
+
+    def pixel_physical_coordinates(self) -> Tuple[np.array, np.array, np.array, np.array]:
+        """Return a 4-element tuple (cols, rows, x, y) containing the logical
+        coordinates returned by pixel_logical_coordinates(), along with the
+        corresponding physical coordinates.
+        """
+        cols, rows = self.pixel_logical_coordinates()
+        x, y = self.pixel_to_world(cols, rows)
+        return cols, rows, x, y
+
     def __str__(self):
         """String formatting.
         """
