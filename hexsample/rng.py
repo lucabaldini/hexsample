@@ -57,7 +57,7 @@ def reset() -> None:
     global generator
     generator = UninitializedGenerator()
 
-def initialize(bit_generator_class : type = DEFAULT_BIT_GENERATOR, seed : int = None) -> None:
+def initialize(bit_generator_class: type = DEFAULT_BIT_GENERATOR, seed: int = None) -> None:
     """Create a random generator from a given underlying bit generator and a given
     seed and set the global ``generator`` object.
 

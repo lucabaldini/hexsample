@@ -45,7 +45,7 @@ HXDIFF_ARGPARSER.add_argument('infiles', type=str, nargs=2,
 
 
 
-def _digi_diff_strict(file1 : DigiInputFile, file2 : DigiInputFile) -> int:
+def _digi_diff_strict(file1: DigiInputFile, file2: DigiInputFile) -> int:
     """Strict diff utility: this will loop over the two files, compare the events
     on a row by row basis and report any difference.
     """
@@ -64,7 +64,7 @@ def _digi_diff_strict(file1 : DigiInputFile, file2 : DigiInputFile) -> int:
 
 
 
-def _digi_diff_graphical(file1 : DigiInputFile, file2 : DigiInputFile) -> None:
+def _digi_diff_graphical(file1: DigiInputFile, file2: DigiInputFile) -> None:
     """Graphical diff utility: this will create histograms of a few relevant
     quantities and compare two files on a statistical basis.
 

@@ -52,10 +52,10 @@ class Padding:
         Left-side padding in pixels.
     """
 
-    top : int
-    right : int = None
-    bottom : int = None
-    left : int = None
+    top: int
+    right: int = None
+    bottom: int = None
+    left: int = None
 
     def __post_init__(self) -> None:
         """Overloaded dataclass method.
@@ -93,11 +93,11 @@ class RegionOfInterest:
 
     # pylint: disable=too-many-instance-attributes
 
-    min_col : int
-    max_col : int
-    min_row : int
-    max_row : int
-    padding : Padding
+    min_col: int
+    max_col: int
+    min_row: int
+    max_row: int
+    padding: Padding
 
     def __post_init__(self) -> None:
         """Overloaded dataclass method.
@@ -126,7 +126,7 @@ class RegionOfInterest:
         """
         return self.num_rows, self.num_cols
 
-    def at_border(self, chip_size : Tuple[int, int]):
+    def at_border(self, chip_size: Tuple[int, int]):
         """Return True if the ROI is on the border for a given chip_size.
 
         We should consider making the chip size a class member, because it looks
@@ -196,7 +196,7 @@ class RegionOfInterest:
         mask[self.rot_slice()] = True
         return mask
 
-    def in_rot(self, col : np.array, row : np.array) -> np.array:
+    def in_rot(self, col: np.array, row: np.array) -> np.array:
         """Return a boolean mask indicaing whether elements of the (col, row)
         arrays lie into the ROT area.
         """

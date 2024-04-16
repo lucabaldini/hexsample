@@ -25,7 +25,7 @@ import subprocess
 from loguru import logger
 
 
-def cmd(command : str, dry_run : bool = False) -> int:
+def cmd(command: str, dry_run: bool = False) -> int:
     """ Exec a system command.
 
     Arguments

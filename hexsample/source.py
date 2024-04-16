@@ -46,10 +46,10 @@ class BeamBase:
 
     # pylint: disable=too-few-public-methods, invalid-name
 
-    x0 : float = 0.
-    y0 : float = 0.
+    x0: float = 0.
+    y0: float = 0.
 
-    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray]:
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Do-nothing hook to generate random positions in the x-y plane.
 
         Arguments
@@ -80,7 +80,7 @@ class PointBeam(BeamBase):
         The y-coordinate of the beam centroid in cm.
     """
 
-    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray]:
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
 
         Arguments
@@ -117,9 +117,9 @@ class DiskBeam(BeamBase):
         The disk radius in cm.
     """
 
-    radius : float = 0.1
+    radius: float = 0.1
 
-    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray]:
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
 
         Arguments
@@ -158,9 +158,9 @@ class GaussianBeam(BeamBase):
         The beam sigma in cm.
     """
 
-    sigma : float = 0.1
+    sigma: float = 0.1
 
-    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray]:
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
 
         Arguments
@@ -185,7 +185,7 @@ class SpectrumBase:
     """Base class for a photon energy spectrum.
     """
 
-    def rvs(self, size : int = 1) -> np.ndarray:
+    def rvs(self, size: int = 1) -> np.ndarray:
         """Do-nothing hook to generate random energies.
 
         Arguments
@@ -227,8 +227,8 @@ class LineForest(SpectrumBase):
         excitation energy in eV
     """
 
-    def __init__(self, element : Union[str, int], initial_level : Optional[str] = None,
-                 excitation_energy : Optional[float] = None) -> None:
+    def __init__(self, element: Union[str, int], initial_level: Optional[str] = None,
+                 excitation_energy: Optional[float] = None) -> None:
         """Constructor.
         """
         super().__init__()
@@ -240,7 +240,7 @@ class LineForest(SpectrumBase):
         # ... and make sure the probabilities are correctly normalized.
         self._probs /= self._probs.sum()
 
-    def rvs(self, size : int  = 1) -> np.ndarray:
+    def rvs(self, size: int  = 1) -> np.ndarray:
         """Throw random energies from the line forest.
 
         Arguments
@@ -288,14 +288,14 @@ class Source:
         The source beam morphology.
     """
 
-    def __init__(self, spectrum : SpectrumBase, beam : BeamBase, rate : float = 100.) -> None:
+    def __init__(self, spectrum: SpectrumBase, beam: BeamBase, rate: float = 100.) -> None:
         """Constructor.
         """
         self.spectrum = spectrum
         self.beam = beam
         self.rate = rate
 
-    def rvs_timestamp(self, size : int = 1, tmin : float = 0.) -> np.ndarray:
+    def rvs_timestamp(self, size: int = 1, tmin: float = 0.) -> np.ndarray:
         """Extract random times.
 
         Arguments
@@ -313,7 +313,7 @@ class Source:
         timestamp.sort()
         return timestamp
 
-    def rvs(self, size : int = 1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Extract random X-ray initial properties.
 
         Arguments

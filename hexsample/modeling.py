@@ -52,8 +52,8 @@ class FitStatus:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, par_names : Tuple[str], par_values : np.ndarray,
-        par_bounds : Tuple = None) -> None:
+    def __init__(self, par_names: Tuple[str], par_values: np.ndarray,
+        par_bounds: Tuple = None) -> None:
         """Constructor.
         """
         if len(par_names) != len(par_values):
@@ -65,9 +65,9 @@ class FitStatus:
         self.par_covariance = np.zeros((self.num_params, self.num_params), dtype=float)
         self.chisquare = -1.
         self.ndof = -1
-        self._index_dict = {name : i for i, name in enumerate(self.par_names)}
+        self._index_dict = {name: i for i, name in enumerate(self.par_names)}
 
-    def _process_bounds(self, par_bounds : Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
+    def _process_bounds(self, par_bounds: Tuple = None) -> Tuple[np.ndarray, np.ndarray]:
         """Small utility functions to process the parameter bounds for later use.
 
         Verbatim from the scipy documentation, there are two ways to specify the bounds:
@@ -87,7 +87,7 @@ class FitStatus:
             raise RuntimeError(f'Invalid parameter bounds {par_bounds}')
         return tuple(np.array(bounds) for bounds in par_bounds)
 
-    def _index(self, par_name : str) -> int:
+    def _index(self, par_name: str) -> int:
         """Convenience method returning the index within the parameter vector
         for a given parameter name.
         """
@@ -96,7 +96,7 @@ class FitStatus:
         except KeyError as exception:
             raise KeyError(f'Unknown parameter "{par_name}"') from exception
 
-    def parameter_value(self, par_name : str) -> float:
+    def parameter_value(self, par_name: str) -> float:
         """Return the parameter value for a given parameter indexed by name.
 
         Arguments
@@ -106,7 +106,7 @@ class FitStatus:
         """
         return self.par_values[self._index(par_name)]
 
-    def __getitem__(self, par_name : str) -> float:
+    def __getitem__(self, par_name: str) -> float:
         """Convenience shortcut to retrieve the value of a parameter.
 
         Arguments
@@ -122,7 +122,7 @@ class FitStatus:
         """
         return np.sqrt(self.par_covariance.diagonal())
 
-    def parameter_error(self, par_name : str) -> float:
+    def parameter_error(self, par_name: str) -> float:
         """Return the parameter error by name.
 
         Arguments
@@ -143,7 +143,7 @@ class FitStatus:
         """
         return self.chisquare / self.ndof if self.ndof > 0 else -1.
 
-    def set_parameter_bounds(self, par_name : str, min_ : float, max_ : float) -> None:
+    def set_parameter_bounds(self, par_name: str, min_: float, max_: float) -> None:
         """Set the baounds for a given parameter.
 
         Arguments
@@ -161,7 +161,7 @@ class FitStatus:
         self.par_bounds[0][index] = min_
         self.par_bounds[1][index] = max_
 
-    def set_parameter(self, par_name : str, value : float) -> None:
+    def set_parameter(self, par_name: str, value: float) -> None:
         """Set the value for a given parameter (indexed by name).
 
         Arguments
@@ -174,7 +174,7 @@ class FitStatus:
         """
         self.par_values[self._index(par_name)] = value
 
-    def update(self, popt : np.ndarray, pcov : np.ndarray, chisq : float, ndof : int) -> None:
+    def update(self, popt: np.ndarray, pcov: np.ndarray, chisq: float, ndof: int) -> None:
         """Update the data structure after a fit.
 
         Arguments
@@ -258,7 +258,7 @@ class FitModelBase:
         """
         return self.__class__.__name__
 
-    def __getitem__(self, par_name : str) -> float:
+    def __getitem__(self, par_name: str) -> float:
         """Convenience shortcut to retrieve the value of a parameter.
 
         Arguments
@@ -268,13 +268,13 @@ class FitModelBase:
         """
         return self.status.parameter_value(par_name)
 
-    def set_parameter(self, par_name : str, value : float) -> None:
+    def set_parameter(self, par_name: str, value: float) -> None:
         """Convenience function to set the value for a given parameter in the
         underlying FitStatus object.
         """
         self.status.set_parameter(par_name, value)
 
-    def set_range(self, xmin : float, xmax : float) -> None:
+    def set_range(self, xmin: float, xmax: float) -> None:
         """Set the function range.
 
         Arguments
@@ -288,13 +288,13 @@ class FitModelBase:
         self._xmin = xmin
         self._xmax = xmax
 
-    def plot(self, num_points : int = 250, **kwargs) -> None:
+    def plot(self, num_points: int = 250, **kwargs) -> None:
         """Plot the model.
         """
         x = np.linspace(self._xmin, self._xmax, num_points)
         plt.plot(x, self(x), **kwargs)
 
-    def stat_box(self, x : float = 0.95, y : float = 0.95) -> None:
+    def stat_box(self, x: float = 0.95, y: float = 0.95) -> None:
         """Plot a stat box for the model.
         """
         box = PlotCard()
@@ -329,14 +329,14 @@ class FitModelBase:
         raise RuntimeError(f'Wrong number of parameters ({num_params}) to {self.name()}.__call__()')
 
     @staticmethod
-    def eval(x : np.ndarray, *parameters) -> np.ndarray:
+    def eval(x: np.ndarray, *parameters) -> np.ndarray:
         """Eval the model at a given x and a given set of parameter values.
 
         This needs to be overloaded by any derived classes.
         """
         raise NotImplementedError
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+    def init_parameters(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         """Assign a sensible set of values to the model parameters, based on a data
         set to be fitted.
 
@@ -352,10 +352,10 @@ class FitModelBase:
             The y data.
         """
 
-    def fit(self, xdata : np.ndarray, ydata : np.ndarray, p0 : np.ndarray = None,
-        sigma : np.ndarray = None, xmin : float = -np.inf, xmax : float = np.inf,
-        absolute_sigma : bool = True, check_finite : bool =True, method : str = None,
-        verbose : bool = True, **kwargs):
+    def fit(self, xdata: np.ndarray, ydata: np.ndarray, p0: np.ndarray = None,
+        sigma: np.ndarray = None, xmin: float = -np.inf, xmax: float = np.inf,
+        absolute_sigma: bool = True, check_finite: bool =True, method: str = None,
+        verbose: bool = True, **kwargs):
         """Lightweight wrapper over the ``scipy.optimize.curve_fit()`` function
         to take advantage of the modeling facilities. More specifically, in addition
         to performing the actual fit, we update all the model parameters so that,
@@ -448,9 +448,9 @@ class FitModelBase:
         if verbose:
             print(self)
 
-    def fit_histogram(self, histogram : Histogram1d, p0 : np.ndarray=None,
-        xmin : float = -np.inf, xmax : float = np.inf, absolute_sigma : bool = True,
-        check_finite : bool = True, method : str = None, verbose : bool = True, **kwargs):
+    def fit_histogram(self, histogram: Histogram1d, p0: np.ndarray=None,
+        xmin: float = -np.inf, xmax: float = np.inf, absolute_sigma: bool = True,
+        check_finite: bool = True, method: str = None, verbose: bool = True, **kwargs):
         """Fit a histogram to a given model.
 
         This is basically calling :meth:`ixpeobssim.core.fitting.fit` with some
@@ -482,7 +482,7 @@ class FitModelBase:
             method, verbose, **kwargs)
 
     @staticmethod
-    def _merge_class_attributes(func, *components : type) -> Tuple:
+    def _merge_class_attributes(func, *components: type) -> Tuple:
         """Basic function to merge class attributes while summing models.
 
         This is heavily used in the model sum factory below, as it turns out that
@@ -498,7 +498,7 @@ class FitModelBase:
         return tuple(attrs)
 
     @staticmethod
-    def model_sum_factory(*components : type) -> type:
+    def model_sum_factory(*components: type) -> type:
         """Class factory to sum class models.
 
         Here we have worked out the math to sum up an arbitrary number of model
@@ -540,7 +540,7 @@ class FitModelBase:
                 """
                 return np.hstack([c.jacobian(x, *pars[s]) for c, s in zip(components, par_slices)])
 
-            def plot(self, num_points : int = 250, **kwargs) -> None:
+            def plot(self, num_points: int = 250, **kwargs) -> None:
                 """Overloaded method.
 
                 In addition to the total model, here we overplot the single components.
@@ -580,21 +580,21 @@ class Constant(FitModelBase):
     PAR_DEFAULT_VALUES = (1.,)
 
     @staticmethod
-    def eval(x : np.ndarray, constant : float) -> np.ndarray:
+    def eval(x: np.ndarray, constant: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
         return np.full(x.shape, constant)
 
     @staticmethod
-    def jacobian(x : np.ndarray, constant: float) -> np.ndarray:
+    def jacobian(x: np.ndarray, constant: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ, unused-argument
         d_constant = np.full((len(x),), 1.)
         return np.array([d_constant]).transpose()
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+    def init_parameters(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         """Overloaded method.
         """
         self.set_parameter('constant', np.mean(ydata))
@@ -613,14 +613,14 @@ class Line(FitModelBase):
     PAR_DEFAULT_VALUES = (1., 1.)
 
     @staticmethod
-    def eval(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
+    def eval(x: np.ndarray, intercept: float, slope: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
         return intercept + slope * x
 
     @staticmethod
-    def jacobian(x : np.ndarray, intercept : float, slope : float) -> np.ndarray:
+    def jacobian(x: np.ndarray, intercept: float, slope: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ, unused-argument
@@ -645,14 +645,14 @@ class Gaussian(FitModelBase):
     SIGMA_TO_FWHM = 2.3548200450309493
 
     @staticmethod
-    def eval(x : np.ndarray, normalization : float, mean : float, sigma : float) -> np.ndarray:
+    def eval(x: np.ndarray, normalization: float, mean: float, sigma: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
         return normalization * np.exp(-0.5 * ((x - mean)**2. / sigma**2.))
 
     @staticmethod
-    def jacobian(x : np.ndarray, normalization : float, mean : float, sigma : float) -> np.ndarray:
+    def jacobian(x: np.ndarray, normalization: float, mean: float, sigma: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
@@ -661,7 +661,7 @@ class Gaussian(FitModelBase):
         d_sigma = normalization * d_normalization * (x - mean)**2. / sigma**3.
         return np.array([d_normalization, d_mean, d_sigma]).transpose()
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+    def init_parameters(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         """Overloaded method.
         """
         mean = np.average(xdata, weights=ydata)
@@ -684,7 +684,7 @@ class DoubleGaussian(_DoubleGaussian):
     """Implementation of a double gaussian.
     """
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+    def init_parameters(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         """Overloaded method.
         """
         # Take all the data and make a first pass to a single-gaussian fit...
@@ -772,14 +772,14 @@ class PowerLaw(FitModelBase):
     DEFAULT_RANGE = (1.e-2, 1.)
 
     @staticmethod
-    def eval(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
+    def eval(x: np.ndarray, normalization: float, index: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
         return normalization * x**index
 
     @staticmethod
-    def jacobian(x : np.ndarray, normalization : float, index : float) -> np.ndarray:
+    def jacobian(x: np.ndarray, normalization: float, index: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
@@ -802,14 +802,14 @@ class Exponential(FitModelBase):
     PAR_DEFAULT_BOUNDS = ((0., -np.inf), (np.inf, np.inf))
 
     @staticmethod
-    def eval(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
+    def eval(x: np.ndarray, normalization: float, scale: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
         return normalization * np.exp(-x / scale)
 
     @staticmethod
-    def jacobian(x : np.ndarray, normalization : float, scale : float) -> np.ndarray:
+    def jacobian(x: np.ndarray, normalization: float, scale: float) -> np.ndarray:
         """Overloaded method.
         """
         # pylint: disable=arguments-differ
@@ -817,7 +817,7 @@ class Exponential(FitModelBase):
         d_scale = normalization * d_normalization * x / scale**2.
         return np.array([d_normalization, d_scale]).transpose()
 
-    def init_parameters(self, xdata : np.ndarray, ydata : np.ndarray) -> None:
+    def init_parameters(self, xdata: np.ndarray, ydata: np.ndarray) -> None:
         """Overloaded method.
         """
         self.set_parameter('normalization', np.max(ydata))

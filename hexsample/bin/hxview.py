@@ -48,7 +48,7 @@ HXVIEW_ARGPARSER.add_argument("mc_table", type=str, help='Tells if the quantitie
 
 def hxview(**kwargs):
     """View the file content.
-    Shows histograms of energy and cluster_size. 
+    Shows histograms of energy and cluster_size.
     """
     input_file = ReconInputFile(kwargs['infile'])
     attribute = kwargs['attribute']

@@ -93,7 +93,7 @@ class PlotCard:
         """
         self._item_list = []
 
-    def add_string(self, label : str, content : str) -> None:
+    def add_string(self, label: str, content: str) -> None:
         """Add a label-content pair to the card. This is the workhorse methods,
         and specialized methods below use this internally.
 
@@ -107,8 +107,8 @@ class PlotCard:
         """
         self._item_list.append((label, content))
 
-    def add_quantity(self, label : str, value : float, error : float = None,
-        fmt : str = None, units : str = None) -> None:
+    def add_quantity(self, label: str, value: float, error: float = None,
+        fmt: str = None, units: str = None) -> None:
         """Add a numerical quantity to the card.
 
         This can be either a numerical value, or the result of a measurement
@@ -149,7 +149,7 @@ class PlotCard:
         """
         self.add_string('', '')
 
-    def plot(self, x : float = 0.95, y : float = 0.95) -> None:
+    def plot(self, x: float = 0.95, y: float = 0.95) -> None:
         """Plot the card.
 
         Arguments
@@ -174,7 +174,7 @@ class PlotCard:
 
 
 
-def last_line_color(default : str = 'black') -> str:
+def last_line_color(default: str = 'black') -> str:
     """Return the color used to draw the last line
     """
     try:
@@ -216,7 +216,7 @@ def setup_gca(**kwargs) -> None:
     """
     setup_axes(plt.gca(), **kwargs)
 
-def save_gcf(folder_path : Path, file_extensions=('png', 'pdf'), **kwargs) -> None:
+def save_gcf(folder_path: Path, file_extensions=('png', 'pdf'), **kwargs) -> None:
     """Save the current matplotlib figure.
     """
     figure_name = plt.gcf().get_label().lower().replace(' ', '_')
@@ -225,7 +225,7 @@ def save_gcf(folder_path : Path, file_extensions=('png', 'pdf'), **kwargs) -> No
         logger.info(f'Saving current figure to {file_path}...')
         plt.savefig(file_path, **kwargs)
 
-def _set_rc_param(key : str, value : Any):
+def _set_rc_param(key: str, value: Any):
     """Set the value for a single matplotlib parameter.
 
     The actual command is encapsulated into a try except block because this

@@ -70,7 +70,7 @@ class AnsiFontEffect(Enum):
 
 
 
-def ansi_format(text : str, *effects : AnsiFontEffect) -> str:
+def ansi_format(text: str, *effects: AnsiFontEffect) -> str:
     """Return the proper combination of escape sequences to render
     a given piece of text with a series of font effects.
 
@@ -85,17 +85,17 @@ def ansi_format(text : str, *effects : AnsiFontEffect) -> str:
     esc = ';'.join([f'{effect.value}' for effect in effects])
     return f'\033[{esc}m{text}\033[{AnsiFontEffect.RESET.value}m'
 
-def _repeat(text : str, repetitions : int) -> str:
+def _repeat(text: str, repetitions: int) -> str:
     """Repeat a given piece of text for a given number of times.
     """
     return text * repetitions
 
-def space(width : int) -> str:
+def space(width: int) -> str:
     """Return a sequence of spaces of a given width.
     """
     return _repeat(' ', width)
 
-def line(width : int) -> str:
+def line(width: int) -> str:
     """Return a sequence of spaces of a given width.
     """
     return _repeat('-', width)

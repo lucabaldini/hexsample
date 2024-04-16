@@ -69,12 +69,12 @@ class DigiEvent:
         whose length matches the size of the ROI.
     """
 
-    trigger_id : int
-    seconds : int
-    microseconds : int
-    livetime : int
-    roi : RegionOfInterest
-    pha : np.ndarray
+    trigger_id: int
+    seconds: int
+    microseconds: int
+    livetime: int
+    roi: RegionOfInterest
+    pha: np.ndarray
 
     def __post_init__(self) -> None:
         """Post-initialization code.
@@ -99,7 +99,7 @@ class DigiEvent:
             self.roi == other.roi and np.allclose(self.pha, other.pha)
 
     @classmethod
-    def from_digi(cls, row : np.ndarray, pha : np.ndarray):
+    def from_digi(cls, row: np.ndarray, pha: np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.
 
         This is used internally when we access event data in a digi file, and
@@ -112,7 +112,7 @@ class DigiEvent:
         roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
         return cls(trigger_id, seconds, microseconds, livetime, roi, pha)
 
-    def __call__(self, col : int, row : int) -> int:
+    def __call__(self, col: int, row: int) -> int:
         """Retrieve the pha content of the event for a given column and row.
 
         Internally this is subtracting the proper offset to the column and row
@@ -130,7 +130,7 @@ class DigiEvent:
         """
         return self.pha[row - self.roi.min_row, col - self.roi.min_col]
 
-    def highest_pixel(self, absolute : bool = True) -> Tuple[int, int]:
+    def highest_pixel(self, absolute: bool = True) -> Tuple[int, int]:
         """Return the coordinates (col, row) of the highest pixel.
 
         Arguments
@@ -154,7 +154,7 @@ class DigiEvent:
         """
         return self.seconds + 1.e-6 * self.microseconds
 
-    def ascii(self, pha_width : int = 5):
+    def ascii(self, pha_width: int = 5):
         """Ascii representation.
         """
         fmt = f'%{pha_width}d'
@@ -182,10 +182,30 @@ class DigiEvent:
 class HexagonalReadout(HexagonalGrid):
 
     """Description of a pixel readout chip on a hexagonal matrix.
+
+    Arguments
+    ---------
+    layout : HexagonalLayout
+        The layout of the hexagonal matrix.
+
+    num_cols : int
+        The number of columns in the readout.
+
+    num_rows : int
+        The number of rows in the readout.
+
+    pitch : float
+        The readout pitch in cm.
+
+    enc : float
+        The equivalent noise charge in electrons.
+
+    gain : float
+        The readout gain in ADC counts per electron.
     """
 
-    def __init__(self, layout : HexagonalLayout, num_cols : int, num_rows : int,
-                 pitch : float, enc : float, gain : float) -> None:
+    def __init__(self, layout: HexagonalLayout, num_cols: int, num_rows: int,
+                 pitch: float, enc: float, gain: float) -> None:
         """Constructor.
         """
         # pylint: disable=too-many-arguments
@@ -196,7 +216,7 @@ class HexagonalReadout(HexagonalGrid):
         self.trigger_id = -1
 
     @staticmethod
-    def sum_miniclusters(array : np.ndarray) -> np.ndarray:
+    def sum_miniclusters(array: np.ndarray) -> np.ndarray:
         """Sum the values in a given numpy array over its 2 x 2 trigger miniclusters.
 
         Note that the shape of the target 2-dimensional array must be even in
@@ -206,7 +226,7 @@ class HexagonalReadout(HexagonalGrid):
         return array.reshape((num_rows // 2, 2, num_cols // 2, 2)).sum(-1).sum(1)
 
     @staticmethod
-    def zero_suppress(array : np.ndarray, threshold : float) -> None:
+    def zero_suppress(array: np.ndarray, threshold: float) -> None:
         """Utility function to zero-suppress an generic array.
 
         This is returning an array of the same shape of the input where all the
@@ -223,7 +243,7 @@ class HexagonalReadout(HexagonalGrid):
         array[array <= threshold] = 0
 
     @staticmethod
-    def is_odd(value : int) -> bool:
+    def is_odd(value: int) -> bool:
         """Return whether the input integer is odd.
 
         See https://stackoverflow.com/questions/14651025/ for some metrics about
@@ -232,12 +252,12 @@ class HexagonalReadout(HexagonalGrid):
         return value & 0x1
 
     @staticmethod
-    def is_even(value : int) -> bool:
+    def is_even(value: int) -> bool:
         """Return whether the input integer is even.
         """
         return not HexagonalReadout.is_odd(value)
 
-    def sample(self, x : np.ndarray, y : np.ndarray) -> Tuple[Tuple[int, int], np.ndarray]:
+    def sample(self, x: np.ndarray, y: np.ndarray) -> Tuple[Tuple[int, int], np.ndarray]:
         """Spatially sample a pair of arrays of x and y coordinates in physical
         space onto logical (hexagonal) coordinates in logical space.
 
@@ -291,8 +311,8 @@ class HexagonalReadout(HexagonalGrid):
         signal = np.bincount(index, minlength=num_cols * num_rows).reshape((num_rows, num_cols))
         return min_col, min_row, signal
 
-    def trigger(self, signal : np.ndarray, trg_threshold, min_col : int, min_row : int,
-        padding : Padding) -> Tuple[RegionOfInterest, np.ndarray]:
+    def trigger(self, signal: np.ndarray, trg_threshold, min_col: int, min_row: int,
+        padding: Padding) -> Tuple[RegionOfInterest, np.ndarray]:
         """Apply the trigger, calculate the region of interest, and pad the
         signal array to the proper dimension.
 
@@ -330,8 +350,8 @@ class HexagonalReadout(HexagonalGrid):
         self.trigger_id += 1
         return roi, pha
 
-    def digitize(self, pha : np.ndarray, zero_sup_threshold : int = 0,
-        offset : int = 0) -> np.ndarray:
+    def digitize(self, pha: np.ndarray, zero_sup_threshold: int = 0,
+        offset: int = 0) -> np.ndarray:
         """Digitize the actual signal within a given ROI.
 
         Arguments
@@ -364,7 +384,7 @@ class HexagonalReadout(HexagonalGrid):
         return pha.flatten()
 
     @staticmethod
-    def latch_timestamp(timestamp : float) -> Tuple[int, int, int]:
+    def latch_timestamp(timestamp: float) -> Tuple[int, int, int]:
         """Latch the event timestamp and return the corresponding fields of the
         digi event contribution: seconds, microseconds and livetime.
 
@@ -380,8 +400,8 @@ class HexagonalReadout(HexagonalGrid):
         livetime = 0
         return int(seconds), int(1000000 * microseconds), livetime
 
-    def read(self, timestamp : float, x : np.ndarray, y : np.ndarray, trg_threshold : float,
-        padding : Padding, zero_sup_threshold : int = 0, offset : int = 0) -> DigiEvent:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
+        padding: Padding, zero_sup_threshold: int = 0, offset: int = 0) -> DigiEvent:
         """Readout an event.
 
         Arguments
@@ -421,7 +441,7 @@ class Xpol3(HexagonalReadout):
     """Derived class representing the XPOL-III readout chip.
     """
 
-    def __init__(self, enc : float = 20., gain : float = 1.) -> None:
+    def __init__(self, enc: float = 20., gain: float = 1.) -> None:
         """Constructor.
         """
         super().__init__(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, enc, gain)

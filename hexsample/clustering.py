@@ -37,9 +37,9 @@ class Cluster:
 
     # pylint: disable = invalid-name
 
-    x : np.ndarray
-    y : np.ndarray
-    pha : np.ndarray
+    x: np.ndarray
+    y: np.ndarray
+    pha: np.ndarray
 
     def __post_init__(self) -> None:
         """Small cross check on the dimensions of the arrays passed in the constructor.
@@ -70,17 +70,17 @@ class ClusteringBase:
     """Base class for the clustering.
     """
 
-    grid : HexagonalGrid
-    zero_sup_threshold : float
+    grid: HexagonalGrid
+    zero_sup_threshold: float
 
-    def zero_suppress(self, array : np.ndarray) -> np.ndarray:
+    def zero_suppress(self, array: np.ndarray) -> np.ndarray:
         """Zero suppress a generic array.
         """
         out = array.copy()
         out[out <= self.zero_sup_threshold] = 0
         return out
 
-    def run(self, event : DigiEvent) -> Cluster:
+    def run(self, event: DigiEvent) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
         raise NotImplementedError
@@ -102,9 +102,9 @@ class ClusteringNN(ClusteringBase):
         The number of neighbors (between 0 and 6) to include in the cluster.
     """
 
-    num_neighbors : int
+    num_neighbors: int
 
-    def run(self, event : DigiEvent) -> Cluster:
+    def run(self, event: DigiEvent) -> Cluster:
         """Overladed method.
 
         .. warning::
