@@ -118,35 +118,72 @@ _NEIGHBORS_PROXY_DICT = {
 }
 
 
-_ADC_SEQUENCE_SHORT = (0, 1, 5, 6, 2, 3, 4)
-_ADC_SEQUENCE_SHORT_LENGTH = len(_ADC_SEQUENCE_SHORT)
-_ADC_SEQUENCE_LONG = (0, 2, 5, 4, 2, 1, 4, 6, 1, 3, 6, 0, 3, 5)
-_ADC_SEQUENCE_LONG_LENGTH = len(_ADC_SEQUENCE_LONG)
+
+_N_ADC_CHANNELS = 7
+_ADC_SEQUENCE_EVEN = (0, 2, 5, 0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4)
+_ADC_SEQUENCE_ODD = (0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4, 0, 2, 5)
+_ADC_SEQUENCE_LENGTH = len(_ADC_SEQUENCE_EVEN)
 
 
 def adc_channel_odd_r(col: int, row: int) -> int:
+    """Transformation from offset coordinates (col, row) into 7-adc channel label,
+    that is an int between 0 and 6, for ODD_R grid layout.
+
+    Arguments
+    ---------
+    col: int
+        column pixel logical coordinate
+    row: int
+        row pixel logical coordinate
     """
-    """
-    return -1
+    start = _ADC_SEQUENCE_ODD[row % _ADC_SEQUENCE_LENGTH]
+    index = (col + start) % _N_ADC_CHANNELS
+    return index
 
 def adc_channel_even_r(col: int, row: int) -> int:
+    """Transformation from offset coordinates (col, row) into 7-adc channel label,
+    that is an int between 0 and 6, for EVEN_R grid layout.
+
+    Arguments
+    ---------
+    col: int
+        column pixel logical coordinate
+    row: int
+        row pixel logical coordinate
     """
-    """
-    start = _ADC_SEQUENCE_SHORT.index(_ADC_SEQUENCE_LONG[row % _ADC_SEQUENCE_LONG_LENGTH])
-    index = (col + start) % _ADC_SEQUENCE_SHORT_LENGTH
-    return _ADC_SEQUENCE_SHORT[index]
+    start = _ADC_SEQUENCE_EVEN[row % _ADC_SEQUENCE_LENGTH]
+    index = (col + start) % _N_ADC_CHANNELS
+    return index
 
 def adc_channel_odd_q(col: int, row: int) -> int:
+    """Transformation from offset coordinates (col, row) into 7-adc channel label,
+    that is an int between 0 and 6, for ODD_Q grid layout.
+
+    Arguments
+    ---------
+    col: int
+        column pixel logical coordinate
+    row: int
+        row pixel logical coordinate
     """
-    """
-    return -1
+    start = _ADC_SEQUENCE_ODD[col % _ADC_SEQUENCE_LENGTH]
+    index = (row + start) % _N_ADC_CHANNELS
+    return index
 
 def adc_channel_even_q(col: int, row: int) -> int:
+    """Transformation from offset coordinates (col, row) into 7-adc channel label,
+    that is an int between 0 and 6, for EVEN_Q grid layout.
+
+    Arguments
+    ---------
+    col: int
+        column pixel logical coordinate
+    row: int
+        row pixel logical coordinate
     """
-    """
-    start = _ADC_SEQUENCE_SHORT.index(_ADC_SEQUENCE_LONG[col % _ADC_SEQUENCE_LONG_LENGTH])
-    index = (row + start) % _ADC_SEQUENCE_SHORT_LENGTH
-    return _ADC_SEQUENCE_SHORT[index]
+    start = _ADC_SEQUENCE_EVEN[col % _ADC_SEQUENCE_LENGTH]
+    index = (row + start) % _N_ADC_CHANNELS
+    return index
 
 
 # Lookup table for .
