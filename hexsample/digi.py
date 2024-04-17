@@ -283,17 +283,14 @@ class DigiEventCircular(DigiEventBase):
     row : int
         The column identifier of the maximum PHA pixel in the event in pixel
         coordinates.
-
-    layout : HexagonalLayout
-        The layout of the hexagonal grid of the chip. In a circular digi event it is needed
-        because the map of the coordinates of the neighbors of a central pixel depend on the
-        layout of the hexagonal grid.
+    
     """
 
     column: int
     row: int
-    grid: HexagonalGrid
 
+
+    '''
     def get_neighbors(self):
         """This function returns the offset coordinates of the signal pixel, that
         is the highest pixel of the event (as first element), and its neighbors
@@ -310,7 +307,8 @@ class DigiEventCircular(DigiEventBase):
         columns, rows = zip(*neighbors_coords)
         columns, rows = np.array(columns), np.array(rows)
         return columns, rows
-    
+    '''
+    '''
     def as_dict(self) -> dict:
         """Return the pixel content of the event in the form of a {(col, row): pha}
         value.
@@ -323,8 +321,9 @@ class DigiEventCircular(DigiEventBase):
         """
         columns, rows = self.get_neighbors()
         return {(col, row): pha for col, row, pha in zip(columns, rows, self.pha)}
+    '''
     
-
+    '''
     def ascii(self, pha_width: int = 5) -> str:
         """Ascii representation.
         """
@@ -348,5 +347,6 @@ class DigiEventCircular(DigiEventBase):
                 text += pha
             text += f'\n{big_space}|\n'
         return text
+    '''
     
     

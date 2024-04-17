@@ -107,7 +107,6 @@ def test_routing_7(nside: int = 10, pitch: float = 0.1) -> None:
         display = HexagonalGridDisplay(grid)
         display.draw(pixel_labels=False)
         col, row, x, y = grid.pixel_physical_coordinates()
-        print(f'layout = {grid.layout}, {grid.adc_channel(2, 1)}')
         for (_col, _row, _x, _y) in zip(col, row, x, y):
             adc = grid.adc_channel(_col, _row)
             plt.text(_x, _y, f'{adc}', **fmt)

@@ -451,17 +451,19 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # Sample the input positions over the readout...
         sparse_signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
         # ...sampling the input position of the highest PHA pixel over the readout...
-        # Seeking key corresponding to a certain value:
-        # https://stackoverflow.com/questions/8023306/get-key-by-value-in-dictionary
-        col_max, row_max = list(sparse_signal.keys())[list(sparse_signal.values()).\
-                           index(max(sparse_signal.values()))]
+        # See: https://stackoverflow.com/questions/70094914/max-on-collections-counter
+        coord_max = max(sparse_signal, key=sparse_signal.get)
+        col_max, row_max = coord_max
+        #... and converting it in ADC channel coordinates (value from 0 to 6)...
+        adc_max = self.adc_channel(*coord_max)
+        # ... creating a 7-elements array containing the PHA of the ADC channels from 0 to 6
+        # in increasing order and filling it with PHAs of the highest px and its neigbors...
+        pha = np.empty(7)
+        pha[adc_max] = sparse_signal[*coord_max]
         # ... identifying the 6 neighbours of the central pixel and saving the signal pixels
-        # prepending the cooridnates of the highest one... 
-        neighbors_coords = list(self.neighbors(col_max, row_max)) #returns a list of tuples
-        # ...and prepending the highest pha pixel to the list...
-        neighbors_coords.insert(0, (col_max, row_max)) 
-        # ...saving pha corresponding to every neighbor (and to central pixel)...
-        pha = np.array([sparse_signal[px] if px in sparse_signal.keys() else 0 for px in neighbors_coords], dtype=int)
+        # prepending the cooridnates of the highest one...
+        for coords in self.neighbors(*coord_max):
+            pha[self.adc_channel(*coords)] = sparse_signal[*coords]
         # ...apply the trigger...
         # Not sure the trigger is needed, the highest px passed
         # necessarily the trigger or there is no event
@@ -471,8 +473,5 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         # Do not forget to update the trigger_id!
         self.trigger_id += 1
-        #The correspondance between the order in the pha array and the position
-        #of this element is guaranteed, because the function for seeking neighbors
-        #is hard-coded and so returns the tuples always in the same order
-        return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha,
-                col_max, row_max, HexagonalGrid(self.layout, self.num_cols, self.num_rows, self.pitch))
+        #The pha array is always in the order [pha(adc0), pha(adc1), pha(adc2), pha(adc3), pha(adc4), pha(adc5), pha(adc6)]
+        return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha, *coords)
