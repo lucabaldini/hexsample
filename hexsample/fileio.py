@@ -33,6 +33,7 @@ import tables
 from hexsample import __version__, __tagdate__
 from hexsample.mc import MonteCarloEvent
 from hexsample.digi import DigiEventBase, DigiEventRectangular
+from hexsample.readout import HexagonalReadoutCircular
 from hexsample.recon import ReconEvent
 
 
@@ -147,7 +148,7 @@ class DigiDescriptionCircular(DigiDescriptionBase):
 
     column = tables.Int16Col(pos=4)
     row = tables.Int16Col(pos=5)
-    pha = tables.Int16Col(shape=7, pos=6)
+    pha = tables.Int16Col(shape=HexagonalReadoutCircular.NUM_PIXELS, pos=6)
 
     def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
         """Overloaded method.

@@ -423,6 +423,8 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         The readout gain in ADC counts per electron.
     """
 
+    NUM_PIXELS = 7
+
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
         zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventCircular:
         """Circular readout an event.
@@ -447,7 +449,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
-        
+
         # Sample the input positions over the readout...
         sparse_signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
         # ...sampling the input position of the highest PHA pixel over the readout...
@@ -458,12 +460,12 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         adc_max = self.adc_channel(*coord_max)
         # ... creating a 7-elements array containing the PHA of the ADC channels from 0 to 6
         # in increasing order and filling it with PHAs of the highest px and its neigbors...
-        pha = np.empty(7)
-        pha[adc_max] = sparse_signal[*coord_max]
+        pha = np.empty(self.NUM_PIXELS)
+        pha[adc_max] = sparse_signal[coord_max]
         # ... identifying the 6 neighbours of the central pixel and saving the signal pixels
         # prepending the cooridnates of the highest one...
         for coords in self.neighbors(*coord_max):
-            pha[self.adc_channel(*coords)] = sparse_signal[*coords]
+            pha[self.adc_channel(*coords)] = sparse_signal[coords]
         # ...apply the trigger...
         # Not sure the trigger is needed, the highest px passed
         # necessarily the trigger or there is no event
