@@ -17,7 +17,7 @@
 """
 
 
-from hexsample.roi import Padding, RegionOfInterest, CircularRegionOfInterest
+from hexsample.roi import Padding, RegionOfInterest
 
 
 def test_padding(top : int = 2, right : int = 4, bottom : int = 3, left : int = 5) -> None:
