@@ -119,7 +119,7 @@ def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     x = np.append(x, np.full(num_pairs, x2))
     y = np.append(y, np.full(num_pairs, y2))
     event = readout.read(0., x, y, 100.) #this is a DigiEventCircular
-    #print(event.ascii())
+    print(event.ascii())
 
 def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row: int = 15,
     max_row: int = 22, padding: Padding = Padding(1, 2, 3, 4)):
