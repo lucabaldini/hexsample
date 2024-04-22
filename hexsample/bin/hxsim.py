@@ -30,7 +30,7 @@ from hexsample import rng
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
 from hexsample.readout import HexagonalReadoutMode, readout_chip
-from hexsample.fileio import DigiOutputFile
+from hexsample.fileio import _digioutput_class
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
@@ -79,7 +79,7 @@ def hxsim(**kwargs):
     readout = readout_chip(readout_mode, *args)
     logger.info(f'Readout chip: {readout}')
     output_file_path = kwargs.get('outfile')
-    output_file = DigiOutputFile(output_file_path)
+    output_file = _digioutput_class(readout_mode)(output_file_path)
     output_file.update_header(**kwargs)
     logger.info('Starting the event loop...')
     for mc_event in tqdm(photon_list):

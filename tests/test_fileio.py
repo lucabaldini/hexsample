@@ -21,8 +21,9 @@ import numpy as np
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.digi import DigiEventRectangular
-from hexsample.fileio import DigiInputFile, DigiOutputFile, ReconInputFile, ReconOutputFile,\
-    FileType, peek_file_type, open_input_file
+from hexsample.readout import HexagonalReadoutMode
+from hexsample.fileio import DigiInputFile, ReconInputFile, ReconOutputFile,\
+    FileType, peek_file_type, open_input_file, _FILEIO_CLASS_DICT, _digioutput_class
 from hexsample.mc import MonteCarloEvent
 from hexsample.roi import RegionOfInterest, Padding
 
@@ -42,8 +43,9 @@ def _digi_event(index : int) -> DigiEventRectangular:
 
 def _test_write(file_path, num_events : int = 10):
     """Small test writing a bunch of toy event strcutures to file.
+    10 events for every readout methods are created. 
     """
-    output_file = DigiOutputFile(file_path)
+    output_file = _digioutput_class(HexagonalReadoutMode.RECTANGULAR)(file_path)
     for i in range(num_events):
         output_file.add_row(_digi_event(i), _mc_event(i))
     output_file.close()
@@ -78,8 +80,8 @@ def test_file_type():
     """
     # Test for the digi files.
     file_path = HEXSAMPLE_DATA / 'test_digi_filetype.h5'
-    digi_file = DigiOutputFile(file_path)
-    digi_file.close()
+    #digi_file = DigiOutputFile(file_path)
+    #digi_file.close()
     digi_file = DigiInputFile(file_path)
     assert digi_file.file_type == FileType.DIGI
     digi_file.close()

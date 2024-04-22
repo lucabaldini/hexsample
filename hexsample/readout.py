@@ -469,7 +469,6 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # See: https://stackoverflow.com/questions/70094914/max-on-collections-counter
         coord_max = max(sparse_signal, key=sparse_signal.get)
         col_max, row_max = coord_max
-        print(coord_max)
         #... and converting it in ADC channel coordinates (value from 0 to 6)...
         adc_max = self.adc_channel(*coord_max)
         # ... creating a 7-elements array containing the PHA of the ADC channels from 0 to 6

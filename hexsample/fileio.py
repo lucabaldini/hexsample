@@ -32,8 +32,8 @@ import tables
 
 from hexsample import __version__, __tagdate__
 from hexsample.mc import MonteCarloEvent
-from hexsample.digi import DigiEventBase, DigiEventRectangular
-from hexsample.readout import HexagonalReadoutCircular
+from hexsample.digi import DigiEventBase, DigiEventSparse, DigiEventRectangular, DigiEventCircular
+from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutCircular
 from hexsample.recon import ReconEvent
 
 
@@ -71,7 +71,9 @@ def _fill_mc_row(row: tables.tableextension.Row, event: MonteCarloEvent) -> None
 
 class DigiDescriptionBase(tables.IsDescription):
 
-    """
+    """Base class for the description of the (flat) digi part of the file format.
+    It contains the trigger_id and time coordinates of the event, common to all
+    readout types. 
     """
 
     trigger_id = tables.Int32Col(pos=0)
@@ -79,41 +81,53 @@ class DigiDescriptionBase(tables.IsDescription):
     microseconds = tables.Int32Col(pos=2)
     livetime = tables.Int32Col(pos=3)
 
-    def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
-        """Helper function to fill an output table row, given a DigiEvent object.
+def _fill_digi_row_base(row: tables.tableextension.Row, event: DigiEventBase) -> None:
+    """Helper function to fill an output table row, given a DigiEventBase object.
 
-        Note that this method of the base class is not calling the row.appen() hook,
-        which is delegated to the implementations in derived classes.
+    Note that this method of the base class is not calling the row.append() hook,
+    which is delegated to the implementations in derived classes.
 
-        .. note::
-           This would have naturally belonged to the DigiDescription class as
-           a @staticmethod, but doing so is apparently breaking something into the
-           tables internals, and all of a sudden you get an exception due to the
-           fact that a staticmethod cannot be pickled.
-        """
-        row['trigger_id'] = event.trigger_id
-        row['seconds'] = event.seconds
-        row['microseconds'] = event.microseconds
-        row['livetime'] = event.livetime
+    .. note::
+        This would have naturally belonged to the DigiDescriptionBase class as
+        a @staticmethod, but doing so is apparently breaking something into the
+        tables internals, and all of a sudden you get an exception due to the
+        fact that a staticmethod cannot be pickled.
+    """
+    row['trigger_id'] = event.trigger_id
+    row['seconds'] = event.seconds
+    row['microseconds'] = event.microseconds
+    row['livetime'] = event.livetime
 
 
 
 class DigiDescriptionSparse(DigiDescriptionBase):
 
+    """Description of the (flat) digi part of the file format for a sparse readout
+    DigiEvent.
     """
-    """
+    #columns = tables.Int16Col(pos=4)
+    #rows = tables.Int16Col(pos=5)
 
-    def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
-        """Overloaded method.
-        """
-        DigiDescriptionBase._fill_digi_row(row, event)
-        row.append()
+def _fill_digi_row_sparse(row: tables.tableextension.Row, event: DigiEventBase) -> None:
+    """Overloaded method.
+    It uses the _fill_digi_row_base() function for filling the trigger_id and time
+    coordinates of the event. 
+
+    .. note::
+        This would have naturally belonged to the DigiDescriptionSparse class as
+        a @staticmethod, but doing so is apparently breaking something into the
+        tables internals, and all of a sudden you get an exception due to the
+        fact that a staticmethod cannot be pickled.
+    """
+    _fill_digi_row_base(row, event)
+    row.append()
 
 
 
 class DigiDescriptionRectangular(DigiDescriptionBase):
 
-    """
+    """Description of the (flat) digi part of the file format for a rectangular readout
+    DigiEvent.
     """
 
     min_col = tables.Int16Col(pos=4)
@@ -125,41 +139,56 @@ class DigiDescriptionRectangular(DigiDescriptionBase):
     padding_bottom = tables.Int8Col(pos=10)
     padding_left = tables.Int8Col(pos=11)
 
-    def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
-        """Overloaded method.
-        """
-        DigiDescriptionBase._fill_digi_row(row, event)
-        row['min_col'] = event.roi.min_col
-        row['max_col'] = event.roi.max_col
-        row['min_row'] = event.roi.min_row
-        row['max_row'] = event.roi.max_row
-        row['padding_top'] = event.roi.padding.top
-        row['padding_right'] = event.roi.padding.right
-        row['padding_bottom'] = event.roi.padding.bottom
-        row['padding_left'] = event.roi.padding.left
-        row.append()
+def _fill_digi_row_rectangular(row: tables.tableextension.Row, event: DigiEventBase) -> None:
+    """Overloaded method.
+    It uses the _fill_digi_row_base() function for filling the trigger_id and time
+    coordinates of the event. 
+
+    .. note::
+        This would have naturally belonged to the DigiDescriptionRectangular class as
+        a @staticmethod, but doing so is apparently breaking something into the
+        tables internals, and all of a sudden you get an exception due to the
+        fact that a staticmethod cannot be pickled.
+    """
+    _fill_digi_row_base(row, event)
+    row['min_col'] = event.roi.min_col
+    row['max_col'] = event.roi.max_col
+    row['min_row'] = event.roi.min_row
+    row['max_row'] = event.roi.max_row
+    row['padding_top'] = event.roi.padding.top
+    row['padding_right'] = event.roi.padding.right
+    row['padding_bottom'] = event.roi.padding.bottom
+    row['padding_left'] = event.roi.padding.left
+    row.append()
 
 
 
 class DigiDescriptionCircular(DigiDescriptionBase):
 
-    """
+    """Description of the (flat) digi part of the file format for a rectangular readout
+    DigiEvent.
     """
 
     column = tables.Int16Col(pos=4)
     row = tables.Int16Col(pos=5)
     pha = tables.Int16Col(shape=HexagonalReadoutCircular.NUM_PIXELS, pos=6)
 
-    def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None:
-        """Overloaded method.
-        """
-        DigiDescriptionBase._fill_digi_row(row, event)
-        row['column'] = event.column
-        row['row'] = event.row
-        row['pha'] = event.pha
-        row.append()
+def _fill_digi_row_circular(row: tables.tableextension.Row, event: DigiEventBase) -> None:
+    """Overloaded method.
+    It uses the _fill_digi_row_base() function for filling the trigger_id and time
+    coordinates of the event. 
 
-
+    .. note::
+        This would have naturally belonged to the DigiDescriptionCircular class as
+        a @staticmethod, but doing so is apparently breaking something into the
+        tables internals, and all of a sudden you get an exception due to the
+        fact that a staticmethod cannot be pickled.
+    """
+    _fill_digi_row_base(row, event)
+    row['column'] = event.column
+    row['row'] = event.row
+    row['pha'] = event.pha
+    row.append()
 
 class DigiDescription(tables.IsDescription):
 
@@ -335,9 +364,177 @@ class OutputFileBase(tables.File):
         This needs to be reimplemented in derived classes.
         """
         raise NotImplementedError
+    
+class DigiOutputFileSparse(OutputFileBase):
 
+    """Description of a sparse digitized output file.
 
+    This can represent either a digitized files written by the DAQ, or the
+    output of a simulation, in which case it contains an additional group and
+    table for the Monte Carlo ground truth.
 
+    Arguments
+    ---------
+    file_path : str
+        The path to the file on disk.
+    """
+
+    _FILE_TYPE = FileType.DIGI
+    DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionSparse, 'Digi data')
+    PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
+    MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
+
+    def __init__(self, file_path: str):
+        """Constructor.
+        """
+        super().__init__(file_path)
+        self.digi_group = self.create_group(self.root, 'digi', 'Digi')
+        self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
+        self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
+        self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
+        self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
+
+    def add_row(self, digi_event: DigiEventSparse, mc_event: MonteCarloEvent) -> None:
+        """Add one row to the file.
+
+        Arguments
+        ---------
+        digi : DigiEventSparse
+            The digitized event contribution.
+
+        mc : MonteCarloEvent
+            The Monte Carlo event contribution.
+        """
+        # pylint: disable=arguments-differ
+        _fill_digi_row_sparse(self.digi_table.row, digi_event)
+        self.pha_array.append(digi_event.pha.flatten())
+        _fill_mc_row(self.mc_table.row, mc_event)
+
+    def flush(self) -> None:
+        """Flush the basic file components.
+        """
+        self.digi_table.flush()
+        self.pha_array.flush()
+        self.mc_table.flush()
+
+class DigiOutputFileRectangular(OutputFileBase):
+
+    """Description of a rectangular digitized output file.
+
+    This can represent either a digitized files written by the DAQ, or the
+    output of a simulation, in which case it contains an additional group and
+    table for the Monte Carlo ground truth.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the file on disk.
+    """
+
+    _FILE_TYPE = FileType.DIGI
+    DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionRectangular, 'Digi data')
+    PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
+    MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
+
+    def __init__(self, file_path: str):
+        """Constructor.
+        """
+        super().__init__(file_path)
+        self.digi_group = self.create_group(self.root, 'digi', 'Digi')
+        self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
+        self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
+        self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
+        self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
+
+    def add_row(self, digi_event: DigiEventRectangular, mc_event: MonteCarloEvent) -> None:
+        """Add one row to the file.
+
+        Arguments
+        ---------
+        digi : DigiEventRectangular
+            The digitized event contribution.
+
+        mc : MonteCarloEvent
+            The Monte Carlo event contribution.
+        """
+        # pylint: disable=arguments-differ
+        _fill_digi_row_rectangular(self.digi_table.row, digi_event)
+        self.pha_array.append(digi_event.pha.flatten())
+        _fill_mc_row(self.mc_table.row, mc_event)
+
+    def flush(self) -> None:
+        """Flush the basic file components.
+        """
+        self.digi_table.flush()
+        self.pha_array.flush()
+        self.mc_table.flush()
+
+class DigiOutputFileCircular(OutputFileBase):
+
+    """Description of a circular digitized output file.
+
+    This can represent either a digitized files written by the DAQ, or the
+    output of a simulation, in which case it contains an additional group and
+    table for the Monte Carlo ground truth.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the file on disk.
+    """
+
+    _FILE_TYPE = FileType.DIGI
+    DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionCircular, 'Digi data')
+    PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
+    MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
+
+    def __init__(self, file_path: str):
+        """Constructor.
+        """
+        super().__init__(file_path)
+        self.digi_group = self.create_group(self.root, 'digi', 'Digi')
+        self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
+        self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
+        self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
+        self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
+
+    def add_row(self, digi_event: DigiEventCircular, mc_event: MonteCarloEvent) -> None:
+        """Add one row to the file.
+
+        Arguments
+        ---------
+        digi : DigiEventCircular
+            The digitized event contribution.
+
+        mc : MonteCarloEvent
+            The Monte Carlo event contribution.
+        """
+        # pylint: disable=arguments-differ
+        _fill_digi_row_circular(self.digi_table.row, digi_event)
+        self.pha_array.append(digi_event.pha.flatten())
+        _fill_mc_row(self.mc_table.row, mc_event)
+
+    def flush(self) -> None:
+        """Flush the basic file components.
+        """
+        self.digi_table.flush()
+        self.pha_array.flush()
+        self.mc_table.flush()
+
+# Mapping for the digi description classes for each readout mode.
+_FILEIO_CLASS_DICT = {
+    HexagonalReadoutMode.SPARSE: DigiOutputFileSparse,
+    HexagonalReadoutMode.RECTANGULAR: DigiOutputFileRectangular,
+    HexagonalReadoutMode.CIRCULAR: DigiOutputFileCircular
+}
+
+def _digioutput_class(mode: HexagonalReadoutMode) -> type:
+    """Return the proper class to be used as DigiOutputFile, depending on the
+    readout mode of the chip.
+    """
+    return _FILEIO_CLASS_DICT[mode]
+
+'''
 class DigiOutputFile(OutputFileBase):
 
     """Description of a digitized output file.
@@ -390,7 +587,7 @@ class DigiOutputFile(OutputFileBase):
         self.pha_array.flush()
         self.mc_table.flush()
 
-
+'''
 
 class ReconOutputFile(OutputFileBase):
 
