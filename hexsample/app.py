@@ -164,6 +164,7 @@ class ArgumentParser(argparse.ArgumentParser):
             help='trigger threshold in electron equivalent')
         group.add_argument('--zsupthreshold', type=int, default=0,
             help='zero-suppression threshold in ADC counts')
+        #group.add_argument('--readout_strategy', type=str, choices=)
         group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
             help='padding on the four sides of the ROT')
 

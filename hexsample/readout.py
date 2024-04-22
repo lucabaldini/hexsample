@@ -21,6 +21,7 @@
 """
 
 from collections import Counter
+from enum import Enum
 from typing import Tuple
 
 import numpy as np
@@ -31,6 +32,18 @@ from hexsample.hexagon import HexagonalGrid, HexagonalLayout
 from hexsample.roi import Padding, RegionOfInterest
 from hexsample import xpol
 
+
+class HexagonalReadoutStrategy(Enum):
+    """Enum class expressing the possible readout strategies.
+    """
+
+    # Sparse readout strategy
+    SPARSE = 'SPARSE'
+    # Horizontal, pointy top, even rows are shoved right.
+    RECTANGULAR = 'RECTANGULAR'
+    # Vertical, flat top, odd columns are shoved down.
+    CIRCULAR = 'CIRCULAR'
+    
 
 
 class HexagonalReadoutBase(HexagonalGrid):
