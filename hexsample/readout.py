@@ -33,17 +33,17 @@ from hexsample.roi import Padding, RegionOfInterest
 from hexsample import xpol
 
 
-class HexagonalReadoutStrategy(Enum):
+class HexagonalReadoutMode(Enum):
     """Enum class expressing the possible readout strategies.
     """
 
-    # Sparse readout strategy
+    # Sparse readout strategy.
     SPARSE = 'SPARSE'
-    # Horizontal, pointy top, even rows are shoved right.
+    # Rectangular readout, a la XPOL.
     RECTANGULAR = 'RECTANGULAR'
-    # Vertical, flat top, odd columns are shoved down.
+    # Circular readout, with the highest pixel and the 6 neirest.
     CIRCULAR = 'CIRCULAR'
-    
+
 
 
 class HexagonalReadoutBase(HexagonalGrid):
@@ -491,3 +491,22 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         self.trigger_id += 1
         #The pha array is always in the order [pha(adc0), pha(adc1), pha(adc2), pha(adc3), pha(adc4), pha(adc5), pha(adc6)]
         return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha, *coord_max)
+
+
+# Mapping for the readout chip classes for each readout mode.
+_READOUT_CLASS_DICT = {
+    HexagonalReadoutMode.SPARSE: HexagonalReadoutSparse,
+    HexagonalReadoutMode.RECTANGULAR: HexagonalReadoutRectangular,
+    HexagonalReadoutMode.CIRCULAR: HexagonalReadoutCircular
+}
+
+def _readout_class(mode: HexagonalReadoutMode) -> type:
+    """Return the proper class to be used to instantiate a readout chip for a given
+    readout mode.
+    """
+    return _READOUT_CLASS_DICT[mode]
+
+def readout_chip(mode: HexagonalReadoutMode, *args, **kwargs):
+    """Return an instance of the proper readout chip for a given readout mode.
+    """
+    return _readout_class(mode)(*args, **kwargs)
