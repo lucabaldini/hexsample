@@ -237,7 +237,8 @@ def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None
 
 class ReconDescription(tables.IsDescription):
 
-    """Description of the recon file format.
+    """Description of the recon file format. This should be common to all the
+    modes of readout, so it is the same aside from the DigiDescription type.
     """
 
     # pylint: disable=too-few-public-methods
@@ -591,7 +592,8 @@ class DigiOutputFile(OutputFileBase):
 
 class ReconOutputFile(OutputFileBase):
 
-    """Description of a reconstructed output file.
+    """Description of a reconstructed output file. This should be the same for 
+    all types of DigiEvent.
 
     Arguments
     ---------
@@ -674,6 +676,205 @@ class InputFileBase(tables.File):
         """Return the header value corresponding to a given key.
         """
         return self.header.get(key, default)
+
+
+class DigiInputFileSparse(InputFileBase):
+
+    """Description of a sparse digitized input file.
+
+    This has a very simple interface: we cache references to the relevant tables
+    when we open the file and we provide methods to reassemble a specific table
+    row into the corresponding DigiEvent or MonteCarloEvent objects, along with
+    an implementation of the iterator protocol to make event loops easier.
+    """
+
+    def __init__(self, file_path: str):
+        """Constructor.
+        """
+        super().__init__(file_path)
+        self.digi_table = self.root.digi.digi_table
+        self.pha_array = self.root.digi.pha
+        self.mc_table = self.root.mc.mc_table
+        self.__index = -1
+
+    def column(self, name: str) -> np.ndarray:
+        """Return a given column in the digi table.
+        """
+        return self.digi_table.col(name)
+
+    def mc_column(self, name: str) -> np.ndarray:
+        """Return a given column in the Monte Carlo table.
+        """
+        return self.mc_table.col(name)
+
+    def digi_event(self, row_index: int) -> DigiEventSparse:
+        """Random access to the DigiEventSparse part of the event contribution.
+
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        row = self.digi_table[row_index]
+        pha = self.pha_array[row_index]
+        return DigiEventSparse.from_digi(row, pha)
+
+    def mc_event(self, row_index: int) -> MonteCarloEvent:
+        """Random access to the MonteCarloEvent part of the event contribution.
+
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        row =  self.mc_table[row_index]
+        return MonteCarloEvent(*row)
+
+    def __iter__(self):
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        self.__index = -1
+        return self
+
+    def __next__(self) -> DigiEventSparse:
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        self.__index += 1
+        if self.__index == len(self.digi_table):
+            raise StopIteration
+        return self.digi_event(self.__index)
+    
+class DigiInputFileRectangular(InputFileBase):
+
+    """Description of a rectangular digitized input file.
+
+    This has a very simple interface: we cache references to the relevant tables
+    when we open the file and we provide methods to reassemble a specific table
+    row into the corresponding DigiEvent or MonteCarloEvent objects, along with
+    an implementation of the iterator protocol to make event loops easier.
+    """
+
+    def __init__(self, file_path: str):
+        """Constructor.
+        """
+        super().__init__(file_path)
+        self.digi_table = self.root.digi.digi_table
+        self.pha_array = self.root.digi.pha
+        self.mc_table = self.root.mc.mc_table
+        self.__index = -1
+
+    def column(self, name: str) -> np.ndarray:
+        """Return a given column in the digi table.
+        """
+        return self.digi_table.col(name)
+
+    def mc_column(self, name: str) -> np.ndarray:
+        """Return a given column in the Monte Carlo table.
+        """
+        return self.mc_table.col(name)
+
+    def digi_event(self, row_index: int) -> DigiEventRectangular:
+        """Random access to the DigiEventSparse part of the event contribution.
+
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        row = self.digi_table[row_index]
+        pha = self.pha_array[row_index]
+        return DigiEventRectangular.from_digi(row, pha)
+
+    def mc_event(self, row_index: int) -> MonteCarloEvent:
+        """Random access to the MonteCarloEvent part of the event contribution.
+
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        row =  self.mc_table[row_index]
+        return MonteCarloEvent(*row)
+
+    def __iter__(self):
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        self.__index = -1
+        return self
+
+    def __next__(self) -> DigiEventRectangular:
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        self.__index += 1
+        if self.__index == len(self.digi_table):
+            raise StopIteration
+        return self.digi_event(self.__index)
+
+class DigiInputFileCircular(InputFileBase):
+
+    """Description of a circular digitized input file.
+
+    This has a very simple interface: we cache references to the relevant tables
+    when we open the file and we provide methods to reassemble a specific table
+    row into the corresponding DigiEvent or MonteCarloEvent objects, along with
+    an implementation of the iterator protocol to make event loops easier.
+    """
+
+    def __init__(self, file_path: str):
+        """Constructor.
+        """
+        super().__init__(file_path)
+        self.digi_table = self.root.digi.digi_table
+        self.pha_array = self.root.digi.pha
+        self.mc_table = self.root.mc.mc_table
+        self.__index = -1
+
+    def column(self, name: str) -> np.ndarray:
+        """Return a given column in the digi table.
+        """
+        return self.digi_table.col(name)
+
+    def mc_column(self, name: str) -> np.ndarray:
+        """Return a given column in the Monte Carlo table.
+        """
+        return self.mc_table.col(name)
+
+    def digi_event(self, row_index: int) -> DigiEventCircular:
+        """Random access to the DigiEventSparse part of the event contribution.
+
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        row = self.digi_table[row_index]
+        pha = self.pha_array[row_index]
+        return DigiEventCircular.from_digi(row, pha)
+
+    def mc_event(self, row_index: int) -> MonteCarloEvent:
+        """Random access to the MonteCarloEvent part of the event contribution.
+
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        row =  self.mc_table[row_index]
+        return MonteCarloEvent(*row)
+
+    def __iter__(self):
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        self.__index = -1
+        return self
+
+    def __next__(self) -> DigiEventCircular:
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        self.__index += 1
+        if self.__index == len(self.digi_table):
+            raise StopIteration
+        return self.digi_event(self.__index)
 
 
 

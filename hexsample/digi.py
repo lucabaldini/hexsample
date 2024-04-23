@@ -121,6 +121,17 @@ class DigiEventSparse(DigiEventBase):
         if not len(self.rows) == len(self.columns) == len(self.pha):
             raise RuntimeError(f'{self.__class__.__name__} has {len(self.rows)} rows'
                 f', {len(self.columns)} columns, and {len(self.pha)} PHA values')
+        
+    @classmethod
+    def from_digi(cls, file_row: np.ndarray, pha: np.ndarray):
+        """Alternative constructor rebuilding an object from a row on a digi file.
+
+        This is used internally when we access event data in a digi file, and
+        we need to reassemble a DigiEvent object from a given row of a digi table.
+        """
+        # pylint: disable=too-many-locals
+        trigger_id, seconds, microseconds, livetime, pha, columns, rows = file_row
+        return cls(trigger_id, seconds, microseconds, livetime, pha, columns, rows)
 
     def as_dict(self) -> dict:
         """Return the pixel content of the event in the form of a {(col, row): pha}
@@ -190,7 +201,7 @@ class DigiEventRectangular(DigiEventBase):
         return DigiEventBase.__eq__(self, other) and self.roi == other.roi
 
     @classmethod
-    def from_digi(cls, row: np.ndarray, pha: np.ndarray):
+    def from_digi(cls, file_row: np.ndarray, pha: np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.
 
         This is used internally when we access event data in a digi file, and
@@ -198,7 +209,7 @@ class DigiEventRectangular(DigiEventBase):
         """
         # pylint: disable=too-many-locals
         trigger_id, seconds, microseconds, livetime, min_col, max_col, min_row, max_row,\
-            pad_top, pad_right, pad_bottom, pad_left = row
+            pad_top, pad_right, pad_bottom, pad_left = file_row
         padding = Padding(pad_top, pad_right, pad_bottom, pad_left)
         roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
         return cls(trigger_id, seconds, microseconds, livetime, pha, roi)
@@ -296,6 +307,16 @@ class DigiEventCircular(DigiEventBase):
             raise RuntimeError(f'{self.__class__.__name__} has {len(self.pha)} PHA values'
                 f'instead of {7}.')
         
+    @classmethod
+    def from_digi(cls, file_row: np.ndarray, pha: np.ndarray):
+        """Alternative constructor rebuilding an object from a row on a digi file.
+
+        This is used internally when we access event data in a digi file, and
+        we need to reassemble a DigiEvent object from a given row of a digi table.
+        """
+        # pylint: disable=too-many-locals
+        trigger_id, seconds, microseconds, livetime, pha, column, row = file_row
+        return cls(trigger_id, seconds, microseconds, livetime, pha, column, row)
     
     def ascii(self, pha_width: int = 5) -> str:
         """Ascii representation. 
