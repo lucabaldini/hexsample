@@ -26,7 +26,6 @@ from typing import Tuple
 from loguru import logger
 import numpy as np
 
-#from hexsample.readout import HexagonalReadoutCircular
 from hexsample.pprint import AnsiFontEffect, ansi_format, space, line
 from hexsample.roi import Padding, RegionOfInterest
 
@@ -123,14 +122,14 @@ class DigiEventSparse(DigiEventBase):
                 f', {len(self.columns)} columns, and {len(self.pha)} PHA values')
         
     @classmethod
-    def from_digi(cls, file_row: np.ndarray, pha: np.ndarray):
+    def from_digi(cls, file_row: np.ndarray, pha: np.ndarray, columns: np.ndarray, rows: np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.
 
         This is used internally when we access event data in a digi file, and
         we need to reassemble a DigiEvent object from a given row of a digi table.
         """
         # pylint: disable=too-many-locals
-        trigger_id, seconds, microseconds, livetime, pha, columns, rows = file_row
+        trigger_id, seconds, microseconds, livetime = file_row
         return cls(trigger_id, seconds, microseconds, livetime, pha, columns, rows)
 
     def as_dict(self) -> dict:
@@ -308,7 +307,7 @@ class DigiEventCircular(DigiEventBase):
                 f'instead of {7}.')
         
     @classmethod
-    def from_digi(cls, file_row: np.ndarray, pha: np.ndarray):
+    def from_digi(cls, file_row: np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.
 
         This is used internally when we access event data in a digi file, and

@@ -165,10 +165,9 @@ class DigiDescriptionCircular(DigiDescriptionBase):
     """Description of the (flat) digi part of the file format for a rectangular readout
     DigiEvent.
     """
-
-    column = tables.Int16Col(pos=4)
-    row = tables.Int16Col(pos=5)
-    pha = tables.Int16Col(shape=HexagonalReadoutCircular.NUM_PIXELS, pos=6)
+    pha = tables.Int16Col(shape=HexagonalReadoutCircular.NUM_PIXELS, pos=4)
+    column = tables.Int16Col(pos=5)
+    row = tables.Int16Col(pos=6)
 
 def _fill_digi_row_circular(row: tables.tableextension.Row, event: DigiEventBase) -> None:
     """Overloaded method.
@@ -182,9 +181,9 @@ def _fill_digi_row_circular(row: tables.tableextension.Row, event: DigiEventBase
         fact that a staticmethod cannot be pickled.
     """
     _fill_digi_row_base(row, event)
+    row['pha'] = event.pha
     row['column'] = event.column
     row['row'] = event.row
-    row['pha'] = event.pha
     row.append()
 
 class DigiDescription(tables.IsDescription):
@@ -301,6 +300,7 @@ class OutputFileBase(tables.File):
 
     _DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
     _FILE_TYPE = None
+    _READOUT_TYPE = None
 
     def __init__(self, file_path: str) -> None:
         """Constructor.
@@ -310,8 +310,14 @@ class OutputFileBase(tables.File):
         self.header_group = self.create_group(self.root, 'header', 'File header')
         date = time.strftime(self._DATE_FORMAT)
         creator = pathlib.Path(inspect.stack()[-1].filename).name
-        self.update_header(filetype=self._FILE_TYPE.value, date=date, creator=creator,
-            version=__version__, tagdate=__tagdate__)
+        self.update_header(filetype=self._FILE_TYPE.value, readouttype=self._READOUT_TYPE.value,\
+                date=date, creator=creator, version=__version__, tagdate=__tagdate__)
+        #if self._FILE_TYPE.value == FileType.DIGI:
+        #    self.update_header(filetype=self._FILE_TYPE.value, readouttype=self._READOUT_TYPE.value,\
+        #        date=date, creator=creator, version=__version__, tagdate=__tagdate__)
+        # elif self._FILE_TYPE.value == FileType.RECON:
+        #     self.update_header(filetype=self._FILE_TYPE.value,\
+        #         date=date, creator=creator, version=__version__, tagdate=__tagdate__)
 
     def update_header(self, **kwargs) -> None:
         """Update the user attributes in the header group.
@@ -381,11 +387,11 @@ class DigiOutputFileSparse(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_TYPE = HexagonalReadoutMode.SPARSE #not sure if useful
+    _READOUT_TYPE = HexagonalReadoutMode.SPARSE
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionSparse, 'Digi data')
-    COLUMNS_ARRAY_SPECS = ('columns', tables.Int16Atom(shape=()))
-    ROWS_ARRAY_SPECS = ('rows', tables.Int16Atom(shape=()))
-    PHA_ARRAY_SPECS = ('pha', tables.Int16Atom(shape=()))
+    COLUMNS_ARRAY_SPECS = ('columns', tables.Int32Atom(shape=()))
+    ROWS_ARRAY_SPECS = ('rows', tables.Int32Atom(shape=()))
+    PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
     def __init__(self, file_path: str):
@@ -542,7 +548,7 @@ def _digioutput_class(mode: HexagonalReadoutMode) -> type:
     """
     return _FILEIO_CLASS_DICT[mode]
 
-'''
+
 class DigiOutputFile(OutputFileBase):
 
     """Description of a digitized output file.
@@ -558,6 +564,7 @@ class DigiOutputFile(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
+    _READOUT_TYPE = HexagonalReadoutMode.RECTANGULAR
     DIGI_TABLE_SPECS = ('digi_table', DigiDescription, 'Digi data')
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
@@ -595,7 +602,7 @@ class DigiOutputFile(OutputFileBase):
         self.pha_array.flush()
         self.mc_table.flush()
 
-'''
+
 
 class ReconOutputFile(OutputFileBase):
 
@@ -609,6 +616,7 @@ class ReconOutputFile(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.RECON
+    #_READOUT_TYPE = HexagonalReadoutMode.RECTANGULAR
     RECON_TABLE_SPECS = ('recon_table', ReconDescription, 'Recon data')
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
@@ -700,6 +708,8 @@ class DigiInputFileSparse(InputFileBase):
         """
         super().__init__(file_path)
         self.digi_table = self.root.digi.digi_table
+        self.columns_array = self.root.digi.columns
+        self.rows_array = self.root.digi.rows
         self.pha_array = self.root.digi.pha
         self.mc_table = self.root.mc.mc_table
         self.__index = -1
@@ -723,8 +733,10 @@ class DigiInputFileSparse(InputFileBase):
             The index of the target row in the event file.
         """
         row = self.digi_table[row_index]
+        columns = self.columns_array[row_index]
+        rows = self.rows_array[row_index]
         pha = self.pha_array[row_index]
-        return DigiEventSparse.from_digi(row, pha)
+        return DigiEventSparse.from_digi(row, pha, columns, rows)
 
     def mc_event(self, row_index: int) -> MonteCarloEvent:
         """Random access to the MonteCarloEvent part of the event contribution.
@@ -781,7 +793,7 @@ class DigiInputFileRectangular(InputFileBase):
         return self.mc_table.col(name)
 
     def digi_event(self, row_index: int) -> DigiEventRectangular:
-        """Random access to the DigiEventSparse part of the event contribution.
+        """Random access to the DigiEvent part of the event contribution.
 
         Arguments
         ---------
@@ -832,7 +844,6 @@ class DigiInputFileCircular(InputFileBase):
         """
         super().__init__(file_path)
         self.digi_table = self.root.digi.digi_table
-        self.pha_array = self.root.digi.pha
         self.mc_table = self.root.mc.mc_table
         self.__index = -1
 
@@ -855,8 +866,7 @@ class DigiInputFileCircular(InputFileBase):
             The index of the target row in the event file.
         """
         row = self.digi_table[row_index]
-        pha = self.pha_array[row_index]
-        return DigiEventCircular.from_digi(row, pha)
+        return DigiEventCircular.from_digi(row)
 
     def mc_event(self, row_index: int) -> MonteCarloEvent:
         """Random access to the MonteCarloEvent part of the event contribution.
@@ -888,6 +898,8 @@ class DigiInputFileCircular(InputFileBase):
 class DigiInputFile(InputFileBase):
 
     """Description of a digitized input file.
+    NOTE: this class should be eliminated when the above three classes have been
+    fully implemented and tested. 
 
     This has a very simple interface: we cache references to the relevant tables
     when we open the file and we provide methods to reassemble a specific table
@@ -992,9 +1004,24 @@ def peek_file_type(file_path: str) -> FileType:
             return FileType(input_file.root.header._v_attrs['filetype'])
         except KeyError as exception:
             raise RuntimeError(f'File {file_path} has no type information.') from exception
+        
+def peek_readout_type(file_path: str) -> HexagonalReadoutMode:
+    """Peek into the header of a HDF5 Digi file and determing the readout type.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the input file.
+    """
+    with tables.open_file(file_path, 'r') as input_file:
+        try:
+            return HexagonalReadoutMode(input_file.root.header._v_attrs['readouttype'])
+        except KeyError as exception:
+            raise RuntimeError(f'File {file_path} has no readout information.') from exception
+
 
 def open_input_file(file_path: str) -> InputFileBase:
-    """Open an input file automatically determining the file type.
+    """Open an input file automatically determining the file type and readout type.
 
     Arguments
     ---------
@@ -1002,8 +1029,15 @@ def open_input_file(file_path: str) -> InputFileBase:
         The path to the output file.
     """
     file_type = peek_file_type(file_path)
+    readout_type = peek_readout_type(file_path)
     if file_type == FileType.DIGI:
-        return DigiInputFile(file_path)
+        if readout_type == HexagonalReadoutMode.SPARSE:
+            return DigiInputFileSparse(file_path)
+        elif readout_type == HexagonalReadoutMode.RECTANGULAR:
+            return DigiInputFileRectangular(file_path)
+        elif readout_type == HexagonalReadoutMode.CIRCULAR:
+            return DigiInputFileCircular(file_path)
+        #return DigiInputFile(file_path)
     if file_type == FileType.RECON:
         return ReconInputFile(file_path)
-    raise RuntimeError(f'Invalid input file type {file_type}')
+    raise RuntimeError(f'Invalid input file type {file_type} or invalid readout type for file type {readout_type}')
