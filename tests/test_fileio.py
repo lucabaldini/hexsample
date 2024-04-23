@@ -20,7 +20,7 @@ from loguru import logger
 import numpy as np
 
 from hexsample import HEXSAMPLE_DATA
-from hexsample.digi import DigiEventRectangular
+from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.readout import HexagonalReadoutMode
 from hexsample.fileio import DigiInputFile, ReconInputFile, ReconOutputFile,\
     FileType, peek_file_type, open_input_file, _FILEIO_CLASS_DICT, _digioutput_class
@@ -34,12 +34,27 @@ def _mc_event(index : int) -> MonteCarloEvent:
     """
     return MonteCarloEvent(0.1 * index, 5.9, 0., 0., 0.02, 1000 + index)
 
-def _digi_event(index : int) -> DigiEventRectangular:
+def _digi_event_rectangular(index : int) -> DigiEventRectangular:
     """Create a bogus DigiEvent object with index-dependent properties.
     """
     roi = RegionOfInterest(100, 107, 150, 155 + index * 2, Padding(2))
     pha = np.full(roi.size, index)
     return DigiEventRectangular(index, index, index, 0, pha, roi)
+
+def _digi_event_sparse(index : int) -> DigiEventSparse:
+    columns = np.randint(0, high=10, size=10)
+    rows = np.randint(0, high=10, size=10)
+    pha = np.full(10, index)
+    return DigiEventSparse(columns, rows, pha)
+
+def _test_write_sparse(file_path, num_events : int = 10):
+    """Small test writing a bunch of toy event strcutures to file.
+    10 events for every readout methods are created. 
+    """
+    output_file = _digioutput_class(HexagonalReadoutMode.RECTANGULAR)(file_path)
+    for i in range(num_events):
+        output_file.add_row(_digi_event_rectangular(i), _mc_event(i))
+    output_file.close()
 
 def _test_write(file_path, num_events : int = 10):
     """Small test writing a bunch of toy event strcutures to file.
@@ -47,7 +62,7 @@ def _test_write(file_path, num_events : int = 10):
     """
     output_file = _digioutput_class(HexagonalReadoutMode.RECTANGULAR)(file_path)
     for i in range(num_events):
-        output_file.add_row(_digi_event(i), _mc_event(i))
+        output_file.add_row(_digi_event_rectangular(i), _mc_event(i))
     output_file.close()
 
 def _test_read(file_path):
@@ -58,7 +73,7 @@ def _test_read(file_path):
     for i, event in enumerate(input_file):
         print(event.ascii())
         print(input_file.mc_event(i))
-        target = _digi_event(i)
+        target = _digi_event_rectangular(i)
         assert event.trigger_id == target.trigger_id
         assert event.seconds == target.seconds
         assert event.microseconds == target.microseconds

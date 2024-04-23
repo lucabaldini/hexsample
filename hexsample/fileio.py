@@ -391,6 +391,8 @@ class DigiOutputFileSparse(OutputFileBase):
         super().__init__(file_path)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
+        self.columns_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
+        self.rows_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
         self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
         self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
@@ -495,7 +497,7 @@ class DigiOutputFileCircular(OutputFileBase):
         super().__init__(file_path)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
-        self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
+        self.pha_array = self.create_array(self.digi_group, *self.PHA_ARRAY_SPECS)
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
         self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
 
