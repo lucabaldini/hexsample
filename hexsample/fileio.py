@@ -105,13 +105,11 @@ class DigiDescriptionSparse(DigiDescriptionBase):
     """Description of the (flat) digi part of the file format for a sparse readout
     DigiEvent.
     """
-    #columns = tables.Int16Col(pos=4)
-    #rows = tables.Int16Col(pos=5)
 
 def _fill_digi_row_sparse(row: tables.tableextension.Row, event: DigiEventBase) -> None:
     """Overloaded method.
     It uses the _fill_digi_row_base() function for filling the trigger_id and time
-    coordinates of the event. 
+    coordinates of the event.
 
     .. note::
         This would have naturally belonged to the DigiDescriptionSparse class as
@@ -162,7 +160,6 @@ def _fill_digi_row_rectangular(row: tables.tableextension.Row, event: DigiEventB
     row.append()
 
 
-
 class DigiDescriptionCircular(DigiDescriptionBase):
 
     """Description of the (flat) digi part of the file format for a rectangular readout
@@ -193,6 +190,8 @@ def _fill_digi_row_circular(row: tables.tableextension.Row, event: DigiEventBase
 class DigiDescription(tables.IsDescription):
 
     """Description of the (flat) digi part of the file format.
+    NOTE: This should be eliminated when the above three classes will be fully 
+    implemented and tested.
     """
 
     # pylint: disable=too-few-public-methods
@@ -275,6 +274,7 @@ def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
 class FileType(Enum):
 
     """Enum class for the different file types.
+    ****** IS IT POSSIBLE TO DEFINE SUBCLASSES FOR DIGI? ******
     """
 
     DIGI = 'Digi'
@@ -381,8 +381,11 @@ class DigiOutputFileSparse(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
+    _READOUT_TYPE = HexagonalReadoutMode.SPARSE #not sure if useful
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionSparse, 'Digi data')
-    PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
+    COLUMNS_ARRAY_SPECS = ('columns', tables.Int16Atom(shape=()))
+    ROWS_ARRAY_SPECS = ('rows', tables.Int16Atom(shape=()))
+    PHA_ARRAY_SPECS = ('pha', tables.Int16Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
     def __init__(self, file_path: str):
@@ -391,8 +394,8 @@ class DigiOutputFileSparse(OutputFileBase):
         super().__init__(file_path)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
-        self.columns_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
-        self.rows_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
+        self.columns_array = self.create_vlarray(self.digi_group, *self.COLUMNS_ARRAY_SPECS)
+        self.rows_array = self.create_vlarray(self.digi_group, *self.ROWS_ARRAY_SPECS)
         self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
         self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
@@ -410,6 +413,8 @@ class DigiOutputFileSparse(OutputFileBase):
         """
         # pylint: disable=arguments-differ
         _fill_digi_row_sparse(self.digi_table.row, digi_event)
+        self.columns_array.append(digi_event.columns.flatten())
+        self.rows_array.append(digi_event.rows.flatten())
         self.pha_array.append(digi_event.pha.flatten())
         _fill_mc_row(self.mc_table.row, mc_event)
 
@@ -417,6 +422,8 @@ class DigiOutputFileSparse(OutputFileBase):
         """Flush the basic file components.
         """
         self.digi_table.flush()
+        self.columns_array.flush()
+        self.rows_array.flush()
         self.pha_array.flush()
         self.mc_table.flush()
 
@@ -435,6 +442,7 @@ class DigiOutputFileRectangular(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
+    _READOUT_TYPE = HexagonalReadoutMode.RECTANGULAR #not sure if useful
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionRectangular, 'Digi data')
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
@@ -487,8 +495,8 @@ class DigiOutputFileCircular(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
+    _READOUT_TYPE = HexagonalReadoutMode.CIRCULAR #not sure if useful
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionCircular, 'Digi data')
-    PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
     def __init__(self, file_path: str):
@@ -497,7 +505,6 @@ class DigiOutputFileCircular(OutputFileBase):
         super().__init__(file_path)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
-        self.pha_array = self.create_array(self.digi_group, *self.PHA_ARRAY_SPECS)
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
         self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
 
@@ -514,14 +521,12 @@ class DigiOutputFileCircular(OutputFileBase):
         """
         # pylint: disable=arguments-differ
         _fill_digi_row_circular(self.digi_table.row, digi_event)
-        self.pha_array.append(digi_event.pha.flatten())
         _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.
         """
         self.digi_table.flush()
-        self.pha_array.flush()
         self.mc_table.flush()
 
 # Mapping for the digi description classes for each readout mode.
