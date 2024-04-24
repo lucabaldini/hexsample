@@ -688,9 +688,55 @@ class InputFileBase(tables.File):
         """Return the header value corresponding to a given key.
         """
         return self.header.get(key, default)
+    
+class DigiInputFileBase(InputFileBase):
+    def __init__(self, file_path: str):
+        """Constructor.
+        """
+        super().__init__(file_path)
+        self.digi_table = self.root.digi.digi_table
+        self.mc_table = self.root.mc.mc_table
+        self.__index = -1
+    
+    def column(self, name: str) -> np.ndarray:
+        """Return a given column in the digi table.
+        """
+        return self.digi_table.col(name)
+
+    def mc_column(self, name: str) -> np.ndarray:
+        """Return a given column in the Monte Carlo table.
+        """
+        return self.mc_table.col(name)
+    
+    def mc_event(self, row_index: int) -> MonteCarloEvent:
+        """Random access to the MonteCarloEvent part of the event contribution.
+
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        row =  self.mc_table[row_index]
+        return MonteCarloEvent(*row)
+
+    def __iter__(self):
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        self.__index = -1
+        return self
+    
+    def __next__(self) -> DigiEventBase:
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        self.__index += 1
+        if self.__index == len(self.digi_table):
+            raise StopIteration
+        return self.digi_event(self.__index)
+
+    pass
 
 
-class DigiInputFileSparse(InputFileBase):
+class DigiInputFileSparse(DigiInputFileBase):
 
     """Description of a sparse digitized input file.
 
@@ -704,22 +750,10 @@ class DigiInputFileSparse(InputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
-        self.digi_table = self.root.digi.digi_table
         self.columns_array = self.root.digi.columns
         self.rows_array = self.root.digi.rows
         self.pha_array = self.root.digi.pha
-        self.mc_table = self.root.mc.mc_table
         self.__index = -1
-
-    def column(self, name: str) -> np.ndarray:
-        """Return a given column in the digi table.
-        """
-        return self.digi_table.col(name)
-
-    def mc_column(self, name: str) -> np.ndarray:
-        """Return a given column in the Monte Carlo table.
-        """
-        return self.mc_table.col(name)
 
     def digi_event(self, row_index: int) -> DigiEventSparse:
         """Random access to the DigiEventSparse part of the event contribution.
@@ -735,23 +769,6 @@ class DigiInputFileSparse(InputFileBase):
         pha = self.pha_array[row_index]
         return DigiEventSparse.from_digi(row, pha, columns, rows)
 
-    def mc_event(self, row_index: int) -> MonteCarloEvent:
-        """Random access to the MonteCarloEvent part of the event contribution.
-
-        Arguments
-        ---------
-        row_index : int
-            The index of the target row in the event file.
-        """
-        row =  self.mc_table[row_index]
-        return MonteCarloEvent(*row)
-
-    def __iter__(self):
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index = -1
-        return self
-
     def __next__(self) -> DigiEventSparse:
         """Overloaded method for the implementation of the iterator protocol.
         """
@@ -760,7 +777,7 @@ class DigiInputFileSparse(InputFileBase):
             raise StopIteration
         return self.digi_event(self.__index)
     
-class DigiInputFileRectangular(InputFileBase):
+class DigiInputFileRectangular(DigiInputFileBase):
 
     """Description of a rectangular digitized input file.
 
@@ -774,20 +791,8 @@ class DigiInputFileRectangular(InputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
-        self.digi_table = self.root.digi.digi_table
         self.pha_array = self.root.digi.pha
-        self.mc_table = self.root.mc.mc_table
         self.__index = -1
-
-    def column(self, name: str) -> np.ndarray:
-        """Return a given column in the digi table.
-        """
-        return self.digi_table.col(name)
-
-    def mc_column(self, name: str) -> np.ndarray:
-        """Return a given column in the Monte Carlo table.
-        """
-        return self.mc_table.col(name)
 
     def digi_event(self, row_index: int) -> DigiEventRectangular:
         """Random access to the DigiEvent part of the event contribution.
@@ -801,23 +806,6 @@ class DigiInputFileRectangular(InputFileBase):
         pha = self.pha_array[row_index]
         return DigiEventRectangular.from_digi(row, pha)
 
-    def mc_event(self, row_index: int) -> MonteCarloEvent:
-        """Random access to the MonteCarloEvent part of the event contribution.
-
-        Arguments
-        ---------
-        row_index : int
-            The index of the target row in the event file.
-        """
-        row =  self.mc_table[row_index]
-        return MonteCarloEvent(*row)
-
-    def __iter__(self):
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index = -1
-        return self
-
     def __next__(self) -> DigiEventRectangular:
         """Overloaded method for the implementation of the iterator protocol.
         """
@@ -826,7 +814,7 @@ class DigiInputFileRectangular(InputFileBase):
             raise StopIteration
         return self.digi_event(self.__index)
 
-class DigiInputFileCircular(InputFileBase):
+class DigiInputFileCircular(DigiInputFileBase):
 
     """Description of a circular digitized input file.
 
@@ -840,19 +828,7 @@ class DigiInputFileCircular(InputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
-        self.digi_table = self.root.digi.digi_table
-        self.mc_table = self.root.mc.mc_table
         self.__index = -1
-
-    def column(self, name: str) -> np.ndarray:
-        """Return a given column in the digi table.
-        """
-        return self.digi_table.col(name)
-
-    def mc_column(self, name: str) -> np.ndarray:
-        """Return a given column in the Monte Carlo table.
-        """
-        return self.mc_table.col(name)
 
     def digi_event(self, row_index: int) -> DigiEventCircular:
         """Random access to the DigiEventSparse part of the event contribution.
@@ -864,23 +840,6 @@ class DigiInputFileCircular(InputFileBase):
         """
         row = self.digi_table[row_index]
         return DigiEventCircular.from_digi(row)
-
-    def mc_event(self, row_index: int) -> MonteCarloEvent:
-        """Random access to the MonteCarloEvent part of the event contribution.
-
-        Arguments
-        ---------
-        row_index : int
-            The index of the target row in the event file.
-        """
-        row =  self.mc_table[row_index]
-        return MonteCarloEvent(*row)
-
-    def __iter__(self):
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index = -1
-        return self
 
     def __next__(self) -> DigiEventCircular:
         """Overloaded method for the implementation of the iterator protocol.
