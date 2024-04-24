@@ -71,7 +71,6 @@ def _test_write_sparse(file_path, num_events : int = 10):
     This test considers a sparse type of readout.
     """
     output_file = _digioutput_class(HexagonalReadoutMode.SPARSE)(file_path)
-    #logger.info(f'Output readout type: {output_file.root.header._v_attrs['readouttype']}')
     for i in range(num_events):
         output_file.add_row(_digi_event_sparse(i), _mc_event(i))
     output_file.close()
@@ -81,7 +80,6 @@ def _test_write_circular(file_path, num_events : int = 10):
     This test considers a sparse type of readout.
     """
     output_file = _digioutput_class(HexagonalReadoutMode.CIRCULAR)(file_path)
-    #logger.info(f'Output readout type: {output_file.root.header._v_attrs['readouttype']}')
     for i in range(num_events):
         output_file.add_row(_digi_event_circular(i), _mc_event(i))
     output_file.close()
@@ -139,7 +137,7 @@ def _test_read_circular(file_path):
 def test():
     """Write and read back a simple digi file.
     """
-    file_path = HEXSAMPLE_DATA / 'test_io.h5'
+    file_path = HEXSAMPLE_DATA / 'test_io_rectangular.h5'
     logger.info(f'Testing output file {file_path}...')
     _test_write(file_path)
     logger.info(f'Testing input file {file_path}...')
@@ -148,7 +146,7 @@ def test():
 def test_sparse():
     """Write and read back a sparse digi file.
     """
-    file_path = HEXSAMPLE_DATA / 'test_io.h5'
+    file_path = HEXSAMPLE_DATA / 'test_io_sparse.h5'
     logger.info(f'Testing output file {file_path}...')
     _test_write_sparse(file_path)
     logger.info(f'Testing input file {file_path}...')
@@ -157,7 +155,7 @@ def test_sparse():
 def test_circular():
     """Write and read back a sparse digi file.
     """
-    file_path = HEXSAMPLE_DATA / 'test_io.h5'
+    file_path = HEXSAMPLE_DATA / 'test_io_circular.h5'
     logger.info(f'Testing output file {file_path}...')
     _test_write_circular(file_path)
     logger.info(f'Testing input file {file_path}...')
@@ -167,15 +165,14 @@ def test_file_type():
     """Test the auto-recognition machinery for input file types.
     """
     # Test for the digi files.
-    file_path = HEXSAMPLE_DATA / 'test_digi_filetype.h5'
-    digi_file = DigiOutputFile(file_path)
+    file_path = HEXSAMPLE_DATA / 'test_digi_filetype_rectangular.h5'
+    digi_file = DigiOutputFileRectangular(file_path)
     digi_file.close()
-    digi_file = DigiInputFile(file_path)
+    digi_file = DigiInputFileRectangular(file_path)
     assert digi_file.file_type == FileType.DIGI
     digi_file.close()
     assert peek_file_type(file_path) == FileType.DIGI
     digi_file = open_input_file(file_path)
-    #assert isinstance(digi_file, DigiInputFile)
     assert digi_file.file_type == FileType.DIGI
     digi_file.close()
     # Test for the digi sparse files.

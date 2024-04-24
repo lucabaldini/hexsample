@@ -300,7 +300,6 @@ class OutputFileBase(tables.File):
 
     _DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
     _FILE_TYPE = None
-    _READOUT_TYPE = None
 
     def __init__(self, file_path: str) -> None:
         """Constructor.
@@ -310,14 +309,9 @@ class OutputFileBase(tables.File):
         self.header_group = self.create_group(self.root, 'header', 'File header')
         date = time.strftime(self._DATE_FORMAT)
         creator = pathlib.Path(inspect.stack()[-1].filename).name
-        self.update_header(filetype=self._FILE_TYPE.value, readouttype=self._READOUT_TYPE.value,\
-                date=date, creator=creator, version=__version__, tagdate=__tagdate__)
-        #if self._FILE_TYPE.value == FileType.DIGI:
-        #    self.update_header(filetype=self._FILE_TYPE.value, readouttype=self._READOUT_TYPE.value,\
-        #        date=date, creator=creator, version=__version__, tagdate=__tagdate__)
-        # elif self._FILE_TYPE.value == FileType.RECON:
-        #     self.update_header(filetype=self._FILE_TYPE.value,\
-        #         date=date, creator=creator, version=__version__, tagdate=__tagdate__)
+        self.update_header(filetype=self._FILE_TYPE.value, date=date,\
+                    creator=creator, version=__version__, tagdate=__tagdate__)
+
 
     def update_header(self, **kwargs) -> None:
         """Update the user attributes in the header group.
@@ -387,7 +381,7 @@ class DigiOutputFileSparse(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_TYPE = HexagonalReadoutMode.SPARSE
+    _READOUT_MODE = HexagonalReadoutMode.SPARSE
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionSparse, 'Digi data')
     COLUMNS_ARRAY_SPECS = ('columns', tables.Int32Atom(shape=()))
     ROWS_ARRAY_SPECS = ('rows', tables.Int32Atom(shape=()))
@@ -398,6 +392,7 @@ class DigiOutputFileSparse(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
+        self.update_header(readoutmode=self._READOUT_MODE.value)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.columns_array = self.create_vlarray(self.digi_group, *self.COLUMNS_ARRAY_SPECS)
@@ -448,7 +443,7 @@ class DigiOutputFileRectangular(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_TYPE = HexagonalReadoutMode.RECTANGULAR #not sure if useful
+    _READOUT_MODE = HexagonalReadoutMode.RECTANGULAR #not sure if useful
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionRectangular, 'Digi data')
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
@@ -457,6 +452,7 @@ class DigiOutputFileRectangular(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
+        self.update_header(readoutmode=self._READOUT_MODE.value)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
@@ -501,7 +497,7 @@ class DigiOutputFileCircular(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_TYPE = HexagonalReadoutMode.CIRCULAR #not sure if useful
+    _READOUT_MODE = HexagonalReadoutMode.CIRCULAR #not sure if useful
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionCircular, 'Digi data')
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
@@ -509,6 +505,7 @@ class DigiOutputFileCircular(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
+        self.update_header(readoutmode=self._READOUT_MODE.value)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
@@ -564,7 +561,7 @@ class DigiOutputFile(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_TYPE = HexagonalReadoutMode.RECTANGULAR
+    _READOUT_MODE = HexagonalReadoutMode.RECTANGULAR
     DIGI_TABLE_SPECS = ('digi_table', DigiDescription, 'Digi data')
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
@@ -573,6 +570,7 @@ class DigiOutputFile(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
+        self.update_header(readoutmode=self._READOUT_MODE.value)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
@@ -616,7 +614,6 @@ class ReconOutputFile(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.RECON
-    #_READOUT_TYPE = HexagonalReadoutMode.RECTANGULAR
     RECON_TABLE_SPECS = ('recon_table', ReconDescription, 'Recon data')
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
@@ -1015,7 +1012,7 @@ def peek_readout_type(file_path: str) -> HexagonalReadoutMode:
     """
     with tables.open_file(file_path, 'r') as input_file:
         try:
-            return HexagonalReadoutMode(input_file.root.header._v_attrs['readouttype'])
+            return HexagonalReadoutMode(input_file.root.header._v_attrs['readoutmode'])
         except KeyError as exception:
             raise RuntimeError(f'File {file_path} has no readout information.') from exception
 
@@ -1029,8 +1026,8 @@ def open_input_file(file_path: str) -> InputFileBase:
         The path to the output file.
     """
     file_type = peek_file_type(file_path)
-    readout_type = peek_readout_type(file_path)
     if file_type == FileType.DIGI:
+        readout_type = peek_readout_type(file_path)
         if readout_type == HexagonalReadoutMode.SPARSE:
             return DigiInputFileSparse(file_path)
         elif readout_type == HexagonalReadoutMode.RECTANGULAR:
