@@ -24,7 +24,7 @@
 
 from hexsample import logger
 from hexsample.app import ArgumentParser
-from hexsample.digi import HexagonalReadoutRectangular
+from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.display import HexagonalGridDisplay
 from hexsample.fileio import DigiInputFile
 from hexsample.hexagon import HexagonalLayout
