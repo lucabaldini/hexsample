@@ -27,8 +27,8 @@ from tqdm import tqdm
 from hexsample import logger
 from hexsample.app import ArgumentParser, check_required_args
 from hexsample.clustering import ClusteringNN
-from hexsample.readout import HexagonalReadoutRectangular
-from hexsample.fileio import DigiInputFile, ReconOutputFile
+from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutSparse, HexagonalReadoutRectangular, HexagonalReadoutCircular
+from hexsample.fileio import DigiInputFileBase, DigiInputFileSparse, DigiInputFileRectangular, DigiInputFileCircular, DigiInputFile, ReconOutputFile, peek_readout_type
 from hexsample.hexagon import HexagonalLayout
 from hexsample.recon import ReconEvent
 
@@ -52,10 +52,37 @@ def hxrecon(**kwargs):
     input_file_path = str(kwargs['infile'])
     if not input_file_path.endswith('.h5'):
         raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')
+    '''
+    readout_mode = peek_readout_type(input_file_path)
+    # Now we can construct a set of isinstance()
+    if readout_mode is HexagonalReadoutMode.SPARSE:
+        input_file = DigiInputFileSparse(input_file_path)
+        header = input_file.header
+        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+            header['pitch'], header['noise'], header['gain']
+        readout = HexagonalReadoutSparse(*args)
+        logger.info(f'Readout chip: {readout}')
+        #input_file = DigiInputFile(input_file_path)
+    elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        input_file = DigiInputFile(input_file_path)
+        header = input_file.header
+        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+            header['pitch'], header['noise'], header['gain']
+        readout = HexagonalReadoutRectangular(*args)
+        logger.info(f'Readout chip: {readout}')
+    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+        input_file = DigiInputFileCircular(input_file_path)
+        header = input_file.header
+        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+            header['pitch'], header['noise'], header['gain']
+        readout = HexagonalReadoutCircular(*args)
+        logger.info(f'Readout chip: {readout}')
+    '''
     input_file = DigiInputFile(input_file_path)
     header = input_file.header
     args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
         header['pitch'], header['noise'], header['gain']
+    #readout = HexagonalReadoutCircular(*args)
     readout = HexagonalReadoutRectangular(*args)
     logger.info(f'Readout chip: {readout}')
     clustering = ClusteringNN(readout, kwargs['zsupthreshold'], kwargs['nneighbors'])
@@ -66,7 +93,7 @@ def hxrecon(**kwargs):
     output_file.update_digi_header(**input_file.header)
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
-        args = event.trigger_id, event.timestamp(), event.livetime, event.roi.size, cluster
+        args = event.trigger_id, event.timestamp(), event.livetime, cluster
         recon_event = ReconEvent(*args)
         mc_event = input_file.mc_event(i)
         output_file.add_row(recon_event, mc_event)
