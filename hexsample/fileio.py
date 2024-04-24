@@ -1034,7 +1034,6 @@ def open_input_file(file_path: str) -> InputFileBase:
             return DigiInputFileRectangular(file_path)
         elif readout_type == HexagonalReadoutMode.CIRCULAR:
             return DigiInputFileCircular(file_path)
-        #return DigiInputFile(file_path)
     if file_type == FileType.RECON:
         return ReconInputFile(file_path)
     raise RuntimeError(f'Invalid input file type {file_type} or invalid readout type for file type {readout_type}')
