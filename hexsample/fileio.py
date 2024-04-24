@@ -539,7 +539,7 @@ _FILEIO_CLASS_DICT = {
     HexagonalReadoutMode.CIRCULAR: DigiOutputFileCircular
 }
 
-def _digioutput_class(mode: HexagonalReadoutMode) -> DigiOutputFileSparse | DigiOutputFileRectangular | DigiDescriptionCircular:
+def digioutput_class(mode: HexagonalReadoutMode) -> DigiOutputFileSparse | DigiOutputFileRectangular | DigiDescriptionCircular:
     """Return the proper class to be used as DigiOutputFile, depending on the
     readout mode of the chip.
     """

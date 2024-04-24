@@ -25,7 +25,7 @@ from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutCircular
 from hexsample.fileio import DigiInputFile, DigiInputFileSparse, DigiInputFileRectangular,\
     DigiInputFileCircular, ReconInputFile, ReconOutputFile,FileType,\
     DigiOutputFile, DigiOutputFileSparse, DigiOutputFileRectangular, DigiOutputFileCircular,\
-    peek_file_type, peek_readout_type, open_input_file, _digioutput_class
+    peek_file_type, peek_readout_type, open_input_file, digioutput_class
 from hexsample.mc import MonteCarloEvent
 from hexsample.roi import RegionOfInterest, Padding
 
@@ -61,7 +61,7 @@ def _test_write(file_path, num_events : int = 10):
     """Small test writing a bunch of toy event structures to file.
     This test considers a rectangular type of readout.
     """
-    output_file = _digioutput_class(HexagonalReadoutMode.RECTANGULAR)(file_path)
+    output_file = digioutput_class(HexagonalReadoutMode.RECTANGULAR)(file_path)
     for i in range(num_events):
         output_file.add_row(_digi_event_rectangular(i), _mc_event(i))
     output_file.close()
@@ -70,7 +70,7 @@ def _test_write_sparse(file_path, num_events : int = 10):
     """Small test writing a bunch of toy event structures to file.
     This test considers a sparse type of readout.
     """
-    output_file = _digioutput_class(HexagonalReadoutMode.SPARSE)(file_path)
+    output_file = digioutput_class(HexagonalReadoutMode.SPARSE)(file_path)
     for i in range(num_events):
         output_file.add_row(_digi_event_sparse(i), _mc_event(i))
     output_file.close()
@@ -79,7 +79,7 @@ def _test_write_circular(file_path, num_events : int = 10):
     """Small test writing a bunch of toy event structures to file.
     This test considers a sparse type of readout.
     """
-    output_file = _digioutput_class(HexagonalReadoutMode.CIRCULAR)(file_path)
+    output_file = digioutput_class(HexagonalReadoutMode.CIRCULAR)(file_path)
     for i in range(num_events):
         output_file.add_row(_digi_event_circular(i), _mc_event(i))
     output_file.close()
