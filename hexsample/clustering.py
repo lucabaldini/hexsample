@@ -25,8 +25,9 @@ from typing import Tuple
 
 import numpy as np
 
-from hexsample.digi import DigiEventRectangular
+from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.hexagon import HexagonalGrid
+from hexsample.readout import HexagonalReadoutCircular
 
 
 @dataclass
@@ -104,23 +105,40 @@ class ClusteringNN(ClusteringBase):
 
     num_neighbors: int
 
-    def run(self, event: DigiEventRectangular) -> Cluster:
+    def run(self, event: DigiEventSparse | DigiEventRectangular | DigiEventCircular) -> Cluster:
         """Overladed method.
 
         .. warning::
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
+        if isinstance(event, DigiEventSparse):
+            pass
+        if isinstance(event, DigiEventCircular):
+            #If the readout is circular, we want to take all the neirest neighbors.
+            self.num_neighbors = HexagonalReadoutCircular.NUM_PIXELS - 1 # -1 is bc the central px is already considered
+            col = [event.column]
+            row = [event.row]
+            adc_channel_order = []
+            # Taking the NN in logical coordinates ...
+            for _col, _row in self.grid.neighbors(event.column, event.row):
+                col.append(_col)
+                row.append(_row)
+                # ... transforming the coordinates of the NN in its corresponding ADC channel ...
+                adc_channel_order.append(self.grid.adc_channel(_col, row))
+            # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i]. 
+            pha = event.pha[adc_channel_order]
         # pylint: disable = invalid-name
-        seed_col, seed_row = event.highest_pixel()
-        col = [seed_col]
-        row = [seed_row]
-        for _col, _row in self.grid.neighbors(seed_col, seed_row):
-            col.append(_col)
-            row.append(_row)
-        col = np.array(col)
-        row = np.array(row)
-        pha = np.array([event(_col, _row) for _col, _row in zip(col, row)])
+        if isinstance(event, DigiEventRectangular):
+            seed_col, seed_row = event.highest_pixel()
+            col = [seed_col]
+            row = [seed_row]
+            for _col, _row in self.grid.neighbors(seed_col, seed_row):
+                col.append(_col)
+                row.append(_row)
+            col = np.array(col)
+            row = np.array(row)
+            pha = np.array([event(_col, _row) for _col, _row in zip(col, row)])
         pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.
