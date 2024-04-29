@@ -33,7 +33,8 @@ from hexsample.analysis import create_histogram
 
 
 __description__ = \
-"""Simple viewer for reconstructed event lists.
+"""Simple viewer for comparing reconstructed energy and position with the MC
+true values.
 """
 
 # Parser object.
