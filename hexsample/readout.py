@@ -17,7 +17,7 @@
 # with this program; if not, write to the Free Software Foundation Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-"""Readout facilities facilities.
+"""Readout facilities.
 """
 
 from collections import Counter
@@ -231,6 +231,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         # .. and digitize the pha values.
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
+        # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
         return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
 
@@ -486,7 +487,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # .. and digitize the pha values.
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
-        # Do not forget to update the trigger_id!
+        # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
         #The pha array is always in the order [pha(adc0), pha(adc1), pha(adc2), pha(adc3), pha(adc4), pha(adc5), pha(adc6)]
         return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha, *coord_max)
