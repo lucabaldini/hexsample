@@ -82,6 +82,32 @@ def hxsim(**kwargs):
     output_file = digioutput_class(readout_mode)(output_file_path)
     output_file.update_header(**kwargs)
     logger.info('Starting the event loop...')
+    """
+    while trigger_id <= kwargs['numevents']:
+        photon_event = PhotonList(source, sensor, 1)
+        readout_mode = HexagonalReadoutMode(kwargs['mode'])
+        # Is there any nicer way to do this? See https://github.com/lucabaldini/hexsample/issues/51
+        if readout_mode is HexagonalReadoutMode.SPARSE:
+            readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
+        elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
+            padding = Padding(*kwargs['padding'])
+            readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
+        elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+            readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
+        else:
+            raise RuntimeError
+        args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
+            kwargs['pitch'], kwargs['noise'], kwargs['gain']
+        readout = readout_chip(readout_mode, *args)
+        logger.info(f'Readout chip: {readout}')
+        output_file_path = kwargs.get('outfile')
+        output_file = digioutput_class(readout_mode)(output_file_path)
+        output_file.update_header(**kwargs)
+        logger.info('Starting the event loop...')
+        x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
+        digi_event = readout.read(mc_event.timestamp, x, y, *readout_args)
+        output_file.add_row(digi_event, mc_event)
+    """
     for mc_event in tqdm(photon_list):
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
         digi_event = readout.read(mc_event.timestamp, x, y, *readout_args)

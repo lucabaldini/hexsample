@@ -114,7 +114,7 @@ class ClusteringNN(ClusteringBase):
         """
         if isinstance(event, DigiEventSparse):
             pass
-        if isinstance(event, DigiEventCircular):
+        elif isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
             self.num_neighbors = HexagonalReadoutCircular.NUM_PIXELS - 1 # -1 is bc the central px is already considered
             col = [event.column]
@@ -133,7 +133,7 @@ class ClusteringNN(ClusteringBase):
             row = np.array(row)
             pha = np.array(pha)
         # pylint: disable = invalid-name
-        if isinstance(event, DigiEventRectangular):
+        elif isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
             col = [seed_col]
             row = [seed_row]
