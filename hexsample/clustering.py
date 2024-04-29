@@ -115,19 +115,23 @@ class ClusteringNN(ClusteringBase):
         if isinstance(event, DigiEventSparse):
             pass
         if isinstance(event, DigiEventCircular):
-            #If the readout is circular, we want to take all the neirest neighbors.
+            # If the readout is circular, we want to take all the neirest neighbors.
             self.num_neighbors = HexagonalReadoutCircular.NUM_PIXELS - 1 # -1 is bc the central px is already considered
             col = [event.column]
             row = [event.row]
-            adc_channel_order = []
+            adc_channel_order = [self.grid.adc_channel(event.column, event.row)]
             # Taking the NN in logical coordinates ...
             for _col, _row in self.grid.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
-                adc_channel_order.append(self.grid.adc_channel(_col, row))
+                adc_channel_order.append(self.grid.adc_channel(_col, _row))
             # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i]. 
             pha = event.pha[adc_channel_order]
+            # Converting lists into numpy arrays
+            col = np.array(col)
+            row = np.array(row)
+            pha = np.array(pha)
         # pylint: disable = invalid-name
         if isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
@@ -139,6 +143,7 @@ class ClusteringNN(ClusteringBase):
             col = np.array(col)
             row = np.array(row)
             pha = np.array([event(_col, _row) for _col, _row in zip(col, row)])
+        # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.
