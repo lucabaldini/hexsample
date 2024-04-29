@@ -52,42 +52,49 @@ def hxrecon(**kwargs):
     input_file_path = str(kwargs['infile'])
     if not input_file_path.endswith('.h5'):
         raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')
-    '''
-    readout_mode = peek_readout_type(input_file_path)
-    # Now we can construct a set of isinstance()
-    if readout_mode is HexagonalReadoutMode.SPARSE:
-        input_file = DigiInputFileSparse(input_file_path)
-        header = input_file.header
-        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-            header['pitch'], header['noise'], header['gain']
-        readout = HexagonalReadoutSparse(*args)
-        logger.info(f'Readout chip: {readout}')
-        #input_file = DigiInputFile(input_file_path)
-    elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
+    
+    # It is necessary to extract the reaodut type because every readout type
+    # corresponds to a different DigiEvent type.
+    # If there is no info about the readout, we try to reconstruct with a Rectangular
+    # readout mode, that is the mode for all the old reconstruction before the 
+    # distinction between different readouts was implemented.
+    try:
+        readout_mode = peek_readout_type(input_file_path)
+        # Now we can construct a set of if/else.
+        if readout_mode is HexagonalReadoutMode.SPARSE:
+            input_file = DigiInputFileSparse(input_file_path)
+            header = input_file.header
+            args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+                header['pitch'], header['noise'], header['gain']
+            readout = HexagonalReadoutSparse(*args)
+            logger.info(f'Readout chip: {readout}')
+        elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
+            input_file = DigiInputFile(input_file_path)
+            header = input_file.header
+            args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+                header['pitch'], header['noise'], header['gain']
+            readout = HexagonalReadoutRectangular(*args)
+            logger.info(f'Readout chip: {readout}')
+        elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+            input_file = DigiInputFileCircular(input_file_path)
+            header = input_file.header
+            args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+                header['pitch'], header['noise'], header['gain']
+            readout = HexagonalReadoutCircular(*args)
+            logger.info(f'Readout chip: {readout}')
+    except RuntimeError:
         input_file = DigiInputFile(input_file_path)
         header = input_file.header
         args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
             header['pitch'], header['noise'], header['gain']
+        #readout = HexagonalReadoutCircular(*args)
         readout = HexagonalReadoutRectangular(*args)
         logger.info(f'Readout chip: {readout}')
-    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
-        input_file = DigiInputFileCircular(input_file_path)
-        header = input_file.header
-        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-            header['pitch'], header['noise'], header['gain']
-        readout = HexagonalReadoutCircular(*args)
-        logger.info(f'Readout chip: {readout}')
-    '''
-    input_file = DigiInputFile(input_file_path)
-    header = input_file.header
-    args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-        header['pitch'], header['noise'], header['gain']
-    #readout = HexagonalReadoutCircular(*args)
-    readout = HexagonalReadoutRectangular(*args)
-    logger.info(f'Readout chip: {readout}')
+    # When the readout tipology is determined, the event is clustered ...   
     clustering = ClusteringNN(readout, kwargs['zsupthreshold'], kwargs['nneighbors'])
     suffix = kwargs['suffix']
     output_file_path = input_file_path.replace('.h5', f'_{suffix}.h5')
+    # ... and saved into an output file.
     output_file = ReconOutputFile(output_file_path)
     output_file.update_header(**kwargs)
     output_file.update_digi_header(**input_file.header)
