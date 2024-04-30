@@ -30,7 +30,8 @@ from hexsample import rng
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
 from hexsample.readout import HexagonalReadoutMode, readout_chip
-from hexsample.fileio import DigiDescriptionSparse, DigiDescriptionRectangular, DigiDescriptionCircular, digioutput_class
+from hexsample.fileio import DigiDescriptionSparse, DigiDescriptionRectangular,\
+    DigiDescriptionCircular, digioutput_class
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding

@@ -167,6 +167,7 @@ def test_file_type():
     # Test for the digi files.
     file_path = HEXSAMPLE_DATA / 'test_digi_filetype_rectangular.h5'
     digi_file = DigiOutputFileRectangular(file_path)
+    digi_file.update_header(readoutmode='RECTANGULAR')
     digi_file.close()
     digi_file = DigiInputFileRectangular(file_path)
     assert digi_file.file_type == FileType.DIGI
@@ -178,6 +179,7 @@ def test_file_type():
     # Test for the digi sparse files.
     file_path = HEXSAMPLE_DATA / 'test_digi_filetype_sparse_readouttype.h5'
     digi_file = DigiOutputFileSparse(file_path)
+    digi_file.update_header(readoutmode='SPARSE')
     digi_file.close()
     digi_file = DigiInputFileSparse(file_path)
     assert digi_file.file_type == FileType.DIGI
