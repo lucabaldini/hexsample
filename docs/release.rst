@@ -4,6 +4,8 @@ Release notes
 =============
 
 
+*hexsample (0.9.0) - Tue, 30 Apr 2024 14:22:44 +0200*
+
 * Merging https://github.com/lucabaldini/hexsample/pull/46
 * Implemented circular and sparse readout modes.
 * Minor tweaks to the docs to make clear that all the lengths are in cm.
