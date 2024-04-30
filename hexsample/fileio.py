@@ -73,7 +73,7 @@ class DigiDescriptionBase(tables.IsDescription):
 
     """Base class for the description of the (flat) digi part of the file format.
     It contains the trigger_id and time coordinates of the event, common to all
-    readout types. 
+    readout types.
     """
 
     trigger_id = tables.Int32Col(pos=0)
@@ -140,7 +140,7 @@ class DigiDescriptionRectangular(DigiDescriptionBase):
 def _fill_digi_row_rectangular(row: tables.tableextension.Row, event: DigiEventBase) -> None:
     """Overloaded method.
     It uses the _fill_digi_row_base() function for filling the trigger_id and time
-    coordinates of the event. 
+    coordinates of the event.
 
     .. note::
         This would have naturally belonged to the DigiDescriptionRectangular class as
@@ -172,7 +172,7 @@ class DigiDescriptionCircular(DigiDescriptionBase):
 def _fill_digi_row_circular(row: tables.tableextension.Row, event: DigiEventBase) -> None:
     """Overloaded method.
     It uses the _fill_digi_row_base() function for filling the trigger_id and time
-    coordinates of the event. 
+    coordinates of the event.
 
     .. note::
         This would have naturally belonged to the DigiDescriptionCircular class as
@@ -189,7 +189,7 @@ def _fill_digi_row_circular(row: tables.tableextension.Row, event: DigiEventBase
 class DigiDescription(tables.IsDescription):
 
     """Description of the (flat) digi part of the file format.
-    NOTE: This should be eliminated when the above three classes will be fully 
+    NOTE: This should be eliminated when the above three classes will be fully
     implemented and tested.
     """
 
@@ -365,7 +365,7 @@ class OutputFileBase(tables.File):
         This needs to be reimplemented in derived classes.
         """
         raise NotImplementedError
-    
+
 class DigiOutputFileSparse(OutputFileBase):
 
     """Description of a sparse digitized output file.
@@ -381,7 +381,7 @@ class DigiOutputFileSparse(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_MODE = HexagonalReadoutMode.SPARSE
+    #_READOUT_MODE = HexagonalReadoutMode.SPARSE
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionSparse, 'Digi data')
     COLUMNS_ARRAY_SPECS = ('columns', tables.Int32Atom(shape=()))
     ROWS_ARRAY_SPECS = ('rows', tables.Int32Atom(shape=()))
@@ -392,7 +392,7 @@ class DigiOutputFileSparse(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
-        self.update_header(readoutmode=self._READOUT_MODE.value)
+        #self.update_header(readoutmode=self._READOUT_MODE.value)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.columns_array = self.create_vlarray(self.digi_group, *self.COLUMNS_ARRAY_SPECS)
@@ -443,7 +443,7 @@ class DigiOutputFileRectangular(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_MODE = HexagonalReadoutMode.RECTANGULAR #not sure if useful
+    #_READOUT_MODE = HexagonalReadoutMode.RECTANGULAR #not sure if useful
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionRectangular, 'Digi data')
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
@@ -452,7 +452,7 @@ class DigiOutputFileRectangular(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
-        self.update_header(readoutmode=self._READOUT_MODE.value)
+        #self.update_header(readoutmode=self._READOUT_MODE.value)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
@@ -497,7 +497,7 @@ class DigiOutputFileCircular(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_MODE = HexagonalReadoutMode.CIRCULAR #not sure if useful
+    #_READOUT_MODE = HexagonalReadoutMode.CIRCULAR #not sure if useful
     DIGI_TABLE_SPECS = ('digi_table', DigiDescriptionCircular, 'Digi data')
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
 
@@ -505,7 +505,7 @@ class DigiOutputFileCircular(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
-        self.update_header(readoutmode=self._READOUT_MODE.value)
+        #self.update_header(readoutmode=self._READOUT_MODE.value)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.mc_group = self.create_group(self.root, 'mc', 'Monte Carlo')
@@ -561,7 +561,7 @@ class DigiOutputFile(OutputFileBase):
     """
 
     _FILE_TYPE = FileType.DIGI
-    _READOUT_MODE = HexagonalReadoutMode.RECTANGULAR
+    #_READOUT_MODE = HexagonalReadoutMode.RECTANGULAR
     DIGI_TABLE_SPECS = ('digi_table', DigiDescription, 'Digi data')
     PHA_ARRAY_SPECS = ('pha', tables.Int32Atom(shape=()))
     MC_TABLE_SPECS = ('mc_table', MonteCarloDescription, 'Monte Carlo data')
@@ -570,7 +570,7 @@ class DigiOutputFile(OutputFileBase):
         """Constructor.
         """
         super().__init__(file_path)
-        self.update_header(readoutmode=self._READOUT_MODE.value)
+        #self.update_header(readoutmode=self._READOUT_MODE.value)
         self.digi_group = self.create_group(self.root, 'digi', 'Digi')
         self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
         self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
@@ -604,7 +604,7 @@ class DigiOutputFile(OutputFileBase):
 
 class ReconOutputFile(OutputFileBase):
 
-    """Description of a reconstructed output file. This should be the same for 
+    """Description of a reconstructed output file. This should be the same for
     all types of DigiEvent.
 
     Arguments
@@ -688,7 +688,7 @@ class InputFileBase(tables.File):
         """Return the header value corresponding to a given key.
         """
         return self.header.get(key, default)
-    
+
 class DigiInputFileBase(InputFileBase):
     def __init__(self, file_path: str):
         """Constructor.
@@ -697,7 +697,7 @@ class DigiInputFileBase(InputFileBase):
         self.digi_table = self.root.digi.digi_table
         self.mc_table = self.root.mc.mc_table
         self.__index = -1
-    
+
     def column(self, name: str) -> np.ndarray:
         """Return a given column in the digi table.
         """
@@ -707,7 +707,7 @@ class DigiInputFileBase(InputFileBase):
         """Return a given column in the Monte Carlo table.
         """
         return self.mc_table.col(name)
-    
+
     def mc_event(self, row_index: int) -> MonteCarloEvent:
         """Random access to the MonteCarloEvent part of the event contribution.
 
@@ -724,7 +724,7 @@ class DigiInputFileBase(InputFileBase):
         """
         self.__index = -1
         return self
-    
+
     def __next__(self) -> DigiEventBase:
         """Overloaded method for the implementation of the iterator protocol.
         """
@@ -776,7 +776,7 @@ class DigiInputFileSparse(DigiInputFileBase):
         if self.__index == len(self.digi_table):
             raise StopIteration
         return self.digi_event(self.__index)
-    
+
 class DigiInputFileRectangular(DigiInputFileBase):
 
     """Description of a rectangular digitized input file.
@@ -855,7 +855,7 @@ class DigiInputFile(InputFileBase):
 
     """Description of a digitized input file.
     NOTE: this class should be eliminated when the above three classes have been
-    fully implemented and tested. 
+    fully implemented and tested.
 
     This has a very simple interface: we cache references to the relevant tables
     when we open the file and we provide methods to reassemble a specific table
@@ -960,7 +960,7 @@ def peek_file_type(file_path: str) -> FileType:
             return FileType(input_file.root.header._v_attrs['filetype'])
         except KeyError as exception:
             raise RuntimeError(f'File {file_path} has no type information.') from exception
-        
+
 def peek_readout_type(file_path: str) -> HexagonalReadoutMode:
     """Peek into the header of a HDF5 Digi file and determing the readout type.
 

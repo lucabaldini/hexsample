@@ -63,7 +63,7 @@ def hxsim(**kwargs):
     material = Material(kwargs['actmedium'], kwargs['fano'])
     sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
     photon_list = PhotonList(source, sensor, kwargs['numevents'])
-    readout_mode = HexagonalReadoutMode(kwargs['mode'])
+    readout_mode = HexagonalReadoutMode(kwargs['readoutmode'])
     # Is there any nicer way to do this? See https://github.com/lucabaldini/hexsample/issues/51
     if readout_mode is HexagonalReadoutMode.SPARSE:
         readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']

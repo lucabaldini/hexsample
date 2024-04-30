@@ -156,7 +156,7 @@ class ArgumentParser(argparse.ArgumentParser):
         group.add_argument('--pitch', type=float, default=0.005,
             help='pitch of the readout chip in cm')
         modes = [item.value for item in HexagonalReadoutMode]
-        group.add_argument('--mode', type=str, choices=modes, default='RECTANGULAR',
+        group.add_argument('--readoutmode', type=str, choices=modes, default='RECTANGULAR',
             help='readout mode')
         group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
             help='padding on the four sides of the ROT')
