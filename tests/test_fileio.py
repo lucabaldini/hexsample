@@ -22,9 +22,9 @@ import numpy as np
 from hexsample import HEXSAMPLE_DATA
 from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutCircular
-from hexsample.fileio import DigiInputFile, DigiInputFileSparse, DigiInputFileRectangular,\
+from hexsample.fileio import DigiInputFileSparse, DigiInputFileRectangular,\
     DigiInputFileCircular, ReconInputFile, ReconOutputFile,FileType,\
-    DigiOutputFile, DigiOutputFileSparse, DigiOutputFileRectangular, DigiOutputFileCircular,\
+    DigiOutputFileSparse, DigiOutputFileRectangular, DigiOutputFileCircular,\
     peek_file_type, peek_readout_type, open_input_file, digioutput_class
 from hexsample.mc import MonteCarloEvent
 from hexsample.roi import RegionOfInterest, Padding
@@ -87,7 +87,7 @@ def _test_write_circular(file_path, num_events : int = 10):
 def _test_read(file_path):
     """Small test iterating over an input file.
     """
-    input_file = DigiInputFile(file_path)
+    input_file = DigiInputFileRectangular(file_path)
     print(input_file)
     for i, event in enumerate(input_file):
         print(event.ascii())

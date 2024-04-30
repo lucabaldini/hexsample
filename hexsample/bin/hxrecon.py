@@ -28,7 +28,7 @@ from hexsample import logger
 from hexsample.app import ArgumentParser, check_required_args
 from hexsample.clustering import ClusteringNN
 from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutSparse, HexagonalReadoutRectangular, HexagonalReadoutCircular
-from hexsample.fileio import DigiInputFileBase, DigiInputFileSparse, DigiInputFileRectangular, DigiInputFileCircular, DigiInputFile, ReconOutputFile, peek_readout_type
+from hexsample.fileio import DigiInputFileBase, DigiInputFileSparse, DigiInputFileRectangular, DigiInputFileCircular, ReconOutputFile, peek_readout_type
 from hexsample.hexagon import HexagonalLayout
 from hexsample.recon import ReconEvent
 
@@ -55,35 +55,29 @@ def hxrecon(**kwargs):
     
     # It is necessary to extract the reaodut type because every readout type
     # corresponds to a different DigiEvent type.
-    # If there is no info about the readout, we try to reconstruct with a Rectangular
-    # readout mode, that is the mode for all the old reconstruction before the 
-    # distinction between different readouts was implemented.
-    try:
-        readout_mode = peek_readout_type(input_file_path)
-        # Now we can construct a set of if/else.
-        if readout_mode is HexagonalReadoutMode.SPARSE:
-            input_file = DigiInputFileSparse(input_file_path)
-            header = input_file.header
-            args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-                header['pitch'], header['noise'], header['gain']
-            readout = HexagonalReadoutSparse(*args)
-            logger.info(f'Readout chip: {readout}')
-        elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
-            input_file = DigiInputFile(input_file_path)
-            header = input_file.header
-            args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-                header['pitch'], header['noise'], header['gain']
-            readout = HexagonalReadoutRectangular(*args)
-            logger.info(f'Readout chip: {readout}')
-        elif readout_mode is HexagonalReadoutMode.CIRCULAR:
-            input_file = DigiInputFileCircular(input_file_path)
-            header = input_file.header
-            args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-                header['pitch'], header['noise'], header['gain']
-            readout = HexagonalReadoutCircular(*args)
-            logger.info(f'Readout chip: {readout}')
-    except RuntimeError:
-        input_file = DigiInputFile(input_file_path)
+    readout_mode = peek_readout_type(input_file_path)
+    # Now we can construct a set of if/else.
+    if readout_mode is HexagonalReadoutMode.SPARSE:
+        input_file = DigiInputFileSparse(input_file_path)
+        header = input_file.header
+        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+            header['pitch'], header['noise'], header['gain']
+        readout = HexagonalReadoutSparse(*args)
+        logger.info(f'Readout chip: {readout}')
+    elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        input_file = DigiInputFileRectangular(input_file_path)
+        header = input_file.header
+        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+            header['pitch'], header['noise'], header['gain']
+        readout = HexagonalReadoutRectangular(*args)
+        logger.info(f'Readout chip: {readout}')
+    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+        input_file = DigiInputFileCircular(input_file_path)
+        header = input_file.header
+        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
+            header['pitch'], header['noise'], header['gain']
+        readout = HexagonalReadoutCircular(*args)
+        logger.info(f'Readout chip: {readout}')
         header = input_file.header
         args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
             header['pitch'], header['noise'], header['gain']

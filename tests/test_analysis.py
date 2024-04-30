@@ -18,7 +18,7 @@
 import numpy as np
 
 from hexsample.analysis import create_histogram, fit_histogram
-from hexsample.fileio import DigiInputFile, ReconInputFile
+from hexsample.fileio import DigiInputFileRectangular, ReconInputFile
 from hexsample.modeling import Gaussian
 from hexsample.pipeline import hxsim, hxrecon
 from hexsample.plot import plt
@@ -29,7 +29,7 @@ def test_histograms(num_events : int = 1000):
     """
     digi_file_path = hxsim(numevents=num_events)
     recon_file_path = hxrecon(infile=digi_file_path)
-    digi_file = DigiInputFile(digi_file_path)
+    digi_file = DigiInputFileRectangular(digi_file_path)
     recon_file = ReconInputFile(recon_file_path)
     plt.figure('Energy')
     hist = create_histogram(recon_file, 'energy', mc=True)
@@ -51,7 +51,7 @@ def test_fit_histogram(num_events : int = 1000):
     """
     digi_file_path = hxsim(numevents=num_events)
     recon_file_path = hxrecon(infile=digi_file_path)
-    digi_file = DigiInputFile(digi_file_path)
+    digi_file = DigiInputFileRectangular(digi_file_path)
     recon_file = ReconInputFile(recon_file_path)
     hist = create_histogram(recon_file, 'energy')
     plt.figure('Fitted energy - DoubleGaussian')
