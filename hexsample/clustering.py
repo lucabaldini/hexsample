@@ -126,7 +126,7 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
                 adc_channel_order.append(self.grid.adc_channel(_col, _row))
-            # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i]. 
+            # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i].
             pha = event.pha[adc_channel_order]
             # Converting lists into numpy arrays
             col = np.array(col)
@@ -149,6 +149,8 @@ class ClusteringNN(ClusteringBase):
         # trick argsort into sorting values in decreasing order.
         idx = np.argsort(-pha)
         # Only pick the seed and the N highest pixels.
+        # This is useless for the circular readout because in that case all 
+        # neighbors are used for track reconstruction.
         mask = idx[:self.num_neighbors + 1]
         # If there's any zero left in the target pixels, get rid of it.
         mask = mask[pha[mask] > 0]
