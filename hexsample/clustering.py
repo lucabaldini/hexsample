@@ -25,8 +25,9 @@ from typing import Tuple
 
 import numpy as np
 
-from hexsample.digi import DigiEvent
+from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.hexagon import HexagonalGrid
+from hexsample.readout import HexagonalReadoutCircular
 
 
 @dataclass
@@ -80,7 +81,7 @@ class ClusteringBase:
         out[out <= self.zero_sup_threshold] = 0
         return out
 
-    def run(self, event: DigiEvent) -> Cluster:
+    def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
         raise NotImplementedError
@@ -104,28 +105,52 @@ class ClusteringNN(ClusteringBase):
 
     num_neighbors: int
 
-    def run(self, event: DigiEvent) -> Cluster:
+    def run(self, event: DigiEventSparse | DigiEventRectangular | DigiEventCircular) -> Cluster:
         """Overladed method.
 
         .. warning::
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
+        if isinstance(event, DigiEventSparse):
+            pass
+        elif isinstance(event, DigiEventCircular):
+            # If the readout is circular, we want to take all the neirest neighbors.
+            self.num_neighbors = HexagonalReadoutCircular.NUM_PIXELS - 1 # -1 is bc the central px is already considered
+            col = [event.column]
+            row = [event.row]
+            adc_channel_order = [self.grid.adc_channel(event.column, event.row)]
+            # Taking the NN in logical coordinates ...
+            for _col, _row in self.grid.neighbors(event.column, event.row):
+                col.append(_col)
+                row.append(_row)
+                # ... transforming the coordinates of the NN in its corresponding ADC channel ...
+                adc_channel_order.append(self.grid.adc_channel(_col, _row))
+            # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i].
+            pha = event.pha[adc_channel_order]
+            # Converting lists into numpy arrays
+            col = np.array(col)
+            row = np.array(row)
+            pha = np.array(pha)
         # pylint: disable = invalid-name
-        seed_col, seed_row = event.highest_pixel()
-        col = [seed_col]
-        row = [seed_row]
-        for _col, _row in self.grid.neighbors(seed_col, seed_row):
-            col.append(_col)
-            row.append(_row)
-        col = np.array(col)
-        row = np.array(row)
-        pha = np.array([event(_col, _row) for _col, _row in zip(col, row)])
+        elif isinstance(event, DigiEventRectangular):
+            seed_col, seed_row = event.highest_pixel()
+            col = [seed_col]
+            row = [seed_row]
+            for _col, _row in self.grid.neighbors(seed_col, seed_row):
+                col.append(_col)
+                row.append(_row)
+            col = np.array(col)
+            row = np.array(row)
+            pha = np.array([event(_col, _row) for _col, _row in zip(col, row)])
+        # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.
         idx = np.argsort(-pha)
         # Only pick the seed and the N highest pixels.
+        # This is useless for the circular readout because in that case all 
+        # neighbors are used for track reconstruction.
         mask = idx[:self.num_neighbors + 1]
         # If there's any zero left in the target pixels, get rid of it.
         mask = mask[pha[mask] > 0]

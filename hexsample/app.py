@@ -24,6 +24,7 @@ import argparse
 
 from hexsample import __pkgname__, __version__, __tagdate__, __url__
 from hexsample.hexagon import HexagonalLayout
+from hexsample.readout import HexagonalReadoutMode
 
 
 START_MESSAGE = f"""
@@ -154,6 +155,11 @@ class ArgumentParser(argparse.ArgumentParser):
             help='number of rows in the readout chip')
         group.add_argument('--pitch', type=float, default=0.005,
             help='pitch of the readout chip in cm')
+        modes = [item.value for item in HexagonalReadoutMode]
+        group.add_argument('--readoutmode', type=str, choices=modes, default='RECTANGULAR',
+            help='readout mode')
+        group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
+            help='padding on the four sides of the ROT')
         group.add_argument('--noise', type=float, default=20.,
             help='equivalent noise charge rms in electrons')
         group.add_argument('--gain', type=float, default=1.,
@@ -164,8 +170,6 @@ class ArgumentParser(argparse.ArgumentParser):
             help='trigger threshold in electron equivalent')
         group.add_argument('--zsupthreshold', type=int, default=0,
             help='zero-suppression threshold in ADC counts')
-        group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
-            help='padding on the four sides of the ROT')
 
     def add_sensor_options(self) -> None:
         """Add an option group for the sensor properties.

@@ -4,6 +4,8 @@ Release notes
 =============
 
 
+* Merging https://github.com/lucabaldini/hexsample/pull/46
+* Implemented circular and sparse readout modes.
 * Minor tweaks to the docs to make clear that all the lengths are in cm.
 * Minor formatting changes.
 

@@ -18,12 +18,12 @@
 
 import numpy as np
 
-from hexsample.hexagon import HexagonalLayout, HexagonalGrid
+from hexsample.hexagon import HexagonalLayout, HexagonalGrid, adc_channel_even_r
 from hexsample.display import HexagonalGridDisplay
 from hexsample.plot import plt
 
 
-def test_parity(nside : int = 10, pitch : float = 0.1):
+def test_parity(nside: int = 10, pitch: float = 0.1):
     """Test the HexagonalGrid._parity_offset() method.
     """
     for layout in (HexagonalLayout.EVEN_R, HexagonalLayout.EVEN_Q):
@@ -35,7 +35,16 @@ def test_parity(nside : int = 10, pitch : float = 0.1):
         assert grid._parity_offset(0) == 0
         assert grid._parity_offset(1) == -1
 
-def test_coordinate_transform(nside : int = 10, pitch : float = 0.1):
+def test_coordinates(nside: int = 2, pitch: float = 0.1):
+    """Test the full list of logical and physical coordinates that we use for
+    looping over the matrix.
+    """
+    for layout in HexagonalLayout:
+        grid = HexagonalGrid(layout, nside, nside, pitch)
+        print(grid.pixel_logical_coordinates())
+        print(grid.pixel_physical_coordinates())
+
+def test_coordinate_transform(nside: int = 10, pitch: float = 0.1):
     """Simple test of the coordinate transformations: we pick the four corner
     pixels and verify that pixel_to_world() and word_to_pixel() roundtrip.
     (This not really an exahustive test, and all the points are at the center
@@ -48,7 +57,7 @@ def test_coordinate_transform(nside : int = 10, pitch : float = 0.1):
             x, y = grid.pixel_to_world(col, row)
             assert grid.world_to_pixel(x, y) == (col, row)
 
-def test_display(nside : int = 10, pitch : float = 0.1):
+def test_display(nside: int = 10, pitch: float = 0.1):
     """Display all the four possible layout in a small arrangement.
     """
     target_col = 5
@@ -69,7 +78,7 @@ def test_display(nside : int = 10, pitch : float = 0.1):
         plt.scatter(x[mask], y[mask], color='b', s=4.)
         display.setup_gca()
 
-def test_neighbors(nside : int = 10, pitch : float = 0.1) -> None:
+def test_neighbors(nside: int = 10, pitch: float = 0.1) -> None:
     """
     """
     target_pixels = (2, 3), (7, 4)
@@ -87,9 +96,26 @@ def test_neighbors(nside : int = 10, pitch : float = 0.1) -> None:
                 plt.text(x, y, f'{i + 1}', **fmt)
         display.setup_gca()
 
+def test_routing_7(nside: int = 10, pitch: float = 0.1) -> None:
+    """Test the routing from the pixel matrix to the ADCs on the periphery in the
+    7-pixel readout strategy.
+    """
+    fmt = dict(size='xx-small', ha='center', va='center')
+    for layout in HexagonalLayout:
+        plt.figure(f'Hexagonal routing 7 {layout}')
+        grid = HexagonalGrid(layout, nside, nside, pitch)
+        display = HexagonalGridDisplay(grid)
+        display.draw(pixel_labels=False)
+        col, row, x, y = grid.pixel_physical_coordinates()
+        for (_col, _row, _x, _y) in zip(col, row, x, y):
+            adc = grid.adc_channel(_col, _row)
+            plt.text(_x, _y, f'{adc}', **fmt)
+        display.setup_gca()
+
 
 
 if __name__ == '__main__':
-    test_display()
-    test_neighbors()
+    #test_display()
+    #test_neighbors()
+    test_routing_7()
     plt.show()

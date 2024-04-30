@@ -27,9 +27,9 @@ import pytest
 
 from hexsample import logger
 from hexsample import xpol
-from hexsample.digi import HexagonalReadout
+from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.hexagon import HexagonalLayout
-from hexsample.fileio import DigiEvent
+from hexsample.fileio import DigiEventRectangular
 from hexsample.mc import PhotonList
 from hexsample.sensor import SiliconSensor
 from hexsample.source import LineForest, GaussianBeam, Source
@@ -37,7 +37,7 @@ from hexsample.roi import RegionOfInterest, Padding
 
 
 
-class HexagonalReadoutCompat(HexagonalReadout):
+class HexagonalReadoutCompat(HexagonalReadoutRectangular):
 
     """Compatibility class implementing the readout behavior up to hexsample 0.3.1,
     i.e., before the simulation optimization described in
@@ -175,7 +175,7 @@ class HexagonalReadoutCompat(HexagonalReadout):
         return pha.flatten()
 
     def read(self, timestamp : float, x : np.ndarray, y : np.ndarray, trg_threshold : float,
-        padding : Padding, zero_sup_threshold : int = 0, offset : int = 0) -> DigiEvent:
+        padding : Padding, zero_sup_threshold : int = 0, offset : int = 0) -> DigiEventRectangular:
         """Readout an event.
 
         Arguments
@@ -207,14 +207,14 @@ class HexagonalReadoutCompat(HexagonalReadout):
         roi = self.calculate_roi(trg, padding)
         pha = self.digitize(signal, roi, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
-        return DigiEvent(self.trigger_id, seconds, microseconds, livetime, roi, pha)
+        return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 
 
 # XPOL-III like readouts, with the old and the new, streamlined implementetion.
 # Note that we set the noise to 0. in order to allow for a deterministic
 # comparison among the two readouts.
 OLD_READOUT = HexagonalReadoutCompat(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, 0., 1.)
-NEW_READOUT = HexagonalReadout(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, 0., 1.)
+NEW_READOUT = HexagonalReadoutRectangular(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, 0., 1.)
 
 
 def _compare_readouts(x, y, trg_threshold=200., padding=Padding(2)):

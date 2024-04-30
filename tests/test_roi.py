@@ -89,6 +89,7 @@ def test_roi(min_col : int = 0, max_col : int = 5, min_row : int = 25,
     print(roi.rot_slice())
     print(roi.rot_mask())
 
+
 def test_roi_comparison():
     """Test the equality operator for ROI objects.
     """

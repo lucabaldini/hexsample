@@ -27,6 +27,7 @@ List of modules
    mc
    modeling
    pprint
+   readout
    recon
    rng
    roi

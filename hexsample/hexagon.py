@@ -118,6 +118,85 @@ _NEIGHBORS_PROXY_DICT = {
 }
 
 
+
+_N_ADC_CHANNELS = 7
+_ADC_SEQUENCE_EVEN = (0, 2, 5, 0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4)
+_ADC_SEQUENCE_ODD = (0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4, 0, 2, 5)
+_ADC_SEQUENCE_LENGTH = len(_ADC_SEQUENCE_EVEN)
+
+
+def adc_channel_odd_r(col: int, row: int) -> int:
+    """Transformation from offset coordinates (col, row) into 7-adc channel label,
+    that is an int between 0 and 6, for ODD_R grid layout.
+
+    Arguments
+    ---------
+    col: int
+        column pixel logical coordinate
+    row: int
+        row pixel logical coordinate
+    """
+    start = _ADC_SEQUENCE_ODD[row % _ADC_SEQUENCE_LENGTH]
+    index = (col + start) % _N_ADC_CHANNELS
+    return index
+
+def adc_channel_even_r(col: int, row: int) -> int:
+    """Transformation from offset coordinates (col, row) into 7-adc channel label,
+    that is an int between 0 and 6, for EVEN_R grid layout.
+
+    Arguments
+    ---------
+    col: int
+        column pixel logical coordinate
+    row: int
+        row pixel logical coordinate
+    """
+    start = _ADC_SEQUENCE_EVEN[row % _ADC_SEQUENCE_LENGTH]
+    index = (col + start) % _N_ADC_CHANNELS
+    return index
+
+def adc_channel_odd_q(col: int, row: int) -> int:
+    """Transformation from offset coordinates (col, row) into 7-adc channel label,
+    that is an int between 0 and 6, for ODD_Q grid layout.
+
+    Arguments
+    ---------
+    col: int
+        column pixel logical coordinate
+    row: int
+        row pixel logical coordinate
+    """
+    start = _ADC_SEQUENCE_ODD[col % _ADC_SEQUENCE_LENGTH]
+    index = (row + start) % _N_ADC_CHANNELS
+    return index
+
+def adc_channel_even_q(col: int, row: int) -> int:
+    """Transformation from offset coordinates (col, row) into 7-adc channel label,
+    that is an int between 0 and 6, for EVEN_Q grid layout.
+
+    Arguments
+    ---------
+    col: int
+        column pixel logical coordinate
+    row: int
+        row pixel logical coordinate
+    """
+    start = _ADC_SEQUENCE_EVEN[col % _ADC_SEQUENCE_LENGTH]
+    index = (row + start) % _N_ADC_CHANNELS
+    return index
+
+
+# Lookup table for .
+_ADC_PROXY_DICT = {
+    HexagonalLayout.ODD_R: adc_channel_odd_r,
+    HexagonalLayout.EVEN_R: adc_channel_even_r,
+    HexagonalLayout.ODD_Q: adc_channel_odd_q,
+    HexagonalLayout.EVEN_Q: adc_channel_even_q,
+}
+
+
+
+
 class HexagonalGrid:
 
     # pylint: disable = too-many-instance-attributes
@@ -161,6 +240,7 @@ class HexagonalGrid:
         # Cache the proper function to retrieve the neighbor pixels from the
         # lookup table---this is used, e.g., for the clustering.
         self.neighbors = _NEIGHBORS_PROXY_DICT[self.layout]
+        self.adc_channel = _ADC_PROXY_DICT[self.layout]
 
     def pointy_topped(self) -> bool:
         """Return True if the layout is pointy-topped.
@@ -328,6 +408,29 @@ class HexagonalGrid:
         # ... and convert to offset coordinates.
         col, row = self._axial_to_offset(q, r)
         return col, row
+
+    def pixel_logical_coordinates(self) -> Tuple[np.array, np.array]:
+        """Return a 2-element tuple (cols, rows) of numpy arrays containing all the
+        column and row indices that allow to loop over the full matrix. The specific
+        order in which the pixels are looped upon is completely arbitrary and, for
+        the sake of this function, we assume that, e.g., for a 2 x 2 grid we return
+        >>> cols = [0, 1, 0, 1]
+        >>> rows = [0, 0, 1, 1]
+        i.e., we loop with the following order
+        >>> (0, 0), (1, 0), (0, 1), (1, 1)
+        """
+        cols = np.tile(np.arange(self.num_cols), self.num_rows)
+        rows = np.repeat(np.arange(self.num_rows), self.num_cols)
+        return cols, rows
+
+    def pixel_physical_coordinates(self) -> Tuple[np.array, np.array, np.array, np.array]:
+        """Return a 4-element tuple (cols, rows, x, y) containing the logical
+        coordinates returned by pixel_logical_coordinates(), along with the
+        corresponding physical coordinates.
+        """
+        cols, rows = self.pixel_logical_coordinates()
+        x, y = self.pixel_to_world(cols, rows)
+        return cols, rows, x, y
 
     def __str__(self):
         """String formatting.

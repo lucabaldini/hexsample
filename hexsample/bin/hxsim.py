@@ -29,8 +29,9 @@ from tqdm import tqdm
 from hexsample import rng
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
-from hexsample.digi import HexagonalReadout
-from hexsample.fileio import DigiOutputFile
+from hexsample.readout import HexagonalReadoutMode, readout_chip
+from hexsample.fileio import DigiDescriptionSparse, DigiDescriptionRectangular,\
+    DigiDescriptionCircular, digioutput_class
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
@@ -63,15 +64,24 @@ def hxsim(**kwargs):
     material = Material(kwargs['actmedium'], kwargs['fano'])
     sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
     photon_list = PhotonList(source, sensor, kwargs['numevents'])
+    readout_mode = HexagonalReadoutMode(kwargs['readoutmode'])
+    # Is there any nicer way to do this? See https://github.com/lucabaldini/hexsample/issues/51
+    if readout_mode is HexagonalReadoutMode.SPARSE:
+        readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
+    elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        padding = Padding(*kwargs['padding'])
+        readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
+    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+        readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
+    else:
+        raise RuntimeError
     args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
         kwargs['pitch'], kwargs['noise'], kwargs['gain']
-    readout = HexagonalReadout(*args)
+    readout = readout_chip(readout_mode, *args)
     logger.info(f'Readout chip: {readout}')
     output_file_path = kwargs.get('outfile')
-    output_file = DigiOutputFile(output_file_path)
+    output_file = digioutput_class(readout_mode)(output_file_path)
     output_file.update_header(**kwargs)
-    padding = Padding(*kwargs['padding'])
-    readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
     logger.info('Starting the event loop...')
     for mc_event in tqdm(photon_list):
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
