@@ -150,9 +150,9 @@ class ArgumentParser(argparse.ArgumentParser):
         group.add_argument('--layout', type=str, choices=layouts, default=layouts[0],
             help='hexagonal layout of the readout chip')
         group.add_argument('--numcolumns', type=int, default=304,
-            help='number of colums in the readout chip')
+            help='number of colums in the readout chip (counting from 0 column)')
         group.add_argument('--numrows', type=int, default=352,
-            help='number of rows in the readout chip')
+            help='number of rows in the readout chip (counting from 0 row)')
         group.add_argument('--pitch', type=float, default=0.005,
             help='pitch of the readout chip in cm')
         modes = [item.value for item in HexagonalReadoutMode]
