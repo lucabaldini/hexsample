@@ -178,6 +178,45 @@ class GaussianBeam(BeamBase):
         y = rng.generator.normal(self.y0, self.sigma, size=size)
         return x, y
 
+@dataclass
+class UniformBeam(BeamBase):
+    """Uniformly distributed beam.
+    The uniform generation needs to be delimited on the hexagonal grid.
+
+        x_min : float
+            The minimum value on x-axis that can be generated.
+        x_max : float
+            The maximum value on x-axis that can be generated.
+        y_min : float
+            The minimum value on y-axis that can be generated.
+        y_max : float
+            The maximum value on y-axis that can be generated.
+
+    """
+    def __init__(self, x_min, x_max, y_min, y_max):
+        self.x_min = x_min
+        self.x_max = x_max
+        self.y_min = y_min
+        self.y_max = y_max
+
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+        """Overloaded method.
+        Arguments
+        ---------
+
+        size : int
+            The number of X-ray photon positions to be generated.
+
+        Returns
+        -------
+        x, y : 2-element tuple of np.ndarray of shape ``size``
+            The photon positions on the x-y plane.
+        """
+        # pylint: disable=invalid-name
+        x = rng.generator.uniform(self.x_min, self.x_max, size=size)
+        y = rng.generator.uniform(self.y_min, self.y_max, size=size)
+        return x, y
+
 
 
 class SpectrumBase:

@@ -190,6 +190,9 @@ class ArgumentParser(argparse.ArgumentParser):
         group = self.add_argument_group('source', 'X-ray source properties')
         group.add_argument('--srcelement', type=str, default='Cu',
             help='element generating the line forest')
+        beam_shapes = ['gaussian', 'uniform']
+        group.add_argument('--beamshape', type=str, choices=beam_shapes,
+            default='gaussian', help='shape of the X-ray beam')
         group.add_argument('--srclevel', type=str, default='K',
             help='initial level for the line forest')
         group.add_argument('--srcposx', type=float, default=0.,

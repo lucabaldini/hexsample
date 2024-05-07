@@ -27,7 +27,7 @@ from hexsample import rng, HEXSAMPLE_DATA
 from hexsample.readout import HexagonalReadoutSparse
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
-from hexsample.source import LineForest, GaussianBeam, Source
+from hexsample.source import LineForest, Source, UniformBeam
 from hexsample.sensor import Material, Sensor
 
 
@@ -38,27 +38,35 @@ kwargs = dict(seed=None, srcelement='Cu', srclevel='K', srcposx=0., srcposy=0.,
     numevents=1000, layout='ODD_R', numcolumns=32, numrows=32, pitch=0.005, noise=0.,
     gain=1., trgthreshold=200., zsupthreshold=0., offset=0)
 
-
-rng.initialize(seed=kwargs['seed'])
-spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
-beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
-source = Source(spectrum, beam)
+#Initializing the readout containing the hexagonal grid features
+args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
+        kwargs['pitch'], kwargs['noise'], kwargs['gain']
+readout = HexagonalReadoutSparse(*args)
+readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
+logger.info(f'Readout chip: {readout}')
+# Initializing the active medium features
 material = Material(kwargs['actmedium'], kwargs['fano'])
 sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
+#Initializing the X-ray source with uniform beam shape
+rng.initialize(seed=kwargs['seed'])
+spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
+x_min, y_min = readout.pixel_to_world(0, kwargs['numrows'])
+x_max, y_max = readout.pixel_to_world(kwargs['numcolumns'], 0)
+beam = UniformBeam(x_min, x_max, y_min, y_max)
+source = Source(spectrum, beam)
+# Creating the photon list
 photon_list = PhotonList(source, sensor, kwargs['numevents'])
-args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
-     kwargs['pitch'], kwargs['noise'], kwargs['gain']
-readout = HexagonalReadoutSparse(*args)
-logger.info(f'Readout chip: {readout}')
-readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
+# Opening file...
 logger.info(f'Opening output file {output_file_path}...')
 output_file = open(output_file_path, 'w')
 logger.info('Starting the event loop...')
+# ...propagating the photons in the active medium and then writing data in a .txt file...
 for mc_event in tqdm(photon_list):
     x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
     event = readout.read(mc_event.timestamp, x, y, *readout_args)
     output_file.write(f'{event.trigger_id}    {event.timestamp():.9f}    {len(event.pha)}\n')
     for col, row, pha in zip(event.columns, event.rows, event.pha):
         output_file.write(f'{col:2}    {row:2}    {pha}\n')
+# ... at the end closing file.
 output_file.close()
 logger.info('Output file closed.')

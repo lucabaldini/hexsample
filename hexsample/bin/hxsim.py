@@ -35,7 +35,7 @@ from hexsample.fileio import DigiDescriptionSparse, DigiDescriptionRectangular,\
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
-from hexsample.source import LineForest, GaussianBeam, Source
+from hexsample.source import LineForest, GaussianBeam, Source, UniformBeam
 from hexsample.sensor import Material, Sensor
 
 
@@ -57,13 +57,9 @@ def hxsim(**kwargs):
     """Application main entry point.
     """
     # pylint: disable=too-many-locals, invalid-name
-    rng.initialize(seed=kwargs['seed'])
-    spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
-    beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
-    source = Source(spectrum, beam)
-    material = Material(kwargs['actmedium'], kwargs['fano'])
-    sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
-    photon_list = PhotonList(source, sensor, kwargs['numevents'])
+    #Initializing chip features: layout and readout
+    args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
+        kwargs['pitch'], kwargs['noise'], kwargs['gain']
     readout_mode = HexagonalReadoutMode(kwargs['readoutmode'])
     # Is there any nicer way to do this? See https://github.com/lucabaldini/hexsample/issues/51
     if readout_mode is HexagonalReadoutMode.SPARSE:
@@ -75,10 +71,27 @@ def hxsim(**kwargs):
         readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
     else:
         raise RuntimeError
-    args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
-        kwargs['pitch'], kwargs['noise'], kwargs['gain']
     readout = readout_chip(readout_mode, *args)
     logger.info(f'Readout chip: {readout}')
+    #Initializing the active medium features
+    material = Material(kwargs['actmedium'], kwargs['fano'])
+    sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
+    #Initializing the X-ray source
+    rng.initialize(seed=kwargs['seed'])
+    spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
+    if kwargs['beamshape'] == 'uniform':
+        #logger.info(f'Beam shape: {kwargs['beamshape']}')
+        # Readout has all the info necessary for initializing the source correctly,
+        # in particular for the uniform beam, it is necessary to delimit the active
+        # area of the detector.
+        x_min, y_min = readout.pixel_to_world(0, kwargs['numrows'])
+        x_max, y_max = readout.pixel_to_world(kwargs['numcolumns'], 0)
+        beam = UniformBeam(x_min, x_max, y_min, y_max)
+    else:
+        #logger.info(f'Beam shape: {kwargs['beamshape']}')
+        beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
+    source = Source(spectrum, beam)
+    photon_list = PhotonList(source, sensor, kwargs['numevents'])
     output_file_path = kwargs.get('outfile')
     output_file = digioutput_class(readout_mode)(output_file_path)
     output_file.update_header(**kwargs)
