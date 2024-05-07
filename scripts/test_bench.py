@@ -31,11 +31,11 @@ from hexsample.source import LineForest, Source, UniformBeam
 from hexsample.sensor import Material, Sensor
 
 
-output_file_path = HEXSAMPLE_DATA / 'test_bench_cu.txt'
+output_file_path = HEXSAMPLE_DATA / 'test_bench_cu_uniform.txt'
 
 kwargs = dict(seed=None, srcelement='Cu', srclevel='K', srcposx=0., srcposy=0.,
     srcsigma=0.02, actmedium='Si', fano=0.116, thickness=0.03, transdiffsigma=40.,
-    numevents=1000, layout='ODD_R', numcolumns=32, numrows=32, pitch=0.005, noise=0.,
+    numevents=10000, layout='ODD_R', numcolumns=31, numrows=31, pitch=0.005, noise=0.,
     gain=1., trgthreshold=200., zsupthreshold=0., offset=0)
 
 #Initializing the readout containing the hexagonal grid features
