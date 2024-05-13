@@ -292,7 +292,7 @@ def Gini_index(node_threshold: np.array, data_feature: np.array, data_label: np.
     
     return np.array(gini_idx)
 
-def energy_threshold_computation(fit_model: FitModelBase = DoubleGaussian, contamination_beta_on_alpha: float=0.02):
+def energy_threshold_computation(fit_model: FitModelBase=DoubleGaussian, contamination_beta_on_alpha: float=0.02):
     """The following function computes the energy threshold for the classification
     of alpha and beta photons on Cu source.
     The threshold computation is chosen fixing the contamination of beta photons

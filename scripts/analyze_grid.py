@@ -28,6 +28,7 @@ import numpy as np
 from hexsample.app import ArgumentParser
 from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, heatmap_with_labels, energy_threshold_computation
 from hexsample.fileio import ReconInputFile
+from hexsample.hist import Histogram1d
 from hexsample.modeling import DoubleGaussian
 from hexsample.plot import plt
 from hexsample.sensor import Silicon, SiliconSensor
@@ -87,6 +88,9 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
     mean_cluster_size = np.empty((len(thickness), len(enc)))
     #Creating a matrix for saving the efficiency on alpha signal
     efficiency_on_alpha = np.empty((len(thickness), len(enc)))
+    #Creating matrices for saving the mean difference x_mc - x_reco and y_mc - y_reco
+    dx = np.empty((len(thickness), len(enc)))
+    dy = np.empty((len(thickness), len(enc)))
 
     # Saving true energy values (coming from MC).
     mu_true_alpha = 8039.68
@@ -121,6 +125,9 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
             # filling the matrix with the means
             mean_energy[0][thick_idx][e_idx] = fitted_model.parameter_value('mean0')
             mean_energy[1][thick_idx][e_idx] = fitted_model.parameter_value('mean1')
+            # filling the matrices containing the true and reconstructed x and y
+            dx[thick_idx][e_idx] = np.mean(np.abs(recon_file.mc_column('absx') - recon_file.column('posx')))
+            dy[thick_idx][e_idx] = np.mean(np.abs(recon_file.mc_column('absy') - recon_file.column('posy')))
             #Computing energy threshold for classification and relative efficiency
             energy_thr, efficiency = energy_threshold_computation(fitted_model) #contamination set to 2%
             efficiency_on_alpha[thick_idx][e_idx] = efficiency*QE_alpha
@@ -144,9 +151,9 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(enc, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten())
-    plt.title(r'$\Delta = \frac{\mu_{E}-E_{K}}{E_{K}}$')
-    plt.ylabel(r'Thickness $\mu$m')
-    plt.xlabel('Noise [ENC]')
+    plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, p = {pitch} $\mu$m')
+    plt.ylabel(r'Thickness t $\mu$m')
+    plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
     # custom yticks. Setting a right yaxis
     len_yaxis = len(thickness)
     len_yticks = len(thickness)*2
@@ -161,9 +168,9 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
         plt.savefig(f'{save_path}/mean_shift_all_evts.pdf')
 
     fig2,ax2 = double_heatmap(enc, thickness, energy_res_ka.flatten(), energy_res_kb.flatten(), 0)
-    plt.title(r'Energy resolution FWHM [eV]')
-    plt.ylabel(r'Thickness $\mu$m')
-    plt.xlabel('Noise [ENC]')
+    plt.title(rf'Energy resolution $\sigma_{{K_{{\alpha, \beta}}}}$ FWHM [eV], p = {pitch} $\mu$m')
+    plt.ylabel(r'Thickness t $\mu$m')
+    plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
     # custom yticks. Setting a right yaxis
     twin1 = ax2.twinx()
     twin1.set(ylim=(0, len_yaxis))
@@ -172,24 +179,38 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
         plt.savefig(f'{save_path}/energy_res_all_evts.pdf')
 
     heatmap_with_labels(enc, thickness, mean_cluster_size, 2)
-    plt.title(rf'Mean cluster size')
-    plt.xlabel('Noise [ENC]')
-    plt.ylabel(r'thickness $\mu$m')
+    plt.title(rf'Average cluster size,  p = {pitch} $\mu$m')
+    plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
+    plt.ylabel(r'Thickness t $\mu$m')
     if save_path is not None:
         plt.savefig(f'{save_path}/mean_cluster_size.pdf')
 
     heatmap_with_labels(enc, thickness, efficiency_on_alpha)
-    plt.title(rf'Efficiency on $\alpha$ signal')
-    plt.xlabel('Noise [ENC]')
-    plt.ylabel(r'thickness $\mu$m')
+    plt.title(rf'Efficiency on $K_{{\alpha}}$ signal,  p = {pitch} $\mu$m')
+    plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
+    plt.ylabel(r'Thickness t $\mu$m')
     if save_path is not None:
         plt.savefig(f'{save_path}/efficiency.pdf')
 
+    heatmap_with_labels(enc, thickness, dx, n_digits=7)
+    plt.title(rf'Reconstruction shift on x: $\mu(|x_{{MC}} - x_{{recon}}|)$ [cm],  p = {pitch} $\mu$m')
+    plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
+    plt.ylabel(r'Thickness t $\mu$m')
+    if save_path is not None:
+        plt.savefig(f'{save_path}/x_shift.pdf')
+
+    heatmap_with_labels(enc, thickness, dy, n_digits=7)
+    plt.title(rf'Reconstruction shift on y: $\mu(|y_{{MC}} - y_{{recon}}|)$ [cm],  p = {pitch} $\mu$m')
+    plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
+    plt.ylabel(r'Thickness t $\mu$m')
+    if save_path is not None:
+        plt.savefig(f'{save_path}/y_shift.pdf')
+
     if correct_1px_ratio is True:
         heatmap_with_labels(enc, thickness, onepx_evts_ratio)
-        plt.title(r'Fraction of events with 1 px on readout $f = \frac{n_{evts1px}}{n_{evts}}$')
-        plt.xlabel('Noise [ENC]')
-        plt.ylabel(r'thickness $\mu$m')
+        plt.title(fr'Fraction of events with 1 px on readout $f = \frac{{n_{{evts1px}}}}{{n_{{evts}}}}$,  p = {pitch} $\mu$m')
+        plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
+        plt.ylabel(r'Thickness t $\mu$m')
         if save_path is not None:
             plt.savefig(f'{save_path}/fraction_1px_evts.pdf')
 
@@ -229,6 +250,9 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     #This is a single number for both peaks so it is a 2D matrix.
     mean_cluster_size = np.empty((len(thickness), len(pitch)))
     efficiency_on_alpha = np.empty((len(thickness), len(pitch)))
+    #Creating matrices for saving the mean difference x_mc - x_reco and y_mc - y_reco
+    dx = np.empty((len(thickness), len(pitch)))
+    dy = np.empty((len(thickness), len(pitch)))
 
     # Saving true energy values (coming from MC).
     mu_true_alpha = 8039.68
@@ -264,6 +288,9 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
             # filling the matrix with the means
             mean_energy[0][thick_idx][p_idx] = fitted_model.parameter_value('mean0')
             mean_energy[1][thick_idx][p_idx] = fitted_model.parameter_value('mean1')
+            # filling the matrices containing the true and reconstructed x and y
+            dx[thick_idx][p_idx] = np.mean(np.abs(recon_file.mc_column('absx') - recon_file.column('posx')))
+            dy[thick_idx][p_idx] = np.mean(np.abs(recon_file.mc_column('absy') - recon_file.column('posy')))
             #Computing energy threshold for classification and relative efficiency
             energy_thr, efficiency = energy_threshold_computation(fitted_model) #contamination set to 2%
             efficiency_on_alpha[thick_idx][p_idx] = efficiency*QE_alpha
@@ -287,9 +314,9 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
 
     # Plotting the overlapped heatmaps and customizing them.
     fig,ax = double_heatmap(pitch, thickness, mean_shift_ka.flatten(), mean_shift_kb.flatten(), 3)
-    plt.title(rf'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, ENC = {enc}')
-    plt.ylabel(r'Thickness [$\mu$m]')
-    plt.xlabel(r'Pitch [$\mu$m]')
+    plt.title(rf'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, $n_{{electronics}}$ = {enc} ENC')
+    plt.ylabel(r'Thickness t [$\mu$m]')
+    plt.xlabel(r'Pitch p [$\mu$m]')
     # custom yticks. Setting a right yaxis
     len_yaxis = len(thickness)
     len_yticks = len(thickness)*2
@@ -304,9 +331,9 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
             plt.savefig(f'{save_path}/mean_shift_all_evts.pdf')
 
     fig2,ax2 = double_heatmap(pitch, thickness, energy_res_ka.flatten(), energy_res_kb.flatten(), 0)
-    plt.title(rf'Energy resolution FWHM [eV], ENC = {enc}')
-    plt.ylabel(r'Thickness $\mu$m')
-    plt.xlabel(r'Pitch [$\mu$m]')
+    plt.title(rf'Energy resolution $\sigma_{{K_{{\alpha, \beta}}}}$ FWHM [eV], $n_{{electronics}}$ = {enc} ENC')
+    plt.ylabel(r'Thickness t [$\mu$m]')
+    plt.xlabel(r'Pitch p [$\mu$m]')
     # custom yticks. Setting a right yaxis
     twin1 = ax2.twinx()
     twin1.set(ylim=(0, len_yaxis))
@@ -315,31 +342,74 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
             plt.savefig(f'{save_path}/energy_res_all_evts.pdf')
     
     heatmap_with_labels(pitch, thickness, efficiency_on_alpha)
-    plt.title(rf'Efficiency on $\alpha$ signal')
-    plt.xlabel(r'Pitch [$\mu$m]')
-    plt.ylabel(r'thickness $\mu$m')
+    plt.title(rf'Efficiency on $K_{{\alpha}}$ signal, $n_{{electronics}}$ = {enc} ENC')
+    plt.xlabel(r'Pitch p [$\mu$m]')
+    plt.ylabel(r'Thickness t [$\mu$m]')
     if save_path is not None:
         plt.savefig(f'{save_path}/efficiency.pdf')
 
     heatmap_with_labels(pitch, thickness, mean_cluster_size, 2)
-    plt.title(rf'Mean cluster size')
-    plt.xlabel(r'Pitch [$\mu$m]')
-    plt.ylabel(r'thickness $\mu$m')
+    plt.title(rf'Average cluster size, $n_{{electronics}}$ = {enc} ENC')
+    plt.xlabel(r'Pitch p [$\mu$m]')
+    plt.ylabel(r'Thickness t [$\mu$m]')
     if save_path is not None:
         plt.savefig(f'{save_path}/mean_cluster_size.pdf')
+
+    heatmap_with_labels(pitch, thickness, dx, n_digits=7)
+    plt.title(rf'Reconstruction shift on x: $\mu(|x_{{MC}} - x_{{recon}}|)$ [cm], $n_{{electronics}}$ = {enc} ENC')
+    plt.xlabel(r'Pitch p [$\mu$m]')
+    plt.ylabel(r'Thickness t [$\mu$m]')
+    if save_path is not None:
+        plt.savefig(f'{save_path}/x_shift.pdf')
+
+    heatmap_with_labels(pitch, thickness, dy, n_digits=7)
+    plt.title(rf'Reconstruction shift on y: $\mu(|y_{{MC}} - y_{{recon}}|)$ [cm], $n_{{electronics}}$ = {enc} ENC')
+    plt.xlabel(r'Pitch p [$\mu$m]')
+    plt.ylabel(r'Thickness t [$\mu$m]')
+    if save_path is not None:
+        plt.savefig(f'{save_path}/y_shift.pdf')
+    
+    if correct_1px_ratio is True:
+        heatmap_with_labels(pitch, thickness, onepx_evts_ratio)
+        plt.title(fr'Fraction of events with cluster size = 1, $n_{{electronics}}$ = {enc} ENC')
+        plt.xlabel(r'Pitch p [$\mu$m]')
+        plt.ylabel(r'Thickness t $\mu$m')
+        if save_path is not None:
+            plt.savefig(f'{save_path}/fraction_1px_evts.pdf')
+
+    '''
+    #Constructing the hist containing the dx and dy
+    plt.figure()
+    print(f'{enc}, {thick}, {p}')
+    values = recon_file.mc_column('absx') - recon_file.column('posx')
+    binning = np.linspace(values.min(), values.max(), 100)
+    histx = Histogram1d(binning, xlabel='dx').fill(values)
+    histx.set_axis_label(0, r'$x_{MC} - x_{recon}$ [cm]')
+    histx.plot()
+
+    plt.figure()
+    values = recon_file.mc_column('absy') - recon_file.column('posy')
+    binning = np.linspace(values.min(), values.max(), 100)
+    histx = Histogram1d(binning, xlabel='dy').fill(values)
+    histx.set_axis_label(0, r'$y_{MC} - y_{recon}$ [cm]')
+    histx.plot()
+    
+    
+    recon_file.close()
+    '''
 
 
 if __name__ == '__main__':
     #Choosing values of enc and thickness from simulated ones.
-    enc_ = np.array([0, 10, 20, 25, 30, 35, 40])
-    thickness_ = np.array([0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05])*(1e4)
-    pitch = 50
-    pitch_ = np.array([0.0050, 0.0055, 0.0060, 0.0080, 0.01])*(1e4)
-    enc = 30
+    enc_ = np.array([20, 30, 40])
+    thickness_ = np.array([0.02, 0.025, 0.03, 0.035])*(1e4)
+    pitch = 60
+    pitch_ = np.array([0.0050, 0.0055, 0.0060])*(1e4)
+    enc = 20
     #Turning arrays into ints for reading filename correctly
     thickness_ = thickness_.astype(int)
     pitch_ = pitch_.astype(int)
-    #analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
-    analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    #analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
 
     plt.show()

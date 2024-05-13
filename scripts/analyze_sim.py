@@ -55,12 +55,12 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
     mask = cluster_size < 2
 
     #Creating histograms - for all evts and for evts with signal on 1px
-    energy_hist = create_histogram(recon_file, 'energy', binning = 100)
+    hist = energy_hist = create_histogram(recon_file, 'energy', binning = 100)
     energy_hist_1px = create_histogram(recon_file, 'energy', binning = 100)
     plt.figure()
     z = np.linspace(7000,10000,2000)
-    plt.title(fr'Energy histogram for t = {thick} $\mu$m, ENC = {noise}, pitch = {pitch} - all evts')
-    plt.xlabel('Energy [eV]')
+    #plt.title(fr'Energy t = {thick} $\mu$m, ENC = {noise}, pitch = {pitch}')
+    hist.set_axis_label(0, 'Energy [eV]')
     fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = True)
     #Doing the same for 1px evts
     '''
@@ -74,7 +74,8 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
            = {contamination_beta_on_alpha*100}% is {energy_thr}, with a corresponding\
            efficiency of alpha signal = {efficiency_of_alpha*100}%")
     #Plotting energy threshold vline on figure
-    plt.axvline(energy_thr, color='r', label = rf'$C_{{\beta \rightarrow \alpha}} = {contamination_beta_on_alpha}$')
+    plt.axvline(energy_thr, color='r', label = rf'Classification threshold = {energy_thr:.0f} eV')
+    plt.legend(loc='upper left')
     
     '''
     #Finding contamination and efficiency using Gini coefficient
@@ -105,8 +106,8 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
     plt.show()
 
 if __name__ == '__main__':
-    THICKNESS = 500
-    ENC = 40
+    THICKNESS = 300
+    ENC = 20
     PITCH = 50
-    contamination = 0.05
+    contamination = 0.02
     analyze_sim(THICKNESS, ENC, PITCH, contamination)
