@@ -43,13 +43,13 @@ class MonteCarloEvent:
     energy : float
         The energy of the event in eV.
 
-    x : float
+    absx : float
         The x coordinate of the photon absorption point in cm.
 
-    y : float
+    absy : float
         The y coordinate of the photon absorption point in cm.
 
-    z : float
+    absz : float
         The z coordinate of the photon absorption point in cm.
 
     num_pairs : int
