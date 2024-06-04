@@ -35,10 +35,8 @@ NOISE = (20, 30, 40)
 PITCH = (0.0050, 0.0055, 0.0060)
 # Number of neirest neighbors in track clusters
 NUM_NEIGHBORS = np.arange(1,8)
-# Trigger threshold 
-T_THRESHOLD = np.linspace(0,1000,50)
 # Zero-suppression threshold, expressed in units of enc.
-SIGMA_THRESHOLD = 2.
+SIGMA_THRESHOLD = np.linspace(0.5, 4, 30)
 # Number of neighbors for the clustering.
 NUM_NEIGHBORS = 2
 
@@ -58,7 +56,7 @@ for thickness in THICKNESS:
             hxrecon(infile=file_path, **kwargs)
 '''
 
-for thr in T_THRESHOLD:
+for thr in SIGMA_THRESHOLD:
     for nn in NUM_NEIGHBORS:
         # Simulate...
             file_name = f'sim_{thr:.0f}enc_20enc_{1e4 * pitch:.0f}pitch.h5'

@@ -55,6 +55,68 @@ ANALYZE_GRID_ARGPARSER.add_argument('1px_ratio_correction', type=str, help='Tell
 ANALYZE_GRID_ARGPARSER.add_argument('--savefigpath', type=str, help='Tells whether saving figures\
                                     and where. Accepts an absolute path. Saves figures in pdf.')
 
+
+def analyze_grid_zthr(thickness: float, enc: float, pitch: float, zthreshold: np.array, nneighbors: np.array):
+    # Defining arrays where results are contained for all zthr-nn combinations,
+    # one for K_alpha (Ka), one for K_beta (Kb).
+    evt_matrix = np.empty((len(nneighbors),len(zthreshold)), dtype=object)
+    #Defining matrix for saving sigma of fit. 3-dimensional bc every element is a matrix.
+    #One for alpha peak fit params, one for beta peaks fit params.
+    sigmas = np.empty((2,len(nneighbors),len(zthreshold)))
+    #Defining matrix for saving means of fit
+    mean_energy = np.empty((2,len(nneighbors),len(zthreshold)))
+    #Creating a matrix for saving the mean cluster size
+    mean_cluster_size = np.empty((len(nneighbors),len(zthreshold)))
+    #Creating a matrix for saving the efficiency on alpha signal
+    efficiency_on_alpha = np.empty((len(nneighbors),len(zthreshold)))
+    #Creating matrices for saving the mean difference x_mc - x_reco and y_mc - y_reco
+    dx = np.empty((len(nneighbors),len(zthreshold)))
+    dy = np.empty((len(nneighbors),len(zthreshold)))
+
+    # Saving true energy values (coming from MC).
+    mu_true_alpha = 8039.68
+    mu_true_beta = 8903.57
+
+    #Opening file, fitting and filling matrices with fitted values
+    for zthr_idx, zthr in np.ndenumerate(zthreshold):
+        for nn_idx, nn in np.ndenumerate(nneighbors):
+            file_path = f'/Users/chiara/hexsampledata/sim_{thickness}um_{enc}enc_{pitch}pitch_recon_nn{nn}_thr{zthr:.0f}.h5'
+            recon_file = ReconInputFile(file_path)
+            energy_hist = create_histogram(recon_file, 'energy', binning = 100)
+            fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = False)
+            #Saving the matrix containing the whole FitStatus for further (optional) use
+            evt_matrix[nn_idx][zthr_idx] = fitted_model
+            
+            #Filling the matrix of sigmas and means
+            # filling the matrix with the sigma
+            sigmas[0][nn_idx][zthr_idx] = fitted_model.parameter_value('sigma0') #alpha peak
+            sigmas[1][nn_idx][zthr_idx] = fitted_model.parameter_value('sigma1') #beta peak
+            # filling the matrix with the means
+            mean_energy[0][nn_idx][zthr_idx] = fitted_model.parameter_value('mean0')
+            mean_energy[1][nn_idx][zthr_idx] = fitted_model.parameter_value('mean1')
+            # filling the matrices containing the true and reconstructed x and y
+            dx[nn_idx][zthr_idx] = np.mean(np.abs(recon_file.mc_column('absx') - recon_file.column('posx')))
+            dy[nn_idx][zthr_idx] = np.mean(np.abs(recon_file.mc_column('absy') - recon_file.column('posy')))
+            recon_file.close()
+
+    # After having saved the interesting quantities in arrays, analysis is performed.
+    #constructing the metric for the shift of the mean
+    mean_shift_ka = (mean_energy[0]-mu_true_alpha)/mu_true_alpha
+    mean_shift_kb = (mean_energy[1]-mu_true_beta)/mu_true_beta
+    #constructing the energy resolution
+    energy_res_ka = sigmas[0]*2.35 #eV (FWHM)
+    energy_res_kb = sigmas[1]*2.35 #eV (FWHM)
+
+    # Plotting the energy resolution vs the z sup threshold
+    plt.figure("Energy resolution vs zero suppression threshold")
+    plt.xlabel('Zero suppression threshold [enc]')
+    plt.ylabel(rf'Energy resolution $\sigma_{{K_{{\alpha, \beta}}}}$ FWHM [eV]')
+    for nn_idx, nn in np.ndenumerate(nneighbors):
+        plt.errorbar(zthreshold, energy_res_ka[:][nn_idx], label=f'NN = {nn}')
+    plt.legend()
+    
+        
+
 def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, onepx : bool=False, **kwargs) -> None:
     """Opens files, creates histograms, fits them and create figures of some relevant 
         quantities. 
@@ -406,10 +468,14 @@ if __name__ == '__main__':
     pitch = 60
     pitch_ = np.array([0.0050, 0.0055, 0.0060])*(1e4)
     enc = 20
+    nneighbors = np.arange(1,8)
+    zthr = np.linspace(0,1000,50)
+    zthr = zthr[zthr<700] 
     #Turning arrays into ints for reading filename correctly
-    thickness_ = thickness_.astype(int)
-    pitch_ = pitch_.astype(int)
-    analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    #thickness_ = thickness_.astype(int)
+    #pitch_ = pitch_.astype(int)
+    #analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
     #analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    analyze_grid_zthr(250, 20, 60, zthr, nneighbors)
 
     plt.show()
