@@ -105,7 +105,7 @@ class ClusteringNN(ClusteringBase):
 
     num_neighbors: int
 
-    def run(self, event: DigiEventSparse | DigiEventRectangular | DigiEventCircular) -> Cluster:
+    def run(self, event) -> Cluster:
         """Overladed method.
 
         .. warning::
