@@ -45,7 +45,8 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
     """
     #Taking data from reconstructed simulations at chosen detector thickness and pitch and readout noise
     thr = 2 * noise 
-    file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_{pitch}pitch_recon_nn2_thr{thr}.h5'
+    #file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_{pitch}pitch_recon_nn2_thr{thr}.h5'
+    file_path = f'/Users/chiara/hexsampledata/sim_250um_20enc_60pitch_recon_nn6_thr22.h5'
     print(file_path)
     recon_file = ReconInputFile(file_path)
 

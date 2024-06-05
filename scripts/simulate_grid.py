@@ -34,13 +34,13 @@ NOISE = (20, 30, 40)
 # Chip pitch in cm
 PITCH = (0.0050, 0.0055, 0.0060)
 # Number of neirest neighbors in track clusters
-NUM_NEIGHBORS = np.arange(1,8)
+N_NEIGHBORS = np.arange(0,7)
 # Zero-suppression threshold, expressed in units of enc.
-SIGMA_THRESHOLD = np.linspace(0.5, 4, 30)
+SIGMA_THRESHOLD = np.linspace(0, 5, 50)
 # Number of neighbors for the clustering.
 NUM_NEIGHBORS = 2
 
-'''
+
 for thickness in THICKNESS:
     for noise in NOISE:
         for pitch in PITCH:
@@ -50,23 +50,42 @@ for thickness in THICKNESS:
             kwargs = dict(outfile=file_path, thickness=thickness, noise=noise, pitch=pitch)
             file_path = hxsim(numevents=NUM_EVENTS, **kwargs)
             # ... and reconstruct.
-            threshold = noise * SIGMA_THRESHOLD
-            suffix = f'recon_nn{NUM_NEIGHBORS}_thr{threshold:.0f}'
+            threshold = 52
+            suffix = f'recon_nn2_thr{threshold:.0f}'
             kwargs = dict(zsupthreshold=threshold, nneighbors=NUM_NEIGHBORS, suffix=suffix)
             hxrecon(infile=file_path, **kwargs)
+
+'''
+for thickness in THICKNESS:
+    for pitch in PITCH:
+        # Simulate...
+        file_name = f'sim_{1.e4 * thickness:.0f}um_0enc_{1e4 * pitch:.0f}pitch.h5'
+        file_path = HEXSAMPLE_DATA / file_name
+        kwargs = dict(outfile=file_path, thickness=thickness, noise=0, pitch=pitch)
+        file_path = hxsim(numevents=NUM_EVENTS, **kwargs)
+        # ... and reconstruct.
+        threshold = 0
+        suffix = f'recon_nn2_thr{threshold:.0f}'
+        kwargs = dict(zsupthreshold=threshold, nneighbors=NUM_NEIGHBORS, suffix=suffix)
+        hxrecon(infile=file_path, **kwargs)
 '''
 
-for thr in SIGMA_THRESHOLD:
-    for nn in NUM_NEIGHBORS:
-        # Simulate...
-            file_name = f'sim_{thr:.0f}enc_20enc_{1e4 * pitch:.0f}pitch.h5'
-            file_path = HEXSAMPLE_DATA / file_name
-            kwargs = dict(outfile=file_path, thickness=0.025, noise=20, pitch=0.006)
-            file_path = hxsim(numevents=NUM_EVENTS, **kwargs)
-            # ... and reconstruct.
-            threshold = 20 * SIGMA_THRESHOLD
-            suffix = f'recon_nn{NUM_NEIGHBORS}_thr{threshold:.0f}'
-            kwargs = dict(zsupthreshold=threshold, nneighbors=NUM_NEIGHBORS, suffix=suffix)
-            hxrecon(infile=file_path, **kwargs)
+
+
+'''
+# Simulate...
+file_name = f'sim_250um_20enc_60pitch.h5'
+file_path = HEXSAMPLE_DATA / file_name
+kwargs = dict(outfile=file_path, thickness=0.025, noise=20, pitch=0.006)
+file_path = hxsim(numevents=NUM_EVENTS, **kwargs)
+
+for sigma_thr in SIGMA_THRESHOLD:
+    for nn in N_NEIGHBORS:
+        # ... and reconstruct.
+        thr = 20 * sigma_thr
+        suffix = f'recon_nn{nn}_thr{thr:.0f}'
+        kwargs = dict(zsupthreshold=thr, nneighbors=nn, suffix=suffix)
+        hxrecon(infile=file_path, **kwargs)
+'''
 
 

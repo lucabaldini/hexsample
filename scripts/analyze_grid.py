@@ -65,8 +65,6 @@ def analyze_grid_zthr(thickness: float, enc: float, pitch: float, zthreshold: np
     sigmas = np.empty((2,len(nneighbors),len(zthreshold)))
     #Defining matrix for saving means of fit
     mean_energy = np.empty((2,len(nneighbors),len(zthreshold)))
-    #Creating a matrix for saving the mean cluster size
-    mean_cluster_size = np.empty((len(nneighbors),len(zthreshold)))
     #Creating a matrix for saving the efficiency on alpha signal
     efficiency_on_alpha = np.empty((len(nneighbors),len(zthreshold)))
     #Creating matrices for saving the mean difference x_mc - x_reco and y_mc - y_reco
@@ -108,12 +106,25 @@ def analyze_grid_zthr(thickness: float, enc: float, pitch: float, zthreshold: np
     energy_res_kb = sigmas[1]*2.35 #eV (FWHM)
 
     # Plotting the energy resolution vs the z sup threshold
-    plt.figure("Energy resolution vs zero suppression threshold")
+    plt.figure("Energy resolution vs zero suppression threshold for alpha peak")
     plt.xlabel('Zero suppression threshold [enc]')
-    plt.ylabel(rf'Energy resolution $\sigma_{{K_{{\alpha, \beta}}}}$ FWHM [eV]')
+    plt.ylabel(rf'Energy resolution $\sigma_{{K_{{\alpha}}}}$ FWHM [eV]')
     for nn_idx, nn in np.ndenumerate(nneighbors):
         plt.errorbar(zthreshold, energy_res_ka[:][nn_idx], label=f'NN = {nn}')
+        print(f'NN = {nn}. Minimal energy resolution FWHM for alpha: {min(energy_res_ka[:][nn_idx])}\
+              at zthr {zthreshold[np.argmin(energy_res_ka[:][nn_idx])]}')
     plt.legend()
+
+    plt.figure("Energy resolution vs zero suppression threshold for beta peak")
+    plt.xlabel('Zero suppression threshold [enc]')
+    plt.ylabel(rf'Energy resolution $\sigma_{{K_{{\beta}}}}$ FWHM [eV]')
+    for nn_idx, nn in np.ndenumerate(nneighbors):
+        plt.errorbar(zthreshold, energy_res_kb[:][nn_idx], label=f'NN = {nn}')
+        print(f'NN = {nn}. Minimal energy resolution FWHM for beta: {min(energy_res_kb[:][nn_idx])}\
+              at zthr {zthreshold[np.argmin(energy_res_kb[:][nn_idx])]}')
+    plt.legend()
+
+
     
         
 
@@ -165,7 +176,7 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
         QE_beta = sensor.photabsorption_efficiency(np.mean(8903.57))
         for e_idx, e in np.ndenumerate(enc):
             thr = 2 * e
-            file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{e}enc_{pitch}pitch_recon_nn2_thr{thr}.h5'
+            file_path = f'/Users/chiara/hexsampledata/sim_{thick:.0f}um_{e}enc_{pitch}pitch_recon_nn2_thr{thr}.h5'
             recon_file = ReconInputFile(file_path)
             #Constructing the 1px mask
             cluster_size = recon_file.column('cluster_size')
@@ -327,12 +338,13 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
         print(f'Thickness:{thick}, QE={QE_alpha}')
         QE_beta = sensor.photabsorption_efficiency(8903.57)
         for p_idx, p in np.ndenumerate(pitch):
-            thr = 2 * enc
+            #thr = 2 * enc
+            thr = 52
             file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{enc}enc_{p}pitch_recon_nn2_thr{thr}.h5'
             recon_file = ReconInputFile(file_path)
             #Constructing the 1px mask
             cluster_size = recon_file.column('cluster_size')
-            onepxmask = cluster_size < 2
+            onepxmask = cluster_size == 3
             #Creating histogram
             if onepx is False:
                 mask = cluster_size > 0
@@ -463,19 +475,18 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
 
 if __name__ == '__main__':
     #Choosing values of enc and thickness from simulated ones.
-    enc_ = np.array([20, 30, 40])
+    enc_ = np.array([0, 20, 30, 40])
     thickness_ = np.array([0.02, 0.025, 0.03, 0.035])*(1e4)
     pitch = 60
     pitch_ = np.array([0.0050, 0.0055, 0.0060])*(1e4)
     enc = 20
-    nneighbors = np.arange(1,8)
-    zthr = np.linspace(0,1000,50)
-    zthr = zthr[zthr<700] 
+    nneighbors = np.arange(0,7)
+    zthr = np.linspace(enc*0, enc*5, 50)
     #Turning arrays into ints for reading filename correctly
-    #thickness_ = thickness_.astype(int)
-    #pitch_ = pitch_.astype(int)
+    thickness_ = thickness_.astype(int)
+    pitch_ = pitch_.astype(int)
     #analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
-    #analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
-    analyze_grid_zthr(250, 20, 60, zthr, nneighbors)
+    analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    #analyze_grid_zthr(250, 20, 60, zthr, nneighbors)
 
     plt.show()
