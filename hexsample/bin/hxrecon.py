@@ -78,12 +78,6 @@ def hxrecon(**kwargs):
             header['pitch'], header['noise'], header['gain']
         readout = HexagonalReadoutCircular(*args)
         logger.info(f'Readout chip: {readout}')
-        header = input_file.header
-        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-            header['pitch'], header['noise'], header['gain']
-        #readout = HexagonalReadoutCircular(*args)
-        readout = HexagonalReadoutRectangular(*args)
-        logger.info(f'Readout chip: {readout}')
     # When the readout tipology is determined, the event is clustered ...   
     clustering = ClusteringNN(readout, kwargs['zsupthreshold'], kwargs['nneighbors'])
     suffix = kwargs['suffix']
