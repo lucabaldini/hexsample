@@ -50,7 +50,7 @@ def display_adc_7(num_cols: int = 15, num_rows: int = 18, pitch: float = 50.,
     for i, j in block_pixels:
         color[i, j] = BLOCK_COLOR
     for pixel in SAMPLE_PIXELS:
-        color[pixel] = EVENT_COLOR
+        color[pixel] = BLOCK_COLOR
         for i, j in grid.neighbors(*pixel):
             color[i, j] = EVENT_COLOR
     collection.set_facecolor(color.transpose().flatten())
@@ -103,4 +103,5 @@ def display_template(num_cols: int = 16, num_rows: int = 12, pitch: float = 50.,
 if __name__ == '__main__':
     display_adc_7()
     display_adc_9()
+    plt.show()
     #display_template()

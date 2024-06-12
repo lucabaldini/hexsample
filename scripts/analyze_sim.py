@@ -38,7 +38,9 @@ def analyze_sim(thick : int, noise : int) -> None:
         Noise og the detector readout in enc    
     """
     thr = 2 * noise
-    file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_recon_nn2_thr{thr}.h5'
+    file_path = f'/Users/chiara/hexsampledata/hxsim_recon.h5'
+    #file_path = f'/Users/chiara/hexsampledata/sim_HexagonalLayout.ODD_Rum_0enc_srcsigma200um_recon.h5'
+    #file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_recon_nn2_thr{thr}.h5'
     recon_file = ReconInputFile(file_path)
     #Constructing the 1px mask
     cluster_size = recon_file.column('cluster_size')
@@ -47,15 +49,25 @@ def analyze_sim(thick : int, noise : int) -> None:
     energy_hist = create_histogram(recon_file, 'energy', binning = 100)
     energy_hist_1px = create_histogram(recon_file, 'energy', mask = mask, binning = 100)
     plt.figure()
-    #fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = False)
-    plt.title(fr'Energy histogram for t = {thick} $\mu$m, ENC = {noise} - 1px evts')
+    fitted_model = fit_histogram(energy_hist, DoubleGaussian, show_figure = True)
+    plt.title(fr'Energy histogram for t = {thick} $\mu$m, ENC = {noise}')
     plt.xlabel('Energy [eV]')
-    fitted_model_1px = fit_histogram(energy_hist_1px, fit_model=DoubleGaussian, show_figure = True)
+    #fitted_model_1px = fit_histogram(energy_hist_1px, fit_model=DoubleGaussian, show_figure = True)
+
+    plt.figure()
+    x_hist = create_histogram(recon_file, 'absx', mc = True, binning = 100)
+    x_hist.plot()
+    plt.xlabel('x [cm]')
+
+    plt.figure()
+    y_hist = create_histogram(recon_file, 'absy', mc = True, binning = 100)
+    y_hist.plot()
+    plt.xlabel('y [cm]')
     recon_file.close()
 
     plt.show()
 
 if __name__ == '__main__':
-    THICKNESS = 50
-    ENC = 10
+    THICKNESS = 350
+    ENC = 0
     analyze_sim(THICKNESS, ENC, **vars(ANALYZESIM_ARGPARSER.parse_args()))
