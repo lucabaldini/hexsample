@@ -35,7 +35,7 @@ from hexsample.fileio import DigiDescriptionSparse, DigiDescriptionRectangular,\
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
 from hexsample.roi import Padding
-from hexsample.source import LineForest, GaussianBeam, Source
+from hexsample.source import ContinuumSpectrum, LineForest, GaussianBeam, Source
 from hexsample.sensor import Material, Sensor
 
 
@@ -58,7 +58,11 @@ def hxsim(**kwargs):
     """
     # pylint: disable=too-many-locals, invalid-name
     rng.initialize(seed=kwargs['seed'])
-    spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
+    spectrum_type = kwargs['spectrumtype']
+    if spectrum_type == 'continuum':
+        spectrum = ContinuumSpectrum()
+    else:
+        spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
     beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
     source = Source(spectrum, beam)
     material = Material(kwargs['actmedium'], kwargs['fano'])
