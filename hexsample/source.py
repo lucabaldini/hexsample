@@ -205,8 +205,6 @@ class SpectrumBase:
         """
         raise NotImplementedError
 
-
-
 class LineForest(SpectrumBase):
 
     """Class describing a set of X-ray emission lines for a given element and
@@ -269,8 +267,46 @@ class LineForest(SpectrumBase):
         """String formatting.
         """
         return f'{self.line_dict}'
+    
+class ContinuumSpectrum(SpectrumBase):
+    """Class describing a continuum and uniform x-ray energy spectrum between
+    a minimum and a maximum value. By now the continuum spectrum is set in the
+    range [7000, 9000] eV, the possibility to choose it in the sim has to be
+    implemented.
 
+    Arguments
+    ---------
+    min_energy : float
+        Minimum energy of the spectrum
+    max_energy : float
+        Maximum energy of the spectrum
+    """
+    def __init__(self, min_energy: float=7000, max_energy: float=9000) -> None:
+        self.minimum_energy = min_energy
+        self.maximum_energy = max_energy
 
+    def rvs(self, size: int  = 1) -> np.ndarray:
+        """Throw random energies from the line forest.
+
+        Arguments
+        ---------
+        size : int
+            The number of X-ray energies to be generated.
+
+        Returns
+        -------
+        energy : np.ndarray of shape ``size``
+            The photon energies in eV.
+        """
+        # Random generating the energies in [minimum_energy, maximum_energy]
+        return rng.generator.uniform(self.minimum_energy, self.maximum_energy, size)
+    
+    def plot(self) -> None:
+        """Plot the continuum spectrum for 1e4 generated photons.
+        """
+        # pylint: disable=invalid-name
+        plt.hist(self.rvs(10000), density=True, width=0.0001, color='black')
+        setup_gca(xlabel='Energy [eV]', ylabel='pdf', logy=True, grids=True)
 
 class Source:
 
