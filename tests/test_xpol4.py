@@ -47,6 +47,7 @@ def display_adc_7(num_cols: int = 15, num_rows: int = 18, pitch: float = 50.,
         color[pixel] = '#bbb'
         for i, j in grid.neighbors(*pixel):
             color[i, j] = '#bbb'
+            pass
     collection.set_facecolor(color.transpose().flatten())
     for col in np.arange(num_cols):
         for row in np.arange(num_rows):
@@ -57,6 +58,7 @@ def display_adc_7(num_cols: int = 15, num_rows: int = 18, pitch: float = 50.,
             plt.text(x, y, f'{adc_index}', ha='center', va='center', size='small')
     plt.margins(0.01, 0.01)
     display.setup_gca()
+    plt.show()
 
 def display_adc_9(num_cols: int = 15, num_rows: int = 18, pitch: float = 50.,
     layout=HexagonalLayout.EVEN_R):
@@ -96,4 +98,4 @@ def display_template(num_cols: int = 16, num_rows: int = 12, pitch: float = 50.,
 if __name__ == '__main__':
     display_adc_7()
     display_adc_9()
-    #display_template()
+    display_template()

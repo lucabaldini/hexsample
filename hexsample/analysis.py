@@ -23,7 +23,9 @@
 import numpy as np
 from scipy.stats import norm
 
-from hexsample.fileio import InputFileBase
+import tqdm 
+
+from hexsample.fileio import InputFileBase, DigiInputFile
 from hexsample.hist import Histogram1d
 from hexsample.modeling import FitModelBase, DoubleGaussian
 from hexsample.plot import plt
@@ -321,3 +323,25 @@ def energy_threshold_computation(fit_model: FitModelBase=DoubleGaussian, contami
            = {contamination_beta_on_alpha*100}% is {energy_thr}, with a corresponding\
            efficiency of alpha signal = {efficiency_on_alpha*100}%")
     return energy_thr, efficiency_on_alpha
+
+def hardware_cluster_number(row: int, total_row_number: int=352, 
+                            total_cluster_number: int=8) -> int:
+    """ Computes the location in terms of hardware clusters division of a pixel,
+    given its row logical coordinate.
+    """
+    rows_in_a_cluster = int(total_row_number / total_cluster_number)
+    return int(row / rows_in_a_cluster)
+
+def truncated_track_count(file_path: DigiInputFile) -> float:
+    """Returns the % of truncated tracks due to cluster division of the matrix.
+    """
+    digi_file = DigiInputFile(file_path)
+    truncated_tracks = 0
+    for evt in digi_file:
+        if hardware_cluster_number(evt.roi.min_row) != hardware_cluster_number(evt.roi.max_row):
+            truncated_tracks += 1
+
+    numevts = digi_file.root.header._v_attrs['numevents']
+    digi_file.close()
+    
+    return truncated_tracks/numevts
