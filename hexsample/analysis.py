@@ -336,12 +336,13 @@ def truncated_track_count(file_path: DigiInputFile) -> float:
     """Returns the % of truncated tracks due to cluster division of the matrix.
     """
     digi_file = DigiInputFile(file_path)
+    numevts = digi_file.root.header._v_attrs['numevents']
     truncated_tracks = 0
+    # Counting the truncated tracks ...
     for evt in digi_file:
         if hardware_cluster_number(evt.roi.min_row) != hardware_cluster_number(evt.roi.max_row):
             truncated_tracks += 1
-
-    numevts = digi_file.root.header._v_attrs['numevents']
+    # ... closing file and returning the result.
     digi_file.close()
     
     return truncated_tracks/numevts
