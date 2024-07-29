@@ -22,10 +22,13 @@
 
 import numpy as np
 
-from hexsample.fileio import InputFileBase
+from hexsample.fileio import InputFileBase, DigiInputFileCircular, DigiInputFileRectangular,\
+    peek_readout_type
 from hexsample.hist import Histogram1d
 from hexsample.modeling import FitModelBase, DoubleGaussian
 from hexsample.plot import plt
+from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutSparse,\
+    HexagonalReadoutRectangular, HexagonalReadoutCircular
 
 
 
@@ -242,3 +245,43 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_value
     fig.tight_layout()
     plt.colorbar() #plotting colorbar
     return fig, axes
+
+
+def hardware_cluster_number(row: int, total_row_number: int=352, 
+                            total_cluster_number: int=8) -> int:
+    """ Computes the location in terms of hardware clusters division of a pixel,
+    given its row logical coordinate.
+    """
+    rows_in_a_cluster = int(total_row_number / total_cluster_number)
+    return int(row / rows_in_a_cluster)
+
+def truncated_track_count(file_path: DigiInputFileCircular | DigiInputFileRectangular) -> float:
+    """Returns the % of truncated tracks due to cluster division of the matrix.
+    """
+    # It is necessary to extract the reaodut type because every readout type
+    # corresponds to a different DigiEvent type.
+    readout_mode = peek_readout_type(file_path)
+    if readout_mode is HexagonalReadoutMode.CIRCULAR:
+        digi_file = DigiInputFileCircular(file_path)
+        numevts = digi_file.root.header._v_attrs['numevents']
+        truncated_tracks = 0
+        # Counting the truncated tracks ...
+        for evt in digi_file:
+            if (hardware_cluster_number(evt.row) != hardware_cluster_number(evt.row+1)) |\
+                (hardware_cluster_number(evt.row) != hardware_cluster_number(evt.row-1)):
+                truncated_tracks += 1
+
+    elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        digi_file = DigiInputFileRectangular(file_path)
+        numevts = digi_file.root.header._v_attrs['numevents']
+        truncated_tracks = 0
+        # Counting the truncated tracks ...
+        for evt in digi_file:
+            if hardware_cluster_number(evt.roi.min_row) != hardware_cluster_number(evt.roi.max_row):
+                truncated_tracks += 1
+    else:
+        raise RuntimeError
+    # ... closing file and returning the result.
+    digi_file.close()
+    
+    return truncated_tracks/numevts
