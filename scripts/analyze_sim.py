@@ -11,6 +11,7 @@ from scipy.stats import norm
 
 from hexsample.app import ArgumentParser
 from hexsample.fileio import ReconInputFile
+from hexsample.hist import Histogram1d
 from hexsample.modeling import FitStatus, DoubleGaussian
 from hexsample.plot import plt
 from hexsample.analysis import create_histogram, fit_histogram, Gini_index, energy_threshold_computation
@@ -45,8 +46,8 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
     """
     #Taking data from reconstructed simulations at chosen detector thickness and pitch and readout noise
     thr = 2 * noise 
-    #file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_{pitch}pitch_recon_nn2_thr{thr}.h5'
-    file_path = f'/Users/chiara/hexsampledata/sim_250um_20enc_60pitch_recon_nn6_thr22.h5'
+    file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_{pitch}pitch_recon_nn2_thr{thr}.h5'
+    #file_path = f'/Users/chiara/hexsampledata/sim_250um_20enc_60pitch_recon_nn6_thr22.h5'
     print(file_path)
     recon_file = ReconInputFile(file_path)
 
@@ -77,6 +78,24 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
     #Plotting energy threshold vline on figure
     plt.axvline(energy_thr, color='r', label = rf'Classification threshold = {energy_thr:.0f} eV')
     plt.legend(loc='upper left')
+
+    plt.figure()
+    diff = recon_file.mc_column('absy') - recon_file.column('posy')
+    binning = np.linspace(diff.min(), diff.max(), 100)
+    hist = Histogram1d(binning).fill(diff)
+    plt.axvline(binning[np.where(hist.entries == max(hist.entries))], color='red')
+    print(binning[np.where(hist.entries == max(hist.entries))])
+    hist.plot()
+
+    plt.figure()
+    diff = recon_file.mc_column('absx') - recon_file.column('posx')
+    binning = np.linspace(diff.min(), diff.max(), 100)
+    hist = Histogram1d(binning).fill(diff)
+    plt.axvline(binning[np.where(hist.entries == max(hist.entries))], color='red')
+    print(binning[np.where(hist.entries == max(hist.entries))])
+    hist.plot()
+
+
     
     '''
     #Finding contamination and efficiency using Gini coefficient
@@ -107,8 +126,8 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
     plt.show()
 
 if __name__ == '__main__':
-    THICKNESS = 300
+    THICKNESS = 350
     ENC = 20
-    PITCH = 50
+    PITCH = 60
     contamination = 0.02
     analyze_sim(THICKNESS, ENC, PITCH, contamination)

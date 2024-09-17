@@ -181,14 +181,14 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
             heatmap = np.concatenate((heatmap, [heatmap_values2[slice_start:slice_stop]]))
 
     #Creating the custom colormap (it is useful if it is needed to customize it)
-    #my_cmap = plt.cm.get_cmap('inferno')
+    #my_cmap = plt.cm.get_cmap('Oranges')
 
     #Plotting the map and make it pretty
     fig = plt.figure()
     ax = plt.gca()
-    plt.pcolormesh(heatmap, cmap='inferno', edgecolors='k', linewidths=1, shading='flat')
+    plt.pcolormesh(heatmap, cmap='Oranges', edgecolors='k', linewidths=1, shading='flat')
     # Loop over data dimensions and create text annotations.
-    fmt = dict(ha='center', va='center', color='b')
+    fmt = dict(ha='center', va='center', color='k')
     for i in range(row_number * 2):
         for j in range(column_number):
             ax.text(j + 0.5, i + 0.5, f'{heatmap[i, j]:.{n_digits}f}', **fmt)
@@ -228,15 +228,15 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array,
 
 
     #Creating the custom colormap (it is useful if it is needed to customize it)
-    #my_cmap = plt.cm.get_cmap('inferno')
+    #my_cmap = plt.cm.get_cmap('Oranges')
     column_number = len(column_vals)
     row_number = len(row_vals)
     #Plotting the map and make it pretty
     fig = plt.figure()
     axes = plt.gca()
-    plt.pcolormesh(heatmap_values, cmap='inferno', edgecolors='k', linewidths=1, shading='flat')
+    plt.pcolormesh(heatmap_values, cmap='Oranges', edgecolors='k', linewidths=1, shading='flat')
     # Loop over data dimensions and create text annotations.
-    fmt = dict(ha='center', va='center', color='b')
+    fmt = dict(ha='center', va='center', color='k')
     for i in range(row_number):
         for j in range(column_number):
             axes.text(j + 0.5, i + 0.5, f'{heatmap_values[i, j]:.{n_digits}f}', **fmt)

@@ -24,6 +24,7 @@
 from ast import literal_eval
 
 import numpy as np
+import matplotlib.patches as mpatches
 
 from hexsample.app import ArgumentParser
 from hexsample.analysis import create_histogram, fit_histogram, double_heatmap, heatmap_with_labels, energy_threshold_computation
@@ -227,6 +228,9 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
     plt.title(fr'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, p = {pitch} $\mu$m')
     plt.ylabel(r'Thickness t $\mu$m')
     plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
+    arrow = mpatches.FancyArrowPatch((0.25, 0.25), (3.75, 7.75),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     # custom yticks. Setting a right yaxis
     len_yaxis = len(thickness)
     len_yticks = len(thickness)*2
@@ -244,6 +248,9 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
     plt.title(rf'Energy resolution $\sigma_{{K_{{\alpha, \beta}}}}$ FWHM [eV], p = {pitch} $\mu$m')
     plt.ylabel(r'Thickness t $\mu$m')
     plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
+    arrow = mpatches.FancyArrowPatch((0.25, 0.25), (3.75, 7.75),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax2.add_patch(arrow)
     # custom yticks. Setting a right yaxis
     twin1 = ax2.twinx()
     twin1.set(ylim=(0, len_yaxis))
@@ -251,39 +258,57 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
     if save_path is not None:
         plt.savefig(f'{save_path}/energy_res_all_evts.pdf')
 
-    heatmap_with_labels(enc, thickness, mean_cluster_size, 2)
+    fig, ax = heatmap_with_labels(enc, thickness, mean_cluster_size, 2)
     plt.title(rf'Average cluster size,  p = {pitch} $\mu$m')
     plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
     plt.ylabel(r'Thickness t $\mu$m')
+    arrow = mpatches.FancyArrowPatch((3.75, 0.25), (0.25, 3.75),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/mean_cluster_size.pdf')
 
-    heatmap_with_labels(enc, thickness, efficiency_on_alpha)
+    fig, ax = heatmap_with_labels(enc, thickness, efficiency_on_alpha)
     plt.title(rf'Efficiency on $K_{{\alpha}}$ signal,  p = {pitch} $\mu$m')
     plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
     plt.ylabel(r'Thickness t $\mu$m')
+    arrow = mpatches.FancyArrowPatch((0.5, 0.25), (0.5, 3.75), 
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
+    arrow = mpatches.FancyArrowPatch((3.75, 0.5), (0.25, 0.5), 
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/efficiency.pdf')
 
-    heatmap_with_labels(enc, thickness, dx, n_digits=7)
+    fig, ax = heatmap_with_labels(enc, thickness, dx, n_digits=7)
     plt.title(rf'Reconstruction shift on x: $\mu(|x_{{MC}} - x_{{recon}}|)$ [cm],  p = {pitch} $\mu$m')
     plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
     plt.ylabel(r'Thickness t $\mu$m')
+    arrow = mpatches.FancyArrowPatch((3.75, 0.25), (0.25, 3.75), 
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/x_shift.pdf')
 
-    heatmap_with_labels(enc, thickness, dy, n_digits=7)
+    fig, ax = heatmap_with_labels(enc, thickness, dy, n_digits=7)
     plt.title(rf'Reconstruction shift on y: $\mu(|y_{{MC}} - y_{{recon}}|)$ [cm],  p = {pitch} $\mu$m')
     plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
     plt.ylabel(r'Thickness t $\mu$m')
+    arrow = mpatches.FancyArrowPatch((3.75, 0.25), (0.25, 3.75), 
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/y_shift.pdf')
 
     if correct_1px_ratio is True:
-        heatmap_with_labels(enc, thickness, onepx_evts_ratio)
+        fig, ax = heatmap_with_labels(enc, thickness, onepx_evts_ratio)
         plt.title(fr'Fraction of events with 1 px on readout $f = \frac{{n_{{evts1px}}}}{{n_{{evts}}}}$,  p = {pitch} $\mu$m')
         plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
         plt.ylabel(r'Thickness t $\mu$m')
+        arrow = mpatches.FancyArrowPatch((0.25, 3.75), (3.75, 0.25), 
+                                 mutation_scale=100, alpha=0.5, color='red')
+        ax.add_patch(arrow)
         if save_path is not None:
             plt.savefig(f'{save_path}/fraction_1px_evts.pdf')
 
@@ -391,6 +416,9 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     plt.title(rf'$\Delta = \frac{{\mu_{{E}}-E_{{K}}}}{{E_{{K}}}}$, $n_{{electronics}}$ = {enc} ENC')
     plt.ylabel(r'Thickness t [$\mu$m]')
     plt.xlabel(r'Pitch p [$\mu$m]')
+    arrow = mpatches.FancyArrowPatch((2.75, 0.25), (0.25, 7.75),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     # custom yticks. Setting a right yaxis
     len_yaxis = len(thickness)
     len_yticks = len(thickness)*2
@@ -408,6 +436,9 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     plt.title(rf'Energy resolution $\sigma_{{K_{{\alpha, \beta}}}}$ FWHM [eV], $n_{{electronics}}$ = {enc} ENC')
     plt.ylabel(r'Thickness t [$\mu$m]')
     plt.xlabel(r'Pitch p [$\mu$m]')
+    arrow = mpatches.FancyArrowPatch((0.25, 7.75), (2.75, 0.25),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax2.add_patch(arrow)
     # custom yticks. Setting a right yaxis
     twin1 = ax2.twinx()
     twin1.set(ylim=(0, len_yaxis))
@@ -415,39 +446,54 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     if save_path is not None:
             plt.savefig(f'{save_path}/energy_res_all_evts.pdf')
     
-    heatmap_with_labels(pitch, thickness, efficiency_on_alpha)
+    fig, ax = heatmap_with_labels(pitch, thickness, efficiency_on_alpha)
     plt.title(rf'Efficiency on $K_{{\alpha}}$ signal, $n_{{electronics}}$ = {enc} ENC')
     plt.xlabel(r'Pitch p [$\mu$m]')
     plt.ylabel(r'Thickness t [$\mu$m]')
+    arrow = mpatches.FancyArrowPatch((1.5, 0.25), (1.5, 3.75),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/efficiency.pdf')
 
-    heatmap_with_labels(pitch, thickness, mean_cluster_size, 2)
+    fig, ax = heatmap_with_labels(pitch, thickness, mean_cluster_size, 2)
     plt.title(rf'Average cluster size, $n_{{electronics}}$ = {enc} ENC')
     plt.xlabel(r'Pitch p [$\mu$m]')
     plt.ylabel(r'Thickness t [$\mu$m]')
+    arrow = mpatches.FancyArrowPatch((2.75, 0.25), (0.25, 3.75),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/mean_cluster_size.pdf')
 
-    heatmap_with_labels(pitch, thickness, dx, n_digits=7)
+    fig, ax = heatmap_with_labels(pitch, thickness, dx, n_digits=7)
     plt.title(rf'Reconstruction shift on x: $\mu(|x_{{MC}} - x_{{recon}}|)$ [cm], $n_{{electronics}}$ = {enc} ENC')
     plt.xlabel(r'Pitch p [$\mu$m]')
     plt.ylabel(r'Thickness t [$\mu$m]')
+    arrow = mpatches.FancyArrowPatch((0.25, 3.75), (2.75, 0.25),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/x_shift.pdf')
 
-    heatmap_with_labels(pitch, thickness, dy, n_digits=7)
+    fig, ax = heatmap_with_labels(pitch, thickness, dy, n_digits=7)
     plt.title(rf'Reconstruction shift on y: $\mu(|y_{{MC}} - y_{{recon}}|)$ [cm], $n_{{electronics}}$ = {enc} ENC')
     plt.xlabel(r'Pitch p [$\mu$m]')
     plt.ylabel(r'Thickness t [$\mu$m]')
+    arrow = mpatches.FancyArrowPatch((0.25, 3.75), (2.75, 0.25),
+                                 mutation_scale=100, alpha=0.5, color='red')
+    ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/y_shift.pdf')
     
     if correct_1px_ratio is True:
-        heatmap_with_labels(pitch, thickness, onepx_evts_ratio)
+        fig, ax = heatmap_with_labels(pitch, thickness, onepx_evts_ratio)
         plt.title(fr'Fraction of events with cluster size = 1, $n_{{electronics}}$ = {enc} ENC')
         plt.xlabel(r'Pitch p [$\mu$m]')
         plt.ylabel(r'Thickness t $\mu$m')
+        arrow = mpatches.FancyArrowPatch((2.75, 0.25), (0.25, 3.75), 
+                                 mutation_scale=100, alpha=0.5, color='red')
+        ax.add_patch(arrow)
         if save_path is not None:
             plt.savefig(f'{save_path}/fraction_1px_evts.pdf')
 
@@ -485,8 +531,8 @@ if __name__ == '__main__':
     #Turning arrays into ints for reading filename correctly
     thickness_ = thickness_.astype(int)
     pitch_ = pitch_.astype(int)
-    #analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
-    analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    #analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
     #analyze_grid_zthr(250, 20, 60, zthr, nneighbors)
 
     plt.show()

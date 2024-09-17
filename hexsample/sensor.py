@@ -41,7 +41,6 @@ class CrossSection(Enum):
     TOTAL = 'total'
 
 
-
 class Material:
 
     """Class describing a material.
