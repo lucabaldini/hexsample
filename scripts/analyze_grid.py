@@ -181,7 +181,7 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
             recon_file = ReconInputFile(file_path)
             #Constructing the 1px mask
             cluster_size = recon_file.column('cluster_size')
-            onepxmask = cluster_size < 2
+            onepxmask = cluster_size == 1
             #Creating histogram
             if onepx is False:
                 mask = cluster_size > 0
@@ -281,21 +281,21 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
     if save_path is not None:
         plt.savefig(f'{save_path}/efficiency.pdf')
 
-    fig, ax = heatmap_with_labels(enc, thickness, dx, n_digits=7)
-    plt.title(rf'Reconstruction shift on x: $\mu(|x_{{MC}} - x_{{recon}}|)$ [cm],  p = {pitch} $\mu$m')
+    fig, ax = heatmap_with_labels(enc, thickness, dx*10000, n_digits=2)
+    plt.title(rf'$\mu(|x_{{MC}} - x_{{recon}}|)$ [$\mu$m],  p = {pitch} $\mu$m')
     plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
     plt.ylabel(r'Thickness t $\mu$m')
-    arrow = mpatches.FancyArrowPatch((3.75, 0.25), (0.25, 3.75), 
+    arrow = mpatches.FancyArrowPatch((0.25, 3.75), (3.75, 0.25), 
                                  mutation_scale=100, alpha=0.5, color='red')
     ax.add_patch(arrow)
     if save_path is not None:
         plt.savefig(f'{save_path}/x_shift.pdf')
 
-    fig, ax = heatmap_with_labels(enc, thickness, dy, n_digits=7)
-    plt.title(rf'Reconstruction shift on y: $\mu(|y_{{MC}} - y_{{recon}}|)$ [cm],  p = {pitch} $\mu$m')
+    fig, ax = heatmap_with_labels(enc, thickness, dy*10000, n_digits=2)
+    plt.title(rf'$\mu(|y_{{MC}} - y_{{recon}}|)$ [$\mu$m],  p = {pitch} $\mu$m')
     plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
     plt.ylabel(r'Thickness t $\mu$m')
-    arrow = mpatches.FancyArrowPatch((3.75, 0.25), (0.25, 3.75), 
+    arrow = mpatches.FancyArrowPatch((0.25, 3.75), (3.75, 0.25), 
                                  mutation_scale=100, alpha=0.5, color='red')
     ax.add_patch(arrow)
     if save_path is not None:
@@ -303,7 +303,7 @@ def analyze_grid_thickenc(thickness : np.array, enc : np.array, pitch : float, o
 
     if correct_1px_ratio is True:
         fig, ax = heatmap_with_labels(enc, thickness, onepx_evts_ratio)
-        plt.title(fr'Fraction of events with 1 px on readout $f = \frac{{n_{{evts1px}}}}{{n_{{evts}}}}$,  p = {pitch} $\mu$m')
+        plt.title(fr'Fraction of events with cluster size = 1, p = {pitch} $\mu$m')
         plt.xlabel(r'Electronic noise per pixel $n_{electronics}$ [ENC]')
         plt.ylabel(r'Thickness t $\mu$m')
         arrow = mpatches.FancyArrowPatch((0.25, 3.75), (3.75, 0.25), 
@@ -369,7 +369,7 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
             recon_file = ReconInputFile(file_path)
             #Constructing the 1px mask
             cluster_size = recon_file.column('cluster_size')
-            onepxmask = cluster_size == 3
+            onepxmask = cluster_size == 1
             #Creating histogram
             if onepx is False:
                 mask = cluster_size > 0
@@ -436,7 +436,7 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     plt.title(rf'Energy resolution $\sigma_{{K_{{\alpha, \beta}}}}$ FWHM [eV], $n_{{electronics}}$ = {enc} ENC')
     plt.ylabel(r'Thickness t [$\mu$m]')
     plt.xlabel(r'Pitch p [$\mu$m]')
-    arrow = mpatches.FancyArrowPatch((0.25, 7.75), (2.75, 0.25),
+    arrow = mpatches.FancyArrowPatch((2.75, 0.25), (0.25, 7.75),
                                  mutation_scale=100, alpha=0.5, color='red')
     ax2.add_patch(arrow)
     # custom yticks. Setting a right yaxis
@@ -466,8 +466,8 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     if save_path is not None:
         plt.savefig(f'{save_path}/mean_cluster_size.pdf')
 
-    fig, ax = heatmap_with_labels(pitch, thickness, dx, n_digits=7)
-    plt.title(rf'Reconstruction shift on x: $\mu(|x_{{MC}} - x_{{recon}}|)$ [cm], $n_{{electronics}}$ = {enc} ENC')
+    fig, ax = heatmap_with_labels(pitch, thickness, dx*10000, n_digits=2)
+    plt.title(rf'$\mu(|x_{{MC}} - x_{{recon}}|)$ [$\mu$m], $n_{{electronics}}$ = {enc} ENC')
     plt.xlabel(r'Pitch p [$\mu$m]')
     plt.ylabel(r'Thickness t [$\mu$m]')
     arrow = mpatches.FancyArrowPatch((0.25, 3.75), (2.75, 0.25),
@@ -476,8 +476,8 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
     if save_path is not None:
         plt.savefig(f'{save_path}/x_shift.pdf')
 
-    fig, ax = heatmap_with_labels(pitch, thickness, dy, n_digits=7)
-    plt.title(rf'Reconstruction shift on y: $\mu(|y_{{MC}} - y_{{recon}}|)$ [cm], $n_{{electronics}}$ = {enc} ENC')
+    fig, ax = heatmap_with_labels(pitch, thickness, dy*10000, n_digits=2)
+    plt.title(rf'$\mu(|y_{{MC}} - y_{{recon}}|)$ [$\mu$m], $n_{{electronics}}$ = {enc} ENC')
     plt.xlabel(r'Pitch p [$\mu$m]')
     plt.ylabel(r'Thickness t [$\mu$m]')
     arrow = mpatches.FancyArrowPatch((0.25, 3.75), (2.75, 0.25),
@@ -491,7 +491,7 @@ def analyze_grid_thickpitch(thickness : np.array, pitch : np.array, enc : float,
         plt.title(fr'Fraction of events with cluster size = 1, $n_{{electronics}}$ = {enc} ENC')
         plt.xlabel(r'Pitch p [$\mu$m]')
         plt.ylabel(r'Thickness t $\mu$m')
-        arrow = mpatches.FancyArrowPatch((2.75, 0.25), (0.25, 3.75), 
+        arrow = mpatches.FancyArrowPatch((0.25, 3.75), (2.75, 0.25), 
                                  mutation_scale=100, alpha=0.5, color='red')
         ax.add_patch(arrow)
         if save_path is not None:
@@ -531,8 +531,8 @@ if __name__ == '__main__':
     #Turning arrays into ints for reading filename correctly
     thickness_ = thickness_.astype(int)
     pitch_ = pitch_.astype(int)
-    analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
-    #analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    #analyze_grid_thickenc(thickness_, enc_, pitch, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
+    analyze_grid_thickpitch(thickness_, pitch_, enc, **vars(ANALYZE_GRID_ARGPARSER.parse_args()))
     #analyze_grid_zthr(250, 20, 60, zthr, nneighbors)
 
     plt.show()

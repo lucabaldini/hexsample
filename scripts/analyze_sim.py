@@ -80,20 +80,37 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
     plt.legend(loc='upper left')
 
     plt.figure()
-    diff = recon_file.mc_column('absy') - recon_file.column('posy')
-    binning = np.linspace(diff.min(), diff.max(), 100)
-    hist = Histogram1d(binning).fill(diff)
-    plt.axvline(binning[np.where(hist.entries == max(hist.entries))], color='red')
+    diffy = recon_file.mc_column('absy') - recon_file.column('posy')
+    binning = np.linspace(diffy.min(), diffy.max(), 100)
+    hist = Histogram1d(binning).fill(diffy)
+    #plt.axvline(binning[np.where(hist.entries == max(hist.entries))], color='red')
     print(binning[np.where(hist.entries == max(hist.entries))])
+    plt.annotate(
+    fr'$\sigma_{{y}} = {np.std(diffy)*10000:.1f}$ [$\mu$m]',
+    xy=(0.00175, 2200), xycoords='data',
+    xytext=(0, 0), textcoords='offset points',
+    bbox=dict(boxstyle="round", fc="1", ec='black'))
+    hist.set_axis_label(0, r'$y_{MC} - y_{recon}$ [cm]')
     hist.plot()
+    
 
     plt.figure()
-    diff = recon_file.mc_column('absx') - recon_file.column('posx')
-    binning = np.linspace(diff.min(), diff.max(), 100)
-    hist = Histogram1d(binning).fill(diff)
-    plt.axvline(binning[np.where(hist.entries == max(hist.entries))], color='red')
+    diffx = recon_file.mc_column('absx') - recon_file.column('posx')
+    binning = np.linspace(diffx.min(), diffx.max(), 100)
+    hist = Histogram1d(binning).fill(diffx)
+    #plt.axvline(binning[np.where(hist.entries == max(hist.entries))], color='red')
     print(binning[np.where(hist.entries == max(hist.entries))])
+    plt.annotate(
+    fr'$\sigma_{{x}} = {np.std(diffx)*10000:.1f}$ [$\mu$m]',
+    xy=(0.00175, 2200), xycoords='data',
+    xytext=(0, 0), textcoords='offset points',
+    bbox=dict(boxstyle="round", fc="1", ec='black'))
+    hist.set_axis_label(0, r'$x_{MC} - x_{recon}$ [cm]')
     hist.plot()
+
+    dist = np.sqrt(diffx**2 + diffy**2)
+
+    print(f'mean of dist {np.mean(dist)}')
 
 
     
@@ -126,8 +143,8 @@ def analyze_sim(thick: int, noise: int, pitch: int, contamination_beta_on_alpha:
     plt.show()
 
 if __name__ == '__main__':
-    THICKNESS = 350
-    ENC = 20
-    PITCH = 60
+    THICKNESS = 300
+    ENC = 40
+    PITCH = 50
     contamination = 0.02
     analyze_sim(THICKNESS, ENC, PITCH, contamination)
