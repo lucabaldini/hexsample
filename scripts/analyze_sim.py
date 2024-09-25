@@ -39,6 +39,8 @@ def analyze_sim(thick : int, noise : int) -> None:
     """
     thr = 2 * noise
     file_path = f'/Users/chiara/hexsampledata/hxsim_recon.h5'
+    #file_path = f'/Users/chiara/hexsampledata/sim_HexagonalLayout.ODD_Rum_0enc_srcsigma200um_recon.h5'
+    #file_path = f'/Users/chiara/hexsampledata/sim_{thick}um_{noise}enc_recon_nn2_thr{thr}.h5'
     recon_file = ReconInputFile(file_path)
     #Constructing the 1px mask
     cluster_size = recon_file.column('cluster_size')

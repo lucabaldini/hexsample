@@ -305,8 +305,9 @@ class ContinuumSpectrum(SpectrumBase):
         """Plot the continuum spectrum for 1e4 generated photons.
         """
         # pylint: disable=invalid-name
-        plt.hist(self.rvs(10000), density=True, width=0.0001, color='black')
-        setup_gca(xlabel='Energy [eV]', ylabel='pdf', logy=True, grids=True)
+        energies_ = self.rvs(10000)
+        plt.hist(energies_, density=True, color='tab:blue')
+        setup_gca(xlabel='Energy [eV]', ylabel='PDF', logy=True, grids=True)
 
 class Source:
 
