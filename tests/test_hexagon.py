@@ -17,10 +17,10 @@
 """
 
 import numpy as np
+from aptapy.plotting import plt
 
 from hexsample.hexagon import HexagonalLayout, HexagonalGrid, adc_channel_even_r
 from hexsample.display import HexagonalGridDisplay
-from hexsample.plot import plt
 
 
 def test_parity(nside: int = 10, pitch: float = 0.1):

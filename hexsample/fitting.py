@@ -19,10 +19,11 @@
 
 import numpy as np
 
-import hexsample.modeling
+import aptapy.models
 
 # pylint: disable=invalid-name
 
+# aprire issue e implppementare in aptapy
 
 def fit_gaussian_iterative(histogram, p0=None, xmin=-np.inf, xmax=np.inf, absolute_sigma=True,
     check_finite=True, method=None, verbose=True, num_sigma_left=2., num_sigma_right=2.,
@@ -51,15 +52,13 @@ def fit_gaussian_iterative(histogram, p0=None, xmin=-np.inf, xmax=np.inf, absolu
         The number of iterations of the fit.
     """
     # pylint: disable=too-many-arguments. too-many-locals
-    model = hexsample.modeling.Gaussian()
-    model.fit_histogram(histogram, p0, xmin, xmax, absolute_sigma, check_finite,
-        method, verbose, **kwargs)
+    model = aptapy.models.Gaussian()
+    model.fit_histogram(histogram, p0, xmin=xmin, xmax=xmax, absolute_sigma=absolute_sigma, **kwargs)
     for i in range(num_iterations):
-        xmin = model.status['mean'] - num_sigma_left * model.status['sigma']
-        xmax = model.status['mean'] + num_sigma_right * model.status['sigma']
+        xmin = model.mean.value - num_sigma_left * model.sigma.value
+        xmax = model.mean.value + num_sigma_right * model.sigma.value
         try:
-            model.fit_histogram(histogram, p0, xmin, xmax, absolute_sigma,
-                check_finite, method, verbose, **kwargs)
+            model.fit_histogram(histogram, p0, xmin=xmin, xmax=xmax, absolute_sigma=absolute_sigma, **kwargs)
         except RuntimeError as exception:
             raise RuntimeError(f'Exception after {i + 1} iteration(s)') from exception
     return model

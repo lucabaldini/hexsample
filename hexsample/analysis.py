@@ -21,13 +21,10 @@
 """
 
 import numpy as np
+from aptapy.hist import Histogram1d
+from aptapy.plotting import plt
 
 from hexsample.fileio import InputFileBase
-from hexsample.hist import Histogram1d
-from hexsample.modeling import FitModelBase, DoubleGaussian
-from hexsample.plot import plt
-
-
 
 # def absz_analysis(input_file: ReconInputFile):
 #     """
@@ -87,43 +84,45 @@ def create_histogram(input_file: InputFileBase, column_name: str, mc: bool = Fal
         binning = np.linspace(values.min(), values.max(), binning)
     return Histogram1d(binning, xlabel=column_name).fill(values)
 
-def fit_histogram(hist: Histogram1d, fit_model: FitModelBase = DoubleGaussian,
-    p0 = None, show_figure: bool = True) -> np.array:
-    """Fit an histogram given as argument.
+# Delete method, already implemented in aptapy
 
-    Arguments
-    ---------
-    input_file : DigiInputFile
-        The input (digi or recon) file.
+# def fit_histogram(hist: Histogram1d, fit_model: FitModelBase = DoubleGaussian,
+#     p0 = None, show_figure: bool = True) -> np.array:
+#     """Fit an histogram given as argument.
 
-    hist : Histogram1D
-        The histogram to be fitted.
+#     Arguments
+#     ---------
+#     input_file : DigiInputFile
+#         The input (digi or recon) file.
 
-    fitting_model : FitModelBase
-        The FitModelBase instance containing the model used for fitting the histogram.
-        Default is DoubleGaussian.
+#     hist : Histogram1D
+#         The histogram to be fitted.
 
-    p0 : np.array
-        The array containing the initial parameters of the fit. It must have the same
-        len() as the number of parameters of the FitModelBase used for the fit.
+#     fitting_model : FitModelBase
+#         The FitModelBase instance containing the model used for fitting the histogram.
+#         Default is DoubleGaussian.
 
-    plot_figure : bool
-        Bool that states if the figure containing the histogram and the best fit has
-        to be shown.
+#     p0 : np.array
+#         The array containing the initial parameters of the fit. It must have the same
+#         len() as the number of parameters of the FitModelBase used for the fit.
 
-    Return
-    ------
-    model_status : FitModelStatus
-        The FitModelStatus instance returned by fit routine.
-    """
-    # pylint: disable=invalid-name
-    model = fit_model()
-    model.fit_histogram(hist, p0)
-    if show_figure is True:
-        hist.plot()
-        model.plot()
-        model.stat_box()
-    return model.status
+#     plot_figure : bool
+#         Bool that states if the figure containing the histogram and the best fit has
+#         to be shown.
+
+#     Return
+#     ------
+#     model_status : FitModelStatus
+#         The FitModelStatus instance returned by fit routine.
+#     """
+#     # pylint: disable=invalid-name
+#     model = fit_model()
+#     model.fit_histogram(hist, p0)
+#     if show_figure is True:
+#         hist.plot()
+#         model.plot()
+#         model.stat_box()
+#     return model.status
 
 def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: np.array,
     heatmap_values2: np.array):

@@ -19,11 +19,11 @@
 from loguru import logger
 
 import numpy as np
+from aptapy.hist import Histogram1d
+from aptapy.models import Exponential
+from aptapy.plotting import plt, setup_gca
 
 from hexsample import rng
-from hexsample.hist import Histogram1d
-from hexsample.modeling import Exponential
-from hexsample.plot import plt, setup_gca
 from hexsample.sensor import Silicon, SiliconSensor
 
 rng.initialize()
@@ -63,10 +63,10 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     setup_gca(xlabel='Absorption depth [cm]', logy=True)
     model = Exponential()
     model.fit_histogram(h)
-    model.plot()
-    model.stat_box()
-    scale = model.status.parameter_value('scale')
-    sigma_scale = model.status.parameter_error('scale')
+    model.plot(fit_output=True)
+    # model.stat_box()
+    scale = model.scale.value
+    sigma_scale = model.scale.error
     delta = (Silicon.photoelectric_attenuation_length(energy) - scale) / sigma_scale
     assert delta < 5.
 

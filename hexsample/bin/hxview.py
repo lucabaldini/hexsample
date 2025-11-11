@@ -24,10 +24,10 @@
 from ast import literal_eval
 
 import numpy as np
+from aptapy.plotting import plt
 
 from hexsample.app import ArgumentParser
 from hexsample.fileio import ReconInputFile
-from hexsample.plot import plt
 from hexsample.analysis import create_histogram
 
 

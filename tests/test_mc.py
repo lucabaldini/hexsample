@@ -16,11 +16,12 @@
 """Test suite for mc.py
 """
 
+from aptapy.plotting import plt
 
+from hexsample import rng
 from hexsample.display import HexagonalGridDisplay
 from hexsample.hexagon import HexagonalGrid, HexagonalLayout
 from hexsample.mc import MonteCarloEvent
-from hexsample.plot import plt
 from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.roi import Padding
 
@@ -28,6 +29,7 @@ from hexsample.roi import Padding
 def test_diffusion(diff_sigma=40.):
     """
     """
+    rng.initialize()
     grid = HexagonalGrid(HexagonalLayout.ODD_R, 2, 2, 0.005)
     evt = MonteCarloEvent(0., 8000., 0., 0., 0.05, 3000)
     x, y = evt.propagate(diff_sigma)

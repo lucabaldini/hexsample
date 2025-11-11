@@ -19,11 +19,11 @@
 from loguru import logger
 
 import numpy as np
+from aptapy.hist import Histogram1d, Histogram2d
+from aptapy.plotting import plt, setup_gca
 
 from hexsample import rng
 from hexsample.fitting import fit_gaussian_iterative
-from hexsample.hist import Histogram1d, Histogram2d
-from hexsample.plot import plt, setup_gca
 from hexsample.source import PointBeam, DiskBeam, GaussianBeam
 from hexsample.source import LineForest
 
@@ -62,14 +62,15 @@ def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     hx = Histogram1d(binning).fill(x)
     hx.plot()
     model = fit_gaussian_iterative(hx, num_sigma_left=3., num_sigma_right=3.)
-    model.plot()
-    model.stat_box()
+    model.plot(fit_output=True)
+    plt.legend()
+
     plt.figure('Gaussian beam y projection')
     hy = Histogram1d(binning).fill(y)
     hy.plot()
     model = fit_gaussian_iterative(hy, num_sigma_left=3., num_sigma_right=3.)
-    model.plot()
-    model.stat_box()
+    model.plot(fit_output=True)
+    plt.legend()
 
 def _test_forest(element, initial_level='K', num_events=100000, chisq_test=True):
     """Generic tes for a line forest.
