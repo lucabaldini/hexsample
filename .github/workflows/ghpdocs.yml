@@ -13,14 +13,10 @@ permissions:
 
 jobs:
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
-      - name: Install OS deps (HDF5, toolchain)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libhdf5-dev liblzo2-dev libbz2-dev libblosc-dev
       - name: Install dependencies
         run: |
           pip install -e .
