@@ -3,8 +3,6 @@
 Release notes
 =============
 
-
-
 * Adding aptapy as a new dependency in both requirements.txt and pyproject.toml.
 * Removeing internal modules: hexsample/hist.py, hexsample/modeling.py, hexsample/plot.py
   and their test files.
