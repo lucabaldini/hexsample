@@ -24,11 +24,11 @@
 from ast import literal_eval
 
 import numpy as np
+from aptapy.hist import Histogram1d, Histogram2d
+from aptapy.plotting import plt, setup_gca
 
 from hexsample.app import ArgumentParser
 from hexsample.fileio import ReconInputFile
-from hexsample.hist import Histogram1d, Histogram2d
-from hexsample.plot import plt, setup_gca
 from hexsample.analysis import create_histogram
 
 

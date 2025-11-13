@@ -26,10 +26,10 @@ import matplotlib
 from matplotlib.patches import RegularPolygon
 from matplotlib.collections import PatchCollection
 import numpy as np
+from aptapy.plotting import plt
 
 from hexsample.digi import DigiEventRectangular
 from hexsample.hexagon import HexagonalGrid
-from hexsample.plot import plt
 from hexsample.roi import RegionOfInterest
 
 

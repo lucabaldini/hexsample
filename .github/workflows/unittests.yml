@@ -12,11 +12,15 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    # Note we are using Ubuntu 22.04, here, since this is the latest version
+    # that makes Python 3.7 available, see
+    # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+    # and we really do want to support Python 3.7
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.11"]
+        python-version: ["3.7", "3.13"]
 
     steps:
     - uses: actions/checkout@v3

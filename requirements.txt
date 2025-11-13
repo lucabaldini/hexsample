@@ -8,3 +8,4 @@ tables
 tqdm
 uncertainties
 xraydb
+aptapy

@@ -26,9 +26,8 @@ from hexsample import logger
 from hexsample.app import ArgumentParser
 from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.display import HexagonalGridDisplay
-from hexsample.fileio import DigiInputFile
+from hexsample.fileio import DigiInputFileRectangular
 from hexsample.hexagon import HexagonalLayout
-from hexsample.plot import plt
 
 
 __description__ = \
@@ -44,7 +43,7 @@ def hxdisplay(**kwargs):
     """Application main entry point.
     """
     file_path = kwargs.get('infile')
-    input_file = DigiInputFile(file_path)
+    input_file = DigiInputFileRectangular(file_path)
     header = input_file.header
     args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
         header['pitch'], header['noise'], header['gain']

@@ -3,6 +3,15 @@
 Release notes
 =============
 
+* Merging https://github.com/lucabaldini/hexsample/pull/58
+* Adding aptapy as a new dependency in both requirements.txt and pyproject.toml.
+* Removeing internal modules: hexsample/hist.py, hexsample/modeling.py, hexsample/plot.py
+  and their test files.
+* Updating imports across all test files, source files, and command-line scripts
+  to use aptapy.hist, aptapy.models, and aptapy.plotting.
+* Modified API calls to match aptapy's interface.
+* Updates CI/CD configuration to use Ubuntu 22.04 and test on Python 3.7 and 3.13.
+
 
 *hexsample (0.9.0) - Tue, 30 Apr 2024 14:22:44 +0200*
 

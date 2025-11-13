@@ -25,9 +25,9 @@ from typing import Union, Optional, Tuple
 
 import numpy as np
 import xraydb
+from aptapy.plotting import plt, setup_gca
 
 from hexsample import rng
-from hexsample.plot import plt, setup_gca
 
 
 @dataclass

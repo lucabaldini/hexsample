@@ -25,12 +25,11 @@
 import pathlib
 
 import numpy as np
+from aptapy.plotting import plt
 
 from hexsample import logger
 from hexsample.app import ArgumentParser
 from hexsample.fileio import DigiInputFile
-from hexsample.hist import Histogram1d
-from hexsample.plot import plt, setup_gca
 from hexsample.analysis import create_histogram
 
 
