@@ -113,7 +113,7 @@ dependencies = [
   "tqdm",
   "uncertainties",
   "xraydb",
-  "aptapy=0.13.0"
+  "aptapy==0.13.0"
 ]
 
 # List additional groups of dependencies here (e.g. development
