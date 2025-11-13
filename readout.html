@@ -1,0 +1,804 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hexsample.readout — Readout facilities &#8212; hexsample 0.10.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=82662543"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'readout';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="hexsample.recon — Event reconstruction" href="recon.html" />
+    <link rel="prev" title="hexsample.pprint — Pretty printing" href="pprint.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">hexsample 0.10.0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="release.html">
+    Release notes
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="release.html">
+    Release notes
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="analysis.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.analysis</span></code> — Analysis facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clustering.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.clustering</span></code> — Clustering facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="digi.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.digi</span></code> — Digitization facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.display</span></code> — Display facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fileio.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fileio</span></code> — Input/Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fitting.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fitting</span></code> — Advanced fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hexagon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.hexagon</span></code> — Hexagonal sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mc.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.mc</span></code> — Monte Carlo facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modeling.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.modeling</span></code> — Fitting models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pprint.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.pprint</span></code> — Pretty printing</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.readout</span></code> — Readout facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.recon</span></code> — Event reconstruction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rng.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.rng</span></code> — Random numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roi.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.roi</span></code> — Region of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sensor.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.sensor</span></code> — Sensor active media</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.source</span></code> — X-ray sources</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="api.html" class="nav-link">API</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.readout</span></code> — Readout facilities</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="hexsample-readout-readout-facilities">
+<h1><a class="reference internal" href="#module-hexsample.readout" title="hexsample.readout"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.readout</span></code></a> — Readout facilities<a class="headerlink" href="#hexsample-readout-readout-facilities" title="Link to this heading">#</a></h1>
+<p>This module contains…</p>
+<section id="digitization-process">
+<h2>Digitization process<a class="headerlink" href="#digitization-process" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-hexsample.readout">
+<span id="module-documentation"></span><h2>Module documentation<a class="headerlink" href="#module-hexsample.readout" title="Link to this heading">#</a></h2>
+<p>Readout facilities.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.readout.</span></span><span class="sig-name descname"><span class="pre">HexagonalReadoutMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutMode" title="Link to this definition">#</a></dt>
+<dd><p>Enum class expressing the possible readout strategies.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutMode.SPARSE">
+<span class="sig-name descname"><span class="pre">SPARSE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'SPARSE'</span></em><a class="headerlink" href="#hexsample.readout.HexagonalReadoutMode.SPARSE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutMode.RECTANGULAR">
+<span class="sig-name descname"><span class="pre">RECTANGULAR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'RECTANGULAR'</span></em><a class="headerlink" href="#hexsample.readout.HexagonalReadoutMode.RECTANGULAR" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutMode.CIRCULAR">
+<span class="sig-name descname"><span class="pre">CIRCULAR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'CIRCULAR'</span></em><a class="headerlink" href="#hexsample.readout.HexagonalReadoutMode.CIRCULAR" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutBase">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.readout.</span></span><span class="sig-name descname"><span class="pre">HexagonalReadoutBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hexagon.html#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><span class="pre">HexagonalLayout</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pitch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutBase" title="Link to this definition">#</a></dt>
+<dd><p>Description of a pixel readout chip on a hexagonal matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layout</strong> (<a class="reference internal" href="hexagon.html#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><em>HexagonalLayout</em></a>) – The layout of the hexagonal matrix.</p></li>
+<li><p><strong>num_cols</strong> (<em>int</em>) – The number of columns in the readout.</p></li>
+<li><p><strong>num_rows</strong> (<em>int</em>) – The number of rows in the readout.</p></li>
+<li><p><strong>pitch</strong> (<em>float</em>) – The readout pitch in cm.</p></li>
+<li><p><strong>enc</strong> (<em>float</em>) – The equivalent noise charge in electrons.</p></li>
+<li><p><strong>gain</strong> (<em>float</em>) – The readout gain in ADC counts per electron.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutBase.discriminate">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">discriminate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutBase.discriminate" title="Link to this definition">#</a></dt>
+<dd><p>Utility function acting as a simple constant-threshold discriminator
+over a generic array. This returns a boolean mask with True for all the
+array elements larger than the threshold.</p>
+<p>This is intented to avoid possible confusion between strict and loose
+comparison operators (e.g., &lt; vs &lt;=) when comparing the content of an array
+with a threshold, and all functions downstream doing this (e.g., zero_suppress)
+should use this and refrain from re-implementing their own logic.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutBase.zero_suppress">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">zero_suppress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutBase.zero_suppress" title="Link to this definition">#</a></dt>
+<dd><p>Utility function to zero-suppress a generic array.</p>
+<p>This is returning an array of the same shape of the input where all the
+values lower or equal than the zero suppression threshold are set to zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>array</strong> (<em>array_like</em>) – The input array.</p></li>
+<li><p><strong>threshold</strong> (<em>float</em>) – The zero suppression threshold.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutBase.latch_timestamp">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">latch_timestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutBase.latch_timestamp" title="Link to this definition">#</a></dt>
+<dd><p>Latch the event timestamp and return the corresponding fields of the
+digi event contribution: seconds, microseconds and livetime.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The livetime calculation is not implemented, yet.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timestamp</strong> (<em>float</em>) – The ground-truth event timestamp from the event generator.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutBase.digitize">
+<span class="sig-name descname"><span class="pre">digitize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero_sup_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutBase.digitize" title="Link to this definition">#</a></dt>
+<dd><p>Digitize the actual signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pha</strong> (<em>array_like</em>) – The input array of pixel signals to be digitized.</p></li>
+<li><p><strong>zero_sup_threshold</strong> (<em>int</em>) – Zero-suppression threshold in ADC counts.</p></li>
+<li><p><strong>offset</strong> (<em>int</em>) – Optional offset in ADC counts to be applied before the zero suppression.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutSparse">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.readout.</span></span><span class="sig-name descname"><span class="pre">HexagonalReadoutSparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hexagon.html#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><span class="pre">HexagonalLayout</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pitch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutSparse" title="Link to this definition">#</a></dt>
+<dd><p>Description of a pixel sparse readout chip on a hexagonal matrix.
+In the following readout, no ROI is formed, every (and only) triggered pixel of
+the event is kept with its positional information in (col, row) format on the
+hexagonal grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layout</strong> (<a class="reference internal" href="hexagon.html#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><em>HexagonalLayout</em></a>) – The layout of the hexagonal matrix.</p></li>
+<li><p><strong>num_cols</strong> (<em>int</em>) – The number of columns in the readout.</p></li>
+<li><p><strong>num_rows</strong> (<em>int</em>) – The number of rows in the readout.</p></li>
+<li><p><strong>pitch</strong> (<em>float</em>) – The readout pitch in cm.</p></li>
+<li><p><strong>enc</strong> (<em>float</em>) – The equivalent noise charge in electrons.</p></li>
+<li><p><strong>gain</strong> (<em>float</em>) – The readout gain in ADC counts per electron.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutSparse.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero_sup_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventSparse" title="hexsample.digi.DigiEventSparse"><span class="pre">DigiEventSparse</span></a></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutSparse.read" title="Link to this definition">#</a></dt>
+<dd><p>Sparse readout an event.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestamp</strong> (<em>float</em>) – The event timestamp.</p></li>
+<li><p><strong>x</strong> (<em>array_like</em>) – The physical x coordinates of the input charge.</p></li>
+<li><p><strong>y</strong> (<em>array_like</em>) – The physical x coordinates of the input charge.</p></li>
+<li><p><strong>trg_threshold</strong> (<em>float</em>) – Trigger threshold in electron equivalent.</p></li>
+<li><p><strong>zero_sup_threshold</strong> (<em>int</em>) – Zero suppression threshold in ADC counts.</p></li>
+<li><p><strong>offset</strong> (<em>int</em>) – Optional offset in ADC counts to be applied before the zero suppression.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutRectangular">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.readout.</span></span><span class="sig-name descname"><span class="pre">HexagonalReadoutRectangular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hexagon.html#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><span class="pre">HexagonalLayout</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pitch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutRectangular" title="Link to this definition">#</a></dt>
+<dd><p>Description of a pixel readout chip on a hexagonal matrix.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutRectangular.sum_miniclusters">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sum_miniclusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutRectangular.sum_miniclusters" title="Link to this definition">#</a></dt>
+<dd><p>Sum the values in a given numpy array over its 2 x 2 trigger miniclusters.</p>
+<p>Note that the shape of the target 2-dimensional array must be even in
+both dimensions for the thing to work.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutRectangular.is_odd">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_odd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutRectangular.is_odd" title="Link to this definition">#</a></dt>
+<dd><p>Return whether the input integer is odd.</p>
+<p>See <a class="reference external" href="https://stackoverflow.com/questions/14651025/">https://stackoverflow.com/questions/14651025/</a> for some metrics about
+the speed of this particular implementation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutRectangular.is_even">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_even</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutRectangular.is_even" title="Link to this definition">#</a></dt>
+<dd><p>Return whether the input integer is even.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutRectangular.sample">
+<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutRectangular.sample" title="Link to this definition">#</a></dt>
+<dd><p>Spatially sample a pair of arrays of x and y coordinates in physical
+space onto logical (hexagonal) coordinates in logical space.</p>
+<p>This is achieved by converting the (x, y) physical coordinates into the
+corresponding (col, row) logical coordinates on the hexagonal grid, and
+then filling a two-dimensional histogram in logical space.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The output two-dimensional histogram is restricted to the pixels with
+a physical signal, in order to avoid having to deal with large sparse
+arrays downstream. See <a class="github reference external" href="https://github.com/lucabaldini/hexsample/issues/12">lucabaldini/hexsample#12</a>
+for more details about the reasoning behind this.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>array_like</em>) – The physical x coordinates to sample.</p></li>
+<li><p><strong>y</strong> (<em>array_like</em>) – The physical y coordinates to sample.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>min_col, min_row, signal</strong> – The coordinates of the bottom-left corner of the smallest rectangle
+containing all the signal, and the corresponding histogram of the
+signal itself, in electron equivalent.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>3-element tuple (2 integers and an array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutRectangular.trigger">
+<span class="sig-name descname"><span class="pre">trigger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_threshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="roi.html#hexsample.roi.Padding" title="hexsample.roi.Padding"><span class="pre">Padding</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="roi.html#hexsample.roi.RegionOfInterest" title="hexsample.roi.RegionOfInterest"><span class="pre">RegionOfInterest</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutRectangular.trigger" title="Link to this definition">#</a></dt>
+<dd><p>Apply the trigger, calculate the region of interest, and pad the
+signal array to the proper dimension.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is still incorrect at the edges of the readout chip, as we are
+not trimming the ROI (and the corresponding arrays) to the physical
+dimensions of the chip.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutRectangular.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="roi.html#hexsample.roi.Padding" title="hexsample.roi.Padding"><span class="pre">Padding</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero_sup_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventRectangular" title="hexsample.digi.DigiEventRectangular"><span class="pre">DigiEventRectangular</span></a></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutRectangular.read" title="Link to this definition">#</a></dt>
+<dd><p>Readout an event.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestamp</strong> (<em>float</em>) – The event timestamp.</p></li>
+<li><p><strong>x</strong> (<em>array_like</em>) – The physical x coordinates of the input charge.</p></li>
+<li><p><strong>y</strong> (<em>array_like</em>) – The physical x coordinates of the input charge.</p></li>
+<li><p><strong>trg_threshold</strong> (<em>float</em>) – Trigger threshold in electron equivalent.</p></li>
+<li><p><strong>padding</strong> (<a class="reference internal" href="roi.html#hexsample.roi.Padding" title="hexsample.roi.Padding"><em>Padding</em></a>) – The padding to be applied to the ROT.</p></li>
+<li><p><strong>zero_sup_threshold</strong> (<em>int</em>) – Zero suppression threshold in ADC counts.</p></li>
+<li><p><strong>offset</strong> (<em>int</em>) – Optional offset in ADC counts to be applied before the zero suppression.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.readout.Xpol3">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.readout.</span></span><span class="sig-name descname"><span class="pre">Xpol3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.readout.Xpol3" title="Link to this definition">#</a></dt>
+<dd><p>Derived class representing the XPOL-III readout chip.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutCircular">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.readout.</span></span><span class="sig-name descname"><span class="pre">HexagonalReadoutCircular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hexagon.html#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><span class="pre">HexagonalLayout</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pitch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutCircular" title="Link to this definition">#</a></dt>
+<dd><p>Description of a pixel circular readout chip on a hexagonal matrix.
+In the following readout, the maximum PHA pixel is found and the ROI
+formed by that pixel and its 6 adjacent neighbours.
+The standard shape of columns, rows and pha array is then 7, except
+for events on border, that will have len&lt;7.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layout</strong> (<a class="reference internal" href="hexagon.html#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><em>HexagonalLayout</em></a>) – The layout of the hexagonal matrix.</p></li>
+<li><p><strong>num_cols</strong> (<em>int</em>) – The number of columns in the readout.</p></li>
+<li><p><strong>num_rows</strong> (<em>int</em>) – The number of rows in the readout.</p></li>
+<li><p><strong>pitch</strong> (<em>float</em>) – The readout pitch in cm.</p></li>
+<li><p><strong>enc</strong> (<em>float</em>) – The equivalent noise charge in electrons.</p></li>
+<li><p><strong>gain</strong> (<em>float</em>) – The readout gain in ADC counts per electron.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutCircular.NUM_PIXELS">
+<span class="sig-name descname"><span class="pre">NUM_PIXELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#hexsample.readout.HexagonalReadoutCircular.NUM_PIXELS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.readout.HexagonalReadoutCircular.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero_sup_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventCircular" title="hexsample.digi.DigiEventCircular"><span class="pre">DigiEventCircular</span></a></span></span><a class="headerlink" href="#hexsample.readout.HexagonalReadoutCircular.read" title="Link to this definition">#</a></dt>
+<dd><p>Circular readout an event.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestamp</strong> (<em>float</em>) – The event timestamp.</p></li>
+<li><p><strong>x</strong> (<em>float</em>) – The physical x coordinate of the highest pha pixel.</p></li>
+<li><p><strong>y</strong> (<em>float</em>) – The physical y coordinate of the highest pha pixel.</p></li>
+<li><p><strong>trg_threshold</strong> (<em>float</em>) – Trigger threshold in electron equivalent.</p></li>
+<li><p><strong>zero_sup_threshold</strong> (<em>int</em>) – Zero suppression threshold in ADC counts.</p></li>
+<li><p><strong>offset</strong> (<em>int</em>) – Optional offset in ADC counts to be applied before the zero suppression.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.readout._readout_class">
+<span class="sig-prename descclassname"><span class="pre">hexsample.readout.</span></span><span class="sig-name descname"><span class="pre">_readout_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hexsample.readout.HexagonalReadoutMode" title="hexsample.readout.HexagonalReadoutMode"><span class="pre">HexagonalReadoutMode</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="headerlink" href="#hexsample.readout._readout_class" title="Link to this definition">#</a></dt>
+<dd><p>Return the proper class to be used to instantiate a readout chip for a given
+readout mode.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.readout.readout_chip">
+<span class="sig-prename descclassname"><span class="pre">hexsample.readout.</span></span><span class="sig-name descname"><span class="pre">readout_chip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hexsample.readout.HexagonalReadoutMode" title="hexsample.readout.HexagonalReadoutMode"><span class="pre">HexagonalReadoutMode</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.readout.readout_chip" title="Link to this definition">#</a></dt>
+<dd><p>Return an instance of the proper readout chip for a given readout mode.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pprint.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.pprint</span></code> — Pretty printing</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="recon.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.recon</span></code> — Event reconstruction</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#digitization-process">Digitization process</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-hexsample.readout">Module documentation</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutMode"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutMode</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutMode.SPARSE"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutMode.SPARSE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutMode.RECTANGULAR"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutMode.RECTANGULAR</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutMode.CIRCULAR"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutMode.CIRCULAR</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutBase"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutBase</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutBase.discriminate"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutBase.discriminate()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutBase.zero_suppress"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutBase.zero_suppress()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutBase.latch_timestamp"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutBase.latch_timestamp()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutBase.digitize"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutBase.digitize()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutSparse"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutSparse</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutSparse.read"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutSparse.read()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutRectangular"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutRectangular</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutRectangular.sum_miniclusters"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutRectangular.sum_miniclusters()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutRectangular.is_odd"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutRectangular.is_odd()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutRectangular.is_even"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutRectangular.is_even()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutRectangular.sample"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutRectangular.sample()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutRectangular.trigger"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutRectangular.trigger()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutRectangular.read"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutRectangular.read()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.Xpol3"><code class="docutils literal notranslate"><span class="pre">Xpol3</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutCircular"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutCircular</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutCircular.NUM_PIXELS"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutCircular.NUM_PIXELS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.HexagonalReadoutCircular.read"><code class="docutils literal notranslate"><span class="pre">HexagonalReadoutCircular.read()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout._readout_class"><code class="docutils literal notranslate"><span class="pre">_readout_class()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.readout.readout_chip"><code class="docutils literal notranslate"><span class="pre">readout_chip()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/readout.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023, the hexsample team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

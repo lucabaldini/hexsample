@@ -1,0 +1,1245 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hexsample.fileio — Input/Output &#8212; hexsample 0.10.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=82662543"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'fileio';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="hexsample.fitting — Advanced fitting" href="fitting.html" />
+    <link rel="prev" title="hexsample.display — Display facilities" href="display.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">hexsample 0.10.0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="release.html">
+    Release notes
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="release.html">
+    Release notes
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="analysis.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.analysis</span></code> — Analysis facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clustering.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.clustering</span></code> — Clustering facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="digi.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.digi</span></code> — Digitization facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.display</span></code> — Display facilities</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fileio</span></code> — Input/Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fitting.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fitting</span></code> — Advanced fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hexagon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.hexagon</span></code> — Hexagonal sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mc.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.mc</span></code> — Monte Carlo facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modeling.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.modeling</span></code> — Fitting models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pprint.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.pprint</span></code> — Pretty printing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="readout.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.readout</span></code> — Readout facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.recon</span></code> — Event reconstruction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rng.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.rng</span></code> — Random numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roi.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.roi</span></code> — Region of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sensor.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.sensor</span></code> — Sensor active media</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.source</span></code> — X-ray sources</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="api.html" class="nav-link">API</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fileio</span></code> — Input/Output</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="hexsample-fileio-input-output">
+<h1><a class="reference internal" href="#module-hexsample.fileio" title="hexsample.fileio"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fileio</span></code></a> — Input/Output<a class="headerlink" href="#hexsample-fileio-input-output" title="Link to this heading">#</a></h1>
+<p>This module contains all the I/O related facilities, that is, the basic definition
+of the file format and the proper classes to create and read back data files.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>We have made the provisional decision to have all the I/O implemented in the
+HDF5 format, which seems to be widely used and to support all the basic
+features that we need. That said, there seems to be two actively maintained
+Python interfaces to the HDF5 standard, implemented according to radically ]
+different design principle, namely:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.pytables.org/index.html">pytables</a>;</p></li>
+<li><p><a class="reference external" href="https://www.h5py.org/">h5py</a>.</p></li>
+</ul>
+<p>It is not trivial for a non expert to really understand which one is more
+suited to our purposes, and we opted for <code class="docutils literal notranslate"><span class="pre">pytables</span></code>, but this is a part of
+the package that might see drastic changes in the future.</p>
+</div>
+<section id="base-classes">
+<h2>Base classes<a class="headerlink" href="#base-classes" title="Link to this heading">#</a></h2>
+<p>The module provides base classes for input and output files, than are then
+specialized for, e.g., digitized or reconstructed data.</p>
+<p><a class="reference internal" href="#hexsample.fileio.OutputFileBase" title="hexsample.fileio.OutputFileBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">OutputFileBase</span></code></a> is the base class for
+output files. Instantiating an object of this class causes the output file to
+be opened in write mode, and a <code class="docutils literal notranslate"><span class="pre">header</span></code> node to be created that can be
+used to store arbitrary user attributes—typically to keep track of the
+simulation or reconstruction settings. The file header can bu updated via the
+<a class="reference internal" href="#hexsample.fileio.OutputFileBase.update_header" title="hexsample.fileio.OutputFileBase.update_header"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_header()</span></code></a> call, which
+loops over the keyword arguments and set the attributes one at a time.</p>
+<p><a class="reference internal" href="#hexsample.fileio.InputFileBase" title="hexsample.fileio.InputFileBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">InputFileBase</span></code></a> is the base class for
+input files. Instantiating an object of this class causes the input file to be
+opened in read mode and the header information to be rebuilt in the form of a
+dictionary.</p>
+</section>
+<section id="digitized-data">
+<h2>Digitized data<a class="headerlink" href="#digitized-data" title="Link to this heading">#</a></h2>
+<p>The basic content of a digitized event contains all the event-by-event data that
+would ordinarily be written out by the DAQ, i.e., the trigger identifier, the
+timestamp, and all the quantities that are necessary in order to uniquely identify
+the region of interest:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DigiDescription</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">IsDescription</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Description of the (flat) digi part of the file format.</span>
+<span class="sd">    NOTE: This should be eliminated when the above three classes will be fully</span>
+<span class="sd">    implemented and tested.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pylint: disable=too-few-public-methods</span>
+
+    <span class="n">trigger_id</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">seconds</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">microseconds</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">livetime</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">min_col</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int16Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">max_col</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int16Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">min_row</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int16Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+    <span class="n">max_row</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int16Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+    <span class="n">padding_top</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int8Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">padding_right</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int8Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">padding_bottom</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int8Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">padding_left</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int8Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In addition, the PHA content of the ROI (which is a variable-length array by its
+very nature), is encapsulated in a separate <code class="docutils literal notranslate"><span class="pre">VLArray</span></code> object in the same
+group holding the digi table.</p>
+<p>For simulated data, digitized files contain an additional table encapsulating the
+ground truth information for the event.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MonteCarloDescription</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">IsDescription</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Description of the Monte Carlo part of the file format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pylint: disable=too-few-public-methods</span>
+
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">absx</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">absy</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">absz</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">num_pairs</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="reconstructed-data">
+<h2>Reconstructed data<a class="headerlink" href="#reconstructed-data" title="Link to this heading">#</a></h2>
+<p>Reconstructed files contain all the reconstruction output, that is: all the quantities
+in the underlying digi file that are relevant for science analysis (i.e., timestamp
+and ROI size), and all the additional quantities that are calculated as part of
+the standard reconstruction (i.e., energy and position).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ReconDescription</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">IsDescription</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Description of the recon file format. This should be common to all the</span>
+<span class="sd">    modes of readout, so it is the same aside from the DigiDescription type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pylint: disable=too-few-public-methods</span>
+
+    <span class="n">trigger_id</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">livetime</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">roi_size</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">cluster_size</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int8Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">posx</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+    <span class="n">posy</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="module-hexsample.fileio">
+<span id="module-documentation"></span><h2>Module documentation<a class="headerlink" href="#module-hexsample.fileio" title="Link to this heading">#</a></h2>
+<p>Definition of the file format.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio._fill_mc_row">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">_fill_mc_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><span class="pre">MonteCarloEvent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio._fill_mc_row" title="Link to this definition">#</a></dt>
+<dd><p>Helper function to fill an output table row, given a MonteCarloEvent object.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This would have naturally belonged to the MonteCarloDescription class as
+a &#64;staticmethod, but doing so is apparently breaking something into the
+tables internals, and all of a sudden you get an exception due to the
+fact that a staticmethod cannot be pickled.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio._fill_digi_row_base">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">_fill_digi_row_base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventBase" title="hexsample.digi.DigiEventBase"><span class="pre">DigiEventBase</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio._fill_digi_row_base" title="Link to this definition">#</a></dt>
+<dd><p>Helper function to fill an output table row, given a DigiEventBase object.</p>
+<p>Note that this method of the base class is not calling the row.append() hook,
+which is delegated to the implementations in derived classes.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This would have naturally belonged to the DigiDescriptionBase class as
+a &#64;staticmethod, but doing so is apparently breaking something into the
+tables internals, and all of a sudden you get an exception due to the
+fact that a staticmethod cannot be pickled.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio._fill_digi_row_sparse">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">_fill_digi_row_sparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventBase" title="hexsample.digi.DigiEventBase"><span class="pre">DigiEventBase</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio._fill_digi_row_sparse" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.
+It uses the _fill_digi_row_base() function for filling the trigger_id and time
+coordinates of the event.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This would have naturally belonged to the DigiDescriptionSparse class as
+a &#64;staticmethod, but doing so is apparently breaking something into the
+tables internals, and all of a sudden you get an exception due to the
+fact that a staticmethod cannot be pickled.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio._fill_digi_row_rectangular">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">_fill_digi_row_rectangular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventBase" title="hexsample.digi.DigiEventBase"><span class="pre">DigiEventBase</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio._fill_digi_row_rectangular" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.
+It uses the _fill_digi_row_base() function for filling the trigger_id and time
+coordinates of the event.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This would have naturally belonged to the DigiDescriptionRectangular class as
+a &#64;staticmethod, but doing so is apparently breaking something into the
+tables internals, and all of a sudden you get an exception due to the
+fact that a staticmethod cannot be pickled.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio._fill_digi_row_circular">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">_fill_digi_row_circular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventBase" title="hexsample.digi.DigiEventBase"><span class="pre">DigiEventBase</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio._fill_digi_row_circular" title="Link to this definition">#</a></dt>
+<dd><p>Overloaded method.
+It uses the _fill_digi_row_base() function for filling the trigger_id and time
+coordinates of the event.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This would have naturally belonged to the DigiDescriptionCircular class as
+a &#64;staticmethod, but doing so is apparently breaking something into the
+tables internals, and all of a sudden you get an exception due to the
+fact that a staticmethod cannot be pickled.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio._fill_digi_row">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">_fill_digi_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventBase" title="hexsample.digi.DigiEventBase"><span class="pre">DigiEventBase</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio._fill_digi_row" title="Link to this definition">#</a></dt>
+<dd><p>Helper function to fill an output table row, given a DigiEvent object.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This would have naturally belonged to the DigiDescription class as
+a &#64;staticmethod, but doing so is apparently breaking something into the
+tables internals, and all of a sudden you get an exception due to the
+fact that a staticmethod cannot be pickled.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio._fill_recon_row">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">_fill_recon_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="recon.html#hexsample.recon.ReconEvent" title="hexsample.recon.ReconEvent"><span class="pre">ReconEvent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio._fill_recon_row" title="Link to this definition">#</a></dt>
+<dd><p>Helper function to fill an output table row, given a ReconEvent object.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This would have naturally belonged to the ReconDescription class as
+a &#64;staticmethod, but doing so is apparently breaking something into the
+tables internals, and all of a sudden you get an exception due to the
+fact that a staticmethod cannot be pickled.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.FileType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">FileType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.FileType" title="Link to this definition">#</a></dt>
+<dd><p>Enum class for the different file types.
+<strong>**</strong> IS IT POSSIBLE TO DEFINE SUBCLASSES FOR DIGI? <strong>**</strong></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.FileType.DIGI">
+<span class="sig-name descname"><span class="pre">DIGI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Digi'</span></em><a class="headerlink" href="#hexsample.fileio.FileType.DIGI" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.FileType.RECON">
+<span class="sig-name descname"><span class="pre">RECON</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Recon'</span></em><a class="headerlink" href="#hexsample.fileio.FileType.RECON" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.OutputFileBase">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">OutputFileBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.OutputFileBase" title="Link to this definition">#</a></dt>
+<dd><p>Base class for output files.</p>
+<p>The base class has the responsibility of opening the output file and create a
+header node to store all the necessary metadata. Subclasses can use the
+update_header() hook to write arbitrary user attributes in the header node.</p>
+<p>Note this is a purely virtual class, and subclasses should reimplement the
+add_row() and flush() methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – The path to the file on disk.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.OutputFileBase._DATE_FORMAT">
+<span class="sig-name descname"><span class="pre">_DATE_FORMAT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'%a,</span> <span class="pre">%d</span> <span class="pre">%b</span> <span class="pre">%Y</span> <span class="pre">%H:%M:%S</span> <span class="pre">%z'</span></em><a class="headerlink" href="#hexsample.fileio.OutputFileBase._DATE_FORMAT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.OutputFileBase._FILE_TYPE">
+<span class="sig-name descname"><span class="pre">_FILE_TYPE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hexsample.fileio.OutputFileBase._FILE_TYPE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.OutputFileBase.update_header">
+<span class="sig-name descname"><span class="pre">update_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.OutputFileBase.update_header" title="Link to this definition">#</a></dt>
+<dd><p>Update the user attributes in the header group.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.OutputFileBase._set_user_attribute">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_set_user_attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Group</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.OutputFileBase._set_user_attribute" title="Link to this definition">#</a></dt>
+<dd><p>Set a user attribute for a given group.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.OutputFileBase.update_user_attributes">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_user_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Group</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.OutputFileBase.update_user_attributes" title="Link to this definition">#</a></dt>
+<dd><p>Update the user attributes for a given group.</p>
+<p>The basic rules, here, are that all the keys of the keyword arguments
+must be string, and the values can be arbitrary data types. Following
+up on the discussion at <a class="reference external" href="https://www.pytables.org/usersguide/tutorials.html">https://www.pytables.org/usersguide/tutorials.html</a>
+we write the keywords arguments one at a time (as opposed to the entire
+dictionary all at once) and make an effort to convert the Python types
+to native numpy arrays when that is not performed automatically (e.g.,
+for lists and tuples). This avoids the need for serializing the Python
+data and should ensure that the output file can be read with any (be it
+Python-aware or not) application.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.OutputFileBase.add_row">
+<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.OutputFileBase.add_row" title="Link to this definition">#</a></dt>
+<dd><p>Virtual function to add a row to the output file.</p>
+<p>This needs to be reimplemented in derived classes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.OutputFileBase.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.OutputFileBase.flush" title="Link to this definition">#</a></dt>
+<dd><p>Virtual function to flush the file.</p>
+<p>This needs to be reimplemented in derived classes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">DigiOutputFileSparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse" title="Link to this definition">#</a></dt>
+<dd><p>Description of a sparse digitized output file.</p>
+<p>This can represent either a digitized files written by the DAQ, or the
+output of a simulation, in which case it contains an additional group and
+table for the Monte Carlo ground truth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – The path to the file on disk.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse._FILE_TYPE">
+<span class="sig-name descname"><span class="pre">_FILE_TYPE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Digi'</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse._FILE_TYPE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse.DIGI_TABLE_SPECS">
+<span class="sig-name descname"><span class="pre">DIGI_TABLE_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('digi_table',</span> <span class="pre">&lt;class</span> <span class="pre">'tables.description.DigiDescriptionSparse'&gt;,</span> <span class="pre">'Digi</span> <span class="pre">data')</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse.DIGI_TABLE_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse.COLUMNS_ARRAY_SPECS">
+<span class="sig-name descname"><span class="pre">COLUMNS_ARRAY_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('columns',</span> <span class="pre">Int32Atom(shape=(),</span> <span class="pre">dflt=np.int32(0)))</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse.COLUMNS_ARRAY_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse.ROWS_ARRAY_SPECS">
+<span class="sig-name descname"><span class="pre">ROWS_ARRAY_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('rows',</span> <span class="pre">Int32Atom(shape=(),</span> <span class="pre">dflt=np.int32(0)))</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse.ROWS_ARRAY_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse.PHA_ARRAY_SPECS">
+<span class="sig-name descname"><span class="pre">PHA_ARRAY_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('pha',</span> <span class="pre">Int32Atom(shape=(),</span> <span class="pre">dflt=np.int32(0)))</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse.PHA_ARRAY_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse.MC_TABLE_SPECS">
+<span class="sig-name descname"><span class="pre">MC_TABLE_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('mc_table',</span> <span class="pre">&lt;class</span> <span class="pre">'tables.description.MonteCarloDescription'&gt;,</span> <span class="pre">'Monte</span> <span class="pre">Carlo</span> <span class="pre">data')</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse.MC_TABLE_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse.add_row">
+<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">digi_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventSparse" title="hexsample.digi.DigiEventSparse"><span class="pre">DigiEventSparse</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mc_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><span class="pre">MonteCarloEvent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse.add_row" title="Link to this definition">#</a></dt>
+<dd><p>Add one row to the file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>digi</strong> (<a class="reference internal" href="digi.html#hexsample.digi.DigiEventSparse" title="hexsample.digi.DigiEventSparse"><em>DigiEventSparse</em></a>) – The digitized event contribution.</p></li>
+<li><p><strong>mc</strong> (<a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><em>MonteCarloEvent</em></a>) – The Monte Carlo event contribution.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileSparse.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileSparse.flush" title="Link to this definition">#</a></dt>
+<dd><p>Flush the basic file components.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileRectangular">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">DigiOutputFileRectangular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileRectangular" title="Link to this definition">#</a></dt>
+<dd><p>Description of a rectangular digitized output file.</p>
+<p>This can represent either a digitized files written by the DAQ, or the
+output of a simulation, in which case it contains an additional group and
+table for the Monte Carlo ground truth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – The path to the file on disk.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileRectangular._FILE_TYPE">
+<span class="sig-name descname"><span class="pre">_FILE_TYPE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Digi'</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileRectangular._FILE_TYPE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileRectangular.DIGI_TABLE_SPECS">
+<span class="sig-name descname"><span class="pre">DIGI_TABLE_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('digi_table',</span> <span class="pre">&lt;class</span> <span class="pre">'tables.description.DigiDescriptionRectangular'&gt;,</span> <span class="pre">'Digi</span> <span class="pre">data')</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileRectangular.DIGI_TABLE_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileRectangular.PHA_ARRAY_SPECS">
+<span class="sig-name descname"><span class="pre">PHA_ARRAY_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('pha',</span> <span class="pre">Int32Atom(shape=(),</span> <span class="pre">dflt=np.int32(0)))</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileRectangular.PHA_ARRAY_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileRectangular.MC_TABLE_SPECS">
+<span class="sig-name descname"><span class="pre">MC_TABLE_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('mc_table',</span> <span class="pre">&lt;class</span> <span class="pre">'tables.description.MonteCarloDescription'&gt;,</span> <span class="pre">'Monte</span> <span class="pre">Carlo</span> <span class="pre">data')</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileRectangular.MC_TABLE_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileRectangular.add_row">
+<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">digi_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventRectangular" title="hexsample.digi.DigiEventRectangular"><span class="pre">DigiEventRectangular</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mc_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><span class="pre">MonteCarloEvent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileRectangular.add_row" title="Link to this definition">#</a></dt>
+<dd><p>Add one row to the file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>digi</strong> (<a class="reference internal" href="digi.html#hexsample.digi.DigiEventRectangular" title="hexsample.digi.DigiEventRectangular"><em>DigiEventRectangular</em></a>) – The digitized event contribution.</p></li>
+<li><p><strong>mc</strong> (<a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><em>MonteCarloEvent</em></a>) – The Monte Carlo event contribution.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileRectangular.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileRectangular.flush" title="Link to this definition">#</a></dt>
+<dd><p>Flush the basic file components.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileCircular">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">DigiOutputFileCircular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileCircular" title="Link to this definition">#</a></dt>
+<dd><p>Description of a circular digitized output file.</p>
+<p>This can represent either a digitized files written by the DAQ, or the
+output of a simulation, in which case it contains an additional group and
+table for the Monte Carlo ground truth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – The path to the file on disk.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileCircular._FILE_TYPE">
+<span class="sig-name descname"><span class="pre">_FILE_TYPE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Digi'</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileCircular._FILE_TYPE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileCircular.DIGI_TABLE_SPECS">
+<span class="sig-name descname"><span class="pre">DIGI_TABLE_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('digi_table',</span> <span class="pre">&lt;class</span> <span class="pre">'tables.description.DigiDescriptionCircular'&gt;,</span> <span class="pre">'Digi</span> <span class="pre">data')</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileCircular.DIGI_TABLE_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileCircular.MC_TABLE_SPECS">
+<span class="sig-name descname"><span class="pre">MC_TABLE_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('mc_table',</span> <span class="pre">&lt;class</span> <span class="pre">'tables.description.MonteCarloDescription'&gt;,</span> <span class="pre">'Monte</span> <span class="pre">Carlo</span> <span class="pre">data')</span></em><a class="headerlink" href="#hexsample.fileio.DigiOutputFileCircular.MC_TABLE_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileCircular.add_row">
+<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">digi_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventCircular" title="hexsample.digi.DigiEventCircular"><span class="pre">DigiEventCircular</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mc_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><span class="pre">MonteCarloEvent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileCircular.add_row" title="Link to this definition">#</a></dt>
+<dd><p>Add one row to the file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>digi</strong> (<a class="reference internal" href="digi.html#hexsample.digi.DigiEventCircular" title="hexsample.digi.DigiEventCircular"><em>DigiEventCircular</em></a>) – The digitized event contribution.</p></li>
+<li><p><strong>mc</strong> (<a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><em>MonteCarloEvent</em></a>) – The Monte Carlo event contribution.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiOutputFileCircular.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.DigiOutputFileCircular.flush" title="Link to this definition">#</a></dt>
+<dd><p>Flush the basic file components.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio.digioutput_class">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">digioutput_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="readout.html#hexsample.readout.HexagonalReadoutMode" title="hexsample.readout.HexagonalReadoutMode"><span class="pre">HexagonalReadoutMode</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.digioutput_class" title="Link to this definition">#</a></dt>
+<dd><p>Return the proper class to be used as DigiOutputFile, depending on the
+readout mode of the chip.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconOutputFile">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">ReconOutputFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.ReconOutputFile" title="Link to this definition">#</a></dt>
+<dd><p>Description of a reconstructed output file. This should be the same for
+all types of DigiEvent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – The path to the file on disk.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconOutputFile._FILE_TYPE">
+<span class="sig-name descname"><span class="pre">_FILE_TYPE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Recon'</span></em><a class="headerlink" href="#hexsample.fileio.ReconOutputFile._FILE_TYPE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconOutputFile.RECON_TABLE_SPECS">
+<span class="sig-name descname"><span class="pre">RECON_TABLE_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('recon_table',</span> <span class="pre">&lt;class</span> <span class="pre">'tables.description.ReconDescription'&gt;,</span> <span class="pre">'Recon</span> <span class="pre">data')</span></em><a class="headerlink" href="#hexsample.fileio.ReconOutputFile.RECON_TABLE_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconOutputFile.MC_TABLE_SPECS">
+<span class="sig-name descname"><span class="pre">MC_TABLE_SPECS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('mc_table',</span> <span class="pre">&lt;class</span> <span class="pre">'tables.description.MonteCarloDescription'&gt;,</span> <span class="pre">'Monte</span> <span class="pre">Carlo</span> <span class="pre">data')</span></em><a class="headerlink" href="#hexsample.fileio.ReconOutputFile.MC_TABLE_SPECS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconOutputFile.update_digi_header">
+<span class="sig-name descname"><span class="pre">update_digi_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.ReconOutputFile.update_digi_header" title="Link to this definition">#</a></dt>
+<dd><p>Update the user arguments in the digi header group.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconOutputFile.add_row">
+<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recon_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="recon.html#hexsample.recon.ReconEvent" title="hexsample.recon.ReconEvent"><span class="pre">ReconEvent</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mc_event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><span class="pre">MonteCarloEvent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.ReconOutputFile.add_row" title="Link to this definition">#</a></dt>
+<dd><p>Add one row to the file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>digi</strong> (<a class="reference internal" href="digi.html#hexsample.digi.DigiEventRectangular" title="hexsample.digi.DigiEventRectangular"><em>DigiEventRectangular</em></a>) – The digitized event contribution.</p></li>
+<li><p><strong>mc</strong> (<a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><em>MonteCarloEvent</em></a>) – The Monte Carlo event contribution.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconOutputFile.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hexsample.fileio.ReconOutputFile.flush" title="Link to this definition">#</a></dt>
+<dd><p>Flush the basic file components.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.InputFileBase">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">InputFileBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.InputFileBase" title="Link to this definition">#</a></dt>
+<dd><p>Base class for input files.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.InputFileBase._user_attributes">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_user_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Group</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#hexsample.fileio.InputFileBase._user_attributes" title="Link to this definition">#</a></dt>
+<dd><p>Return all the user attributes for a given group in the form of a
+Python dictionary.</p>
+<p>This is used, e.g, to rebuild the header information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.InputFileBase.header_value">
+<span class="sig-name descname"><span class="pre">header_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#hexsample.fileio.InputFileBase.header_value" title="Link to this definition">#</a></dt>
+<dd><p>Return the header value corresponding to a given key.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileBase">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">DigiInputFileBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.DigiInputFileBase" title="Link to this definition">#</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileBase.column">
+<span class="sig-name descname"><span class="pre">column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.fileio.DigiInputFileBase.column" title="Link to this definition">#</a></dt>
+<dd><p>Return a given column in the digi table.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileBase.mc_column">
+<span class="sig-name descname"><span class="pre">mc_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.fileio.DigiInputFileBase.mc_column" title="Link to this definition">#</a></dt>
+<dd><p>Return a given column in the Monte Carlo table.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileBase.mc_event">
+<span class="sig-name descname"><span class="pre">mc_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="mc.html#hexsample.mc.MonteCarloEvent" title="hexsample.mc.MonteCarloEvent"><span class="pre">MonteCarloEvent</span></a></span></span><a class="headerlink" href="#hexsample.fileio.DigiInputFileBase.mc_event" title="Link to this definition">#</a></dt>
+<dd><p>Random access to the MonteCarloEvent part of the event contribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>row_index</strong> (<em>int</em>) – The index of the target row in the event file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileSparse">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">DigiInputFileSparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.DigiInputFileSparse" title="Link to this definition">#</a></dt>
+<dd><p>Description of a sparse digitized input file.</p>
+<p>This has a very simple interface: we cache references to the relevant tables
+when we open the file and we provide methods to reassemble a specific table
+row into the corresponding DigiEvent or MonteCarloEvent objects, along with
+an implementation of the iterator protocol to make event loops easier.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileSparse.digi_event">
+<span class="sig-name descname"><span class="pre">digi_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventSparse" title="hexsample.digi.DigiEventSparse"><span class="pre">DigiEventSparse</span></a></span></span><a class="headerlink" href="#hexsample.fileio.DigiInputFileSparse.digi_event" title="Link to this definition">#</a></dt>
+<dd><p>Random access to the DigiEventSparse part of the event contribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>row_index</strong> (<em>int</em>) – The index of the target row in the event file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileRectangular">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">DigiInputFileRectangular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.DigiInputFileRectangular" title="Link to this definition">#</a></dt>
+<dd><p>Description of a rectangular digitized input file.</p>
+<p>This has a very simple interface: we cache references to the relevant tables
+when we open the file and we provide methods to reassemble a specific table
+row into the corresponding DigiEvent or MonteCarloEvent objects, along with
+an implementation of the iterator protocol to make event loops easier.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileRectangular.digi_event">
+<span class="sig-name descname"><span class="pre">digi_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventRectangular" title="hexsample.digi.DigiEventRectangular"><span class="pre">DigiEventRectangular</span></a></span></span><a class="headerlink" href="#hexsample.fileio.DigiInputFileRectangular.digi_event" title="Link to this definition">#</a></dt>
+<dd><p>Random access to the DigiEvent part of the event contribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>row_index</strong> (<em>int</em>) – The index of the target row in the event file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileCircular">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">DigiInputFileCircular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.DigiInputFileCircular" title="Link to this definition">#</a></dt>
+<dd><p>Description of a circular digitized input file.</p>
+<p>This has a very simple interface: we cache references to the relevant tables
+when we open the file and we provide methods to reassemble a specific table
+row into the corresponding DigiEvent or MonteCarloEvent objects, along with
+an implementation of the iterator protocol to make event loops easier.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.DigiInputFileCircular.digi_event">
+<span class="sig-name descname"><span class="pre">digi_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="digi.html#hexsample.digi.DigiEventCircular" title="hexsample.digi.DigiEventCircular"><span class="pre">DigiEventCircular</span></a></span></span><a class="headerlink" href="#hexsample.fileio.DigiInputFileCircular.digi_event" title="Link to this definition">#</a></dt>
+<dd><p>Random access to the DigiEventSparse part of the event contribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>row_index</strong> (<em>int</em>) – The index of the target row in the event file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconInputFile">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">ReconInputFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.fileio.ReconInputFile" title="Link to this definition">#</a></dt>
+<dd><p>Description of a reconstructed input file.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconInputFile.column">
+<span class="sig-name descname"><span class="pre">column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.fileio.ReconInputFile.column" title="Link to this definition">#</a></dt>
+<dd><p>Return a given column in the recon table.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.fileio.ReconInputFile.mc_column">
+<span class="sig-name descname"><span class="pre">mc_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#hexsample.fileio.ReconInputFile.mc_column" title="Link to this definition">#</a></dt>
+<dd><p>Return a given column in the Monte Carlo table.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio.peek_file_type">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">peek_file_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hexsample.fileio.FileType" title="hexsample.fileio.FileType"><span class="pre">FileType</span></a></span></span><a class="headerlink" href="#hexsample.fileio.peek_file_type" title="Link to this definition">#</a></dt>
+<dd><p>Peek into the header of a HDF5 file and determing the file type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – The path to the input file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio.peek_readout_type">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">peek_readout_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="readout.html#hexsample.readout.HexagonalReadoutMode" title="hexsample.readout.HexagonalReadoutMode"><span class="pre">HexagonalReadoutMode</span></a></span></span><a class="headerlink" href="#hexsample.fileio.peek_readout_type" title="Link to this definition">#</a></dt>
+<dd><p>Peek into the header of a HDF5 Digi file and determing the readout type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – The path to the input file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.fileio.open_input_file">
+<span class="sig-prename descclassname"><span class="pre">hexsample.fileio.</span></span><span class="sig-name descname"><span class="pre">open_input_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hexsample.fileio.InputFileBase" title="hexsample.fileio.InputFileBase"><span class="pre">InputFileBase</span></a></span></span><a class="headerlink" href="#hexsample.fileio.open_input_file" title="Link to this definition">#</a></dt>
+<dd><p>Open an input file automatically determining the file type and readout type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – The path to the output file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="display.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.display</span></code> — Display facilities</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="fitting.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fitting</span></code> — Advanced fitting</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#base-classes">Base classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#digitized-data">Digitized data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reconstructed-data">Reconstructed data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-hexsample.fileio">Module documentation</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio._fill_mc_row"><code class="docutils literal notranslate"><span class="pre">_fill_mc_row()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio._fill_digi_row_base"><code class="docutils literal notranslate"><span class="pre">_fill_digi_row_base()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio._fill_digi_row_sparse"><code class="docutils literal notranslate"><span class="pre">_fill_digi_row_sparse()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio._fill_digi_row_rectangular"><code class="docutils literal notranslate"><span class="pre">_fill_digi_row_rectangular()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio._fill_digi_row_circular"><code class="docutils literal notranslate"><span class="pre">_fill_digi_row_circular()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio._fill_digi_row"><code class="docutils literal notranslate"><span class="pre">_fill_digi_row()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio._fill_recon_row"><code class="docutils literal notranslate"><span class="pre">_fill_recon_row()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.FileType"><code class="docutils literal notranslate"><span class="pre">FileType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.FileType.DIGI"><code class="docutils literal notranslate"><span class="pre">FileType.DIGI</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.FileType.RECON"><code class="docutils literal notranslate"><span class="pre">FileType.RECON</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.OutputFileBase"><code class="docutils literal notranslate"><span class="pre">OutputFileBase</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.OutputFileBase._DATE_FORMAT"><code class="docutils literal notranslate"><span class="pre">OutputFileBase._DATE_FORMAT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.OutputFileBase._FILE_TYPE"><code class="docutils literal notranslate"><span class="pre">OutputFileBase._FILE_TYPE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.OutputFileBase.update_header"><code class="docutils literal notranslate"><span class="pre">OutputFileBase.update_header()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.OutputFileBase._set_user_attribute"><code class="docutils literal notranslate"><span class="pre">OutputFileBase._set_user_attribute()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.OutputFileBase.update_user_attributes"><code class="docutils literal notranslate"><span class="pre">OutputFileBase.update_user_attributes()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.OutputFileBase.add_row"><code class="docutils literal notranslate"><span class="pre">OutputFileBase.add_row()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.OutputFileBase.flush"><code class="docutils literal notranslate"><span class="pre">OutputFileBase.flush()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse._FILE_TYPE"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse._FILE_TYPE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse.DIGI_TABLE_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse.DIGI_TABLE_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse.COLUMNS_ARRAY_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse.COLUMNS_ARRAY_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse.ROWS_ARRAY_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse.ROWS_ARRAY_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse.PHA_ARRAY_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse.PHA_ARRAY_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse.MC_TABLE_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse.MC_TABLE_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse.add_row"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse.add_row()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileSparse.flush"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileSparse.flush()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileRectangular"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileRectangular</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileRectangular._FILE_TYPE"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileRectangular._FILE_TYPE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileRectangular.DIGI_TABLE_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileRectangular.DIGI_TABLE_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileRectangular.PHA_ARRAY_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileRectangular.PHA_ARRAY_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileRectangular.MC_TABLE_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileRectangular.MC_TABLE_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileRectangular.add_row"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileRectangular.add_row()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileRectangular.flush"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileRectangular.flush()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileCircular"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileCircular</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileCircular._FILE_TYPE"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileCircular._FILE_TYPE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileCircular.DIGI_TABLE_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileCircular.DIGI_TABLE_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileCircular.MC_TABLE_SPECS"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileCircular.MC_TABLE_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileCircular.add_row"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileCircular.add_row()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiOutputFileCircular.flush"><code class="docutils literal notranslate"><span class="pre">DigiOutputFileCircular.flush()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.digioutput_class"><code class="docutils literal notranslate"><span class="pre">digioutput_class()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconOutputFile"><code class="docutils literal notranslate"><span class="pre">ReconOutputFile</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconOutputFile._FILE_TYPE"><code class="docutils literal notranslate"><span class="pre">ReconOutputFile._FILE_TYPE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconOutputFile.RECON_TABLE_SPECS"><code class="docutils literal notranslate"><span class="pre">ReconOutputFile.RECON_TABLE_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconOutputFile.MC_TABLE_SPECS"><code class="docutils literal notranslate"><span class="pre">ReconOutputFile.MC_TABLE_SPECS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconOutputFile.update_digi_header"><code class="docutils literal notranslate"><span class="pre">ReconOutputFile.update_digi_header()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconOutputFile.add_row"><code class="docutils literal notranslate"><span class="pre">ReconOutputFile.add_row()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconOutputFile.flush"><code class="docutils literal notranslate"><span class="pre">ReconOutputFile.flush()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.InputFileBase"><code class="docutils literal notranslate"><span class="pre">InputFileBase</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.InputFileBase._user_attributes"><code class="docutils literal notranslate"><span class="pre">InputFileBase._user_attributes()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.InputFileBase.header_value"><code class="docutils literal notranslate"><span class="pre">InputFileBase.header_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileBase"><code class="docutils literal notranslate"><span class="pre">DigiInputFileBase</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileBase.column"><code class="docutils literal notranslate"><span class="pre">DigiInputFileBase.column()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileBase.mc_column"><code class="docutils literal notranslate"><span class="pre">DigiInputFileBase.mc_column()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileBase.mc_event"><code class="docutils literal notranslate"><span class="pre">DigiInputFileBase.mc_event()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileSparse"><code class="docutils literal notranslate"><span class="pre">DigiInputFileSparse</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileSparse.digi_event"><code class="docutils literal notranslate"><span class="pre">DigiInputFileSparse.digi_event()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileRectangular"><code class="docutils literal notranslate"><span class="pre">DigiInputFileRectangular</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileRectangular.digi_event"><code class="docutils literal notranslate"><span class="pre">DigiInputFileRectangular.digi_event()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileCircular"><code class="docutils literal notranslate"><span class="pre">DigiInputFileCircular</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.DigiInputFileCircular.digi_event"><code class="docutils literal notranslate"><span class="pre">DigiInputFileCircular.digi_event()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconInputFile"><code class="docutils literal notranslate"><span class="pre">ReconInputFile</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconInputFile.column"><code class="docutils literal notranslate"><span class="pre">ReconInputFile.column()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.ReconInputFile.mc_column"><code class="docutils literal notranslate"><span class="pre">ReconInputFile.mc_column()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.peek_file_type"><code class="docutils literal notranslate"><span class="pre">peek_file_type()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.peek_readout_type"><code class="docutils literal notranslate"><span class="pre">peek_readout_type()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.fileio.open_input_file"><code class="docutils literal notranslate"><span class="pre">open_input_file()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/fileio.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023, the hexsample team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

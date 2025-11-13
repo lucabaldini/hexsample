@@ -1,0 +1,833 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hexsample.hexagon — Hexagonal sampling &#8212; hexsample 0.10.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=82662543"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'hexagon';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="hexsample.mc — Monte Carlo facilities" href="mc.html" />
+    <link rel="prev" title="hexsample.fitting — Advanced fitting" href="fitting.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">hexsample 0.10.0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="release.html">
+    Release notes
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="release.html">
+    Release notes
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="analysis.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.analysis</span></code> — Analysis facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clustering.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.clustering</span></code> — Clustering facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="digi.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.digi</span></code> — Digitization facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.display</span></code> — Display facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fileio.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fileio</span></code> — Input/Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fitting.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fitting</span></code> — Advanced fitting</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.hexagon</span></code> — Hexagonal sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mc.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.mc</span></code> — Monte Carlo facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modeling.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.modeling</span></code> — Fitting models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pprint.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.pprint</span></code> — Pretty printing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="readout.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.readout</span></code> — Readout facilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recon.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.recon</span></code> — Event reconstruction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rng.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.rng</span></code> — Random numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roi.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.roi</span></code> — Region of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sensor.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.sensor</span></code> — Sensor active media</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.source</span></code> — X-ray sources</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="api.html" class="nav-link">API</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.hexagon</span></code> — Hexagonal sampling</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="hexsample-hexagon-hexagonal-sampling">
+<h1><a class="reference internal" href="#module-hexsample.hexagon" title="hexsample.hexagon"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.hexagon</span></code></a> — Hexagonal sampling<a class="headerlink" href="#hexsample-hexagon-hexagonal-sampling" title="Link to this heading">#</a></h1>
+<p>The module is an attempt at having a fully-fledged version of all the necessary
+facilities related to the geometry on an hexagonal grid all in the same place,
+most of the information coming from <a class="reference external" href="https://www.redblobgames.com/grids/hexagons/">https://www.redblobgames.com/grids/hexagons/</a>.</p>
+<p>As a very quick, top level recap, hexagonal grids are classified according
+to their orientation as either pointy-top (with staggered rows, in a vertical layout)
+or flat-top (with staggered columns, in a horizontal layout).
+Each layout comes into versions, depending on whether even or odd rows/columns
+are shoved right/down. We end up with the four basic arrangements shown in the
+figure below, all of which are supported.</p>
+<figure class="align-default">
+<img alt="_images/hexagonal_layouts.png" src="_images/hexagonal_layouts.png" />
+</figure>
+<p>The module provides a <a class="reference internal" href="#hexsample.hexagon.HexagonalGrid" title="hexsample.hexagon.HexagonalGrid"><code class="xref py py-class docutils literal notranslate"><span class="pre">HexagonalGrid</span></code></a> class,
+representing an hexagonal grid, whose main public interfaces,
+<a class="reference internal" href="#hexsample.hexagon.HexagonalGrid.pixel_to_world" title="hexsample.hexagon.HexagonalGrid.pixel_to_world"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pixel_to_world(col,</span> <span class="pre">row)</span></code></a>
+and <a class="reference internal" href="#hexsample.hexagon.HexagonalGrid.world_to_pixel" title="hexsample.hexagon.HexagonalGrid.world_to_pixel"><code class="xref py py-meth docutils literal notranslate"><span class="pre">world_to_pixel(x,</span> <span class="pre">y)</span></code></a>,
+allow to go back and forth from logical to physical coordinates and vice versa.
+It is worth pointing out that, in all four cases, the origin of the physical
+reference system is assumed to be at the center of the grid, as illustrated in the
+image.</p>
+<section id="module-hexsample.hexagon">
+<span id="module-documentation"></span><h2>Module documentation<a class="headerlink" href="#module-hexsample.hexagon" title="Link to this heading">#</a></h2>
+<p>Geometrical facilities on a hexagonal grid.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalLayout">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">HexagonalLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.hexagon.HexagonalLayout" title="Link to this definition">#</a></dt>
+<dd><p>Enum class expressing the possible grid layouts.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalLayout.ODD_R">
+<span class="sig-name descname"><span class="pre">ODD_R</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ODD_R'</span></em><a class="headerlink" href="#hexsample.hexagon.HexagonalLayout.ODD_R" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalLayout.EVEN_R">
+<span class="sig-name descname"><span class="pre">EVEN_R</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'EVEN_R'</span></em><a class="headerlink" href="#hexsample.hexagon.HexagonalLayout.EVEN_R" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalLayout.ODD_Q">
+<span class="sig-name descname"><span class="pre">ODD_Q</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ODD_Q'</span></em><a class="headerlink" href="#hexsample.hexagon.HexagonalLayout.ODD_Q" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalLayout.EVEN_Q">
+<span class="sig-name descname"><span class="pre">EVEN_Q</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'EVEN_Q'</span></em><a class="headerlink" href="#hexsample.hexagon.HexagonalLayout.EVEN_Q" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.hexagon.neighbors_odd_r">
+<span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">neighbors_odd_r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="headerlink" href="#hexsample.hexagon.neighbors_odd_r" title="Link to this definition">#</a></dt>
+<dd><p>Return a tuple with the coordinates of the 6 neighbor pixel for a given
+pixel in a ODD_R hexagonal grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>int</em>) – The column index.</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – The row index.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.hexagon.neighbors_even_r">
+<span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">neighbors_even_r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="headerlink" href="#hexsample.hexagon.neighbors_even_r" title="Link to this definition">#</a></dt>
+<dd><p>Return a tuple with the coordinates of the 6 neighbor pixel for a given
+pixel in a EVEN_R hexagonal grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>int</em>) – The column index.</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – The row index.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.hexagon.neighbors_odd_q">
+<span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">neighbors_odd_q</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="headerlink" href="#hexsample.hexagon.neighbors_odd_q" title="Link to this definition">#</a></dt>
+<dd><p>Return a tuple with the coordinates of the 6 neighbor pixel for a given
+pixel in a ODD_Q hexagonal grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>int</em>) – The column index.</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – The row index.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.hexagon.neighbors_even_q">
+<span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">neighbors_even_q</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="headerlink" href="#hexsample.hexagon.neighbors_even_q" title="Link to this definition">#</a></dt>
+<dd><p>Return a tuple with the coordinates of the 6 neighbor pixel for a given
+pixel in a EVEN_Q hexagonal grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>int</em>) – The column index.</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – The row index.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.hexagon.adc_channel_odd_r">
+<span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">adc_channel_odd_r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#hexsample.hexagon.adc_channel_odd_r" title="Link to this definition">#</a></dt>
+<dd><p>Transformation from offset coordinates (col, row) into 7-adc channel label,
+that is an int between 0 and 6, for ODD_R grid layout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>int</em>) – column pixel logical coordinate</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – row pixel logical coordinate</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.hexagon.adc_channel_even_r">
+<span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">adc_channel_even_r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#hexsample.hexagon.adc_channel_even_r" title="Link to this definition">#</a></dt>
+<dd><p>Transformation from offset coordinates (col, row) into 7-adc channel label,
+that is an int between 0 and 6, for EVEN_R grid layout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>int</em>) – column pixel logical coordinate</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – row pixel logical coordinate</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.hexagon.adc_channel_odd_q">
+<span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">adc_channel_odd_q</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#hexsample.hexagon.adc_channel_odd_q" title="Link to this definition">#</a></dt>
+<dd><p>Transformation from offset coordinates (col, row) into 7-adc channel label,
+that is an int between 0 and 6, for ODD_Q grid layout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>int</em>) – column pixel logical coordinate</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – row pixel logical coordinate</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hexsample.hexagon.adc_channel_even_q">
+<span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">adc_channel_even_q</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#hexsample.hexagon.adc_channel_even_q" title="Link to this definition">#</a></dt>
+<dd><p>Transformation from offset coordinates (col, row) into 7-adc channel label,
+that is an int between 0 and 6, for EVEN_Q grid layout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>int</em>) – column pixel logical coordinate</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – row pixel logical coordinate</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hexsample.hexagon.</span></span><span class="sig-name descname"><span class="pre">HexagonalGrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><span class="pre">HexagonalLayout</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pitch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid" title="Link to this definition">#</a></dt>
+<dd><p>Generic hexagonal grid, with the origin of the physical coordinate
+system at its center.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layout</strong> (<a class="reference internal" href="#hexsample.hexagon.HexagonalLayout" title="hexsample.hexagon.HexagonalLayout"><em>HexagonalLayout</em></a>) – The underlying hexagonal grid layout.</p></li>
+<li><p><strong>num_cols</strong> (<em>int</em>) – The number of columns in the grid</p></li>
+<li><p><strong>num_rows</strong> (<em>int</em>) – The number of rows in the grid</p></li>
+<li><p><strong>pitch</strong> (<em>float</em>) – The grid pitch in mm.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.pointy_topped">
+<span class="sig-name descname"><span class="pre">pointy_topped</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.pointy_topped" title="Link to this definition">#</a></dt>
+<dd><p>Return True if the layout is pointy-topped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.flat_topped">
+<span class="sig-name descname"><span class="pre">flat_topped</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.flat_topped" title="Link to this definition">#</a></dt>
+<dd><p>Return True if the layout is flat-topped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.even">
+<span class="sig-name descname"><span class="pre">even</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.even" title="Link to this definition">#</a></dt>
+<dd><p>Return True if the layout is even.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.odd">
+<span class="sig-name descname"><span class="pre">odd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.odd" title="Link to this definition">#</a></dt>
+<dd><p>Return True if the layout is odd.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.hexagon_orientation">
+<span class="sig-name descname"><span class="pre">hexagon_orientation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.hexagon_orientation" title="Link to this definition">#</a></dt>
+<dd><p>Return the orientation (rotation angle in radians) of the grid hexagons.</p>
+<p>This is calculated according to the matplotlib conventions for a
+RegularPolygon, that is, it’s 0 for a pointy top, and pi/2 for a flat top.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid._parity_offset">
+<span class="sig-name descname"><span class="pre">_parity_offset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid._parity_offset" title="Link to this definition">#</a></dt>
+<dd><p>Small convenience function to help with the tranformation.</p>
+<p>For any given column or row index, this returns 0 if the index is even
+and +1 or - 1 (depending on whether the parent layout is even or odd)
+if the index is odd.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> (<em>int</em>) – The column or row index.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.pixel_to_world">
+<span class="sig-name descname"><span class="pre">pixel_to_world</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.pixel_to_world" title="Link to this definition">#</a></dt>
+<dd><p>Transform pixel coordinates to world coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<em>array_like</em>) – The input column number(s).</p></li>
+<li><p><strong>row</strong> (<em>array_like</em>) – The input row number(s).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid._float_axial">
+<span class="sig-name descname"><span class="pre">_float_axial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid._float_axial" title="Link to this definition">#</a></dt>
+<dd><p>Conversion of a given set of world coordinates into fractional axial
+coordinates, a. k. a. step 1 in the transformation between world coordinates
+to pixel coordinates.</p>
+<p>See <a class="reference external" href="https://www.redblobgames.com/grids/hexagons/">https://www.redblobgames.com/grids/hexagons/</a> for more details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>array_like</em>) – The x coordinate(s).</p></li>
+<li><p><strong>y</strong> (<em>array_like</em>) – The y coordinate(s).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid._axial_round">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_axial_round</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid._axial_round" title="Link to this definition">#</a></dt>
+<dd><p>Rounding to integer of the axial coordinates, a. k. a. step 2 in the
+transformation between world coordinates to pixel coordinates.</p>
+<p>See <a class="reference external" href="https://www.redblobgames.com/grids/hexagons/">https://www.redblobgames.com/grids/hexagons/</a> for more details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> (<em>array_like</em>) – The q axial coordinate(s).</p></li>
+<li><p><strong>r</strong> (<em>array_like</em>) – The r axial coordinate(s).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid._axial_to_offset">
+<span class="sig-name descname"><span class="pre">_axial_to_offset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid._axial_to_offset" title="Link to this definition">#</a></dt>
+<dd><p>Conversion from axial to offset coordinates, a. k. a. step 3 in the
+transformation between world coordinates to pixel coordinates.</p>
+<p>See <a class="reference external" href="https://www.redblobgames.com/grids/hexagons/">https://www.redblobgames.com/grids/hexagons/</a> for more details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> (<em>array_like</em>) – The q axial coordinate(s).</p></li>
+<li><p><strong>r</strong> (<em>array_like</em>) – The r axial coordinate(s).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.world_to_pixel">
+<span class="sig-name descname"><span class="pre">world_to_pixel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.world_to_pixel" title="Link to this definition">#</a></dt>
+<dd><p>Transform world coordinates to pixel coordinates.</p>
+<p>This proceeds in three basic steps (conversion to fractional axial coordinates,
+rounding to integer and conversion to offset coordinates) as described in
+<a class="reference external" href="https://www.redblobgames.com/grids/hexagons/">https://www.redblobgames.com/grids/hexagons/</a> and we factored the three
+steps into three separate functions to clarify the code flow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>array_like</em>) – The input x coordinate(s).</p></li>
+<li><p><strong>y</strong> (<em>array_like</em>) – The input y coordinate(s).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.pixel_logical_coordinates">
+<span class="sig-name descname"><span class="pre">pixel_logical_coordinates</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.pixel_logical_coordinates" title="Link to this definition">#</a></dt>
+<dd><p>Return a 2-element tuple (cols, rows) of numpy arrays containing all the
+column and row indices that allow to loop over the full matrix. The specific
+order in which the pixels are looped upon is completely arbitrary and, for
+the sake of this function, we assume that, e.g., for a 2 x 2 grid we return
+&gt;&gt;&gt; cols = [0, 1, 0, 1]
+&gt;&gt;&gt; rows = [0, 0, 1, 1]
+i.e., we loop with the following order
+&gt;&gt;&gt; (0, 0), (1, 0), (0, 1), (1, 1)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hexsample.hexagon.HexagonalGrid.pixel_physical_coordinates">
+<span class="sig-name descname"><span class="pre">pixel_physical_coordinates</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hexsample.hexagon.HexagonalGrid.pixel_physical_coordinates" title="Link to this definition">#</a></dt>
+<dd><p>Return a 4-element tuple (cols, rows, x, y) containing the logical
+coordinates returned by pixel_logical_coordinates(), along with the
+corresponding physical coordinates.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="fitting.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.fitting</span></code> — Advanced fitting</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="mc.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hexsample.mc</span></code> — Monte Carlo facilities</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-hexsample.hexagon">Module documentation</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalLayout"><code class="docutils literal notranslate"><span class="pre">HexagonalLayout</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalLayout.ODD_R"><code class="docutils literal notranslate"><span class="pre">HexagonalLayout.ODD_R</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalLayout.EVEN_R"><code class="docutils literal notranslate"><span class="pre">HexagonalLayout.EVEN_R</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalLayout.ODD_Q"><code class="docutils literal notranslate"><span class="pre">HexagonalLayout.ODD_Q</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalLayout.EVEN_Q"><code class="docutils literal notranslate"><span class="pre">HexagonalLayout.EVEN_Q</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.neighbors_odd_r"><code class="docutils literal notranslate"><span class="pre">neighbors_odd_r()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.neighbors_even_r"><code class="docutils literal notranslate"><span class="pre">neighbors_even_r()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.neighbors_odd_q"><code class="docutils literal notranslate"><span class="pre">neighbors_odd_q()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.neighbors_even_q"><code class="docutils literal notranslate"><span class="pre">neighbors_even_q()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.adc_channel_odd_r"><code class="docutils literal notranslate"><span class="pre">adc_channel_odd_r()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.adc_channel_even_r"><code class="docutils literal notranslate"><span class="pre">adc_channel_even_r()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.adc_channel_odd_q"><code class="docutils literal notranslate"><span class="pre">adc_channel_odd_q()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.adc_channel_even_q"><code class="docutils literal notranslate"><span class="pre">adc_channel_even_q()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.pointy_topped"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.pointy_topped()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.flat_topped"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.flat_topped()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.even"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.even()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.odd"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.odd()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.hexagon_orientation"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.hexagon_orientation()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid._parity_offset"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid._parity_offset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.pixel_to_world"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.pixel_to_world()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid._float_axial"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid._float_axial()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid._axial_round"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid._axial_round()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid._axial_to_offset"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid._axial_to_offset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.world_to_pixel"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.world_to_pixel()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.pixel_logical_coordinates"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.pixel_logical_coordinates()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#hexsample.hexagon.HexagonalGrid.pixel_physical_coordinates"><code class="docutils literal notranslate"><span class="pre">HexagonalGrid.pixel_physical_coordinates()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/hexagon.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023, the hexsample team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
