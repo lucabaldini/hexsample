@@ -23,8 +23,6 @@ import aptapy.models
 
 # pylint: disable=invalid-name
 
-# aprire issue e implppementare in aptapy
-
 def fit_gaussian_iterative(histogram, p0=None, xmin=-np.inf, xmax=np.inf, absolute_sigma=True,
     check_finite=True, method=None, verbose=True, num_sigma_left=2., num_sigma_right=2.,
     num_iterations=2, **kwargs):

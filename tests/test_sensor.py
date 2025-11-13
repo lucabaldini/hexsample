@@ -64,7 +64,6 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     model = Exponential()
     model.fit_histogram(h)
     model.plot(fit_output=True)
-    # model.stat_box()
     scale = model.scale.value
     sigma_scale = model.scale.error
     delta = (Silicon.photoelectric_attenuation_length(energy) - scale) / sigma_scale

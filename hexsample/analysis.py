@@ -84,45 +84,6 @@ def create_histogram(input_file: InputFileBase, column_name: str, mc: bool = Fal
         binning = np.linspace(values.min(), values.max(), binning)
     return Histogram1d(binning, xlabel=column_name).fill(values)
 
-# Delete method, already implemented in aptapy
-
-# def fit_histogram(hist: Histogram1d, fit_model: FitModelBase = DoubleGaussian,
-#     p0 = None, show_figure: bool = True) -> np.array:
-#     """Fit an histogram given as argument.
-
-#     Arguments
-#     ---------
-#     input_file : DigiInputFile
-#         The input (digi or recon) file.
-
-#     hist : Histogram1D
-#         The histogram to be fitted.
-
-#     fitting_model : FitModelBase
-#         The FitModelBase instance containing the model used for fitting the histogram.
-#         Default is DoubleGaussian.
-
-#     p0 : np.array
-#         The array containing the initial parameters of the fit. It must have the same
-#         len() as the number of parameters of the FitModelBase used for the fit.
-
-#     plot_figure : bool
-#         Bool that states if the figure containing the histogram and the best fit has
-#         to be shown.
-
-#     Return
-#     ------
-#     model_status : FitModelStatus
-#         The FitModelStatus instance returned by fit routine.
-#     """
-#     # pylint: disable=invalid-name
-#     model = fit_model()
-#     model.fit_histogram(hist, p0)
-#     if show_figure is True:
-#         hist.plot()
-#         model.plot()
-#         model.stat_box()
-#     return model.status
 
 def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: np.array,
     heatmap_values2: np.array):
