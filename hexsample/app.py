@@ -188,6 +188,10 @@ class ArgumentParser(argparse.ArgumentParser):
         """Add an option group for the source properties.
         """
         group = self.add_argument_group('source', 'X-ray source properties')
+        types = ['lines', 'continuum']
+        group.add_argument('--spectrumtype', type=str, choices=types, default='lines',
+                           help='type of spectrum, choices are between a discrete\
+                           and a continuum spectrum in the range [7000, 9000] eV.')
         group.add_argument('--srcelement', type=str, default='Cu',
             help='element generating the line forest')
         group.add_argument('--srclevel', type=str, default='K',

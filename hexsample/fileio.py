@@ -262,6 +262,7 @@ def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     row['trigger_id'] = event.trigger_id
     row['timestamp'] = event.timestamp
     row['livetime'] = event.livetime
+    # Roi size is not implemented in all event type classes
     #row['roi_size'] = event.roi_size
     row['cluster_size'] = event.cluster.size()
     row['energy'] = event.energy()
