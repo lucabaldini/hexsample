@@ -65,7 +65,7 @@ Homepage = "https://github.com/lucabaldini/hexsample"
 Issues = "https://github.com/lucabaldini/hexsample/issues"
 
 [tool.hatch.version]
-path = "src/aptapy/_version.py"
+path = "src/hexsample/_version.py"
 
 # ruff configuration, see https://docs.astral.sh/ruff/configuration/
 # Note we target the oldest Python version that we support, which helps

@@ -30,7 +30,7 @@ from loguru import logger
 import numpy as np
 import tables
 
-from hexsample import __version__, __tagdate__
+from hexsample import __version__
 from hexsample.mc import MonteCarloEvent
 from hexsample.digi import DigiEventBase, DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutCircular
@@ -310,7 +310,7 @@ class OutputFileBase(tables.File):
         date = time.strftime(self._DATE_FORMAT)
         creator = pathlib.Path(inspect.stack()[-1].filename).name
         self.update_header(filetype=self._FILE_TYPE.value, date=date,\
-                    creator=creator, version=__version__, tagdate=__tagdate__)
+                    creator=creator, version=__version__)
 
 
     def update_header(self, **kwargs) -> None:
@@ -712,7 +712,7 @@ class DigiInputFileSparse(DigiInputFileBase):
         rows = self.rows_array[row_index]
         pha = self.pha_array[row_index]
         return DigiEventSparse.from_digi(row, pha, columns, rows)
-    
+
     def __iter__(self):
         """Overloaded method for the implementation of the iterator protocol.
         """
@@ -755,7 +755,7 @@ class DigiInputFileRectangular(DigiInputFileBase):
         row = self.digi_table[row_index]
         pha = self.pha_array[row_index]
         return DigiEventRectangular.from_digi(row, pha)
-    
+
     def __iter__(self):
         """Overloaded method for the implementation of the iterator protocol.
         """
@@ -796,7 +796,7 @@ class DigiInputFileCircular(DigiInputFileBase):
         """
         row = self.digi_table[row_index]
         return DigiEventCircular.from_digi(row)
-    
+
     def __iter__(self):
         """Overloaded method for the implementation of the iterator protocol.
         """

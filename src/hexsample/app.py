@@ -22,15 +22,15 @@
 
 import argparse
 
-from hexsample import __pkgname__, __version__, __tagdate__, __url__
+from hexsample import __pkgname__, __version__, __url__
 from hexsample.hexagon import HexagonalLayout
 from hexsample.readout import HexagonalReadoutMode
 
 
 START_MESSAGE = f"""
-    This is {__pkgname__} version {__version__}, built on {__tagdate__}
+    This is {__pkgname__} version {__version__}
 
-    Copyright (C) 2022--2023, the {__pkgname__} team.
+    Copyright (C) 2022--2025, the {__pkgname__} team.
 
     {__pkgname__} comes with ABSOLUTELY NO WARRANTY.
     This is free software, and you are welcome to redistribute it under certain

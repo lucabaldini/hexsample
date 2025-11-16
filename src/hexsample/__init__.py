@@ -25,7 +25,7 @@ import sys
 
 from loguru import logger
 
-from hexsample._version import __version__, __tagdate__
+from hexsample._version import __version__
 
 # Logger setup.
 DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True, format=">>> <level>{message}</level>")
