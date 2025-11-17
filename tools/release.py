@@ -22,14 +22,13 @@
 """Simple versioning tool.
 """
 
-from enum import Enum
 import time
+from enum import Enum
 from typing import Tuple
 
-from loguru import logger
-
-from hexsample import __pkgname__, __version__, __tagdate__
+from hexsample import __name__, __version__
 from hexsample import HEXSAMPLE_VERSION_FILE_PATH, HEXSAMPLE_RELEASE_NOTES_PATH
+from hexsample.logging_ import logger
 from hexsample.shell import cmd
 
 
@@ -106,7 +105,6 @@ def write_version_file(version_string : str, tag_date : str, dry_run : bool = Fa
         return
     with open(HEXSAMPLE_VERSION_FILE_PATH, 'w') as version_file:
         version_file.write(f'__version__ = \'{version_string}\'\n')
-        version_file.write(f'__tagdate__ = \'{tag_date}\'\n')
     logger.info('Done.')
 
 def update_release_notes(version_string : str, tag_date : str, dry_run : bool = False) -> None:
@@ -122,7 +120,7 @@ def update_release_notes(version_string : str, tag_date : str, dry_run : bool = 
         return
     with open(HEXSAMPLE_RELEASE_NOTES_PATH, 'w') as release_notes:
         release_notes.writelines(title)
-        release_notes.writelines(f'\n*{__pkgname__} ({version_string}) - {tag_date}*\n\n')
+        release_notes.writelines(f'\n*{__name__} ({version_string}) - {tag_date}*\n\n')
         release_notes.writelines(notes)
     logger.info('Done.')
 
