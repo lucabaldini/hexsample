@@ -21,7 +21,8 @@ import numpy as np
 import xraydb
 from aptapy.plotting import plt, setup_gca
 
-from hexsample import HEXSAMPLE_TEST_DATA, logger
+from hexsample import HEXSAMPLE_TEST_DATA
+from hexsample.logging_ import logger
 
 
 def _load_nist_data(file_name):

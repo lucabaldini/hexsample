@@ -25,7 +25,7 @@ import time
 import numpy as np
 import pytest
 
-from hexsample import logger
+from hexsample.logging_ import logger
 from hexsample import xpol
 from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.hexagon import HexagonalLayout

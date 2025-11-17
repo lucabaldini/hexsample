@@ -24,7 +24,7 @@
 
 from tqdm import tqdm
 
-from hexsample import logger
+from hexsample.logging_ import logger
 from hexsample.app import ArgumentParser, check_required_args
 from hexsample.clustering import ClusteringNN
 from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutSparse, HexagonalReadoutRectangular, HexagonalReadoutCircular
@@ -52,7 +52,7 @@ def hxrecon(**kwargs):
     input_file_path = str(kwargs['infile'])
     if not input_file_path.endswith('.h5'):
         raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')
-    
+
     # It is necessary to extract the reaodut type because every readout type
     # corresponds to a different DigiEvent type.
     readout_mode = peek_readout_type(input_file_path)
@@ -78,7 +78,7 @@ def hxrecon(**kwargs):
             header['pitch'], header['noise'], header['gain']
         readout = HexagonalReadoutCircular(*args)
         logger.info(f'Readout chip: {readout}')
-    # When the readout tipology is determined, the event is clustered ...   
+    # When the readout tipology is determined, the event is clustered ...
     clustering = ClusteringNN(readout, kwargs['zsupthreshold'], kwargs['nneighbors'])
     suffix = kwargs['suffix']
     output_file_path = input_file_path.replace('.h5', f'_{suffix}.h5')
