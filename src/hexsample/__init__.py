@@ -23,17 +23,9 @@
 from pathlib import Path
 import sys
 
-from loguru import logger
 
-from hexsample._version import __version__
+from ._version import __version__
 
-# Logger setup.
-DEFAULT_LOGURU_HANDLER = dict(sink=sys.stderr, colorize=True, format=">>> <level>{message}</level>")
-logger.remove()
-logger.add(**DEFAULT_LOGURU_HANDLER)
-
-__pkgname__ = 'hexsample'
-__url__ = 'https://github.com/lucabaldini/hexsample'
 
 # Basic package structure.
 HEXSAMPLE_ROOT = Path(__file__).parent

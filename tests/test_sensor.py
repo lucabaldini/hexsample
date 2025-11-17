@@ -16,14 +16,13 @@
 """Test suite for sensor.py
 """
 
-from loguru import logger
-
 import numpy as np
 from aptapy.hist import Histogram1d
 from aptapy.models import Exponential
 from aptapy.plotting import plt, setup_gca
 
 from hexsample import rng
+from hexsample.logging_ import logger
 from hexsample.sensor import Silicon, SiliconSensor
 
 rng.initialize()

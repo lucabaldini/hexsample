@@ -22,7 +22,7 @@
 
 import subprocess
 
-from loguru import logger
+from .logging_ import logger
 
 
 def cmd(command: str, dry_run: bool = False) -> int:

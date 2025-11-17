@@ -22,21 +22,21 @@
 
 import argparse
 
-from hexsample import __pkgname__, __version__, __url__
+from hexsample import __name__, __version__
 from hexsample.hexagon import HexagonalLayout
 from hexsample.readout import HexagonalReadoutMode
 
 
 START_MESSAGE = f"""
-    This is {__pkgname__} version {__version__}
+    This is {__name__} version {__version__}
 
-    Copyright (C) 2022--2025, the {__pkgname__} team.
+    Copyright (C) 2022--2025, the {__name__} team.
 
-    {__pkgname__} comes with ABSOLUTELY NO WARRANTY.
+    {__name__} comes with ABSOLUTELY NO WARRANTY.
     This is free software, and you are welcome to redistribute it under certain
     conditions. See the LICENSE file for details.
 
-    Visit {__url__} for more information.
+    Visit https://github.com/lucabaldini/hexsample for more information.
 """
 
 

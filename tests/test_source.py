@@ -16,14 +16,13 @@
 """Test suite for source.py
 """
 
-from loguru import logger
-
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.plotting import plt, setup_gca
 
 from hexsample import rng
 from hexsample.fitting import fit_gaussian_iterative
+from hexsample.logging_ import logger
 from hexsample.source import PointBeam, DiskBeam, GaussianBeam
 from hexsample.source import LineForest
 

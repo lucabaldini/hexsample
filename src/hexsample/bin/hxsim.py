@@ -22,13 +22,13 @@
 """Simple simulation.
 """
 
-from loguru import logger
 import numpy as np
 from tqdm import tqdm
 
 from hexsample import rng
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
+from .logging_ import logger
 from hexsample.readout import HexagonalReadoutMode, readout_chip
 from hexsample.fileio import DigiDescriptionSparse, DigiDescriptionRectangular,\
     DigiDescriptionCircular, digioutput_class

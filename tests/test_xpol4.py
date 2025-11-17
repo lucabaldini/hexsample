@@ -20,9 +20,9 @@ from matplotlib.patches import Rectangle, Circle
 import numpy as np
 from aptapy.plotting import plt
 
-from hexsample import logger
 from hexsample.hexagon import HexagonalLayout, HexagonalGrid
 from hexsample.display import HexagonalGridDisplay
+from hexsample.logging_ import logger
 from hexsample.xpol import XPOL3_SIZE, XPOL_PITCH
 
 

@@ -19,7 +19,7 @@
 
 import numpy as np
 
-from hexsample import logger
+from .logging_ import logger
 
 
 # Default bit generator class---this is the workhorse object that draw random

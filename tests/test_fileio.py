@@ -16,11 +16,11 @@
 """Test suite for hexsample.fileio
 """
 
-from loguru import logger
 import numpy as np
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
+from hexsample.logging_ import logger
 from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutCircular
 from hexsample.fileio import DigiInputFileSparse, DigiInputFileRectangular,\
     DigiInputFileCircular, ReconInputFile, ReconOutputFile,FileType,\

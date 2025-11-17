@@ -23,9 +23,9 @@
 from dataclasses import dataclass
 from typing import Tuple
 
-from loguru import logger
 import numpy as np
 
+from .logging_ import logger
 from hexsample.pprint import AnsiFontEffect, ansi_format, space, line
 from hexsample.roi import Padding, RegionOfInterest
 
@@ -120,7 +120,7 @@ class DigiEventSparse(DigiEventBase):
         if not len(self.rows) == len(self.columns) == len(self.pha):
             raise RuntimeError(f'{self.__class__.__name__} has {len(self.rows)} rows'
                 f', {len(self.columns)} columns, and {len(self.pha)} PHA values')
-        
+
     @classmethod
     def from_digi(cls, file_row: np.ndarray, pha: np.ndarray, columns: np.ndarray, rows: np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.
@@ -293,7 +293,7 @@ class DigiEventCircular(DigiEventBase):
     row : int
         The column identifier of the maximum PHA pixel in the event in pixel
         coordinates.
-    
+
     """
 
     column: int
@@ -305,7 +305,7 @@ class DigiEventCircular(DigiEventBase):
         if not len(self.pha) == 7:
             raise RuntimeError(f'{self.__class__.__name__} has {len(self.pha)} PHA values'
                 f'instead of {7}.')
-        
+
     @classmethod
     def from_digi(cls, file_row: np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.
@@ -316,10 +316,10 @@ class DigiEventCircular(DigiEventBase):
         # pylint: disable=too-many-locals
         trigger_id, seconds, microseconds, livetime, pha, column, row = file_row
         return cls(trigger_id, seconds, microseconds, livetime, pha, column, row)
-    
+
     def ascii(self, pha_width: int = 5) -> str:
-        """Ascii representation. 
-        In the specific case of this class, the ascii representation is simply a px 
+        """Ascii representation.
+        In the specific case of this class, the ascii representation is simply a px
         (that is the highest PHA pixel), because the neighbor position is not accessible
         by the DigiEvent.
         """
@@ -344,6 +344,6 @@ class DigiEventCircular(DigiEventBase):
                 text += pha
             text += f'\n{big_space}|\n'
         return text
-    
-    
-    
+
+
+

@@ -18,11 +18,11 @@
 
 import numpy as np
 
-from loguru import logger
 import pytest
 
 from hexsample.digi import DigiEventBase, DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.hexagon import HexagonalGrid, HexagonalLayout
+from hexsample.logging_ import logger
 from hexsample.readout import HexagonalReadoutRectangular, HexagonalReadoutSparse, HexagonalReadoutCircular
 from hexsample.roi import Padding, RegionOfInterest
 

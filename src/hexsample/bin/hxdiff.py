@@ -30,6 +30,7 @@ from aptapy.plotting import plt
 from hexsample import logger
 from hexsample.app import ArgumentParser
 from hexsample.fileio import DigiInputFile
+from .logging_ import logger
 from hexsample.analysis import create_histogram
 
 

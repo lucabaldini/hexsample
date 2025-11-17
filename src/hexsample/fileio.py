@@ -26,11 +26,12 @@ import pathlib
 import time
 from typing import Any
 
-from loguru import logger
 import numpy as np
 import tables
 
+
 from hexsample import __version__
+from .logging_ import logger
 from hexsample.mc import MonteCarloEvent
 from hexsample.digi import DigiEventBase, DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutCircular
