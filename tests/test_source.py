@@ -23,9 +23,7 @@ from aptapy.plotting import plt, setup_gca
 from hexsample import rng
 from hexsample.fitting import fit_gaussian_iterative
 from hexsample.logging_ import logger
-from hexsample.source import PointBeam, DiskBeam, GaussianBeam
-from hexsample.source import LineForest
-
+from hexsample.source import DiskBeam, GaussianBeam, LineForest, PointBeam
 
 rng.initialize()
 
@@ -44,9 +42,9 @@ def test_disk_beam(radius : float = 0.1, num_photons : int = 1000000):
     beam = DiskBeam(radius=radius)
     x, y = beam.rvs(num_photons)
     binning = np.linspace(-1.5 * radius, 1.5 * radius, 100)
-    plt.figure('Disk beam')
+    plt.figure("Disk beam")
     Histogram2d(binning, binning).fill(x, y).plot()
-    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 
 def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     """Test a gaussian beam
@@ -54,30 +52,30 @@ def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     beam = GaussianBeam(sigma=sigma)
     x, y = beam.rvs(num_photons)
     binning = np.linspace(-5. * sigma, 5. * sigma, 100)
-    plt.figure('Gaussian beam')
+    plt.figure("Gaussian beam")
     Histogram2d(binning, binning).fill(x, y).plot()
-    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
-    plt.figure('Gaussian beam x projection')
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+    plt.figure("Gaussian beam x projection")
     hx = Histogram1d(binning).fill(x)
     hx.plot()
     model = fit_gaussian_iterative(hx, num_sigma_left=3., num_sigma_right=3.)
     model.plot(fit_output=True)
     plt.legend()
 
-    plt.figure('Gaussian beam y projection')
+    plt.figure("Gaussian beam y projection")
     hy = Histogram1d(binning).fill(y)
     hy.plot()
     model = fit_gaussian_iterative(hy, num_sigma_left=3., num_sigma_right=3.)
     model.plot(fit_output=True)
     plt.legend()
 
-def _test_forest(element, initial_level='K', num_events=100000, chisq_test=True):
+def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True):
     """Generic tes for a line forest.
     """
     # Create the forest.
     forest = LineForest(element, initial_level)
     logger.debug(forest)
-    plt.figure(f'{element} {initial_level} line forest')
+    plt.figure(f"{element} {initial_level} line forest")
     forest.plot()
     if chisq_test:
         # Extract a bunch of random energies...
@@ -85,33 +83,33 @@ def _test_forest(element, initial_level='K', num_events=100000, chisq_test=True)
         # ... and do a chisquare test against the original line probabilities.
         values, counts = np.unique(energy, return_counts=True)
         for val, cnts in zip(values, counts):
-            logger.debug(f'{val} eV -> {cnts} counts')
+            logger.debug(f"{val} eV -> {cnts} counts")
         p = counts / counts.sum()
         sigma = np.sqrt(counts) / counts.sum() * (1. - p)
-        logger.debug(f'Forest energies: {forest._energies}')
-        logger.debug(f'Forest probabilities: {forest._probs}')
+        logger.debug(f"Forest energies: {forest._energies}")
+        logger.debug(f"Forest probabilities: {forest._probs}")
         chi2 = (((forest._probs - p) / sigma)**2).sum()
         ndof = len(values) - 1
-        logger.debug(f'Chisquare / ndof = {chi2} / {ndof}...')
+        logger.debug(f"Chisquare / ndof = {chi2} / {ndof}...")
         assert chi2 - ndof <= 5. * np.sqrt(2. * ndof)
 
 def test_cu_k_forest():
     """Test the Cu K forest.
     """
-    _test_forest('Cu')
+    _test_forest("Cu")
 
 def test_mn_k_forest():
-    """Test the Cu K forest.
+    """Test the Mn K forest.
 
     Note we're not doing the chisquare test, here, as two of the lines have the
     same energy, and the thing would require extra code to deal with that.
     """
-    _test_forest('Mn', chisq_test=False)
+    _test_forest("Mn", chisq_test=False)
 
 
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_disk_beam()
     test_gaussian_beam()
     test_cu_k_forest()

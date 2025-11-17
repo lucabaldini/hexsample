@@ -26,11 +26,14 @@ import time
 from enum import Enum
 from typing import Tuple
 
-from hexsample import __name__, __version__
-from hexsample import HEXSAMPLE_VERSION_FILE_PATH, HEXSAMPLE_RELEASE_NOTES_PATH
+from hexsample import (
+    HEXSAMPLE_RELEASE_NOTES_PATH,
+    HEXSAMPLE_VERSION_FILE_PATH,
+    __name__,
+    __version__,
+)
 from hexsample.logging_ import logger
 from hexsample.shell import cmd
-
 
 _BUILD_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
 
