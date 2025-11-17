@@ -23,6 +23,6 @@ from hexsample.shell import cmd
 def test_ls():
     """Test a simple ls shell command.
     """
-    command = f'ls {HEXSAMPLE_ROOT}'
+    command = f"ls {HEXSAMPLE_ROOT}"
     cmd(command)
     cmd(command, dry_run=True)

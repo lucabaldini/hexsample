@@ -57,7 +57,7 @@ def test_padding(top : int = 2, right : int = 4, bottom : int = 3, left : int = 
     assert tuple(pad) == (top, right, bottom, left)
 
 def test_padding_equality():
-    """Test the equality opetator for padding.
+    """Test the equality operator for padding.
     """
     pad1 = Padding(2)
     pad2 = Padding(2, 2, 2, 2)
@@ -66,9 +66,11 @@ def test_padding_equality():
     assert pad1 != pad3
 
 def test_roi(min_col : int = 0, max_col : int = 5, min_row : int = 25,
-    max_row : int = 30, padding : Padding = Padding(2)):
+    max_row : int = 30, padding : Padding = None):
     """Unit test for the RegionOfInterest class.
     """
+    if padding is None:
+        padding = Padding(2)
     roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
     print(roi)
     assert roi.min_col == min_col
