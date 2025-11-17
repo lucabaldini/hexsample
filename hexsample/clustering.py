@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
+from aptapy.models import PowerLaw
 
 from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
 from hexsample.hexagon import HexagonalGrid
@@ -51,6 +52,7 @@ class Cluster:
     def size(self) -> int:
         """Return the size of the cluster.
         """
+        # Modify to np.count_nonzero(self.pha) for compatibility with neural network
         return self.x.size
 
     def pulse_height(self) -> float:
@@ -63,6 +65,29 @@ class Cluster:
         """
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
 
+    def eta(self, gamma: float, pitch: float) -> Tuple[float, float]:
+        """Return the cluster reconstructed position using the eta function.
+        
+        Arguments
+        ---------
+        pitch : float
+            The pitch of the pixels.
+        """
+        # We want to extend this method to events with multiple pixels
+        if self.size() != 2:
+            raise RuntimeError('Cluster must contain only 2 pixels to use the eta function')
+        
+        diff = np.array([np.diff(self.x), np.diff(self.y)])
+        n = diff / pitch
+
+        # Consider to create a separate method for this
+        eta = self.pha[1] / self.pulse_height()
+        r_fit = PowerLaw().evaluate(eta/0.5, 0.5, gamma)*pitch
+        x_fit = self.x[0] + r_fit * n[0]
+        y_fit = self.y[0] + r_fit * n[1]
+
+        # I don't like this
+        return x_fit[0], y_fit[0]
 
 
 @dataclass

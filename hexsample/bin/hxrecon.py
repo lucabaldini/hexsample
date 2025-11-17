@@ -89,6 +89,7 @@ def hxrecon(**kwargs):
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         args = event.trigger_id, event.timestamp(), event.livetime, cluster
+        # Need to pass the recon method and other stuff as argument to ReconEvent
         recon_event = ReconEvent(*args)
         mc_event = input_file.mc_event(i)
         output_file.add_row(recon_event, mc_event)
