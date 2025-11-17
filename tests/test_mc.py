@@ -39,10 +39,10 @@ def test_diffusion(diff_sigma=40.):
     print(digi_event.ascii())
     display = HexagonalGridDisplay(grid)
     display.draw()
-    plt.plot(x, y, 'o', markersize=1)
+    plt.plot(x, y, "o", markersize=1)
     return display
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     display = test_diffusion()
     display.show()
