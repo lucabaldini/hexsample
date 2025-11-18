@@ -462,21 +462,21 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
-
+        # pylint: disable=unused-argument
         # Sample the input positions over the readout...
         sparse_signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
         # ...sampling the input position of the highest PHA pixel over the readout...
         # See: https://stackoverflow.com/questions/70094914/max-on-collections-counter
         coord_max = max(sparse_signal, key=sparse_signal.get)
-        col_max, row_max = coord_max
+        # col_max, row_max = coord_max
         #... and converting it in ADC channel coordinates (value from 0 to 6)...
         adc_max = self.adc_channel(*coord_max)
         # ... creating a 7-elements array containing the PHA of the ADC channels from 0 to 6
         # in increasing order and filling it with PHAs of the highest px and its neigbors...
         pha = np.empty(self.NUM_PIXELS)
         pha[adc_max] = sparse_signal[coord_max]
-        # ... identifying the 6 neighbours of the central pixel and saving the signal pixels
-        # prepending the cooridnates of the highest one...
+        # ... identifying the 6 neighbors of the central pixel and saving the signal pixels
+        # prepending the coordinates of the highest one...
         for coords in self.neighbors(*coord_max):
             pha[self.adc_channel(*coords)] = sparse_signal[coords]
         # ...apply the trigger...

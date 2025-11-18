@@ -22,16 +22,16 @@
 
 import argparse
 
-from . import __name__, __version__
+from . import __name__ as __pkgname__, __version__
 from .hexagon import HexagonalLayout
 from .readout import HexagonalReadoutMode
 
 START_MESSAGE = f"""
-    This is {__name__} version {__version__}
+    This is {__pkgname__} version {__version__}
 
-    Copyright (C) 2022--2025, the {__name__} team.
+    Copyright (C) 2022--2025, the {__pkgname__} team.
 
-    {__name__} comes with ABSOLUTELY NO WARRANTY.
+    {__pkgname__} comes with ABSOLUTELY NO WARRANTY.
     This is free software, and you are welcome to redistribute it under certain
     conditions. See the LICENSE file for details.
 
