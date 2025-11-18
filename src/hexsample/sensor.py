@@ -199,6 +199,7 @@ class Material:
 
 
 # Definition of the active media of interest.
+# pylint: disable=invalid-name
 Silicon = Material("Si", 0.116)
 Germanium = Material("Ge", 0.106)
 CadmiumTelluride = Material("CdTe", fano_factor=0.15, density=5.85, ionization_potential=4.45)

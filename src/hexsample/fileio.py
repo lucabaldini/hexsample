@@ -36,6 +36,7 @@ from .mc import MonteCarloEvent
 from .readout import HexagonalReadoutCircular, HexagonalReadoutMode
 from .recon import ReconEvent
 
+# pylint: disable=c-extension-no-member
 
 class MonteCarloDescription(tables.IsDescription):
 
@@ -634,6 +635,7 @@ class InputFileBase(tables.File):
         return self.header.get(key, default)
 
 class DigiInputFileBase(InputFileBase):
+
     def __init__(self, file_path: str):
         """Constructor.
         """
@@ -676,8 +678,6 @@ class DigiInputFileBase(InputFileBase):
         if self.__index == len(self.digi_table):
             raise StopIteration
         return self.digi_event(self.__index)
-
-    pass
 
 
 class DigiInputFileSparse(DigiInputFileBase):
@@ -835,7 +835,6 @@ class ReconInputFile(InputFileBase):
         return self.mc_table.col(name)
 
 
-
 def peek_file_type(file_path: str) -> FileType:
     """Peek into the header of a HDF5 file and determing the file type.
 
@@ -851,6 +850,7 @@ def peek_file_type(file_path: str) -> FileType:
         except KeyError as exception:
             raise RuntimeError(f"File {file_path} has no type information.") from exception
 
+
 def peek_readout_type(file_path: str) -> HexagonalReadoutMode:
     """Peek into the header of a HDF5 Digi file and determing the readout type.
 
@@ -859,6 +859,7 @@ def peek_readout_type(file_path: str) -> HexagonalReadoutMode:
     file_path : str
         The path to the input file.
     """
+    # pylint: disable=protected-access
     with tables.open_file(file_path, "r") as input_file:
         try:
             return HexagonalReadoutMode(input_file.root.header._v_attrs["readoutmode"])
@@ -879,9 +880,9 @@ def open_input_file(file_path: str) -> InputFileBase:
         readout_type = peek_readout_type(file_path)
         if readout_type == HexagonalReadoutMode.SPARSE:
             return DigiInputFileSparse(file_path)
-        elif readout_type == HexagonalReadoutMode.RECTANGULAR:
+        if readout_type == HexagonalReadoutMode.RECTANGULAR:
             return DigiInputFileRectangular(file_path)
-        elif readout_type == HexagonalReadoutMode.CIRCULAR:
+        if readout_type == HexagonalReadoutMode.CIRCULAR:
             return DigiInputFileCircular(file_path)
     if file_type == FileType.RECON:
         return ReconInputFile(file_path)

@@ -128,7 +128,7 @@ class DigiEventSparse(DigiEventBase):
         This is used internally when we access event data in a digi file, and
         we need to reassemble a DigiEvent object from a given row of a digi table.
         """
-        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-locals, arguments-differ
         trigger_id, seconds, microseconds, livetime = file_row
         return cls(trigger_id, seconds, microseconds, livetime, pha, columns, rows)
 
@@ -147,6 +147,7 @@ class DigiEventSparse(DigiEventBase):
     def ascii(self, pha_width: int = 5) -> str:
         """Ascii representation.
         """
+        # pylint: disable=arguments-differ
         pha_dict = self.as_dict()
         fmt = f"%{pha_width}d"
         cols = np.arange(self.columns.min(), self.columns.max() + 1)
@@ -206,7 +207,7 @@ class DigiEventRectangular(DigiEventBase):
         This is used internally when we access event data in a digi file, and
         we need to reassemble a DigiEvent object from a given row of a digi table.
         """
-        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-locals, arguments-differ
         trigger_id, seconds, microseconds, livetime, min_col, max_col, min_row, max_row,\
             pad_top, pad_right, pad_bottom, pad_left = file_row
         padding = Padding(pad_top, pad_right, pad_bottom, pad_left)
@@ -252,6 +253,7 @@ class DigiEventRectangular(DigiEventBase):
     def ascii(self, pha_width: int = 5):
         """Ascii representation.
         """
+        # pylint: disable=arguments-differ
         fmt = f"%{pha_width}d"
         cols = self.roi.col_indexes()
         rows = self.roi.row_indexes()
@@ -313,7 +315,7 @@ class DigiEventCircular(DigiEventBase):
         This is used internally when we access event data in a digi file, and
         we need to reassemble a DigiEvent object from a given row of a digi table.
         """
-        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-locals, arguments-differ
         trigger_id, seconds, microseconds, livetime, pha, column, row = file_row
         return cls(trigger_id, seconds, microseconds, livetime, pha, column, row)
 
@@ -323,6 +325,7 @@ class DigiEventCircular(DigiEventBase):
         (that is the highest PHA pixel), because the neighbor position is not accessible
         by the DigiEvent.
         """
+        # pylint: disable=arguments-differ
         fmt = f"%{pha_width}d"
         cols = np.arange(self.column - 1, self.column + 2)
         num_cols = cols[-1] - cols[0] + 1
@@ -344,6 +347,3 @@ class DigiEventCircular(DigiEventBase):
                 text += pha
             text += f"\n{big_space}|\n"
         return text
-
-
-
