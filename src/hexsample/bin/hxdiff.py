@@ -26,7 +26,7 @@ from aptapy.plotting import plt
 
 from hexsample.analysis import create_histogram
 from hexsample.app import ArgumentParser
-from hexsample.fileio import DigiInputFile
+from hexsample.fileio import DigiInputFileBase
 from hexsample.logging_ import logger
 
 __description__ = \
@@ -40,7 +40,7 @@ HXDIFF_ARGPARSER.add_argument("infiles", type=str, nargs=2,
 
 
 
-def _digi_diff_strict(file1: DigiInputFile, file2: DigiInputFile) -> int:
+def _digi_diff_strict(file1: DigiInputFileBase, file2: DigiInputFileBase) -> int:
     """Strict diff utility: this will loop over the two files, compare the events
     on a row by row basis and report any difference.
     """
@@ -59,7 +59,7 @@ def _digi_diff_strict(file1: DigiInputFile, file2: DigiInputFile) -> int:
 
 
 
-def _digi_diff_graphical(file1: DigiInputFile, file2: DigiInputFile) -> None:
+def _digi_diff_graphical(file1: DigiInputFileBase, file2: DigiInputFileBase) -> None:
     """Graphical diff utility: this will create histograms of a few relevant
     quantities and compare two files on a statistical basis.
 
@@ -89,8 +89,8 @@ def hxdiff(**kwargs):
     """Application main entry point.
     """
     file_path1, file_path2 = kwargs["infiles"]
-    file1 = DigiInputFile(file_path1)
-    file2 = DigiInputFile(file_path2)
+    file1 = DigiInputFileBase(file_path1)
+    file2 = DigiInputFileBase(file_path2)
     _digi_diff_strict(file1, file2)
     _digi_diff_graphical(file1, file2)
     file1.close()

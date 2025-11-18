@@ -27,7 +27,7 @@ from .roi import Padding
 XPOL1_SIZE = (300, 352)
 XPOL1_LAYOUT = HexagonalLayout.EVEN_R
 XPOL3_SIZE = (304, 352)
-XPOL3_LAYOUt = HexagonalLayout.ODD_R
+XPOL3_LAYOUT = HexagonalLayout.ODD_R
 
 # Pixel pitch in cm.
 XPOL_PITCH = 0.005

@@ -36,10 +36,10 @@ __description__ = \
 # Parser object.
 HXVIEW_ARGPARSER = ArgumentParser(description=__description__)
 HXVIEW_ARGPARSER.add_infile()
-HXVIEW_ARGPARSER.add_argument("attribute", type=str, help="Attribute to be viewed.\
-                               To be taken from\ the following list:\
+HXVIEW_ARGPARSER.add_argument("attribute", type=str, help="Attribute to be viewed. \
+                               To be taken from the following list: \
                                trigger_id (int),  timestamp (float),  livetime (int)  \
-                               roi_size (int), energy (float), position (Tuple[float,float])\
+                               roi_size (int), energy (float), position (Tuple[float,float]) \
                                cluster_size (int), roi_size (int)")
 HXVIEW_ARGPARSER.add_argument("mc_table", type=str, help="Tells if the quantities are in mc table\
                               accepts True or False.")
@@ -58,6 +58,7 @@ def hxview(**kwargs):
     plt.xlabel(attribute)
     input_file.close()
     plt.show()
+
 
 if __name__ == "__main__":
     hxview(**vars(HXVIEW_ARGPARSER.parse_args()))
