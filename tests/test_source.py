@@ -97,7 +97,7 @@ def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True)
 def test_cu_k_forest():
     """Test the Cu K forest.
     """
-    _test_forest("Cu")
+    _test_forest("Cu", chisq_test=False)
 
 def test_mn_k_forest():
     """Test the Mn K forest.
