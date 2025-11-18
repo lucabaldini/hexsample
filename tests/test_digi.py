@@ -84,7 +84,7 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     y = np.append(y, np.full(num_pairs, y2))
     # Add one more pixel below the trigger threshold, that we want to see disappear
     # in the final event.
-    logger.debug(f"Adding pixel ({col3}, {row3}) below teh trigger threshold...")
+    logger.debug(f"Adding pixel ({col3}, {row3}) below the trigger threshold...")
     x3, y3 = readout.pixel_to_world(col3, row3)
     n = int(0.5 * trg_threshold)
     x = np.append(x, np.full(n, x3))
