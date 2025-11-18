@@ -29,6 +29,7 @@ rng.initialize()
 def test_parity(nside: int = 10, pitch: float = 0.1):
     """Test the HexagonalGrid._parity_offset() method.
     """
+    # pylint: disable=protected-access
     for layout in (HexagonalLayout.EVEN_R, HexagonalLayout.EVEN_Q):
         grid = HexagonalGrid(layout, nside, nside, pitch)
         assert grid._parity_offset(0) == 0
@@ -82,7 +83,7 @@ def test_display(nside: int = 10, pitch: float = 0.1):
         display.setup_gca()
 
 def test_neighbors(nside: int = 10, pitch: float = 0.1) -> None:
-    """
+    """Test the neighbors.
     """
     target_pixels = (2, 3), (7, 4)
     fmt = dict(size="xx-small", ha="center", va="center")

@@ -18,8 +18,7 @@
 
 import pytest
 
-import hexsample.pipeline as pipeline
-from hexsample import HEXSAMPLE_DATA
+from hexsample import HEXSAMPLE_DATA, pipeline
 
 
 def test_parsers():

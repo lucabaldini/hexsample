@@ -25,6 +25,7 @@ from hexsample import rng
 def test_generator():
     """Basic test of the global generator.
     """
+    # pylint: disable=protected-access
     # Make sure we start from the uninitialize state.
     rng.reset()
     # Before calling the initialize() function we shall get a RuntimeError

@@ -24,7 +24,7 @@ from hexsample.pipeline import hxrecon, hxsim
 
 
 def test_histograms(num_events : int = 1000):
-    """
+    """Test the histogram creation from recon files.
     """
     digi_file_path = hxsim(numevents=num_events)
     recon_file_path = hxrecon(infile=digi_file_path)
@@ -42,6 +42,7 @@ def test_histograms(num_events : int = 1000):
     recon_file.close()
     digi_file.close()
     hist.plot()
+
 
 if __name__ == "__main__":
     test_histograms()

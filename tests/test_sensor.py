@@ -68,7 +68,7 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     assert delta < 5.
 
 def test_absz(thickness=0.05, energy=8000., num_photons=100000):
-    """
+    """Test the absorption z sampling.
     """
     plt.figure("Absorption z")
     sensor = SiliconSensor(thickness)
@@ -77,7 +77,6 @@ def test_absz(thickness=0.05, energy=8000., num_photons=100000):
     h = Histogram1d(np.linspace(0., thickness, 100)).fill(d)
     h.plot()
     setup_gca(xlabel="Absorption z [cm]", logy=True)
-
 
 
 if __name__ == "__main__":

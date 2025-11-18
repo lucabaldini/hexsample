@@ -116,6 +116,7 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         trg_threshold : float
             The trigger threshold in electron equivalent.
         """
+        # pylint: disable=arguments-differ
         trg = self.sum_miniclusters(signal)
         self.zero_suppress(trg, trg_threshold)
         self.trigger_id += 1
@@ -158,6 +159,7 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
+        # pylint: disable=arguments-renamed
         # Trim the signal to the given ROI...
         pha = self.trim_to_roi(signal, roi)
         # ... add the noise.
@@ -247,7 +249,7 @@ def _test_pixel_centers():
         logger.info(f"Generating @ ({col}, {row}) -> ({x0}, {y0})")
         x = np.full(2500, x0)
         y = np.full(2500, y0)
-        old, new = _compare_readouts(x, y)
+        _compare_readouts(x, y)
 
 def test_photon_list(num_photons=100):
     """Realistic comparison with a sensible photon list.
@@ -259,7 +261,7 @@ def test_photon_list(num_photons=100):
     photon_list = PhotonList(source, sensor, num_photons)
     for mc_event in photon_list:
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
-        old, new = _compare_readouts(x, y)
+        _compare_readouts(x, y)
 
 @pytest.mark.skip(reason="just a timing experiment...")
 def test_timing(sigma=0.0006, num_pairs=2250, num_photons=10000):
@@ -273,7 +275,7 @@ def test_timing(sigma=0.0006, num_pairs=2250, num_photons=10000):
     logger.info("Timing world_to_pixel()...")
     start_time = time.time()
     for _ in range(num_photons):
-        col, row = NEW_READOUT.world_to_pixel(x, y)
+        NEW_READOUT.world_to_pixel(x, y)
     elapsed_time = time.time() - start_time
     evt_us = 1.e6 * elapsed_time / num_photons
     logger.info(f"Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.")
@@ -289,7 +291,7 @@ def test_timing(sigma=0.0006, num_pairs=2250, num_photons=10000):
     logger.info("Timing trigger()...")
     start_time = time.time()
     for _ in range(num_photons):
-        roi, pha = NEW_READOUT.trigger(signal, trg_threshold, min_col, min_row, padding)
+        NEW_READOUT.trigger(signal, trg_threshold, min_col, min_row, padding)
     elapsed_time = time.time() - start_time
     evt_us = 1.e6 * elapsed_time / num_photons
     logger.info(f"Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.")

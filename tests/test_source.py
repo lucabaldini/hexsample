@@ -73,6 +73,7 @@ def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True)
     """Generic tes for a line forest.
     """
     # Create the forest.
+    # pylint: disable=protected-access
     forest = LineForest(element, initial_level)
     logger.debug(forest)
     plt.figure(f"{element} {initial_level} line forest")
@@ -105,7 +106,6 @@ def test_mn_k_forest():
     same energy, and the thing would require extra code to deal with that.
     """
     _test_forest("Mn", chisq_test=False)
-
 
 
 

@@ -27,7 +27,7 @@ from hexsample.roi import Padding
 
 
 def test_diffusion(diff_sigma=40.):
-    """
+    """Test the diffusion.
     """
     rng.initialize()
     grid = HexagonalGrid(HexagonalLayout.ODD_R, 2, 2, 0.005)
@@ -44,5 +44,4 @@ def test_diffusion(diff_sigma=40.):
 
 
 if __name__ == "__main__":
-    display = test_diffusion()
-    display.show()
+    test_diffusion().show()

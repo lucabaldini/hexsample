@@ -111,7 +111,7 @@ def test_digi_event_circular():
 #@pytest.mark.skip("Under development")
 def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
-    gain: float = 0.5, num_pairs: int = 1000, trg_threshold: float = 200.):
+    gain: float = 0.5, num_pairs: int = 1000):
     """Test for circular event digitalization class.
     """
     readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc, gain)
@@ -147,7 +147,7 @@ def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row:
     assert evt(col, row) == 2
 
 def test_digi_event_rectangular_comparison():
-    """
+    """Test the comparison operators for rectangular digi events.
     """
     padding = Padding(2)
     roi = RegionOfInterest(10, 23, 10, 23, padding)
@@ -179,7 +179,7 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     assert signal[row - min_row, col - min_col] == num_pairs
     assert np.nonzero(signal) == (row - min_row, col - min_col)
     # Apply the trigger.
-    roi, pha = readout.trigger(signal, trg_threshold, min_col, min_row, padding)
+    roi, _ = readout.trigger(signal, trg_threshold, min_col, min_row, padding)
     assert roi.min_col == 2 * (col // 2) - padding.left
     assert roi.max_col == 2 * (col // 2) + 1 + padding.right
     assert roi.min_row == 2 * (row // 2) - padding.bottom
