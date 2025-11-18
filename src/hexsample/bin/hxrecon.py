@@ -24,14 +24,24 @@
 
 from tqdm import tqdm
 
-from hexsample.logging_ import logger
 from hexsample.app import ArgumentParser, check_required_args
 from hexsample.clustering import ClusteringNN
-from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutSparse, HexagonalReadoutRectangular, HexagonalReadoutCircular
-from hexsample.fileio import DigiInputFileBase, DigiInputFileSparse, DigiInputFileRectangular, DigiInputFileCircular, ReconOutputFile, peek_readout_type
+from hexsample.fileio import (
+    DigiInputFileCircular,
+    DigiInputFileRectangular,
+    DigiInputFileSparse,
+    ReconOutputFile,
+    peek_readout_type,
+)
 from hexsample.hexagon import HexagonalLayout
+from hexsample.logging_ import logger
+from hexsample.readout import (
+    HexagonalReadoutCircular,
+    HexagonalReadoutMode,
+    HexagonalReadoutRectangular,
+    HexagonalReadoutSparse,
+)
 from hexsample.recon import ReconEvent
-
 
 __description__ = \
 """Run the reconstruction on a file produced by hxsim.py
@@ -40,18 +50,18 @@ __description__ = \
 # Parser object.
 HXRECON_ARGPARSER = ArgumentParser(description=__description__)
 HXRECON_ARGPARSER.add_infile()
-HXRECON_ARGPARSER.add_suffix('recon')
+HXRECON_ARGPARSER.add_suffix("recon")
 HXRECON_ARGPARSER.add_clustering_options()
 
 
 def hxrecon(**kwargs):
     """Application main entry point.
     """
-    check_required_args(hxrecon, 'infile', **kwargs)
+    check_required_args(hxrecon, "infile", **kwargs)
     # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
-    input_file_path = str(kwargs['infile'])
-    if not input_file_path.endswith('.h5'):
-        raise RuntimeError('Input file {input_file_path} does not look like a HDF5 file')
+    input_file_path = str(kwargs["infile"])
+    if not input_file_path.endswith(".h5"):
+        raise RuntimeError("Input file {input_file_path} does not look like a HDF5 file")
 
     # It is necessary to extract the reaodut type because every readout type
     # corresponds to a different DigiEvent type.
@@ -60,28 +70,28 @@ def hxrecon(**kwargs):
     if readout_mode is HexagonalReadoutMode.SPARSE:
         input_file = DigiInputFileSparse(input_file_path)
         header = input_file.header
-        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-            header['pitch'], header['noise'], header['gain']
+        args = HexagonalLayout(header["layout"]), header["numcolumns"], header["numrows"],\
+            header["pitch"], header["noise"], header["gain"]
         readout = HexagonalReadoutSparse(*args)
-        logger.info(f'Readout chip: {readout}')
+        logger.info(f"Readout chip: {readout}")
     elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
         input_file = DigiInputFileRectangular(input_file_path)
         header = input_file.header
-        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-            header['pitch'], header['noise'], header['gain']
+        args = HexagonalLayout(header["layout"]), header["numcolumns"], header["numrows"],\
+            header["pitch"], header["noise"], header["gain"]
         readout = HexagonalReadoutRectangular(*args)
-        logger.info(f'Readout chip: {readout}')
+        logger.info(f"Readout chip: {readout}")
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
         input_file = DigiInputFileCircular(input_file_path)
         header = input_file.header
-        args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-            header['pitch'], header['noise'], header['gain']
+        args = HexagonalLayout(header["layout"]), header["numcolumns"], header["numrows"],\
+            header["pitch"], header["noise"], header["gain"]
         readout = HexagonalReadoutCircular(*args)
-        logger.info(f'Readout chip: {readout}')
+        logger.info(f"Readout chip: {readout}")
     # When the readout tipology is determined, the event is clustered ...
-    clustering = ClusteringNN(readout, kwargs['zsupthreshold'], kwargs['nneighbors'])
-    suffix = kwargs['suffix']
-    output_file_path = input_file_path.replace('.h5', f'_{suffix}.h5')
+    clustering = ClusteringNN(readout, kwargs["zsupthreshold"], kwargs["nneighbors"])
+    suffix = kwargs["suffix"]
+    output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
     # ... and saved into an output file.
     output_file = ReconOutputFile(output_file_path)
     output_file.update_header(**kwargs)
@@ -99,5 +109,5 @@ def hxrecon(**kwargs):
 
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     hxrecon(**vars(HXRECON_ARGPARSER.parse_args()))

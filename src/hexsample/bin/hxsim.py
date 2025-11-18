@@ -24,8 +24,7 @@
 
 from tqdm import tqdm
 
-from hexsample import rng
-from hexsample import HEXSAMPLE_DATA
+from hexsample import HEXSAMPLE_DATA, rng
 from hexsample.app import ArgumentParser
 from hexsample.fileio import digioutput_class
 from hexsample.hexagon import HexagonalLayout
@@ -43,7 +42,7 @@ __description__ = \
 # Parser object.
 HXSIM_ARGPARSER = ArgumentParser(description=__description__)
 HXSIM_ARGPARSER.add_numevents(1000)
-HXSIM_ARGPARSER.add_outfile(HEXSAMPLE_DATA / 'hxsim.h5')
+HXSIM_ARGPARSER.add_outfile(HEXSAMPLE_DATA / "hxsim.h5")
 HXSIM_ARGPARSER.add_seed()
 HXSIM_ARGPARSER.add_source_options()
 HXSIM_ARGPARSER.add_sensor_options()
@@ -54,42 +53,42 @@ def hxsim(**kwargs):
     """Application main entry point.
     """
     # pylint: disable=too-many-locals, invalid-name
-    rng.initialize(seed=kwargs['seed'])
-    spectrum = LineForest(kwargs['srcelement'], kwargs['srclevel'])
-    beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
+    rng.initialize(seed=kwargs["seed"])
+    spectrum = LineForest(kwargs["srcelement"], kwargs["srclevel"])
+    beam = GaussianBeam(kwargs["srcposx"], kwargs["srcposy"], kwargs["srcsigma"])
     source = Source(spectrum, beam)
-    material = Material(kwargs['actmedium'], kwargs['fano'])
-    sensor = Sensor(material, kwargs['thickness'], kwargs['transdiffsigma'])
-    photon_list = PhotonList(source, sensor, kwargs['numevents'])
-    readout_mode = HexagonalReadoutMode(kwargs['readoutmode'])
+    material = Material(kwargs["actmedium"], kwargs["fano"])
+    sensor = Sensor(material, kwargs["thickness"], kwargs["transdiffsigma"])
+    photon_list = PhotonList(source, sensor, kwargs["numevents"])
+    readout_mode = HexagonalReadoutMode(kwargs["readoutmode"])
     # Is there any nicer way to do this? See https://github.com/lucabaldini/hexsample/issues/51
     if readout_mode is HexagonalReadoutMode.SPARSE:
-        readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
+        readout_args = kwargs["trgthreshold"], kwargs["zsupthreshold"], kwargs["offset"]
     elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
-        padding = Padding(*kwargs['padding'])
-        readout_args = kwargs['trgthreshold'], padding, kwargs['zsupthreshold'], kwargs['offset']
+        padding = Padding(*kwargs["padding"])
+        readout_args = kwargs["trgthreshold"], padding, kwargs["zsupthreshold"], kwargs["offset"]
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
-        readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
+        readout_args = kwargs["trgthreshold"], kwargs["zsupthreshold"], kwargs["offset"]
     else:
         raise RuntimeError
-    args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
-        kwargs['pitch'], kwargs['noise'], kwargs['gain']
+    args = HexagonalLayout(kwargs["layout"]), kwargs["numcolumns"], kwargs["numrows"],\
+        kwargs["pitch"], kwargs["noise"], kwargs["gain"]
     readout = readout_chip(readout_mode, *args)
-    logger.info(f'Readout chip: {readout}')
-    output_file_path = kwargs.get('outfile')
+    logger.info(f"Readout chip: {readout}")
+    output_file_path = kwargs.get("outfile")
     output_file = digioutput_class(readout_mode)(output_file_path)
     output_file.update_header(**kwargs)
-    logger.info('Starting the event loop...')
+    logger.info("Starting the event loop...")
     for mc_event in tqdm(photon_list):
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
         digi_event = readout.read(mc_event.timestamp, x, y, *readout_args)
         output_file.add_row(digi_event, mc_event)
-    logger.info('Done!')
+    logger.info("Done!")
     output_file.flush()
     output_file.close()
     return output_file_path
 
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     hxsim(**vars(HXSIM_ARGPARSER.parse_args()))
