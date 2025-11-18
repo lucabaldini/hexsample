@@ -22,11 +22,8 @@
 
 import numpy as np
 
-
-from hexsample import HEXSAMPLE_DATA, logger
-from hexsample.pipeline import hxsim, hxrecon
-from hexsample.readout import HexagonalReadoutMode
-
+from hexsample import HEXSAMPLE_DATA
+from hexsample.pipeline import hxrecon, hxsim
 
 # Number of events to be generated for each configuration.
 NUM_EVENTS = 100000
@@ -38,7 +35,7 @@ NOISE = (20, 30, 40)
 PITCH = (0.0050, 0.0055, 0.0060)
 # Number of neirest neighbors in track clusters
 N_NEIGHBORS = np.arange(1,8)
-# Zero suppression threshold 
+# Zero suppression threshold
 THRESHOLD = np.linspace(0,1000,50)
 # Zero-suppression threshold, expressed in units of enc.
 SIGMA_THRESHOLD = 2.
@@ -64,7 +61,7 @@ for thickness in THICKNESS:
 '''
 
 # Simulate...
-file_name = f'sim_250um_20enc_60pitch.h5'
+file_name = 'sim_250um_20enc_60pitch.h5'
 file_path = HEXSAMPLE_DATA / file_name
 kwargs = dict(outfile=file_path, thickness=0.025, noise=20, pitch=0.006)
 file_path = hxsim(numevents=NUM_EVENTS, **kwargs)

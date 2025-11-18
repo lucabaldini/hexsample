@@ -22,8 +22,9 @@
 
 from pathlib import Path
 
-from ._version import __version__
+from .logging_ import logger
 
+# from ._version import __version__
 
 # Basic package structure.
 HEXSAMPLE_ROOT = Path(__file__).parent

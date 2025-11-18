@@ -21,16 +21,14 @@
 
 """Event file viewer comparing reconstructed quantities with MC truth.
 """
-from ast import literal_eval
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.plotting import plt, setup_gca
 
+from hexsample.analysis import create_histogram
 from hexsample.app import ArgumentParser
 from hexsample.fileio import ReconInputFile
-from hexsample.analysis import create_histogram
-
 
 __description__ = \
 """Simple viewer for comparing reconstructed energy and position with the MC
@@ -45,42 +43,42 @@ def hxview(**kwargs):
     """View the file content.
     Shows histograms of energy and cluster_size of recon events vs their MC truth.
     """
-    input_file = ReconInputFile(kwargs['infile'])
+    input_file = ReconInputFile(kwargs["infile"])
     # Plotting the reconstructed energy and the true energy
-    histo = create_histogram(input_file, 'energy', mc = False)
-    mc_histo = create_histogram(input_file, 'energy', mc = True)
-    plt.figure('Photons energy')
-    histo.plot(label='Reconstructed')
-    mc_histo.plot(label='MonteCarlo')
-    plt.xlabel('Energy [eV]')
+    histo = create_histogram(input_file, "energy", mc = False)
+    mc_histo = create_histogram(input_file, "energy", mc = True)
+    plt.figure("Photons energy")
+    histo.plot(label="Reconstructed")
+    mc_histo.plot(label="MonteCarlo")
+    plt.xlabel("Energy [eV]")
     plt.legend()
 
     # Plotting the reconstructed x and y position and the true position.
-    plt.figure('Reconstructed photons position')
+    plt.figure("Reconstructed photons position")
     binning = np.linspace(-5. * 0.1, 5. * 0.1, 100)
-    x = input_file.column('posx')
-    y = input_file.column('posy')
+    x = input_file.column("posx")
+    y = input_file.column("posy")
     histo = Histogram2d(binning, binning).fill(x, y)
     histo.plot()
-    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
-    plt.figure('True photons position')
-    x_mc = input_file.mc_column('absx')
-    y_mc = input_file.mc_column('absy')
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+    plt.figure("True photons position")
+    x_mc = input_file.mc_column("absx")
+    y_mc = input_file.mc_column("absy")
     histo_mc = Histogram2d(binning, binning).fill(x_mc, y_mc)
     histo_mc.plot()
-    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
     #Closing the file and showing the figures.
-    plt.figure('x-direction resolution')
+    plt.figure("x-direction resolution")
     binning = np.linspace((x-x_mc).min(), (x-x_mc).max(), 100)
-    histx = Histogram1d(binning, xlabel=r'$x - x_{MC}$ [cm]').fill(x-x_mc)
+    histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x-x_mc)
     histx.plot()
-    plt.figure('y-direction resolution')
+    plt.figure("y-direction resolution")
     binning = np.linspace((y-y_mc).min(), (y-y_mc).max(), 100)
-    histy = Histogram1d(binning, xlabel=r'$y - y_{MC}$ [cm]').fill(y-y_mc)
+    histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y-y_mc)
     histy.plot()
 
     input_file.close()
     plt.show()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     hxview(**vars(HXVIEW_ARGPARSER.parse_args()))

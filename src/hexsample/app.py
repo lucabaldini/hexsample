@@ -26,7 +26,6 @@ from . import __name__, __version__
 from .hexagon import HexagonalLayout
 from .readout import HexagonalReadoutMode
 
-
 START_MESSAGE = f"""
     This is {__name__} version {__version__}
 

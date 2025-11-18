@@ -20,9 +20,9 @@
 """Analysis facilities.
 """
 
+import numpy as np
 from aptapy.hist import Histogram1d
 from aptapy.plotting import plt
-import numpy as np
 
 from .fileio import InputFileBase
 
@@ -72,10 +72,8 @@ def create_histogram(input_file: InputFileBase, column_name: str, mc: bool = Fal
         that of the values in the input column.
     """
     # pylint: disable=invalid-name
-    if mc:
-        values = input_file.mc_column(column_name)
-    else:
-        values = input_file.column(column_name)
+
+    values = input_file.mc_column(column_name) if mc else input_file.column(column_name)
     if mask is not None:
         values = values[mask]
     if binning is None:

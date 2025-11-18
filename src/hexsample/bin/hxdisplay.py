@@ -24,11 +24,10 @@
 
 from hexsample import logger
 from hexsample.app import ArgumentParser
-from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.display import HexagonalGridDisplay
 from hexsample.fileio import DigiInputFileRectangular
 from hexsample.hexagon import HexagonalLayout
-
+from hexsample.readout import HexagonalReadoutRectangular
 
 __description__ = \
 """Single event display.
@@ -42,13 +41,13 @@ HXDISPLAY_ARGPARSER.add_infile()
 def hxdisplay(**kwargs):
     """Application main entry point.
     """
-    file_path = kwargs.get('infile')
+    file_path = kwargs.get("infile")
     input_file = DigiInputFileRectangular(file_path)
     header = input_file.header
-    args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-        header['pitch'], header['noise'], header['gain']
+    args = HexagonalLayout(header["layout"]), header["numcolumns"], header["numrows"],\
+        header["pitch"], header["noise"], header["gain"]
     readout = HexagonalReadoutRectangular(*args)
-    logger.info(f'Readout chip: {readout}')
+    logger.info(f"Readout chip: {readout}")
     display = HexagonalGridDisplay(readout)
     for event in input_file:
         print(event.ascii())
@@ -58,5 +57,5 @@ def hxdisplay(**kwargs):
 
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     hxdisplay(**vars(HXDISPLAY_ARGPARSER.parse_args()))
