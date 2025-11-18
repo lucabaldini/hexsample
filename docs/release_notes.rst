@@ -3,6 +3,23 @@
 Release notes
 =============
 
+* Merging https://github.com/lucabaldini/hexsample/pull/63
+* Major repository restructuring to modernize the package layout and tooling infrastructure.
+* Adoption of the "src" layout for the package.
+* Migrate from a legacy setuptools-based structure to a modern pyproject.toml-based build system.
+* Introduced nox for task automation (testing, linting, documentation building).
+* Rewrote release tooling in tools/release.py with improved version management.
+* Added pytest fixtures in tests/conftest.py for test data handling and matplotlib figure management.
+* Consolidated logging configuration into src/hexsample/logging_.py module.
+* Old setup files removed in favor of an editable install via pip.
+* Old Makefile removed.
+* Documentation sphinx theme changed.
+* __init__.py file cleaned up.
+* Full linting with ruff and pylint.
+* github workflows updated.
+* Issue(s) closed:
+      * https://github.com/lucabaldini/hexsample/issues/59
+
 
 *hexsample (0.10.0) - Thu, 13 Nov 2025 17:03:20 +0100*
 
