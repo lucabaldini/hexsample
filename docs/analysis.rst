@@ -1,5 +1,5 @@
-:mod:`hexsample.analysis` --- Analysis facilities
-=================================================
+:mod:`~hexsample.analysis` --- Analysis facilities
+==================================================
 
 
 Module documentation

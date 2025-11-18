@@ -1,5 +1,5 @@
-:mod:`hexsample.hexagon` --- Hexagonal sampling
-===============================================
+:mod:`~hexsample.hexagon` --- Hexagonal sampling
+================================================
 
 
 The module is an attempt at having a fully-fledged version of all the necessary

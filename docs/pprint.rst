@@ -1,5 +1,5 @@
-:mod:`hexsample.pprint` --- Pretty printing
-===========================================
+:mod:`~hexsample.pprint` --- Pretty printing
+============================================
 
 This module provides facilities for pretty printing, including support for
 colors and special effects in the terminal, and other functions that are useful

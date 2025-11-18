@@ -1,12 +1,12 @@
-:mod:`hexsample.digi` --- Digitization facilities
-=================================================
+:mod:`~hexsample.digi` --- Digitization facilities
+==================================================
 
 This module contains...
 
 Digi event structure
 --------------------
 
-.. literalinclude:: ../hexsample/digi.py
+.. literalinclude:: ../src/hexsample/digi.py
    :pyobject: DigiEventRectangular
    :end-before: __post_init__
 

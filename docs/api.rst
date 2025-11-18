@@ -25,7 +25,6 @@ List of modules
    fitting
    hexagon
    mc
-   modeling
    pprint
    readout
    recon

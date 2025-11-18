@@ -1,5 +1,5 @@
-:mod:`hexsample.mc` --- Monte Carlo facilities
-==============================================
+:mod:`~hexsample.mc` --- Monte Carlo facilities
+===============================================
 
 
 
