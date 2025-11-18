@@ -16,13 +16,12 @@
 """Test suite for hexsample.shell
 """
 
-from hexsample import HEXSAMPLE_ROOT
 from hexsample.shell import cmd
 
 
 def test_ls():
     """Test a simple ls shell command.
     """
-    command = f"ls {HEXSAMPLE_ROOT}"
+    command = f"ls {__file__}"
     cmd(command)
     cmd(command, dry_run=True)

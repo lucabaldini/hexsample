@@ -1,4 +1,4 @@
-# Copyright (C) 2023 luca.baldini@pi.infn.it
+# Copyright (C) 2023--2025 luca.baldini@pi.infn.it
 #
 # For the license terms see the file LICENSE, distributed along with this
 # software.
@@ -51,22 +51,6 @@ def _git_suffix() -> str:
 
 __version__ = f"{__base_version__}{_git_suffix()}"
 
-
-# Basic package structure.
-HEXSAMPLE_ROOT = pathlib.Path(__file__).parent
-HEXSAMPLE_BASE = HEXSAMPLE_ROOT.parent
-HEXSAMPLE_DOCS = HEXSAMPLE_BASE / "docs"
-HEXSAMPLE_DOCS_FIGURES = HEXSAMPLE_DOCS / "figures"
-HEXSAMPLE_DOCS_STATIC = HEXSAMPLE_DOCS / "_static"
-HEXSAMPLE_TEST = HEXSAMPLE_BASE / "tests"
-HEXSAMPLE_TEST_DATA = HEXSAMPLE_TEST / "data"
-HEXSAMPLE_BIN = HEXSAMPLE_ROOT / "bin"
-
-# Path to the Python module containing the version information.
-HEXSAMPLE_VERSION_FILE_PATH = HEXSAMPLE_ROOT / "_version.py"
-
-# Path to the release notes.
-HEXSAMPLE_RELEASE_NOTES_PATH = HEXSAMPLE_DOCS / "release.rst"
 
 # Make room for the output data.
 HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"

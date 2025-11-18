@@ -20,14 +20,15 @@
 """Pipeline facilities.
 """
 
+import pathlib
 import sys
 
-from . import HEXSAMPLE_BIN
 from .app import ArgumentParser
 
 # When we import stuff from the executable scripts (whose folder is not included
 # in the $PYTHONPATH) we don't want to pollute the filesystem with assembled bytecode.
-sys.path.append(f"{HEXSAMPLE_BIN}")
+_HEXSAMPLE_BIN = pathlib.Path(__file__).parent / "bin"
+sys.path.append(f"{_HEXSAMPLE_BIN}")
 sys.dont_write_bytecode = 1
 
 # pylint: disable=import-error, wrong-import-position, wrong-import-order
