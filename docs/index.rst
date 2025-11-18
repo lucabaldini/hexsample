@@ -14,7 +14,7 @@ hexsample (X-ray hexagonal sampling)
 
    install
    api
-   release
+   release_notes
 
 
 
