@@ -41,17 +41,17 @@ def cmd(command: str, dry_run: bool = False) -> int:
     error_code : int
         The error code from the execution of the command.
     """
-    logger.info(f'About to execute "{command}"...')
+    logger.info(f"About to execute \"{command}\"...")
     # If this is a dry run, do nothing and return zero.
     if dry_run:
-        logger.info('Just kidding (dry run).')
+        logger.info("Just kidding (dry run).")
         return 0
     # Run the actual command, collect the output and return the error code.
     kwargs = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     with subprocess.Popen(command, **kwargs) as process:
         error_code = process.wait()
-        print(process.stdout.read().strip(b'\n').decode())
+        print(process.stdout.read().strip(b"\n").decode())
         if error_code:
-            logger.error('Command returned status code %d.', error_code)
-            print(process.stderr.read().decode().strip('\n'))
+            logger.error("Command returned status code %d.", error_code)
+            print(process.stderr.read().decode().strip("\n"))
         return error_code

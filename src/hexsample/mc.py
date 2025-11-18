@@ -20,14 +20,13 @@
 """Monte Carlo facilities.
 """
 
-
 from dataclasses import dataclass
 
 import numpy as np
 
-from hexsample import rng
-from hexsample.sensor import Sensor
-from hexsample.source import Source
+from . import rng
+from .sensor import Sensor
+from .source import Source
 
 
 @dataclass

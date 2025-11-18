@@ -20,16 +20,16 @@
 """Analysis facilities.
 """
 
-import numpy as np
 from aptapy.hist import Histogram1d
 from aptapy.plotting import plt
+import numpy as np
 
-from hexsample.fileio import InputFileBase
+from .fileio import InputFileBase
 
 # def absz_analysis(input_file: ReconInputFile):
 #     """
 #     """
-#     absz = input_file.mc_column('absz')
+#     absz = input_file.mc_column("absz")
 #     h = Histogram1d(np.linspace(0., 0.06, 100)).fill(absz)
 #     h.plot()
 #     setup_gca(logy=True)
@@ -38,7 +38,7 @@ from hexsample.fileio import InputFileBase
 # def cluster_size_analysis(input_file: ReconInputFile):
 #     """
 #     """
-#     clu_size = input_file.column('cluster_size')
+#     clu_size = input_file.column("cluster_size")
 
 def create_histogram(input_file: InputFileBase, column_name: str, mc: bool = False,
     binning: np.ndarray = None, mask: np.ndarray = None) -> Histogram1d:
@@ -139,17 +139,17 @@ def double_heatmap(column_vals: np.array, row_vals: np.array , heatmap_values1: 
             heatmap = np.concatenate((heatmap, [heatmap_values2[slice_start:slice_stop]]))
 
     #Creating the custom colormap (it is useful if it is needed to customize it)
-    my_cmap = plt.cm.get_cmap('inferno')
+    my_cmap = plt.cm.get_cmap("inferno")
 
     #Plotting the map and make it pretty
     fig = plt.figure()
     ax = plt.gca()
-    plt.pcolormesh(heatmap, cmap=my_cmap, edgecolors='k', linewidths=1, shading='flat')
+    plt.pcolormesh(heatmap, cmap=my_cmap, edgecolors="k", linewidths=1, shading="flat")
     # Loop over data dimensions and create text annotations.
-    fmt = dict(ha='center', va='center', color='b')
+    fmt = dict(ha="center", va="center", color="b")
     for i in range(row_number * 2):
         for j in range(column_number):
-            ax.text(j + 0.5, i + 0.5, f'{heatmap[i, j]:.4f}', **fmt)
+            ax.text(j + 0.5, i + 0.5, f"{heatmap[i, j]:.4f}", **fmt)
     # Shifting ticks on center
     ax.xaxis.set(ticks=np.arange(0.5, column_number), ticklabels=column_vals)
     ax.yaxis.set(ticks=np.arange(1, row_number*2, 2), ticklabels=row_vals)
@@ -185,20 +185,20 @@ def heatmap_with_labels(column_vals: np.array, row_vals: np.array, heatmap_value
 
 
     #Creating the custom colormap (it is useful if it is needed to customize it)
-    my_cmap = plt.cm.get_cmap('inferno')
+    my_cmap = plt.cm.get_cmap("inferno")
     column_number = len(column_vals)
     row_number = len(row_vals)
     #Plotting the map and make it pretty
     fig = plt.figure()
     axes = plt.gca()
-    plt.pcolormesh(heatmap_values, cmap=my_cmap, edgecolors='k', linewidths=1, shading='flat')
+    plt.pcolormesh(heatmap_values, cmap=my_cmap, edgecolors="k", linewidths=1, shading="flat")
     # Loop over data dimensions and create text annotations.
-    fmt = dict(ha='center', va='center', color='b')
+    fmt = dict(ha="center", va="center", color="b")
     for i in range(row_number):
         for j in range(column_number):
-            axes.text(j + 0.5, i + 0.5, f'{heatmap_values[i, j]:.4f}', **fmt)
+            axes.text(j + 0.5, i + 0.5, f"{heatmap_values[i, j]:.4f}", **fmt)
     axes.xaxis.set(ticks=np.arange(0.5, column_number), ticklabels=column_vals)
     axes.yaxis.set(ticks=np.arange(0.5, row_number), ticklabels=row_vals)
     fig.tight_layout()
-    plt.colorbar() #plotting colorbar
+    plt.colorbar() # plotting colorbar
     return fig, axes

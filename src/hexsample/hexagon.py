@@ -20,7 +20,6 @@
 """Geometrical facilities on a hexagonal grid.
 """
 
-
 from enum import Enum
 from typing import Tuple
 
@@ -33,13 +32,13 @@ class HexagonalLayout(Enum):
     """
 
     # Horizontal, pointy top, odd rows are shoved right.
-    ODD_R = 'ODD_R'
+    ODD_R = "ODD_R"
     # Horizontal, pointy top, even rows are shoved right.
-    EVEN_R = 'EVEN_R'
+    EVEN_R = "EVEN_R"
     # Vertical, flat top, odd columns are shoved down.
-    ODD_Q = 'ODD_Q'
+    ODD_Q = "ODD_Q"
     # Vertical, flat top, even columns are shoved down.
-    EVEN_Q = 'EVEN_Q'
+    EVEN_Q = "EVEN_Q"
 
 
 
@@ -435,5 +434,5 @@ class HexagonalGrid:
     def __str__(self):
         """String formatting.
         """
-        return f'{self.num_cols}x{self.num_rows} {self.layout.name} '\
-            f'{self.__class__.__name__} @ {self.pitch} mm pitch'
+        return f"{self.num_cols}x{self.num_rows} {self.layout.name} "\
+            f"{self.__class__.__name__} @ {self.pitch} mm pitch"

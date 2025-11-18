@@ -26,9 +26,8 @@ from typing import Tuple
 import numpy as np
 
 from .logging_ import logger
-from hexsample.pprint import AnsiFontEffect, ansi_format, space, line
-from hexsample.roi import Padding, RegionOfInterest
-
+from .pprint import AnsiFontEffect, ansi_format, line, space
+from .roi import Padding, RegionOfInterest
 
 
 @dataclass
@@ -118,11 +117,12 @@ class DigiEventSparse(DigiEventBase):
         """Post-initialization code.
         """
         if not len(self.rows) == len(self.columns) == len(self.pha):
-            raise RuntimeError(f'{self.__class__.__name__} has {len(self.rows)} rows'
-                f', {len(self.columns)} columns, and {len(self.pha)} PHA values')
+            raise RuntimeError(f"{self.__class__.__name__} has {len(self.rows)} rows"
+                f", {len(self.columns)} columns, and {len(self.pha)} PHA values")
 
     @classmethod
-    def from_digi(cls, file_row: np.ndarray, pha: np.ndarray, columns: np.ndarray, rows: np.ndarray):
+    def from_digi(cls, file_row: np.ndarray, pha: np.ndarray, columns: np.ndarray,
+                  rows: np.ndarray):
         """Alternative constructor rebuilding an object from a row on a digi file.
 
         This is used internally when we access event data in a digi file, and
@@ -148,23 +148,23 @@ class DigiEventSparse(DigiEventBase):
         """Ascii representation.
         """
         pha_dict = self.as_dict()
-        fmt = f'%{pha_width}d'
+        fmt = f"%{pha_width}d"
         cols = np.arange(self.columns.min(), self.columns.max() + 1)
         num_cols = cols[-1] - cols[0] + 1
         rows = np.arange(self.rows.min(), self.rows.max() + 1)
         big_space = space(2 * pha_width + 1)
-        text = f'\n{big_space}'
-        text += ''.join([fmt % col for col in cols])
-        text += f'\n{big_space}+{line(pha_width * num_cols)}\n'
+        text = f"\n{big_space}"
+        text += "".join([fmt % col for col in cols])
+        text += f"\n{big_space}+{line(pha_width * num_cols)}\n"
         for row in rows:
-            text += f'    {fmt % row}  |'
+            text += f"    {fmt % row}  |"
             for col in cols:
                 try:
                     pha = fmt % pha_dict[(col, row)]
                 except KeyError:
-                    pha = ' ' * pha_width
+                    pha = " " * pha_width
                 text += pha
-            text += f'\n{big_space}|\n'
+            text += f"\n{big_space}|\n"
         return text
 
 
@@ -188,10 +188,10 @@ class DigiEventRectangular(DigiEventBase):
         try:
             self.pha = self.pha.reshape(self.roi.shape())
         except ValueError as error:
-            logger.error(f'Error in {self.__class__.__name__} post-initializaion.')
+            logger.error(f"Error in {self.__class__.__name__} post-initializaion.")
             print(self.roi)
-            print(f'ROI size: {self.roi.size}')
-            print(f'pha size: {self.pha.size}')
+            print(f"ROI size: {self.roi.size}")
+            print(f"pha size: {self.pha.size}")
             logger.error(error)
 
     def __eq__(self, other) -> bool:
@@ -252,24 +252,24 @@ class DigiEventRectangular(DigiEventBase):
     def ascii(self, pha_width: int = 5):
         """Ascii representation.
         """
-        fmt = f'%{pha_width}d'
+        fmt = f"%{pha_width}d"
         cols = self.roi.col_indexes()
         rows = self.roi.row_indexes()
         big_space = space(2 * pha_width + 1)
-        text = f'\n{big_space}'
-        text += ''.join([fmt % col for col in cols])
-        text += f'\n{big_space}'
-        text += ''.join([fmt % (col - self.roi.min_col) for col in cols])
-        text += f'\n{big_space}+{line(pha_width * self.roi.num_cols)}\n'
+        text = f"\n{big_space}"
+        text += "".join([fmt % col for col in cols])
+        text += f"\n{big_space}"
+        text += "".join([fmt % (col - self.roi.min_col) for col in cols])
+        text += f"\n{big_space}+{line(pha_width * self.roi.num_cols)}\n"
         for row in rows:
-            text += f'{fmt % row} {fmt % (row - self.roi.min_row)}|'
+            text += f"{fmt % row} {fmt % (row - self.roi.min_row)}|"
             for col in cols:
                 pha = fmt % self(col, row)
                 if not self.roi.in_rot(col, row):
                     pha = ansi_format(pha, AnsiFontEffect.FG_BRIGHT_BLUE)
                 text += pha
-            text += f'\n{big_space}|\n'
-        text += f'{self.roi}\n'
+            text += f"\n{big_space}|\n"
+        text += f"{self.roi}\n"
         return text
 
 
@@ -303,8 +303,8 @@ class DigiEventCircular(DigiEventBase):
         """Post-initialization code.
         """
         if not len(self.pha) == 7:
-            raise RuntimeError(f'{self.__class__.__name__} has {len(self.pha)} PHA values'
-                f'instead of {7}.')
+            raise RuntimeError(f"{self.__class__.__name__} has {len(self.pha)} PHA values"
+                f"instead of {7}.")
 
     @classmethod
     def from_digi(cls, file_row: np.ndarray):
@@ -323,26 +323,26 @@ class DigiEventCircular(DigiEventBase):
         (that is the highest PHA pixel), because the neighbor position is not accessible
         by the DigiEvent.
         """
-        fmt = f'%{pha_width}d'
+        fmt = f"%{pha_width}d"
         cols = np.arange(self.column - 1, self.column + 2)
         num_cols = cols[-1] - cols[0] + 1
         rows = np.arange(self.row - 1, self.row + 2)
         big_space = space(2 * pha_width + 1)
-        text = f'\n{big_space}'
-        text += ''.join([fmt % col for col in cols])
-        text += f'\n{big_space}+{line(pha_width * num_cols)}\n'
+        text = f"\n{big_space}"
+        text += "".join([fmt % col for col in cols])
+        text += f"\n{big_space}+{line(pha_width * num_cols)}\n"
         for r in rows:
-            text += f'    {fmt % r}  |'
+            text += f"    {fmt % r}  |"
             for col in cols:
                 try:
                     if col == self.column and r ==self.row:
                         pha = fmt % max(self.pha)
                     else:
-                        pha = ' ' * pha_width
+                        pha = " " * pha_width
                 except KeyError:
-                    pha = ' ' * pha_width
+                    pha = " " * pha_width
                 text += pha
-            text += f'\n{big_space}|\n'
+            text += f"\n{big_space}|\n"
         return text
 
 

@@ -82,8 +82,8 @@ def ansi_format(text: str, *effects: AnsiFontEffect) -> str:
     effects : AnsiFontEffect
         The effects to be applied to the text.
     """
-    esc = ';'.join([f'{effect.value}' for effect in effects])
-    return f'\033[{esc}m{text}\033[{AnsiFontEffect.RESET.value}m'
+    esc = ";".join([f"{effect.value}" for effect in effects])
+    return f"\033[{esc}m{text}\033[{AnsiFontEffect.RESET.value}m"
 
 def _repeat(text: str, repetitions: int) -> str:
     """Repeat a given piece of text for a given number of times.
@@ -93,9 +93,9 @@ def _repeat(text: str, repetitions: int) -> str:
 def space(width: int) -> str:
     """Return a sequence of spaces of a given width.
     """
-    return _repeat(' ', width)
+    return _repeat(" ", width)
 
 def line(width: int) -> str:
     """Return a sequence of spaces of a given width.
     """
-    return _repeat('-', width)
+    return _repeat("-", width)

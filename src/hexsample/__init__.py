@@ -21,8 +21,6 @@
 """
 
 from pathlib import Path
-import sys
-
 
 from ._version import __version__
 
@@ -30,21 +28,21 @@ from ._version import __version__
 # Basic package structure.
 HEXSAMPLE_ROOT = Path(__file__).parent
 HEXSAMPLE_BASE = HEXSAMPLE_ROOT.parent
-HEXSAMPLE_DOCS = HEXSAMPLE_BASE / 'docs'
-HEXSAMPLE_DOCS_FIGURES = HEXSAMPLE_DOCS / 'figures'
-HEXSAMPLE_DOCS_STATIC = HEXSAMPLE_DOCS / '_static'
-HEXSAMPLE_TEST = HEXSAMPLE_BASE / 'tests'
-HEXSAMPLE_TEST_DATA = HEXSAMPLE_TEST / 'data'
-HEXSAMPLE_BIN = HEXSAMPLE_ROOT / 'bin'
+HEXSAMPLE_DOCS = HEXSAMPLE_BASE / "docs"
+HEXSAMPLE_DOCS_FIGURES = HEXSAMPLE_DOCS / "figures"
+HEXSAMPLE_DOCS_STATIC = HEXSAMPLE_DOCS / "_static"
+HEXSAMPLE_TEST = HEXSAMPLE_BASE / "tests"
+HEXSAMPLE_TEST_DATA = HEXSAMPLE_TEST / "data"
+HEXSAMPLE_BIN = HEXSAMPLE_ROOT / "bin"
 
 # Path to the Python module containing the version information.
-HEXSAMPLE_VERSION_FILE_PATH = HEXSAMPLE_ROOT / '_version.py'
+HEXSAMPLE_VERSION_FILE_PATH = HEXSAMPLE_ROOT / "_version.py"
 
 # Path to the release notes.
-HEXSAMPLE_RELEASE_NOTES_PATH = HEXSAMPLE_DOCS / 'release.rst'
+HEXSAMPLE_RELEASE_NOTES_PATH = HEXSAMPLE_DOCS / "release.rst"
 
 # Make room for the output data.
-HEXSAMPLE_DATA = Path.home() / 'hexsampledata'
+HEXSAMPLE_DATA = Path.home() / "hexsampledata"
 if not Path.exists(HEXSAMPLE_DATA):
-    logger.info(f'Creating data folder {HEXSAMPLE_DATA}...')
+    logger.info(f"Creating data folder {HEXSAMPLE_DATA}...")
     Path.mkdir(HEXSAMPLE_DATA)

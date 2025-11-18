@@ -26,8 +26,7 @@ import numpy as np
 import scipy.stats
 import xraydb
 
-from hexsample import rng
-
+from . import rng
 
 
 class CrossSection(Enum):
@@ -35,10 +34,10 @@ class CrossSection(Enum):
     """Enum class expressing the various cross sections.
     """
 
-    COHERENT = 'coh'
-    INCOHERENT = 'incho'
-    PHOTOELECTRIC = 'photo'
-    TOTAL = 'total'
+    COHERENT = "coh"
+    INCOHERENT = "incho"
+    PHOTOELECTRIC = "photo"
+    TOTAL = "total"
 
 
 
@@ -195,14 +194,14 @@ class Material:
     def __str__(self):
         """String formatting.
         """
-        return f'{self.symbol}, F = {self.fano_factor}, E_ion = {self.ionization_potential} eV'
+        return f"{self.symbol}, F = {self.fano_factor}, E_ion = {self.ionization_potential} eV"
 
 
 
 # Definition of the active media of interest.
-Silicon = Material('Si', 0.116)
-Germanium = Material('Ge', 0.106)
-CadmiumTelluride = Material('CdTe', fano_factor=0.15, density=5.85, ionization_potential=4.45)
+Silicon = Material("Si", 0.116)
+Germanium = Material("Ge", 0.106)
+CadmiumTelluride = Material("CdTe", fano_factor=0.15, density=5.85, ionization_potential=4.45)
 
 
 

@@ -23,15 +23,14 @@
 from typing import Tuple
 
 import matplotlib
-from matplotlib.patches import RegularPolygon
-from matplotlib.collections import PatchCollection
 import numpy as np
 from aptapy.plotting import plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import RegularPolygon
 
-from hexsample.digi import DigiEventRectangular
-from hexsample.hexagon import HexagonalGrid
-from hexsample.roi import RegionOfInterest
-
+from .digi import DigiEventRectangular
+from .hexagon import HexagonalGrid
+from .roi import RegionOfInterest
 
 
 class HexagonCollection(PatchCollection):
@@ -59,9 +58,9 @@ class HexagonCollection(PatchCollection):
         # pylint: disable = invalid-name
         self.x = x
         self.y = y
-        kwargs.setdefault('edgecolor', 'gray')
-        kwargs.setdefault('facecolor', 'none')
-        kwargs.setdefault('linewidth', 1.2)
+        kwargs.setdefault("edgecolor", "gray")
+        kwargs.setdefault("facecolor", "none")
+        kwargs.setdefault("linewidth", 1.2)
         patches = [RegularPolygon(xy, 6, radius=radius, orientation=orientation) \
             for xy in zip(x, y)]
         # match_original is explicitely set to false so that new colors may be
@@ -80,17 +79,17 @@ class HexagonalGridDisplay:
         """Constructor.
         """
         self._grid = grid
-        self.color_map = matplotlib.cm.get_cmap(kwargs.get('cmap_name', 'Reds')).copy()
-        self.color_map_offset = kwargs.get('cmap_offset', 0)
-        self.color_map.set_under('white')
+        self.color_map = matplotlib.cm.get_cmap(kwargs.get("cmap_name", "Reds")).copy()
+        self.color_map_offset = kwargs.get("cmap_offset", 0)
+        self.color_map.set_under("white")
 
     @staticmethod
     def setup_gca():
         """Setup the current axes object to make the display work.
         """
-        plt.gca().set_aspect('equal')
+        plt.gca().set_aspect("equal")
         plt.gca().autoscale()
-        plt.axis('off')
+        plt.axis("off")
 
     @staticmethod
     def show():
@@ -133,9 +132,9 @@ class HexagonalGridDisplay:
             self._grid.hexagon_orientation(), **kwargs)
         plt.gca().add_collection(collection)
         if pixel_labels:
-            fmt = dict(ha='center', va='center', size='xx-small')
+            fmt = dict(ha="center", va="center", size="xx-small")
             for (_x, _y, _col, _row) in zip(x, y, col, row):
-                plt.text(_x + dx, _y + dy, f'({_col}, {_row})', **fmt)
+                plt.text(_x + dx, _y + dy, f"({_col}, {_row})", **fmt)
         return collection
 
     def draw_roi(self, roi: RegionOfInterest, offset: Tuple[float, float] = (0., 0.),
@@ -152,22 +151,22 @@ class HexagonalGridDisplay:
         # If the padding is defined, we want to distinguish the different regions
         # by the pixel edge color.
         if padding:
-            color = np.full(col.shape, '#555')
-            color[~roi.in_rot(col, row)] = '#CCC'
+            color = np.full(col.shape, "#555")
+            color[~roi.in_rot(col, row)] = "#CCC"
             collection.set_edgecolor(color)
         plt.gca().add_collection(collection)
         # And if we want the indices, we add appropriate text patches.
         if indices:
-            font_size = 'x-small'
+            font_size = "x-small"
             cols, rows = roi.col_indexes(), roi.row_indexes()
             first_row = np.full(cols.shape, roi.min_row)
             first_col = np.full(rows.shape, roi.min_col)
-            fmt = dict(fontsize=font_size, ha='center', va='bottom', rotation=60.)
+            fmt = dict(fontsize=font_size, ha="center", va="bottom", rotation=60.)
             for x, y, col in zip(*self._grid.pixel_to_world(cols, first_row), cols):
-                plt.text(x + dx, y + dy + self._grid.secondary_pitch, f'{col}', **fmt)
-            fmt = dict(fontsize=font_size, ha='right', va='center', rotation=0.)
+                plt.text(x + dx, y + dy + self._grid.secondary_pitch, f"{col}", **fmt)
+            fmt = dict(fontsize=font_size, ha="right", va="center", rotation=0.)
             for x, y, row in zip(*self._grid.pixel_to_world(first_col, rows), rows):
-                plt.text(x + dx - self._grid.pitch, y + dy, f'{row}', **fmt)
+                plt.text(x + dx - self._grid.pitch, y + dy, f"{row}", **fmt)
         return collection
 
     def draw_digi_event(self, event: DigiEventRectangular, offset: Tuple[float, float] = (0., 0.),
@@ -189,9 +188,9 @@ class HexagonalGridDisplay:
             white = np.array([1., 1., 1., 1.])
             text_color = np.tile(black, len(face_color)).reshape(face_color.shape)
             text_color[self.brightness(face_color) < 0.5] = white
-            fmt = dict(ha='center', va='center', fontsize='xx-small')
+            fmt = dict(ha="center", va="center", fontsize="xx-small")
             for x, y, value, color in zip(collection.x, collection.y,\
                 event.pha.flatten(), text_color):
                 if value > zero_sup_threshold:
-                    plt.text(x, y, f'{value}', color=color, **fmt)
+                    plt.text(x, y, f"{value}", color=color, **fmt)
         return collection

@@ -26,7 +26,6 @@ from typing import Tuple
 import numpy as np
 
 
-
 @dataclass
 class Padding:
 
@@ -206,5 +205,5 @@ class RegionOfInterest:
             row >= self.min_row + self.padding.top,
             row <= self.max_row - self.padding.bottom
         ))
-    
+
 

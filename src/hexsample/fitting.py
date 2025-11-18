@@ -17,12 +17,11 @@
 """Advanced fitting facilities.
 """
 
+import aptapy.models
 import numpy as np
 
-import aptapy.models
 
 # pylint: disable=invalid-name
-
 def fit_gaussian_iterative(histogram, p0=None, xmin=-np.inf, xmax=np.inf, absolute_sigma=True,
     check_finite=True, method=None, verbose=True, num_sigma_left=2., num_sigma_right=2.,
     num_iterations=2, **kwargs):
@@ -51,12 +50,14 @@ def fit_gaussian_iterative(histogram, p0=None, xmin=-np.inf, xmax=np.inf, absolu
     """
     # pylint: disable=too-many-arguments. too-many-locals
     model = aptapy.models.Gaussian()
-    model.fit_histogram(histogram, p0, xmin=xmin, xmax=xmax, absolute_sigma=absolute_sigma, **kwargs)
+    model.fit_histogram(histogram, p0, xmin=xmin, xmax=xmax,
+                        absolute_sigma=absolute_sigma, **kwargs)
     for i in range(num_iterations):
         xmin = model.mean.value - num_sigma_left * model.sigma.value
         xmax = model.mean.value + num_sigma_right * model.sigma.value
         try:
-            model.fit_histogram(histogram, p0, xmin=xmin, xmax=xmax, absolute_sigma=absolute_sigma, **kwargs)
+            model.fit_histogram(histogram, p0, xmin=xmin, xmax=xmax,
+                                absolute_sigma=absolute_sigma, **kwargs)
         except RuntimeError as exception:
-            raise RuntimeError(f'Exception after {i + 1} iteration(s)') from exception
+            raise RuntimeError(f"Exception after {i + 1} iteration(s)") from exception
     return model

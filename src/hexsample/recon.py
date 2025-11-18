@@ -25,10 +25,9 @@ from typing import Tuple
 
 import xraydb
 
-from hexsample.clustering import Cluster
+from .clustering import Cluster
 
-
-DEFAULT_IONIZATION_POTENTIAL = xraydb.ionization_potential('Si')
+DEFAULT_IONIZATION_POTENTIAL = xraydb.ionization_potential("Si")
 
 @dataclass
 class ReconEventBase:

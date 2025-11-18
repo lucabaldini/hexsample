@@ -22,17 +22,17 @@
 
 import sys
 
-from hexsample import HEXSAMPLE_BIN
-from hexsample.app import ArgumentParser
+from . import HEXSAMPLE_BIN
+from .app import ArgumentParser
 
 # When we import stuff from the executable scripts (whose folder is not included
 # in the $PYTHONPATH) we don't want to pollute the filesystem with assembled bytecode.
-sys.path.append(f'{HEXSAMPLE_BIN}')
+sys.path.append(f"{HEXSAMPLE_BIN}")
 sys.dont_write_bytecode = 1
 
 # pylint: disable=import-error, wrong-import-position, wrong-import-order
-from hxrecon import HXRECON_ARGPARSER, hxrecon as _hxrecon
-from hxsim import HXSIM_ARGPARSER, hxsim as _hxsim
+from hxrecon import HXRECON_ARGPARSER, hxrecon as _hxrecon # noqa: E402, I001
+from hxsim import HXSIM_ARGPARSER, hxsim as _hxsim # noqa: E402, I001
 
 
 def required_arguments(parser: ArgumentParser) -> list:
@@ -103,7 +103,7 @@ def update_arguments(parser: ArgumentParser, **kwargs) -> dict:
     # are recognized by the parser.
     for key in kwargs:
         if key not in _args and key not in _kwargs:
-            raise RuntimeError(f'Unknown parameter {key} passed to a pipeline component')
+            raise RuntimeError(f"Unknown parameter {key} passed to a pipeline component")
     _kwargs.update(kwargs)
     return _kwargs
 

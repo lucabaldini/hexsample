@@ -22,9 +22,9 @@
 
 import argparse
 
-from hexsample import __name__, __version__
-from hexsample.hexagon import HexagonalLayout
-from hexsample.readout import HexagonalReadoutMode
+from . import __name__, __version__
+from .hexagon import HexagonalLayout
+from .readout import HexagonalReadoutMode
 
 
 START_MESSAGE = f"""
@@ -101,14 +101,14 @@ class ArgumentParser(argparse.ArgumentParser):
     def add_infile(self) -> None:
         """Add an option for the input file.
         """
-        self.add_argument('infile', type=str,
-            help='path to the input file')
+        self.add_argument("infile", type=str,
+            help="path to the input file")
 
     def add_numevents(self, default: int) -> None:
         """Add an option for the number of events.
         """
-        self.add_argument('--numevents', '-n', type=int, default=default,
-            help='number of events')
+        self.add_argument("--numevents", "-n", type=int, default=default,
+            help="number of events")
 
     def add_outfile(self, default: str) -> None:
         """Add an option for the output file.
@@ -118,83 +118,83 @@ class ArgumentParser(argparse.ArgumentParser):
         properly in specific places (such as adding metadata to the output HDF5
         file headers).
         """
-        self.add_argument('--outfile', '-o', type=str, default=str(default),
-            help='path to the output file')
+        self.add_argument("--outfile", "-o", type=str, default=str(default),
+            help="path to the output file")
 
     def add_seed(self) -> None:
         """Add an option for the random seed of a simulation.
         """
-        self.add_argument('--seed', type=int, default=None,
-            help='random seed for the simulation')
+        self.add_argument("--seed", type=int, default=None,
+            help="random seed for the simulation")
 
     def add_suffix(self, default: str) -> None:
         """Add an option for the output suffix.
         """
-        self.add_argument('--suffix', type=str, default=default,
-            help='suffix for the output file')
+        self.add_argument("--suffix", type=str, default=default,
+            help="suffix for the output file")
 
     def add_clustering_options(self) -> None:
         """Add an option group for the clustering.
         """
-        group = self.add_argument_group('clustering', 'Clustering options')
-        group.add_argument('--zsupthreshold', type=int, default=0,
-            help='zero-suppression threshold in ADC counts')
-        group.add_argument('--nneighbors', type=int, default=2,
-            help='number of neighbors to be considered (0--6)')
+        group = self.add_argument_group("clustering", "Clustering options")
+        group.add_argument("--zsupthreshold", type=int, default=0,
+            help="zero-suppression threshold in ADC counts")
+        group.add_argument("--nneighbors", type=int, default=2,
+            help="number of neighbors to be considered (0--6)")
 
     def add_readout_options(self) -> None:
         """Add an option group for the readout properties.
         """
-        group = self.add_argument_group('readout', 'Redout configuration')
+        group = self.add_argument_group("readout", "Redout configuration")
         layouts = [item.value for item in HexagonalLayout]
-        group.add_argument('--layout', type=str, choices=layouts, default=layouts[0],
-            help='hexagonal layout of the readout chip')
-        group.add_argument('--numcolumns', type=int, default=304,
-            help='number of colums in the readout chip (counting from 0 column)')
-        group.add_argument('--numrows', type=int, default=352,
-            help='number of rows in the readout chip (counting from 0 row)')
-        group.add_argument('--pitch', type=float, default=0.005,
-            help='pitch of the readout chip in cm')
+        group.add_argument("--layout", type=str, choices=layouts, default=layouts[0],
+            help="hexagonal layout of the readout chip")
+        group.add_argument("--numcolumns", type=int, default=304,
+            help="number of colums in the readout chip (counting from 0 column)")
+        group.add_argument("--numrows", type=int, default=352,
+            help="number of rows in the readout chip (counting from 0 row)")
+        group.add_argument("--pitch", type=float, default=0.005,
+            help="pitch of the readout chip in cm")
         modes = [item.value for item in HexagonalReadoutMode]
-        group.add_argument('--readoutmode', type=str, choices=modes, default='RECTANGULAR',
-            help='readout mode')
-        group.add_argument('--padding', type=int, nargs=4, default=(2, 2, 2, 2),
-            help='padding on the four sides of the ROT')
-        group.add_argument('--noise', type=float, default=20.,
-            help='equivalent noise charge rms in electrons')
-        group.add_argument('--gain', type=float, default=1.,
-            help='conversion factors between electron equivalent and ADC counts')
-        group.add_argument('--offset', type=int, default=0,
-            help='optional signal offset in ADC counts')
-        group.add_argument('--trgthreshold', type=float, default=500.,
-            help='trigger threshold in electron equivalent')
-        group.add_argument('--zsupthreshold', type=int, default=0,
-            help='zero-suppression threshold in ADC counts')
+        group.add_argument("--readoutmode", type=str, choices=modes, default="RECTANGULAR",
+            help="readout mode")
+        group.add_argument("--padding", type=int, nargs=4, default=(2, 2, 2, 2),
+            help="padding on the four sides of the ROT")
+        group.add_argument("--noise", type=float, default=20.,
+            help="equivalent noise charge rms in electrons")
+        group.add_argument("--gain", type=float, default=1.,
+            help="conversion factors between electron equivalent and ADC counts")
+        group.add_argument("--offset", type=int, default=0,
+            help="optional signal offset in ADC counts")
+        group.add_argument("--trgthreshold", type=float, default=500.,
+            help="trigger threshold in electron equivalent")
+        group.add_argument("--zsupthreshold", type=int, default=0,
+            help="zero-suppression threshold in ADC counts")
 
     def add_sensor_options(self) -> None:
         """Add an option group for the sensor properties.
         """
-        group = self.add_argument_group('sensor', 'Sensor properties')
-        group.add_argument('--actmedium', type=str, choices=('Si',), default='Si',
-            help='active sensor material')
-        group.add_argument('--thickness', type=float, default=0.03,
-            help='thickness in cm')
-        group.add_argument('--fano', type=float, default=0.116,
-            help='fano factor')
-        group.add_argument('--transdiffsigma', type=float, default=40.,
-            help='diffusion sigma in um per sqrt(cm)')
+        group = self.add_argument_group("sensor", "Sensor properties")
+        group.add_argument("--actmedium", type=str, choices=("Si",), default="Si",
+            help="active sensor material")
+        group.add_argument("--thickness", type=float, default=0.03,
+            help="thickness in cm")
+        group.add_argument("--fano", type=float, default=0.116,
+            help="fano factor")
+        group.add_argument("--transdiffsigma", type=float, default=40.,
+            help="diffusion sigma in um per sqrt(cm)")
 
     def add_source_options(self) -> None:
         """Add an option group for the source properties.
         """
-        group = self.add_argument_group('source', 'X-ray source properties')
-        group.add_argument('--srcelement', type=str, default='Cu',
-            help='element generating the line forest')
-        group.add_argument('--srclevel', type=str, default='K',
-            help='initial level for the line forest')
-        group.add_argument('--srcposx', type=float, default=0.,
-            help='x position of the source centroid in cm')
-        group.add_argument('--srcposy', type=float, default=0.,
-            help='y position of the source centroid in cm')
-        group.add_argument('--srcsigma', type=float, default=0.1,
-            help='one-dimensional standard deviation of the gaussian beam in cm')
+        group = self.add_argument_group("source", "X-ray source properties")
+        group.add_argument("--srcelement", type=str, default="Cu",
+            help="element generating the line forest")
+        group.add_argument("--srclevel", type=str, default="K",
+            help="initial level for the line forest")
+        group.add_argument("--srcposx", type=float, default=0.,
+            help="x position of the source centroid in cm")
+        group.add_argument("--srcposy", type=float, default=0.,
+            help="y position of the source centroid in cm")
+        group.add_argument("--srcsigma", type=float, default=0.1,
+            help="one-dimensional standard deviation of the gaussian beam in cm")

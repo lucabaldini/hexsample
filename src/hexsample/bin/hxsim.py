@@ -22,22 +22,19 @@
 """Simple simulation.
 """
 
-import numpy as np
 from tqdm import tqdm
 
 from hexsample import rng
 from hexsample import HEXSAMPLE_DATA
 from hexsample.app import ArgumentParser
-from hexsample.logging_ import logger
-from hexsample.readout import HexagonalReadoutMode, readout_chip
-from hexsample.fileio import DigiDescriptionSparse, DigiDescriptionRectangular,\
-    DigiDescriptionCircular, digioutput_class
+from hexsample.fileio import digioutput_class
 from hexsample.hexagon import HexagonalLayout
+from hexsample.logging_ import logger
 from hexsample.mc import PhotonList
+from hexsample.readout import HexagonalReadoutMode, readout_chip
 from hexsample.roi import Padding
-from hexsample.source import LineForest, GaussianBeam, Source
 from hexsample.sensor import Material, Sensor
-
+from hexsample.source import GaussianBeam, LineForest, Source
 
 __description__ = \
 """Simulate a list of digitized events from an arbitrary X-ray source.

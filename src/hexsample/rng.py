@@ -21,7 +21,6 @@ import numpy as np
 
 from .logging_ import logger
 
-
 # Default bit generator class---this is the workhorse object that draw random
 # numbers equidistributed in the [0, 1] interval.
 # pylint: disable=invalid-name, global-statement
@@ -43,7 +42,7 @@ class UninitializedGenerator:
     def __getattr__(self, name):
         """Basic hook to implement a no-op class.
         """
-        raise RuntimeError('Random number generator not initialized.')
+        raise RuntimeError("Random number generator not initialized.")
 
 
 
@@ -106,9 +105,9 @@ def initialize(bit_generator_class: type = DEFAULT_BIT_GENERATOR, seed: int = No
     # pylint: disable=global-statement
     global generator
     seed_sequence = np.random.SeedSequence(seed)
-    logger.info(f'Random seed set to {seed_sequence.entropy}')
+    logger.info(f"Random seed set to {seed_sequence.entropy}")
     bit_generator = bit_generator_class(seed_sequence)
-    logger.info(f'Creating new {bit_generator.__class__.__name__} pseudo-random generator...')
+    logger.info(f"Creating new {bit_generator.__class__.__name__} pseudo-random generator...")
     generator = np.random.default_rng(bit_generator)
 
 

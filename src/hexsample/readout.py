@@ -26,11 +26,10 @@ from typing import Tuple
 
 import numpy as np
 
-from hexsample import rng
-from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
-from hexsample.hexagon import HexagonalGrid, HexagonalLayout
-from hexsample.roi import Padding, RegionOfInterest
-from hexsample import xpol
+from . import rng, xpol
+from .digi import DigiEventCircular, DigiEventRectangular, DigiEventSparse
+from .hexagon import HexagonalGrid, HexagonalLayout
+from .roi import Padding, RegionOfInterest
 
 
 class HexagonalReadoutMode(Enum):
@@ -38,11 +37,11 @@ class HexagonalReadoutMode(Enum):
     """
 
     # Sparse readout strategy.
-    SPARSE = 'SPARSE'
+    SPARSE = "SPARSE"
     # Rectangular readout, a la XPOL.
-    RECTANGULAR = 'RECTANGULAR'
+    RECTANGULAR = "RECTANGULAR"
     # Circular readout, with the highest pixel and the 6 neirest.
-    CIRCULAR = 'CIRCULAR'
+    CIRCULAR = "CIRCULAR"
 
 
 
@@ -483,13 +482,14 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # ...apply the trigger...
         # Not sure the trigger is needed, the highest px passed
         # necessarily the trigger or there is no event
-        #trigger_mask = self.discriminate(pha, trg_threshold)
+        # trigger_mask = self.discriminate(pha, trg_threshold)
         # .. and digitize the pha values.
         pha = self.digitize(pha, zero_sup_threshold, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
-        #The pha array is always in the order [pha(adc0), pha(adc1), pha(adc2), pha(adc3), pha(adc4), pha(adc5), pha(adc6)]
+        # The pha array is always in the order
+        # [pha(adc0), pha(adc1), pha(adc2), pha(adc3), pha(adc4), pha(adc5), pha(adc6)]
         return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha, *coord_max)
 
 

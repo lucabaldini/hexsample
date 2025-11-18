@@ -20,9 +20,8 @@
 """Quantities related to the XPOL readout chip.
 """
 
-from hexsample.hexagon import HexagonalLayout
-from hexsample.roi import Padding
-
+from .hexagon import HexagonalLayout
+from .roi import Padding
 
 # Chip size for the two generations.
 XPOL1_SIZE = (300, 352)

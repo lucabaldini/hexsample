@@ -25,9 +25,9 @@ from typing import Tuple
 
 import numpy as np
 
-from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
-from hexsample.hexagon import HexagonalGrid
-from hexsample.readout import HexagonalReadoutCircular
+from .digi import DigiEventCircular, DigiEventRectangular, DigiEventSparse
+from .hexagon import HexagonalGrid
+from .readout import HexagonalReadoutCircular
 
 
 @dataclass
@@ -46,7 +46,7 @@ class Cluster:
         """Small cross check on the dimensions of the arrays passed in the constructor.
         """
         if not self.x.shape == self.y.shape == self.pha.shape:
-            raise RuntimeError(f'Inconsistent arrays: x = {self.x}, y = {self.y}, pha = {self.pha}')
+            raise RuntimeError(f"Inconsistent arrays: x = {self.x}, y = {self.y}, pha = {self.pha}")
 
     def size(self) -> int:
         """Return the size of the cluster.
@@ -116,7 +116,8 @@ class ClusteringNN(ClusteringBase):
             pass
         elif isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
-            self.num_neighbors = HexagonalReadoutCircular.NUM_PIXELS - 1 # -1 is bc the central px is already considered
+            # Trailing -1 is bc the central px is already considered.
+            self.num_neighbors = HexagonalReadoutCircular.NUM_PIXELS - 1
             col = [event.column]
             row = [event.row]
             adc_channel_order = [self.grid.adc_channel(event.column, event.row)]
@@ -149,7 +150,7 @@ class ClusteringNN(ClusteringBase):
         # trick argsort into sorting values in decreasing order.
         idx = np.argsort(-pha)
         # Only pick the seed and the N highest pixels.
-        # This is useless for the circular readout because in that case all 
+        # This is useless for the circular readout because in that case all
         # neighbors are used for track reconstruction.
         mask = idx[:self.num_neighbors + 1]
         # If there's any zero left in the target pixels, get rid of it.

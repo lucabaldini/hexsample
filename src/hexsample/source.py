@@ -21,13 +21,13 @@
 """
 
 from dataclasses import dataclass
-from typing import Union, Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import xraydb
 from aptapy.plotting import plt, setup_gca
 
-from hexsample import rng
+from . import rng
 
 
 @dataclass
@@ -259,16 +259,16 @@ class LineForest(SpectrumBase):
         """Plot the line forest.
         """
         # pylint: disable=invalid-name
-        plt.bar(self._energies, self._probs, width=0.0001, color='black')
+        plt.bar(self._energies, self._probs, width=0.0001, color="black")
         for x, y, name in zip(self._energies, self._probs, self.line_dict.keys()):
-            label = f'{name} ({y:.2e} @ {x:.0f} eV)'
-            plt.text(x, 1.2 * y, label, ha='center', size='small')
-        setup_gca(xlabel='Energy [eV]', ylabel='Relative intensity', logy=True, grids=True)
+            label = f"{name} ({y:.2e} @ {x:.0f} eV)"
+            plt.text(x, 1.2 * y, label, ha="center", size="small")
+        setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
 
     def __str__(self):
         """String formatting.
         """
-        return f'{self.line_dict}'
+        return f"{self.line_dict}"
 
 
 
