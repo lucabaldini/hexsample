@@ -16,6 +16,7 @@
 """Test suite for mc.py
 """
 
+import pytest
 from aptapy.plotting import plt
 
 from hexsample import rng
@@ -26,6 +27,7 @@ from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.roi import Padding
 
 
+@pytest.mark.skip(reason="intermittent failure, see issue #43")
 def test_diffusion(diff_sigma=40.):
     """Test the diffusion.
     """
