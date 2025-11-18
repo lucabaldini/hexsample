@@ -40,8 +40,3 @@ def test_diffusion(diff_sigma=40.):
     display = HexagonalGridDisplay(grid)
     display.draw()
     plt.plot(x, y, "o", markersize=1)
-    return display
-
-
-if __name__ == "__main__":
-    test_diffusion().show()

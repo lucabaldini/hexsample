@@ -115,11 +115,3 @@ def test_routing_7(nside: int = 10, pitch: float = 0.1) -> None:
             adc = grid.adc_channel(_col, _row)
             plt.text(_x, _y, f"{adc}", **fmt)
         display.setup_gca()
-
-
-
-if __name__ == "__main__":
-    #test_display()
-    #test_neighbors()
-    test_routing_7()
-    plt.show()

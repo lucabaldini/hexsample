@@ -79,7 +79,7 @@ class HexagonalGridDisplay:
         """Constructor.
         """
         self._grid = grid
-        self.color_map = matplotlib.cm.get_cmap(kwargs.get("cmap_name", "Reds")).copy()
+        self.color_map = matplotlib.colormaps.get_cmap(kwargs.get("cmap_name", "Reds")).copy()
         self.color_map_offset = kwargs.get("cmap_offset", 0)
         self.color_map.set_under("white")
 

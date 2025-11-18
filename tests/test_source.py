@@ -106,12 +106,3 @@ def test_mn_k_forest():
     same energy, and the thing would require extra code to deal with that.
     """
     _test_forest("Mn", chisq_test=False)
-
-
-
-if __name__ == "__main__":
-    test_disk_beam()
-    test_gaussian_beam()
-    test_cu_k_forest()
-    test_mn_k_forest()
-    plt.show()

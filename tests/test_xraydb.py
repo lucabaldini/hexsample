@@ -21,14 +21,13 @@ import numpy as np
 import xraydb
 from aptapy.plotting import plt, setup_gca
 
-from hexsample import HEXSAMPLE_TEST_DATA
 from hexsample.logging_ import logger
 
 
-def _load_nist_data(file_name):
+def _load_nist_data(test_data_path, file_name):
     """Load the benchmark data downloaded from NIST to test the xraydb cross sections.
     """
-    file_path = HEXSAMPLE_TEST_DATA / file_name
+    file_path = test_data_path(file_name)
     logger.info(f"Loading NIST XCOM data from {file_path}...")
     energy, coh, incoh, photo, total = np.loadtxt(file_path, unpack=True)
     # Convert the energy from MeV to eV
@@ -36,10 +35,10 @@ def _load_nist_data(file_name):
     logger.info("Done, {len(energy)} row(s) found.")
     return energy, coh, incoh, photo, total
 
-def test_si():
+def test_si(test_data_path):
     """Unit test for Si.
     """
-    energy, coh, incoh, photo, total = _load_nist_data("nist_xcom_si.txt")
+    energy, coh, incoh, photo, total = _load_nist_data(test_data_path, "nist_xcom_si.txt")
     plt.figure("Photon cross section in Si")
     for label, nist in zip(("coh", "incoh", "photo", "total"), (coh, incoh, photo, total)):
         logger.info(f"Comparing {label}...")
@@ -61,13 +60,13 @@ def test_si():
     setup_gca(xlabel="Energy [eV]", ylabel="Attenuation [cm$^2$ g$^{-1}$]",
         logy=True, logx=True, legend=True, grids=True)
 
-def test_cdte():
+def test_cdte(test_data_path):
     """Unit test for CdTe.
 
     Interesting---xraydb seems to be missing the CdTe line at 4341 eV, and there
     is no way of doing a sensible unit test, here.
     """
-    energy, coh, incoh, photo, total = _load_nist_data("nist_xcom_cdte.txt")
+    energy, coh, incoh, photo, total = _load_nist_data(test_data_path, "nist_xcom_cdte.txt")
     plt.figure("Photon cross section in CdTe")
     density = 5.85
     for label, nist in zip(("coh", "incoh", "photo", "total"), (coh, incoh, photo, total)):
@@ -82,9 +81,3 @@ def test_cdte():
         logger.info(f"Maximum fractional delta: {max_frac_delta}")
     setup_gca(xlabel="Energy [eV]", ylabel="Attenuation [cm$^2$ g$^{-1}$]",
         logy=True, logx=True, legend=True, grids=True)
-
-
-if __name__ == "__main__":
-    test_si()
-    test_cdte()
-    plt.show()

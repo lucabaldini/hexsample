@@ -93,11 +93,3 @@ def display_template(num_cols: int = 16, num_rows: int = 12, pitch: float = 50.,
     display.draw()
     plt.margins(0.01, 0.01)
     display.setup_gca()
-
-
-
-if __name__ == "__main__":
-    display_adc_7()
-    display_adc_9()
-    plt.show()
-    #display_template()

@@ -42,8 +42,3 @@ def test_histograms(num_events : int = 1000):
     recon_file.close()
     digi_file.close()
     hist.plot()
-
-
-if __name__ == "__main__":
-    test_histograms()
-    plt.show()
