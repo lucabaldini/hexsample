@@ -17,13 +17,21 @@
 """
 
 import numpy as np
-
-from loguru import logger
 import pytest
 
-from hexsample.digi import DigiEventBase, DigiEventSparse, DigiEventRectangular, DigiEventCircular
-from hexsample.hexagon import HexagonalGrid, HexagonalLayout
-from hexsample.readout import HexagonalReadoutRectangular, HexagonalReadoutSparse, HexagonalReadoutCircular
+from hexsample.digi import (
+    DigiEventBase,
+    DigiEventCircular,
+    DigiEventRectangular,
+    DigiEventSparse,
+)
+from hexsample.hexagon import HexagonalLayout
+from hexsample.logging_ import logger
+from hexsample.readout import (
+    HexagonalReadoutCircular,
+    HexagonalReadoutRectangular,
+    HexagonalReadoutSparse,
+)
 from hexsample.roi import Padding, RegionOfInterest
 
 
@@ -67,7 +75,7 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     col1, row1 = num_cols // 3, num_rows // 4
     col2, row2 = col1 + 8, row1 + 5
     col3, row3 = col1 + 4, row1 + 2
-    logger.debug(f'Testing pixel ({col1}, {row1}) and ({col2}, {row2})...')
+    logger.debug(f"Testing pixel ({col1}, {row1}) and ({col2}, {row2})...")
     # ... create the x and y arrays of the pair positions in the center of the pixel.
     x1, y1 = readout.pixel_to_world(col1, row1)
     x2, y2 = readout.pixel_to_world(col2, row2)
@@ -76,7 +84,7 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     y = np.append(y, np.full(num_pairs, y2))
     # Add one more pixel below the trigger threshold, that we want to see disappear
     # in the final event.
-    logger.debug(f'Adding pixel ({col3}, {row3}) below teh trigger threshold...')
+    logger.debug(f"Adding pixel ({col3}, {row3}) below the trigger threshold...")
     x3, y3 = readout.pixel_to_world(col3, row3)
     n = int(0.5 * trg_threshold)
     x = np.append(x, np.full(n, x3))
@@ -84,7 +92,7 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     event = readout.read(0., x, y, 100.) #this is a DigiEventSparse
     print(event.ascii())
 
-#@pytest.mark.skip('Under development')
+#@pytest.mark.skip("Under development")
 def test_digi_event_circular():
     """Test for circular digi event class.
     """
@@ -92,18 +100,18 @@ def test_digi_event_circular():
     row = 1
     column = 11
     # Defining the hexagonal grid
-    grid = HexagonalGrid(HexagonalLayout.ODD_R, 100, 100, 0.1)
+    # grid = HexagonalGrid(HexagonalLayout.ODD_R, 100, 100, 0.1)
     event = DigiEventCircular(0, 0, 0, 0, pha, row, column)
     print(event)
     print(event.timestamp())
-    #print(event.ascii())
+    # print(event.ascii())
     # Make sure that the check on the dimensions of the row and column arrays is
     # at work
 
-#@pytest.mark.skip('Under development')
+#@pytest.mark.skip("Under development")
 def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
-    gain: float = 0.5, num_pairs: int = 1000, trg_threshold: float = 200.):
+    gain: float = 0.5, num_pairs: int = 1000):
     """Test for circular event digitalization class.
     """
     readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc, gain)
@@ -111,7 +119,7 @@ def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     # to be saved in the DigiEventCircular.
     col1, row1 = 2, 4
     col2, row2 = col1 + 8, row1 + 5
-    logger.debug(f'Testing pixel ({col1}, {row1}) and ({col2}, {row2})...')
+    logger.debug(f"Testing pixel ({col1}, {row1}) and ({col2}, {row2})...")
     # ... create the x and y arrays of the pair positions in the center of the pixel.
     x1, y1 = readout.pixel_to_world(col1, row1)
     x2, y2 = readout.pixel_to_world(col2, row2)
@@ -122,9 +130,11 @@ def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     print(event.ascii())
 
 def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row: int = 15,
-    max_row: int = 22, padding: Padding = Padding(1, 2, 3, 4)):
+    max_row: int = 22, padding: Padding = None):
     """Build a digi event and make sure it makes sense.
     """
+    if padding is None:
+        padding = Padding(1, 2, 3, 4)
     roi = RegionOfInterest(min_col, max_col, min_row, max_row, padding)
     # The pha is basically the serial readout order, here.
     pha = np.arange(roi.size)
@@ -137,7 +147,7 @@ def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row:
     assert evt(col, row) == 2
 
 def test_digi_event_rectangular_comparison():
-    """
+    """Test the comparison operators for rectangular digi events.
     """
     padding = Padding(2)
     roi = RegionOfInterest(10, 23, 10, 23, padding)
@@ -150,13 +160,15 @@ def test_digi_event_rectangular_comparison():
 
 def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols: int = 100,
     num_rows: int = 100, pitch: float = 0.1, enc: float = 0., gain: float = 0.5,
-    num_pairs: int = 1000, trg_threshold: float = 200., padding: Padding = Padding(1)):
+    num_pairs: int = 1000, trg_threshold: float = 200., padding: Padding = None):
     """Create a fake digi event and test all the steps of the digitization.
     """
+    if padding is None:
+        padding = Padding(1)
     readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc, gain)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
-    logger.debug(f'Testing pixel ({col}, {row})...')
+    logger.debug(f"Testing pixel ({col}, {row})...")
     # ... create the x and y arrays of the pair positions in the center of the pixel.
     x0, y0 = readout.pixel_to_world(col, row)
     x, y = np.full(num_pairs, x0), np.full(num_pairs, y0)
@@ -167,7 +179,7 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     assert signal[row - min_row, col - min_col] == num_pairs
     assert np.nonzero(signal) == (row - min_row, col - min_col)
     # Apply the trigger.
-    roi, pha = readout.trigger(signal, trg_threshold, min_col, min_row, padding)
+    roi, _ = readout.trigger(signal, trg_threshold, min_col, min_row, padding)
     assert roi.min_col == 2 * (col // 2) - padding.left
     assert roi.max_col == 2 * (col // 2) + 1 + padding.right
     assert roi.min_row == 2 * (row // 2) - padding.bottom

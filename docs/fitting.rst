@@ -1,5 +1,5 @@
-:mod:`hexsample.fitting` --- Advanced fitting
-=============================================
+:mod:`~hexsample.fitting` --- Advanced fitting
+==============================================
 
 
 Module documentation

@@ -1,5 +1,5 @@
-:mod:`hexsample.readout` --- Readout facilities
-===============================================
+:mod:`~hexsample.readout` --- Readout facilities
+================================================
 
 This module contains...
 

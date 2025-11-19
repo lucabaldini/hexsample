@@ -1,5 +1,5 @@
-:mod:`hexsample.rng` --- Random numbers
-=======================================
+:mod:`~hexsample.rng` --- Random numbers
+========================================
 
 This module is an attempt to move away from the legacy numpy
 `RandomState <https://numpy.org/doc/stable/reference/random/legacy.html>`_ and

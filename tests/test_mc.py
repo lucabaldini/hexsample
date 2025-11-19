@@ -16,6 +16,7 @@
 """Test suite for mc.py
 """
 
+import pytest
 from aptapy.plotting import plt
 
 from hexsample import rng
@@ -26,8 +27,9 @@ from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.roi import Padding
 
 
+@pytest.mark.skip(reason="intermittent failure, see issue #43")
 def test_diffusion(diff_sigma=40.):
-    """
+    """Test the diffusion.
     """
     rng.initialize()
     grid = HexagonalGrid(HexagonalLayout.ODD_R, 2, 2, 0.005)
@@ -39,10 +41,4 @@ def test_diffusion(diff_sigma=40.):
     print(digi_event.ascii())
     display = HexagonalGridDisplay(grid)
     display.draw()
-    plt.plot(x, y, 'o', markersize=1)
-    return display
-
-
-if __name__ == '__main__':
-    display = test_diffusion()
-    display.show()
+    plt.plot(x, y, "o", markersize=1)

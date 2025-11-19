@@ -1,5 +1,5 @@
-:mod:`hexsample.source` --- X-ray sources
-=========================================
+:mod:`~hexsample.source` --- X-ray sources
+==========================================
 
 This module contains all the facilities for the description of simple X-ray sources,
 for both the morphological and spectral part. At the very basic level, a

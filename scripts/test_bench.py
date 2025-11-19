@@ -23,13 +23,12 @@
 from loguru import logger
 from tqdm import tqdm
 
-from hexsample import rng, HEXSAMPLE_DATA
-from hexsample.readout import HexagonalReadoutSparse
+from hexsample import HEXSAMPLE_DATA, rng
 from hexsample.hexagon import HexagonalLayout
 from hexsample.mc import PhotonList
-from hexsample.source import LineForest, GaussianBeam, Source
+from hexsample.readout import HexagonalReadoutSparse
 from hexsample.sensor import Material, Sensor
-
+from hexsample.source import GaussianBeam, LineForest, Source
 
 output_file_path = HEXSAMPLE_DATA / 'test_bench_cu.txt'
 
@@ -52,13 +51,13 @@ readout = HexagonalReadoutSparse(*args)
 logger.info(f'Readout chip: {readout}')
 readout_args = kwargs['trgthreshold'], kwargs['zsupthreshold'], kwargs['offset']
 logger.info(f'Opening output file {output_file_path}...')
-output_file = open(output_file_path, 'w')
-logger.info('Starting the event loop...')
-for mc_event in tqdm(photon_list):
-    x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
-    event = readout.read(mc_event.timestamp, x, y, *readout_args)
-    output_file.write(f'{event.trigger_id}    {event.timestamp():.9f}    {len(event.pha)}\n')
-    for col, row, pha in zip(event.columns, event.rows, event.pha):
-        output_file.write(f'{col:2}    {row:2}    {pha}\n')
-output_file.close()
+
+with open(output_file_path, 'w') as output_file:
+    logger.info('Starting the event loop...')
+    for mc_event in tqdm(photon_list):
+        x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
+        event = readout.read(mc_event.timestamp, x, y, *readout_args)
+        output_file.write(f'{event.trigger_id}    {event.timestamp():.9f}    {len(event.pha)}\n')
+        for col, row, pha in zip(event.columns, event.rows, event.pha):
+            output_file.write(f'{col:2}    {row:2}    {pha}\n')
 logger.info('Output file closed.')
