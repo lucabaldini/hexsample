@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.11.0 (2025-11-19)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Merging https://github.com/lucabaldini/hexsample/pull/63
 * Major repository restructuring to modernize the package layout and tooling infrastructure.
 * Adoption of the "src" layout for the package.
