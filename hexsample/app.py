@@ -142,6 +142,19 @@ class ArgumentParser(argparse.ArgumentParser):
         group.add_argument('--nneighbors', type=int, default=2,
             help='number of neighbors to be considered (0--6)')
 
+    def add_reconstruction_options(self) -> None:
+        """Add an option group for reconstruction.
+        """
+        group = self.add_argument_group('reconstruction', 'Options for event reconstruction')
+        group.add_argument('--rcmethod', choices=['centroid', 'eta', 'dnn', 'gnn'], type=str,
+            default='centroid', help='How to reconstruct position')
+        group.add_argument('--gamma', default=0.272, type=float,
+            help='index of the power law for eta reconstruction')
+        group.add_argument('--nnmodel', type=str, default='pretrained', choices=['pretrained', 'custom'],
+            help='model to use for neural network reconstruction')
+        group.add_argument('--modelpath', type=str,
+            help='path of the model to use, in case of custom model')
+
     def add_readout_options(self) -> None:
         """Add an option group for the readout properties.
         """

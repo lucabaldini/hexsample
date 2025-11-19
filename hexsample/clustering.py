@@ -76,7 +76,7 @@ class Cluster:
         # We want to extend this method to events with multiple pixels
         if self.size() != 2:
             raise RuntimeError('Cluster must contain only 2 pixels to use the eta function')
-        
+
         diff = np.array([np.diff(self.x), np.diff(self.y)])
         n = diff / pitch
 
