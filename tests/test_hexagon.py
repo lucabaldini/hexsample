@@ -19,13 +19,17 @@
 import numpy as np
 from aptapy.plotting import plt
 
-from hexsample.hexagon import HexagonalLayout, HexagonalGrid, adc_channel_even_r
+from hexsample import rng
 from hexsample.display import HexagonalGridDisplay
+from hexsample.hexagon import HexagonalGrid, HexagonalLayout
+
+rng.initialize()
 
 
 def test_parity(nside: int = 10, pitch: float = 0.1):
     """Test the HexagonalGrid._parity_offset() method.
     """
+    # pylint: disable=protected-access
     for layout in (HexagonalLayout.EVEN_R, HexagonalLayout.EVEN_Q):
         grid = HexagonalGrid(layout, nside, nside, pitch)
         assert grid._parity_offset(0) == 0
@@ -63,59 +67,51 @@ def test_display(nside: int = 10, pitch: float = 0.1):
     target_col = 5
     target_row = 5
     for layout in HexagonalLayout:
-        plt.figure(f'Hexagonal sampling {layout}')
+        plt.figure(f"Hexagonal sampling {layout}")
         num_events = 100000
         grid = HexagonalGrid(layout, nside, nside, pitch)
         display = HexagonalGridDisplay(grid)
         display.draw(pixel_labels=True)
-        plt.plot(0., 0., 'o', color='k')
-        x = np.random.normal(0., 0.1, num_events)
-        y = np.random.normal(0., 0.1, num_events)
+        plt.plot(0., 0., "o", color="k")
+        x = rng.generator.normal(0., 0.1, num_events)
+        y = rng.generator.normal(0., 0.1, num_events)
         col, row = grid.world_to_pixel(x, y)
         mask = (col == target_col) * (row == target_row)
-        plt.scatter(x[mask], y[mask], color='r', s=4.)
+        plt.scatter(x[mask], y[mask], color="r", s=4.)
         mask = np.logical_not(mask)
-        plt.scatter(x[mask], y[mask], color='b', s=4.)
+        plt.scatter(x[mask], y[mask], color="b", s=4.)
         display.setup_gca()
 
 def test_neighbors(nside: int = 10, pitch: float = 0.1) -> None:
-    """
+    """Test the neighbors.
     """
     target_pixels = (2, 3), (7, 4)
-    fmt = dict(size='xx-small', ha='center', va='center')
+    fmt = dict(size="xx-small", ha="center", va="center")
     for layout in HexagonalLayout:
-        plt.figure(f'Hexagonal neighbors {layout}')
+        plt.figure(f"Hexagonal neighbors {layout}")
         grid = HexagonalGrid(layout, nside, nside, pitch)
         display = HexagonalGridDisplay(grid)
         display.draw(pixel_labels=False)
         for col, row in target_pixels:
             x, y = grid.pixel_to_world(col, row)
-            plt.text(x, y, f'({col}, {row})', **fmt)
+            plt.text(x, y, f"({col}, {row})", **fmt)
             for i, (_col, _row) in enumerate(grid.neighbors(col, row)):
                 x, y = grid.pixel_to_world(_col, _row)
-                plt.text(x, y, f'{i + 1}', **fmt)
+                plt.text(x, y, f"{i + 1}", **fmt)
         display.setup_gca()
 
 def test_routing_7(nside: int = 10, pitch: float = 0.1) -> None:
     """Test the routing from the pixel matrix to the ADCs on the periphery in the
     7-pixel readout strategy.
     """
-    fmt = dict(size='xx-small', ha='center', va='center')
+    fmt = dict(size="xx-small", ha="center", va="center")
     for layout in HexagonalLayout:
-        plt.figure(f'Hexagonal routing 7 {layout}')
+        plt.figure(f"Hexagonal routing 7 {layout}")
         grid = HexagonalGrid(layout, nside, nside, pitch)
         display = HexagonalGridDisplay(grid)
         display.draw(pixel_labels=False)
         col, row, x, y = grid.pixel_physical_coordinates()
         for (_col, _row, _x, _y) in zip(col, row, x, y):
             adc = grid.adc_channel(_col, _row)
-            plt.text(_x, _y, f'{adc}', **fmt)
+            plt.text(_x, _y, f"{adc}", **fmt)
         display.setup_gca()
-
-
-
-if __name__ == '__main__':
-    #test_display()
-    #test_neighbors()
-    test_routing_7()
-    plt.show()

@@ -1,5 +1,5 @@
-:mod:`hexsample.roi` --- Region of interest
-===========================================
+:mod:`~hexsample.roi` --- Region of interest
+============================================
 
 This module contains all the facilities related to the concept of
 region of interest (ROI), encapsulated in two main classes:

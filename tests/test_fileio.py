@@ -16,19 +16,28 @@
 """Test suite for hexsample.fileio
 """
 
-from loguru import logger
 import numpy as np
 
 from hexsample import HEXSAMPLE_DATA
-from hexsample.digi import DigiEventSparse, DigiEventRectangular, DigiEventCircular
-from hexsample.readout import HexagonalReadoutMode, HexagonalReadoutCircular
-from hexsample.fileio import DigiInputFileSparse, DigiInputFileRectangular,\
-    DigiInputFileCircular, ReconInputFile, ReconOutputFile,FileType,\
-    DigiOutputFileSparse, DigiOutputFileRectangular, DigiOutputFileCircular,\
-    peek_file_type, peek_readout_type, open_input_file, digioutput_class
+from hexsample.digi import DigiEventCircular, DigiEventRectangular, DigiEventSparse
+from hexsample.fileio import (
+    DigiInputFileCircular,
+    DigiInputFileRectangular,
+    DigiInputFileSparse,
+    DigiOutputFileRectangular,
+    DigiOutputFileSparse,
+    FileType,
+    ReconInputFile,
+    ReconOutputFile,
+    digioutput_class,
+    open_input_file,
+    peek_file_type,
+    peek_readout_type,
+)
+from hexsample.logging_ import logger
 from hexsample.mc import MonteCarloEvent
-from hexsample.roi import RegionOfInterest, Padding
-
+from hexsample.readout import HexagonalReadoutCircular, HexagonalReadoutMode
+from hexsample.roi import Padding, RegionOfInterest
 
 
 def _mc_event(index : int) -> MonteCarloEvent:
@@ -137,37 +146,37 @@ def _test_read_circular(file_path):
 def test():
     """Write and read back a simple digi file.
     """
-    file_path = HEXSAMPLE_DATA / 'test_io_rectangular.h5'
-    logger.info(f'Testing output file {file_path}...')
+    file_path = HEXSAMPLE_DATA / "test_io_rectangular.h5"
+    logger.info(f"Testing output file {file_path}...")
     _test_write(file_path)
-    logger.info(f'Testing input file {file_path}...')
+    logger.info(f"Testing input file {file_path}...")
     _test_read(file_path)
 
 def test_sparse():
     """Write and read back a sparse digi file.
     """
-    file_path = HEXSAMPLE_DATA / 'test_io_sparse.h5'
-    logger.info(f'Testing output file {file_path}...')
+    file_path = HEXSAMPLE_DATA / "test_io_sparse.h5"
+    logger.info(f"Testing output file {file_path}...")
     _test_write_sparse(file_path)
-    logger.info(f'Testing input file {file_path}...')
+    logger.info(f"Testing input file {file_path}...")
     _test_read_sparse(file_path)
 
 def test_circular():
     """Write and read back a sparse digi file.
     """
-    file_path = HEXSAMPLE_DATA / 'test_io_circular.h5'
-    logger.info(f'Testing output file {file_path}...')
+    file_path = HEXSAMPLE_DATA / "test_io_circular.h5"
+    logger.info(f"Testing output file {file_path}...")
     _test_write_circular(file_path)
-    logger.info(f'Testing input file {file_path}...')
+    logger.info(f"Testing input file {file_path}...")
     _test_read_circular(file_path)
 
 def test_file_type():
     """Test the auto-recognition machinery for input file types.
     """
     # Test for the digi files.
-    file_path = HEXSAMPLE_DATA / 'test_digi_filetype_rectangular.h5'
+    file_path = HEXSAMPLE_DATA / "test_digi_filetype_rectangular.h5"
     digi_file = DigiOutputFileRectangular(file_path)
-    digi_file.update_header(readoutmode='RECTANGULAR')
+    digi_file.update_header(readoutmode="RECTANGULAR")
     digi_file.close()
     digi_file = DigiInputFileRectangular(file_path)
     assert digi_file.file_type == FileType.DIGI
@@ -177,9 +186,9 @@ def test_file_type():
     assert digi_file.file_type == FileType.DIGI
     digi_file.close()
     # Test for the digi sparse files.
-    file_path = HEXSAMPLE_DATA / 'test_digi_filetype_sparse_readouttype.h5'
+    file_path = HEXSAMPLE_DATA / "test_digi_filetype_sparse_readouttype.h5"
     digi_file = DigiOutputFileSparse(file_path)
-    digi_file.update_header(readoutmode='SPARSE')
+    digi_file.update_header(readoutmode="SPARSE")
     digi_file.close()
     digi_file = DigiInputFileSparse(file_path)
     assert digi_file.file_type == FileType.DIGI
@@ -191,7 +200,7 @@ def test_file_type():
     assert digi_file.file_type == FileType.DIGI
     digi_file.close()
     # Test for the recon files.
-    file_path = HEXSAMPLE_DATA / 'test_recon_filetype.h5'
+    file_path = HEXSAMPLE_DATA / "test_recon_filetype.h5"
     recon_file = ReconOutputFile(file_path)
     recon_file.close()
     recon_file = ReconInputFile(file_path)

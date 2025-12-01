@@ -1,5 +1,5 @@
-:mod:`hexsample.display` --- Display facilities
-===============================================
+:mod:`~hexsample.display` --- Display facilities
+================================================
 
 
 

@@ -1,156 +1,142 @@
-#!/usr/bin/env python
+# Copyright (C) 2025 Luca Baldini (luca.baldini@pi.infn.it)
 #
-# Copyright (C) 2022--2023 luca.baldini@pi.infn.it
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# For the license terms see the file LICENSE, distributed along with this
-# software.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# This program is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by the
-# Free Software Foundation; either version 2 of the License, or (at your
-# option) any later version.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Simple versioning tool.
-"""
-
+import argparse
+import ast
+import datetime
+import pathlib
+import subprocess
 from enum import Enum
-import time
-from typing import Tuple
 
-from loguru import logger
+from packaging.version import Version, parse
 
-from hexsample import __pkgname__, __version__, __tagdate__
-from hexsample import HEXSAMPLE_VERSION_FILE_PATH, HEXSAMPLE_RELEASE_NOTES_PATH
-from hexsample.shell import cmd
+from hexsample import __name__ as __package_name__
+
+# Basic environment.
+_ROOT_DIR = pathlib.Path(__file__).parent.parent
+_DOCS_DIR = _ROOT_DIR / "docs"
+_SRC_DIR = _ROOT_DIR / "src" / __package_name__
+_VERSION_FILE_PATH = _SRC_DIR / "_version.py"
+_RELEASE_NOTES_PATH = _DOCS_DIR / "release_notes.rst"
+_ENCODING = "utf-8"
 
 
-_BUILD_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
+class BumpMode(str, Enum):
 
-class BumpMode(Enum):
-
-    """Enum class expressing the possible version bumps.
+    """Small enum class describing the bump mode.
     """
 
-    MAJOR : str = 'major'
-    MINOR : str = 'minor'
-    MICRO : str = 'micro'
+    MAJOR = "major"
+    MINOR = "minor"
+    MICRO = "micro"
 
 
-_BUMP_MODES = tuple([mode.value for mode in BumpMode])
+def read_version_file() -> Version:
+    """Read the version string from the version file.
 
-
-
-def latch_date() -> str:
-    """Latch the current date and time
+    Note the version file is assumed to contain exactly one line of the form
+    __version__ = "version_string"
+    The version string must be a valid PEP 440 version string, which is
+    actively enforced by casting it to a packaging.version.Version object.
     """
-    return time.strftime(_BUILD_DATE_FORMAT)
+    print(f"Reading version from {_VERSION_FILE_PATH}...")
+    with open(_VERSION_FILE_PATH, encoding=_ENCODING) as input_file:
+        line = input_file.readline().rstrip("\n")
+    # If the line does not start with __version__ something went wrong...
+    if not line.startswith("__version__"):
+        raise ValueError(f"Invalid version file content: {line}")
+    # partition() splits the string in exactly three parts around the separator.
+    _, _, version_string = line.partition("=")
+    # And we still need to strip the whitespaces, and get rid of the quotes.
+    return parse(ast.literal_eval(version_string.strip()))
 
-def build_version_string(major : int, minor : int, micro : int) -> str:
-    """Build a version string from the macro, minor and micro fields.
 
-    Arguments
-    ---------
-    major : int
-        The major field of the version string.
-
-    minor : int
-        The minor field of the version string.
-
-    micro : int
-        The micro field of the version string.
+def bump_version(version: Version, mode: BumpMode) -> Version:
+    """Bump the version string.
     """
-    return f'{major}.{minor}.{micro}'
-
-def parse_version_string(version_string : str) -> Tuple[int, int, int]:
-    """Parse a version string.
-
-    Note we are not doing anything fancier than sticking to a simple
-    major.minor.micro versioning system, with no alpha, beta or release candidates.
-
-    Arguments
-    ---------
-    version_string : str
-        The version string.
-    """
-    return [int(item) for item in version_string.split('.')]
-
-def bump_version_string(version_string : str, mode : BumpMode) -> str:
-    """Bump a version string with a given bump mode.
-    """
-    major, minor, micro = parse_version_string(version_string)
+    print(f'Bumping version (mode = {mode})...')
+    major, minor, micro = version.release
     if mode == BumpMode.MAJOR:
-        return build_version_string(major + 1, 0, 0)
-    if mode == BumpMode.MINOR:
-        return build_version_string(major, minor + 1, 0)
-    if mode == BumpMode.MICRO:
-        return build_version_string(major, minor, micro + 1)
-    raise RuntimeError(f'Unknown bump mode {mode}')
+        version_string = f"{major + 1}.0.0"
+    elif mode == BumpMode.MINOR:
+        version_string = f"{major}.{minor + 1}.0"
+    elif mode == BumpMode.MICRO:
+        version_string = f"{major}.{minor}.{micro + 1}"
+    else:
+        raise ValueError(f"Invalid bump mode {mode}")
+    return Version(version_string)
 
-def write_version_file(version_string : str, tag_date : str, dry_run : bool = False) -> None:
-    """Write the version string and tag date to the unique version file in the package.
+
+def write_version_file(version: Version) -> None:
+    """Write a given version string to the version file.
     """
-    logger.info(f'Writing version info to {HEXSAMPLE_VERSION_FILE_PATH}...')
-    logger.info(f'Version string: {version_string}')
-    logger.info(f'Tag date: {tag_date}')
-    if dry_run:
-        logger.info('Dry run, just kidding')
-        return
-    with open(HEXSAMPLE_VERSION_FILE_PATH, 'w') as version_file:
-        version_file.write(f'__version__ = \'{version_string}\'\n')
-        version_file.write(f'__tagdate__ = \'{tag_date}\'\n')
-    logger.info('Done.')
+    print(f"Writing version {version} to {_VERSION_FILE_PATH}...")
+    with open(_VERSION_FILE_PATH, "w", encoding=_ENCODING) as output_file:
+        output_file.write(f'__version__ = "{version}"\n')
 
-def update_release_notes(version_string : str, tag_date : str, dry_run : bool = False) -> None:
-    """ Write the new tag and build date on top of the release notes.
+
+def update_release_notes(version: Version, num_header_lines: int = 5) -> None:
+    """Update the release notes file.
     """
-    title = '.. _release_notes:\n\nRelease notes\n=============\n\n'
-    logger.info(f'Reading in {HEXSAMPLE_RELEASE_NOTES_PATH}...')
-    with open(HEXSAMPLE_RELEASE_NOTES_PATH) as input_file:
-        notes = input_file.read().strip('\n').strip(title)
-    logger.info(f'Writing out {HEXSAMPLE_RELEASE_NOTES_PATH}...')
-    if dry_run:
-        logger.info('Dry run, just kidding')
-        return
-    with open(HEXSAMPLE_RELEASE_NOTES_PATH, 'w') as release_notes:
-        release_notes.writelines(title)
-        release_notes.writelines(f'\n*{__pkgname__} ({version_string}) - {tag_date}*\n\n')
-        release_notes.writelines(notes)
-    logger.info('Done.')
+    print(f"Updating release notes {_RELEASE_NOTES_PATH}...")
+    with open(_RELEASE_NOTES_PATH, encoding=_ENCODING) as input_file:
+        lines = input_file.readlines()
+    text = f'Version {version} ({datetime.datetime.now().date()})'
+    underline = '~' * len(text)
+    text = f'\n{text}\n{underline}\n\n'
+    lines.insert(num_header_lines, text)
+    with open(_RELEASE_NOTES_PATH, "w", encoding=_ENCODING) as output_file:
+        output_file.writelines(lines)
 
-def tag_package(mode : BumpMode, dry_run : bool = False) -> None:
-    """Tag the package.
+
+def _cmd(*args) -> subprocess.CompletedProcess:
+    """Run a command in a subprocess.
     """
-    cmd('git pull', dry_run)
-    cmd('git status', dry_run)
-    version_string = bump_version_string(__version__, mode)
-    tag_date = latch_date()
-    write_version_file(version_string, tag_date, dry_run)
-    update_release_notes(version_string, tag_date, dry_run)
-    message = f'Prepare for tag {version_string}.'
-    cmd(f'git commit -a -m "{message}"', dry_run)
-    cmd('git push', dry_run)
-    message = f'Tagging version {version_string}'
-    cmd(f'git tag -a {version_string} -m "{message}"', dry_run)
-    cmd('git push --tags', dry_run)
-    cmd('git status', dry_run)
+    print(f"Executing command \"{' '.join(args)}\"...")
+    result = subprocess.run(args, capture_output=True, text=True, check=True)
+    print(result.stdout)
+    return result
 
 
+def release(mode: BumpMode, target_branch: str = "main") -> None:
+    """Release a new version of the package.
+    """
+    # Make sure we are on the proper branch---typically main.
+    current_branch = _cmd("git", "branch", "--show-current").stdout.strip("\n")
+    if current_branch != target_branch:
+        raise RuntimeError(f"You are on the {current_branch} branch, not {target_branch}")
+    # Pull the latest changes.
+    _cmd("git", "pull")
+    # Bump the version.
+    version = bump_version(read_version_file(), mode)
+    # Update the necessary files.
+    write_version_file(version)
+    update_release_notes(version)
+    # Commit and push the modified files.
+    msg = f"Prepare for tag {version}."
+    _cmd("git", "commit", "-a", "-m", msg)
+    _cmd("git", "push")
+    msg = f"Tagging version {version}..."
+    _cmd("git", "tag", "-a", str(version), "-m", f'"{msg}"')
+    _cmd("git", "push", "--tags")
+    _cmd("git", "status")
 
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument('mode', type=str, choices=_BUMP_MODES,
-        help='the release bump mode')
-    parser.add_argument('--dryrun', action='store_true', default=False,
-        help='dry run')
-    args = parser.parse_args()
-    tag_package(BumpMode(args.mode), args.dryrun)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Release a new version of the package.")
+    parser.add_argument("mode", choices=[mode.value for mode in BumpMode],
+                        help="The version bump mode.")
+    arguments = parser.parse_args()
+    release(BumpMode(arguments.mode))

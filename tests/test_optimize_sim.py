@@ -25,16 +25,17 @@ import time
 import numpy as np
 import pytest
 
-from hexsample import logger
-from hexsample import xpol
-from hexsample.readout import HexagonalReadoutRectangular
-from hexsample.hexagon import HexagonalLayout
+from hexsample import rng, xpol
 from hexsample.fileio import DigiEventRectangular
+from hexsample.hexagon import HexagonalLayout
+from hexsample.logging_ import logger
 from hexsample.mc import PhotonList
+from hexsample.readout import HexagonalReadoutRectangular
+from hexsample.roi import Padding, RegionOfInterest
 from hexsample.sensor import SiliconSensor
-from hexsample.source import LineForest, GaussianBeam, Source
-from hexsample.roi import RegionOfInterest, Padding
+from hexsample.source import GaussianBeam, LineForest, Source
 
+rng.initialize()
 
 
 class HexagonalReadoutCompat(HexagonalReadoutRectangular):
@@ -115,6 +116,7 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         trg_threshold : float
             The trigger threshold in electron equivalent.
         """
+        # pylint: disable=arguments-differ
         trg = self.sum_miniclusters(signal)
         self.zero_suppress(trg, trg_threshold)
         self.trigger_id += 1
@@ -157,11 +159,12 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
+        # pylint: disable=arguments-renamed
         # Trim the signal to the given ROI...
         pha = self.trim_to_roi(signal, roi)
         # ... add the noise.
         if self.enc > 0:
-            pha += np.random.normal(0., self.enc, size=pha.shape)
+            pha += rng.generator.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts...
         pha *= self.gain
         # ... round to the neirest integer...
@@ -213,13 +216,17 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
 # XPOL-III like readouts, with the old and the new, streamlined implementetion.
 # Note that we set the noise to 0. in order to allow for a deterministic
 # comparison among the two readouts.
-OLD_READOUT = HexagonalReadoutCompat(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, 0., 1.)
-NEW_READOUT = HexagonalReadoutRectangular(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, 0., 1.)
+OLD_READOUT = HexagonalReadoutCompat(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE,
+                                     xpol.XPOL_PITCH, 0., 1.)
+NEW_READOUT = HexagonalReadoutRectangular(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE,
+                                          xpol.XPOL_PITCH, 0., 1.)
 
 
-def _compare_readouts(x, y, trg_threshold=200., padding=Padding(2)):
+def _compare_readouts(x, y, trg_threshold=200., padding=None):
     """
     """
+    if padding is None:
+        padding = Padding(2)
     args = 0., x, y, trg_threshold, padding
     old = OLD_READOUT.read(*args)
     #print(old.ascii())
@@ -239,62 +246,62 @@ def _test_pixel_centers():
     """
     for col, row in ((150, 150), (151, 150), (150, 151), (151, 151)):
         x0, y0 = OLD_READOUT.pixel_to_world(col, row)
-        logger.info(f'Generating @ ({col}, {row}) -> ({x0}, {y0})')
+        logger.info(f"Generating @ ({col}, {row}) -> ({x0}, {y0})")
         x = np.full(2500, x0)
         y = np.full(2500, y0)
-        old, new = _compare_readouts(x, y)
+        _compare_readouts(x, y)
 
 def test_photon_list(num_photons=100):
     """Realistic comparison with a sensible photon list.
     """
-    spectrum = LineForest('Cu', 'K')
+    spectrum = LineForest("Cu", "K")
     beam = GaussianBeam(0., 0., 0.1)
     source = Source(spectrum, beam)
     sensor = SiliconSensor(0.05, 40.)
     photon_list = PhotonList(source, sensor, num_photons)
     for mc_event in photon_list:
         x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
-        old, new = _compare_readouts(x, y)
+        _compare_readouts(x, y)
 
-@pytest.mark.skip(reason='just a timing experiment...')
+@pytest.mark.skip(reason="just a timing experiment...")
 def test_timing(sigma=0.0006, num_pairs=2250, num_photons=10000):
     """Time the sampling routine.
     """
-    x = np.random.normal(0., sigma, size=num_pairs)
-    y = np.random.normal(0., sigma, size=num_pairs)
+    x = rng.generator.normal(0., sigma, size=num_pairs)
+    y = rng.generator.normal(0., sigma, size=num_pairs)
     padding = Padding(2)
     trg_threshold = 300.
     #
-    logger.info('Timing world_to_pixel()...')
+    logger.info("Timing world_to_pixel()...")
     start_time = time.time()
-    for i in range(num_photons):
-        col, row = NEW_READOUT.world_to_pixel(x, y)
+    for _ in range(num_photons):
+        NEW_READOUT.world_to_pixel(x, y)
     elapsed_time = time.time() - start_time
     evt_us = 1.e6 * elapsed_time / num_photons
-    logger.info(f'Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.')
+    logger.info(f"Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.")
     #
-    logger.info('Timing sample()...')
+    logger.info("Timing sample()...")
     start_time = time.time()
-    for i in range(num_photons):
+    for _ in range(num_photons):
         min_col, min_row, signal = NEW_READOUT.sample(x, y)
     elapsed_time = time.time() - start_time
     evt_us = 1.e6 * elapsed_time / num_photons
-    logger.info(f'Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.')
+    logger.info(f"Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.")
     #
-    logger.info('Timing trigger()...')
+    logger.info("Timing trigger()...")
     start_time = time.time()
-    for i in range(num_photons):
-        roi, pha = NEW_READOUT.trigger(signal, trg_threshold, min_col, min_row, padding)
+    for _ in range(num_photons):
+        NEW_READOUT.trigger(signal, trg_threshold, min_col, min_row, padding)
     elapsed_time = time.time() - start_time
     evt_us = 1.e6 * elapsed_time / num_photons
-    logger.info(f'Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.')
+    logger.info(f"Elapsed time: {elapsed_time:.3f} s, {evt_us:.1f} us per event.")
 
 def test_fast_histogram(sigma=0.0015, num_pairs=2250):
     """Test an alternative implementation of the 2d histogram to streamline the
     simulation.
     """
-    x = np.random.normal(0., sigma, size=num_pairs)
-    y = np.random.normal(0., sigma, size=num_pairs)
+    x = rng.generator.normal(0., sigma, size=num_pairs)
+    y = rng.generator.normal(0., sigma, size=num_pairs)
     col, row = NEW_READOUT.world_to_pixel(x, y)
     min_col, max_col, min_row, max_row = col.min(), col.max(), row.min(), row.max()
     if NEW_READOUT.is_odd(min_col):

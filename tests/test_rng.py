@@ -25,12 +25,13 @@ from hexsample import rng
 def test_generator():
     """Basic test of the global generator.
     """
+    # pylint: disable=protected-access
     # Make sure we start from the uninitialize state.
     rng.reset()
     # Before calling the initialize() function we shall get a RuntimeError
     # at any attempt of doing anything with the generator.
     with pytest.raises(RuntimeError):
-        a = rng.generator.normal()
+        _ = rng.generator.normal()
     # Initialization to non-default values.
     bit_generator_class = np.random.PCG64
     seed = 28

@@ -1,5 +1,5 @@
-:mod:`hexsample.recon` --- Event reconstruction
-===============================================
+:mod:`~hexsample.recon` --- Event reconstruction
+================================================
 
 
 Module documentation
