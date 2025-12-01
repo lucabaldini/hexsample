@@ -125,5 +125,3 @@ class ReconEvent:
         args = [available[_par] for _par in signature.parameters]
 
         return recon_method(*args)
-
-

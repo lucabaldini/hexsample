@@ -23,7 +23,15 @@ from aptapy.plotting import plt, setup_gca
 from hexsample import rng
 from hexsample.fitting import fit_gaussian_iterative
 from hexsample.logging_ import logger
-from hexsample.source import DiskBeam, GaussianBeam, LineForest, PointBeam
+from hexsample.source import (
+    DiskBeam,
+    GaussianBeam,
+    HexagonalBeam,
+    Line,
+    LineForest,
+    PointBeam,
+    TriangularBeam,
+)
 
 rng.initialize()
 
@@ -69,8 +77,45 @@ def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     model.plot(fit_output=True)
     plt.legend()
 
+def test_triangular_beam(num_photons = 1000000):
+    """Test for TriangularBeam class
+    """
+    beam = TriangularBeam(0, 0, (0, 1), (1, 0))
+    x, y = beam.rvs(num_photons)
+    binning_x = np.linspace(min(x), max(x), 100)
+    binning_y = np.linspace(min(y), max(y), 100)
+    plt.figure('Triangular beam')
+    Histogram2d(binning_x, binning_y).fill(x, y).plot()
+    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+    plt.figure('Triangular beam x projection')
+    hx = Histogram1d(binning_x).fill(x)
+    hx.plot()
+    plt.figure('Triangular beam x projection')
+    hy = Histogram1d(binning_y).fill(y)
+    hy.plot()
+
+def test_hexagonal_beam(num_photons = 1000000):
+    """Test for HexagonalBeam class
+
+    Args:
+        size (int, optional): _description_. Defaults to 10000.
+    """
+    beam = HexagonalBeam(0, 0, (1, 0), (.5, np.sqrt(3)/2))
+    x, y = beam.rvs(num_photons)
+    binning_x = np.linspace(min(x), max(x), 100)
+    binning_y = np.linspace(min(y), max(y), 100)
+    plt.figure('Hexagonal beam')
+    Histogram2d(binning_x, binning_y).fill(x, y).plot()
+    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+    plt.figure('Hexagonal beam x projection')
+    hx = Histogram1d(binning_x).fill(x)
+    hx.plot()
+    plt.figure('Hexagonal beam x projection')
+    hy = Histogram1d(binning_y).fill(y)
+    hy.plot()
+
 def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True):
-    """Generic tes for a line forest.
+    """Generic test for a line forest.
     """
     # Create the forest.
     # pylint: disable=protected-access
@@ -106,3 +151,19 @@ def test_mn_k_forest():
     same energy, and the thing would require extra code to deal with that.
     """
     _test_forest("Mn", chisq_test=False)
+
+def test_line(energy = 6000, size = 100000):
+    """Test for line class
+    """
+    line = Line(energy)
+    logger.debug(line)
+    x = line.rvs(size)
+
+    values, counts = np.unique(x, return_counts=True)
+    logger.debug(f'Beam energy: {energy}')
+    logger.debug(f'Number of events: {size}')
+    for val, cnts in zip(values, counts):
+        logger.debug(f'{val} eV -> {cnts} counts')
+        # Check if all events have the same energy given as input
+        assert val == energy
+        assert cnts == size

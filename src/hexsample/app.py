@@ -150,8 +150,9 @@ class ArgumentParser(argparse.ArgumentParser):
             default='centroid', help='How to reconstruct position')
         group.add_argument('--gamma', default=0.272, type=float,
             help='index of the power law for eta reconstruction')
-        group.add_argument('--nnmodel', type=str, default='pretrained', choices=['pretrained', 'custom'],
-            help='model to use for neural network reconstruction')
+        group.add_argument('--nnmodel', type=str, default='pretrained',
+                           choices=['pretrained', 'custom'],
+                           help='model to use for neural network reconstruction')
         group.add_argument('--modelpath', type=str,
             help='path of the model to use, in case of custom model')
 

@@ -100,9 +100,10 @@ def hxrecon(**kwargs):
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         # allow nneighbors to consider all events
-        if kwargs['nneighbors'] == 0 or cluster.size() == kwargs['nneighbors']:    
+        if kwargs['nneighbors'] == 0 or cluster.size() == kwargs['nneighbors']:
             # Need to pass the recon method and other stuff as argument to ReconEvent
-            args = event.trigger_id, event.timestamp(), event.livetime, cluster, kwargs['rcmethod'], header['pitch'], kwargs['gamma']
+            args = event.trigger_id, event.timestamp(), event.livetime, cluster, \
+                kwargs['rcmethod'], header['pitch'], kwargs['gamma']
             recon_event = ReconEvent(*args)
             mc_event = input_file.mc_event(i)
             output_file.add_row(recon_event, mc_event)
@@ -110,7 +111,6 @@ def hxrecon(**kwargs):
     input_file.close()
     output_file.close()
     return output_file_path
-
 
 
 if __name__ == "__main__":
