@@ -70,6 +70,8 @@ class Cluster:
         
         Arguments
         ---------
+        gamma : floar
+            The index of the power law of the eta function.
         pitch : float
             The pitch of the pixels.
         """
@@ -77,7 +79,7 @@ class Cluster:
         if self.size() != 2:
             raise RuntimeError('Cluster must contain only 2 pixels to use the eta function')
 
-        diff = np.array([np.diff(self.x), np.diff(self.y)])
+        diff = np.array([np.diff(self.x)[0], np.diff(self.y)[0]])
         n = diff / pitch
 
         # Consider to create a separate method for this
@@ -86,8 +88,7 @@ class Cluster:
         x_fit = self.x[0] + r_fit * n[0]
         y_fit = self.y[0] + r_fit * n[1]
 
-        # I don't like this
-        return x_fit[0], y_fit[0]
+        return x_fit, y_fit
 
 
 @dataclass

@@ -187,14 +187,14 @@ class TriangularBeam(BeamBase):
     ---------
     x0 : float
         The x-coordinate of the first vertex of the triangle in cm.
-
+    
     y0 : float
         The y-coordinate of the first vertex of the triangle in cm.
-
-    v1 : np.ndarray
+    
+    v1 : Tuple[float, float]
         The (x, y) coordinates of the second vertex of the hexagon in cm.
-
-    v2 : np.ndarray
+    
+    v2 : Tuple[float, float]
         The (x, y) coordinates of the third vertex of the hexagon in cm.
     """
 
@@ -241,15 +241,15 @@ class HexagonalBeam(BeamBase):
     y0 : float
         The y-coordinate of the center of the hexagon in cm.
 
-    v0 : np.ndarray
+    v0 : Tuple[float, float]
         The (x, y) coordinates of the first vertex of the hexagon in cm.
 
-    v1 : np.ndarray
+    v1 : Tuple[float, float]
         The (x, y) coordinates of the second vertex of the hexagon in cm.
 
     """
-    v0: tuple = (0, 0)
-    v1: tuple = (0, 0)
+    v0: Tuple[float, float] = (1., 0.)
+    v1: Tuple[float, float] = (0., 1.)
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
@@ -376,8 +376,7 @@ class LineForest(SpectrumBase):
 
 
 class Line(SpectrumBase):
-    """Class describing a monochromatic emission line at a given
-    energy
+    """Class describing a monochromatic emission line at a given energy
     """
 
     def __init__(self, energy : float) -> None:
@@ -386,15 +385,18 @@ class Line(SpectrumBase):
         self._energy = energy
         self._prob = 1
 
-    def rvs(self, size = 1) -> np.ndarray:
-        """
+    def rvs(self, size: int = 1) -> np.ndarray:
+        """Generate energies at a fixed value.
 
-        Args:
-            size (int, optional): The number of X-ray photon energies to be generated. 
-            Defaults to 1.
+        Arguments
+        ---------
+            size : int, optiona
+            The number of X-ray photon energies to be generated. Defaults to 1.
 
-        Returns:
-            energy (np.ndarray): The photon energies in eV.
+        Returns
+        -------
+            energy : np.ndarray
+            The photon energies in eV.
         """
         return np.full(size, self._energy)
 

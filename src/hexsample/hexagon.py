@@ -435,12 +435,9 @@ class HexagonalGrid:
     def create_rotator(theta: float):
         """Create a 2D rotation function for a given angle
 
-        Args:
+        Arguments
+        ---------
             theta (float): the rotation angle in radians
-
-        Returns:
-            function: function that takes 2D vectors and returns the vector rotated
-            by theta radians
         """
         c = np.cos(theta)
         s = np.sin(theta)
@@ -448,9 +445,7 @@ class HexagonalGrid:
             x, y = v[0], v[1]
             x_rot = x*c - y*s
             y_rot = x*s + y*c
-
             return np.array([x_rot, y_rot])
-
         return rotate
 
     def find_vertices(self, col: np.array, row: np.array,
