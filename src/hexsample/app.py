@@ -206,9 +206,14 @@ class ArgumentParser(argparse.ArgumentParser):
             help="element generating the line forest")
         group.add_argument("--srclevel", type=str, default="K",
             help="initial level for the line forest")
+        beams = ['gaussian', 'triangular', 'hexagonal']
+        group.add_argument('--beamshape', type=str, choices=beams, default='gaussian',
+                           help='X-ray beam morphology')
         group.add_argument("--srcposx", type=float, default=0.,
             help="x position of the source centroid in cm")
         group.add_argument("--srcposy", type=float, default=0.,
             help="y position of the source centroid in cm")
         group.add_argument("--srcsigma", type=float, default=0.1,
             help="one-dimensional standard deviation of the gaussian beam in cm")
+        group.add_argument('--trngindex', type=int, default=0,
+            help='triangular section of the hexagon')
