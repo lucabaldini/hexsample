@@ -54,12 +54,14 @@ def calculate_versor(x, y):
 def mask_topology(x, y):
     """Check if the angle between the two vectors is 60 degrees (adjacent pixels)
     """
-    if x.shape[1] == 3:
+    if x.shape[1] == 2:
+        mask = np.full(x.shape[0], True)
+    elif x.shape[1] == 3:
         u = np.array([x[:, 1] - x[:, 0], y[:, 1] - y[:, 0]]).T
         v = np.array([x[:, 2] - x[:, 0], y[:, 2] - y[:, 0]]).T
         cos_theta = np.sum(u * v, axis=1) / (np.linalg.norm(u, axis=1) * np.linalg.norm(v, axis=1))
         mask = np.isclose(cos_theta, 0.5, atol=1e-2)
-        return mask
+    return mask
 
 def hxeta(npixels = 2, numbins= 10):
     input_file_path = HEXSAMPLE_DATA / "hxsim_large.h5"
@@ -102,6 +104,32 @@ def hxeta(npixels = 2, numbins= 10):
     n = calculate_versor(x, y)
     photon_pos = np.array([absx - x[:, 0], absy - y[:, 0]]).T / header['pitch']
     r = np.sqrt(np.sum(photon_pos**2, axis=1))
+    if npixels == 2:
+        x_binning = np.linspace(0., 0.5, numbins + 1)
+        y_binning = np.linspace(0., 0.6, 100)
+        eta = calculate_eta(pha)
+        dr = abs(np.sum(photon_pos * n, axis=1))
+
+        hist = Histogram2d(x_binning, y_binning, xlabel="eta", ylabel="r")
+        hist.fill(eta, dr)
+        plt.figure("r vs eta")
+        hist.plot()
+        r_mean = np.sum(hist.content * hist.bin_centers(axis=1)[np.newaxis, :], axis=1) / np.sum(hist.content, axis=1)
+        r_std = np.sqrt(np.sum(hist.content * (hist.bin_centers(axis=1)[np.newaxis, :] - r_mean[:, np.newaxis])**2, axis=1) / np.sum(hist.content, axis=1))
+        plt.figure("r mean")
+        plt.errorbar(hist.bin_centers(axis=0), r_mean, yerr=r_std, fmt='.k')
+        plt.xlabel("eta")
+        plt.ylabel("r")
+        # Fit with power law
+        popt, pcov = curve_fit(lambda x, b: 1/2* (x*2)**b, hist.bin_centers(axis=0)[~np.isnan(r_mean)], r_mean[~np.isnan(r_mean)], sigma=r_std[~np.isnan(r_mean)], absolute_sigma=True)
+        xx = np.linspace(0, 0.5, 100)
+        plt.plot(xx, 1/2 * (xx*2)**popt[0], 'r--', label=f"fit")
+        plt.xscale('linear')
+        plt.yscale('linear')
+        print(f"Fit parameters: b = {popt[0]:.2f} +/- {np.sqrt(pcov[0,0]):.2f}")
+        plt.legend() 
+
+
     if npixels == 3:
         cos_theta = np.sum(photon_pos * n, axis=1) / r
         theta = np.arccos(cos_theta)
@@ -111,9 +139,10 @@ def hxeta(npixels = 2, numbins= 10):
         eta1, eta2 = calculate_eta(pha)
         x = eta1 + eta2
         x_r_binning = np.linspace(0., 2/3, numbins + 1)
-        x_theta_binning = np.linspace(0.1, 2/3, 2)
+        x_theta_binning = np.linspace(0.2, 2/3, 2)
         y = (eta1 - eta2) / (eta1 + eta2)
         y_binning = np.linspace(0., 1, numbins + 1)
+        y_r_binning = np.linspace(0., 1, 2)
 
         xlabel = "eta1 + eta2"
         ylabel = "(eta1 - eta2) / (eta1 + eta2)"
@@ -123,6 +152,34 @@ def hxeta(npixels = 2, numbins= 10):
         r_mean, r_rms = r_hist3d.collapse_axis(2)
         plt.figure("r mean")
         r_mean.plot()
+
+        plt.figure("r slices")
+        for i in range(numbins):
+            r_slice = r_mean.content[:, i][r_mean.content[:, i] > 0]
+            rms_slice = r_rms.content[:, i][r_mean.content[:, i] > 0]
+            plt.plot(r_mean.bin_centers(axis=0)[r_mean.content[:, i] > 0], r_slice, label=f'x bin {i}')
+
+        r_slice = Histogram3d(x_r_binning, y_r_binning, r_binning, xlabel=xlabel, ylabel=ylabel, zlabel="r")
+        r_slice.fill(x, y, r)
+        r_slice_mean, r_slice_rms = r_slice.collapse_axis(2)
+        x_fit = r_slice_mean.bin_centers(axis=0)
+        y_fit = r_slice_mean.content.flatten()
+        y_err = np.sqrt(r_slice_rms.content.flatten()**2 - y_fit**2)
+        plt.figure("r vs eta sum")
+        plt.errorbar(x_fit, y_fit, yerr=y_err, fmt=".k")
+        plt.xlabel("eta1 + eta2")
+        plt.ylabel("r")
+        # Not able to fit with curve_fit directly, need to define a function
+        model = PowerLaw()
+        # model.prefactor.freeze(1/np.sqrt(3) * (3/2)**model.index)
+        model.fit(x_fit, y_fit, sigma=y_err, absolute_sigma=True)
+        model.plot(fit_output=True)
+        popt, pcov = curve_fit(lambda x, b: 1/np.sqrt(3) * (x*3/2)**b, x_fit, y_fit, sigma=y_err, absolute_sigma=True)
+        xx = np.linspace(0, 2/3, 100)
+        plt.plot(xx, 1/np.sqrt(3) * (xx*3/2)**popt[0], 'r--', label=f'fit: b={popt[0]:.2f}')
+        plt.xscale('linear')
+        plt.yscale('linear')
+        plt.legend()
 
         theta_binning = np.linspace(0, np.pi/6, 101)
         theta_hist3d = Histogram3d(x_r_binning, y_binning, theta_binning, xlabel=xlabel, ylabel=ylabel, zlabel="theta")
@@ -134,168 +191,24 @@ def hxeta(npixels = 2, numbins= 10):
         theta_slice = Histogram3d(x_theta_binning, y_binning, theta_binning, xlabel=xlabel, ylabel=ylabel, zlabel="theta")
         theta_slice.fill(x, y, theta)
         theta_slice_mean, theta_slice_rms = theta_slice.collapse_axis(2)
-        plt.figure("theta slice mean")
-        theta_slice_mean.plot()
-        plt.figure("theta slice rms")
-        theta_slice_rms.plot()
-        x_fit = theta_slice_mean.bin_centers(axis=1)[:-1]
-        y_fit = theta_slice_mean.content[0][:-1]
-        y_err = np.sqrt(theta_slice_rms.content[0][:-1]**2 - y_fit**2)
+        mask_zero = theta_slice_mean.content.flatten() > 0
+        x_fit = theta_slice_mean.bin_centers(axis=1)[mask_zero]
+        y_fit = theta_slice_mean.content.flatten()[mask_zero]
+        y_err = np.sqrt(theta_slice_rms.content.flatten()[mask_zero]**2 - y_fit**2)
+        model = PowerLaw()
+        model.prefactor.freeze(np.pi/6)
+        model.fit(x_fit, y_fit, sigma=y_err, absolute_sigma=True)
         plt.figure("theta vs eta diff ratio")
-        plt.errorbar(x_fit, y_fit, yerr=y_err, fmt=".k",
-                     label='theta vs (eta1 - eta2)/(eta1 + eta2)')
+        plt.errorbar(x_fit, y_fit, yerr=y_err, fmt=".k")
         plt.xlabel("(eta1 - eta2) / (eta1 + eta2)")
         plt.ylabel("theta")
-        
-        def fit_model(x, a):
-            return np.pi/6 * (1-  x**a)
-        popt, pcov = curve_fit(fit_model, x_fit, y_fit, sigma=y_err, absolute_sigma=True)
-        plt.plot(x_fit, fit_model(x_fit, popt[0]), 'r--', label=f'fit: a={popt[0]:.2f}')
+        model.plot(fit_output=True)
+        plt.xscale("linear")
+        plt.yscale("linear")
         plt.legend()
 
     plt.show()
 
-
-
-
-def hxeta_old(npixels = 3, numbins= 10):
-    input_file_path = HEXSAMPLE_DATA / "hxsim_large.h5"
-    input_file = DigiInputFileCircular(input_file_path)
-    header = input_file.header
-    args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-        header['pitch'], header['noise'], header['gain']
-    readout = HexagonalReadoutCircular(*args)
-    zsupthreshold = 30
-    nneighbors = 6
-    logger.info(f'Readout chip: {readout}')
-    clustering = ClusteringNN(readout, zsupthreshold, nneighbors)
-
-    pha = []
-    x = []
-    y = []
-    absx = []
-    absy = []
-
-    for i, event in tqdm(enumerate(input_file)):
-        cluster = clustering.run(event)
-        if cluster.size() == npixels:
-            pha.append(cluster.pha)
-            x.append(cluster.x)
-            y.append(cluster.y)
-
-            mc_event = input_file.mc_event(i)
-            absx.append(mc_event.absx)
-            absy.append(mc_event.absy)
-    
-    input_file.close()
-
-    pha = np.array(pha)
-    x = np.array(x)
-    y = np.array(y)
-    absx = np.array(absx)
-    absy = np.array(absy)
-
-    eta_vals = calculate_eta(pha)
-    n = calculate_n(x, y)
-    photon_pos = np.array([absx - x[:, 0], absy - y[:, 0]]).T / header['pitch']
-    if npixels == 2:
-        du = abs(np.sum(photon_pos * n, axis=1))
-    elif npixels == 3:
-        nu, nv = n
-        n_center = (nu + nv) / np.linalg.norm(nu+nv, axis=1, keepdims=True)
-        # n_center = nu
-        du = abs(np.sum(photon_pos * nu, axis=1))
-        dv = abs(np.sum(photon_pos * nv, axis=1))
-        r = np.sqrt(photon_pos[:, 0]**2 + photon_pos[:, 1]**2)
-        sign_mask = dv > du
-        theta = np.arccos((photon_pos[:, 0]*n_center[:, 0] + photon_pos[:, 1]*n_center[:, 1]) / np.linalg.norm(photon_pos, axis=1))
-        theta[sign_mask] = -theta[sign_mask]
-
-    plt.figure()
-    plt.hist(theta, bins=100)      
-    # Plot eta function
-    plt.figure(figsize=(8, 6))
-    if npixels == 2:
-        plt.scatter(eta_vals, du, alpha=0.5, s=1)
-    if npixels == 3:
-        eta1, eta2 = eta_vals
-        # plt.scatter(eta1, dv, alpha=0.5, s=1, label='eta1 vs du')
-        # plt.scatter(eta2, dv, alpha=0.5, s=1, label='eta2 vs du')
-        # plt.xlabel("eta1, eta2")
-        # plt.ylabel("du")
-        # plt.legend()
-        # plt.figure()
-        # plt.hist(eta1, bins=20)
-        # plt.xlabel("eta1")
-        # plt.figure()
-        # plt.hist(eta2, bins=20)
-        # plt.xlabel("eta2")
-        # plt.figure()
-        # plt.scatter(eta1, eta2, alpha=0.5, s=1)
-        # eta1_edges = np.linspace(min(eta1), max(eta1), numbins + 1)
-        # eta2_edges = np.linspace(min(eta2), max(eta2), numbins + 1)
-        # hist = Histogram2d(eta1_edges, eta2_edges)
-        # hist.fill(eta1, eta2)
-        # plt.figure()
-        # hist.plot()
-
-        x = eta1 + eta2
-        x_r_binning = np.linspace(0., 2/3, numbins + 1)
-        x_theta_binning = np.linspace(0.1, 2/3, 2)
-        y = (eta1 - eta2) / (eta1 + eta2)
-        y_binning = np.linspace(0., 1, numbins + 1)
-        y_centers = 0.5 * (y_binning[:-1] + y_binning[1:])
-
-        r_binning = np.linspace(0., 1/np.sqrt(3), 101)
-        theta_binning = np.linspace(-np.pi/6, np.pi/6, 101)
-
-        r_hist3d_mean, _ = hist_mean(x, y, r, x_r_binning, y_binning, r_binning)
-        theta_hist3d_mean, _ = hist_mean(x, y, theta, x_r_binning, y_binning, theta_binning)
-
-        plt.figure("r mean")
-        plt.imshow(r_hist3d_mean.T, extent=(x_r_binning[0], x_r_binning[-1], y_binning[0], y_binning[-1]), origin='lower')
-        plt.xlabel("eta1 + eta2")
-        plt.ylabel("(eta1 - eta2) / (eta1 + eta2)")
-        plt.colorbar()
-
-        plt.figure("theta mean")
-        plt.imshow(theta_hist3d_mean.T, extent=(x_r_binning[0], x_r_binning[-1], y_binning[0], y_binning[-1]), origin='lower')
-        plt.xlabel("eta1 + eta2")
-        plt.ylabel("(eta1 - eta2) / (eta1 + eta2)")
-        plt.colorbar()
-
-        theta_slice, std = hist_mean(x, y, theta, x_theta_binning, y_binning, theta_binning)
-        print(std)
-        plt.figure("theta vs eta diff ratio")
-        plt.errorbar(y_centers, theta_slice[0], yerr=std[0], fmt=".k",
-                     label='theta vs (eta1 - eta2)/(eta1 + eta2)')
-        plt.xlabel("(eta1 - eta2) / (eta1 + eta2)")
-        plt.ylabel("theta")
-        yy = np.linspace(0, 1, 100)
-        # plt.plot(yy, np.pi/6*(1 - 6/np.pi*np.arctan(1/np.sqrt(3)*yy))**0.6, 'k--')
-        # plt.plot(yy, np.pi/6*(1-yy)**(0.5), 'r--')
-        plt.plot(yy, np.pi/6*(1-yy)**(0.6), 'b--')
-        plt.plot(yy, np.pi/6*yy**(1/0.6), 'g--')
-        #mask the input data for fitting
-        mask = ~np.isnan(theta_slice[0])
-        def power_law_fit(x, a):
-            return np.pi/6 * x**(a)
-        popt, pcov = curve_fit(power_law_fit, y_centers[mask], theta_slice[0][mask], sigma=std[0][mask], absolute_sigma=True)
-        plt.plot(yy, power_law_fit(yy, popt[0]),'r--', label=f'fit: a={popt[0]:.2f}')
-        plt.legend()
-        
-
-        # plt.figure()
-        # # for i in range(numbins):
-        #     # plt.plot(eta_diff_ratio_binning[:-1], hist3d_mean, label=f'eta2 bin {i}')
-        # plt.plot(eta_binning[:-1], hist3d_mean[0, :], label=f'eta diff last bin')
-        # plt.plot(eta_binning[:-1], PowerLaw.evaluate(eta_binning[:-1]/0.5, 0.53, 0.272), '--')
-        # plt.plot(eta_binning[:-1], PowerLaw.evaluate(eta_binning[:-1]/0.5, 0.5, 0.272), 'k--')
-
-        plt.legend()
-
-    plt.show()
-# hxeta(3, 20)
 
 def test_calculate_n():
     x = np.array([[1, 1, -1]])
@@ -321,4 +234,4 @@ test_calculate_n()
 test_versor()
 test_calculate_eta()
 
-hxeta(npixels=3, numbins=20)
+hxeta(npixels=2, numbins=20)
