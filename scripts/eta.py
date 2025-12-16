@@ -71,7 +71,7 @@ def hxeta(npixels = 2, numbins= 10):
             mc_event = input_file.mc_event(i)
             absx.append(mc_event.absx)
             absy.append(mc_event.absy)
-            eta.append(cluster.eta())
+            eta.append(cluster.calculate_eta())
             n.append(cluster.n_versor())
 
     input_file.close()

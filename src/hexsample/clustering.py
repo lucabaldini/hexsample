@@ -63,7 +63,7 @@ class Cluster:
         """
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
 
-    def eta(self) -> np.ndarray:
+    def calculate_eta(self) -> np.ndarray:
         """Return the eta values for the cluster.
         """
         eta = np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
