@@ -64,7 +64,7 @@ def mask_topology(x, y):
     return mask
 
 def hxeta(npixels = 2, numbins= 10):
-    input_file_path = HEXSAMPLE_DATA / "hxsim_large.h5"
+    input_file_path = HEXSAMPLE_DATA / "hxsim_hexagon.h5"
     input_file = DigiInputFileCircular(input_file_path)
     header = input_file.header
     args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
@@ -105,11 +105,12 @@ def hxeta(npixels = 2, numbins= 10):
     photon_pos = np.array([absx - x[:, 0], absy - y[:, 0]]).T / header['pitch']
     r = np.sqrt(np.sum(photon_pos**2, axis=1))
     if npixels == 2:
+        eta = calculate_eta(pha)
         x_binning = np.linspace(0., 0.5, numbins + 1)
         y_binning = np.linspace(0., 0.6, 100)
-        eta = calculate_eta(pha)
+        # We consider the projection of the photon position along the direction of the line that
+        # connects the two pixels.
         dr = abs(np.sum(photon_pos * n, axis=1))
-
         hist = Histogram2d(x_binning, y_binning, xlabel="eta", ylabel="r")
         hist.fill(eta, dr)
         plt.figure("r vs eta")
@@ -122,12 +123,17 @@ def hxeta(npixels = 2, numbins= 10):
         plt.ylabel("r")
         # Fit with power law
         popt, pcov = curve_fit(lambda x, b: 1/2* (x*2)**b, hist.bin_centers(axis=0)[~np.isnan(r_mean)], r_mean[~np.isnan(r_mean)], sigma=r_std[~np.isnan(r_mean)], absolute_sigma=True)
-        xx = np.linspace(0, 0.5, 100)
+        xx = np.linspace(0, 0.5, 1000)
         plt.plot(xx, 1/2 * (xx*2)**popt[0], 'r--', label=f"fit")
         plt.xscale('linear')
         plt.yscale('linear')
         print(f"Fit parameters: b = {popt[0]:.2f} +/- {np.sqrt(pcov[0,0]):.2f}")
         plt.legend() 
+
+        plt.figure("r slices")
+        r_slice = hist.extract_column(1)
+        r_slice.plot()
+        print(r_slice.binned_statistics(), r_std[1])
 
 
     if npixels == 3:
