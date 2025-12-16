@@ -90,30 +90,34 @@ class Cluster:
                 n = np.array([0., 0.])              
         return n
     
-    def eta(self, gamma: float, pitch: float) -> Tuple[float, float]:
+    def eta(self, gamma: tuple[float, float, float], pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function.
         
         Arguments
         ---------
-        gamma : floar
-            The index of the power law of the eta function.
+        gamma : tuple[float, float, float]
+            The parameters to use for the eta function reconstruction, one for 2-pixel events (dr),
+            and two for 3-pixel events (dr, theta).
         pitch : float
             The pitch of the pixels.
         """
-        # We want to extend this method to events with multiple pixels
-        if self.size() != 2:
-            raise RuntimeError('Cluster must contain only 2 pixels to use the eta function')
+        n = self.n_versor()
+        _eta = self.calculate_eta()
 
-        diff = np.array([np.diff(self.x)[0], np.diff(self.y)[0]])
-        n = diff / pitch
-
-        # Consider to create a separate method for this
-        eta = self.pha[1] / self.pulse_height()
-        r_fit = PowerLaw().evaluate(eta/0.5, 0.5, gamma)*pitch
-        x_fit = self.x[0] + r_fit * n[0]
-        y_fit = self.y[0] + r_fit * n[1]
-
-        return x_fit, y_fit
+        if self.size() == 2:
+            # For 2-pixel events we estimate the position along the line that connects the
+            # two pixels using the eta function calibration.
+            dr = PowerLaw().evaluate(_eta[0]/0.5, 0.5, gamma[0]) * pitch
+            x_recon = self.x[0] + dr * n[0]
+            y_recon = self.y[0] + dr * n[1]
+        if self.size() == 3:
+            eta_sum = _eta[0] + _eta[1]
+            eta_diff = (_eta[0] - _eta[1]) / eta_sum
+            dr = PowerLaw().evaluate(eta_sum / (2/3), 1/np.sqrt(3), gamma[1]) * pitch
+            theta = (np.pi/6) * (np.exp(eta_diff * gamma[2]) - 1) / (np.exp(gamma[2]) - 1)
+            x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
+            y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
+        return x_recon, y_recon
 
 
 @dataclass
