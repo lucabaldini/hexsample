@@ -55,18 +55,18 @@ def hxsim(**kwargs):
     # pylint: disable=too-many-locals, invalid-name
     rng.initialize(seed=kwargs["seed"])
     spectrum = LineForest(kwargs["srcelement"], kwargs["srclevel"])
-    grid_args = HexagonalLayout(kwargs['layout']), kwargs['numcolumns'], kwargs['numrows'],\
-        kwargs['pitch']
-    if kwargs['beamshape'].lower() == 'gaussian':
-        beam = GaussianBeam(kwargs['srcposx'], kwargs['srcposy'], kwargs['srcsigma'])
-    if kwargs['beamshape'] == 'triangular':
+    grid_args = HexagonalLayout(kwargs["layout"]), kwargs["numcolumns"], kwargs["numrows"],\
+        kwargs["pitch"]
+    if kwargs["beamshape"] == "gaussian":
+        beam = GaussianBeam(kwargs["srcposx"], kwargs["srcposy"], kwargs["srcsigma"])
+    elif kwargs["beamshape"] == "triangular":
         grid = HexagonalGrid(*grid_args)
-        target_col, target_row = grid.world_to_pixel(kwargs['srcposx'], kwargs['srcposy'])
-        center, v0, v1 = grid.find_vertices(target_col, target_row, kwargs['trngindex'])
+        target_col, target_row = grid.world_to_pixel(kwargs["srcposx"], kwargs["srcposy"])
+        center, v0, v1 = grid.find_vertices(target_col, target_row, kwargs["trngindex"])
         beam = TriangularBeam(*center, tuple(v0), tuple(v1))
-    if kwargs['beamshape'] == 'hexagonal':
+    elif kwargs["beamshape"] == "hexagonal":
         grid = HexagonalGrid(*grid_args)
-        target_col, target_row = grid.world_to_pixel(kwargs['srcposx'], kwargs['srcposy'])
+        target_col, target_row = grid.world_to_pixel(kwargs["srcposx"], kwargs["srcposy"])
         center, v0, v1 = grid.find_vertices(target_col, target_row)
         beam = HexagonalBeam(*center, tuple(v0), tuple(v1))
     else:
