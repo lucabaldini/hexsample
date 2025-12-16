@@ -1,4 +1,4 @@
-"""Analyze eta function and fit with power law
+"""Analyze eta function to reconstruct events position.
 """
 
 from loguru import logger
@@ -8,9 +8,8 @@ from scipy.optimize import curve_fit
 from tqdm import tqdm
 
 from aptapy.hist import Histogram3d, Histogram2d
-from aptapy.models import PowerLaw, Constant, ErfSigmoid
+from aptapy.models import PowerLaw
 from aptapy.plotting import plt
-from matplotlib.colors import LogNorm
 
 from hexsample import HEXSAMPLE_DATA
 from hexsample.clustering import ClusteringNN
@@ -18,39 +17,17 @@ from hexsample.fileio import DigiInputFileCircular
 from hexsample.readout import HexagonalReadoutCircular
 from hexsample.hexagon import HexagonalLayout
 
+# def calculate_n(x, y):
+#     if x.shape[1] == 2:
+#         u = np.array([x[:, 1] - x[:, 0], y[:, 1] - y[:, 0]]).T
+#         return u / np.sqrt(np.sum(u**2, axis=1, keepdims=True))
+#     elif x.shape[1] == 3:
+#         u = np.array([x[:, 1] - x[:, 0], y[:, 1] - y[:, 0]]).T
+#         v = np.array([x[:, 2] - x[:, 0], y[:, 2] - y[:, 0]]).T
+#         return u / np.sqrt(np.sum(u**2, axis=1, keepdims=True)), v / np.sqrt(np.sum(v**2, axis=1, keepdims=True))
+#     else:
+#         raise ValueError("Unsupported cluster size for n calculation")
 
-# Method added to Cluster class
-def calculate_eta(pha):
-    if pha.shape[1] == 2:
-        return pha[:, 1] / pha.sum(axis=1)
-    elif pha.shape[1] == 3:
-        return pha[:, 1] / pha.sum(axis=1), pha[:, 2] / pha.sum(axis=1)
-    else:
-        raise ValueError("Unsupported cluster size for eta calculation")
-
-
-def calculate_n(x, y):
-    if x.shape[1] == 2:
-        u = np.array([x[:, 1] - x[:, 0], y[:, 1] - y[:, 0]]).T
-        return u / np.sqrt(np.sum(u**2, axis=1, keepdims=True))
-    elif x.shape[1] == 3:
-        u = np.array([x[:, 1] - x[:, 0], y[:, 1] - y[:, 0]]).T
-        v = np.array([x[:, 2] - x[:, 0], y[:, 2] - y[:, 0]]).T
-        return u / np.sqrt(np.sum(u**2, axis=1, keepdims=True)), v / np.sqrt(np.sum(v**2, axis=1, keepdims=True))
-    else:
-        raise ValueError("Unsupported cluster size for n calculation")
-
-# Method implemented to Cluster class
-def calculate_versor(x, y):
-    if x.shape[1] == 2:
-        n = np.array([x[:, 1] - x[:, 0], y[:, 1] - y[:, 0]]).T
-    elif x.shape[1] == 3:
-        n = np.array([x[:, 1] + x[:, 2] - 2 * x[:, 0], y[:, 1] + y[:, 2] - 2 * y[:, 0]]).T
-    # We have a problem: if the two pixels are not adjacent this reconstruction fails.
-    # In particular, if the two pixels are opposite, the versor is zero. There is also a second
-    # disposition that gives a wrong versor (but not zero). We should filter this cases before, at
-    # least for this type of reconstruction. We make the cut while reading the file.
-    return n / np.sqrt(np.sum(n**2, axis=1, keepdims=True))
 
 # This will be implemented in zero suppression phase
 def mask_topology(x, y):
@@ -111,7 +88,6 @@ def hxeta(npixels = 2, numbins= 10):
     n = np.array(n)[mask]
 
     photon_pos = np.array([absx - x[:, 0], absy - y[:, 0]]).T / header['pitch']
-    r = np.sqrt(np.sum(photon_pos**2, axis=1))
     if npixels == 2:
         eta = eta.flatten()
         x_binning = np.linspace(0., 0.5, numbins + 1)
@@ -140,6 +116,7 @@ def hxeta(npixels = 2, numbins= 10):
         plt.legend() 
 
     if npixels == 3:
+        r = np.sqrt(np.sum(photon_pos**2, axis=1))
         cos_theta = np.sum(photon_pos * n, axis=1) / r
         theta = np.arccos(cos_theta)
         plt.figure("theta")
@@ -167,7 +144,7 @@ def hxeta(npixels = 2, numbins= 10):
             r_slice = r_mean.content[:, i][r_mean.content[:, i] > 0]
             rms_slice = r_rms.content[:, i][r_mean.content[:, i] > 0]
             plt.plot(r_mean.bin_centers(axis=0)[r_mean.content[:, i] > 0], r_slice, label=f'x bin {i}')
-
+        
         r_slice = Histogram3d(x_r_binning, y_r_binning, r_binning, xlabel=xlabel, ylabel=ylabel, zlabel="r")
         r_slice.fill(x, y, r)
         r_slice_mean, r_slice_rms = r_slice.collapse_axis(2)
@@ -205,9 +182,15 @@ def hxeta(npixels = 2, numbins= 10):
         y_fit = theta_slice_mean.content.flatten()[mask_zero]
         y_err = np.sqrt(theta_slice_rms.content.flatten()[mask_zero]**2 - y_fit**2) / np.sqrt(np.sum(theta_slice.content))
         model = PowerLaw()
-        # model.prefactor.freeze(np.pi/6)
+        model.prefactor.freeze(np.pi/6)
         model.fit(x_fit, y_fit, sigma=y_err, absolute_sigma=True)
+        def fit_func(x, a):
+            return (np.pi/6) * (np.exp(x*a) - 1) / (np.exp(a) - 1)
+        popt, pcov = curve_fit(fit_func, x_fit, y_fit, sigma=y_err, absolute_sigma=True)
+        xx = np.linspace(0, 1, 100)
+        print(f"Fit parameter: gamma = {popt[0]} +/- {np.sqrt(pcov[0,0])}")
         plt.figure("theta vs eta diff ratio")
+        plt.plot(xx, fit_func(xx, *popt), 'r--')
         plt.errorbar(x_fit, y_fit, yerr=y_err, fmt=".k")
         plt.xlabel("(eta1 - eta2) / (eta1 + eta2)")
         plt.ylabel("theta")
@@ -218,4 +201,4 @@ def hxeta(npixels = 2, numbins= 10):
 
     plt.show()
 
-hxeta(npixels=2, numbins=20)
+hxeta(npixels=3, numbins=20)
