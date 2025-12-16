@@ -142,6 +142,20 @@ class ArgumentParser(argparse.ArgumentParser):
         group.add_argument("--nneighbors", type=int, default=2,
             help="number of neighbors to be considered (0--6)")
 
+    def add_reconstruction_options(self) -> None:
+        """Add an option group for reconstruction.
+        """
+        group = self.add_argument_group('reconstruction', 'Options for event reconstruction')
+        group.add_argument('--rcmethod', choices=['centroid', 'eta', 'dnn', 'gnn'], type=str,
+            default='centroid', help='How to reconstruct position')
+        group.add_argument('--gamma', default=0.272, type=float,
+            help='index of the power law for eta reconstruction')
+        group.add_argument('--nnmodel', type=str, default='pretrained',
+                           choices=['pretrained', 'custom'],
+                           help='model to use for neural network reconstruction')
+        group.add_argument('--modelpath', type=str,
+            help='path of the model to use, in case of custom model')
+
     def add_readout_options(self) -> None:
         """Add an option group for the readout properties.
         """
@@ -192,9 +206,14 @@ class ArgumentParser(argparse.ArgumentParser):
             help="element generating the line forest")
         group.add_argument("--srclevel", type=str, default="K",
             help="initial level for the line forest")
+        beams = ["gaussian", "triangular", "hexagonal"]
+        group.add_argument("--beamshape", type=str, choices=beams, default="gaussian",
+                           help="X-ray beam morphology")
         group.add_argument("--srcposx", type=float, default=0.,
             help="x position of the source centroid in cm")
         group.add_argument("--srcposy", type=float, default=0.,
             help="y position of the source centroid in cm")
         group.add_argument("--srcsigma", type=float, default=0.1,
             help="one-dimensional standard deviation of the gaussian beam in cm")
+        group.add_argument('--trngindex', type=int, default=0,
+            help='triangular section of the hexagon')
