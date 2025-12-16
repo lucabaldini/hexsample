@@ -63,7 +63,30 @@ class Cluster:
         """
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
 
+    def eta(self) -> np.ndarray:
+        """Return the eta values for the cluster.
+        """
+        eta = np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
+        return eta
 
+    def n_versor(self) -> np.ndarray:
+        """Return the versor n for the cluster. Its definitions depends on the cluster size.
+        For 2-pixel clusters it is the versor that points from the center of the pixel with the
+        highest pha to the center of the other one. For 3-pixel clusters it points from the center
+        of the pixel with the highest pha to the midpoint of the line that connects the centers of
+        the other two pixels."""
+        if self.x.shape[0] == 2:
+            n = np.array([self.x[1] - self.x[0], self.y[1] - self.y[0]]).T
+        elif self.x.shape[0] == 3:
+            n = np.array([self.x[1] + self.x[2] - 2 * self.x[0],\
+                          self.y[1] + self.y[2] - 2 * self.y[0]]).T
+        # It can happen that the versor is [0, 0] for events with strange geometries.
+        # In that case we avoid NaN by setting the versor to [0, 0].
+        with np.errstate(invalid='ignore'):
+            n = n / np.sqrt(np.sum(n**2))
+            if np.any(np.isnan(n)):
+                n = np.array([0., 0.])              
+        return n
 
 @dataclass
 class ClusteringBase:

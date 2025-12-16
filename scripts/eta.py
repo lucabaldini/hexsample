@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit
 from tqdm import tqdm
 
 from aptapy.hist import Histogram3d, Histogram2d
-from aptapy.models import PowerLaw
+from aptapy.models import PowerLaw, Constant, ErfSigmoid
 from aptapy.plotting import plt
 from matplotlib.colors import LogNorm
 
@@ -19,7 +19,7 @@ from hexsample.readout import HexagonalReadoutCircular
 from hexsample.hexagon import HexagonalLayout
 
 
-
+# Method added to Cluster class
 def calculate_eta(pha):
     if pha.shape[1] == 2:
         return pha[:, 1] / pha.sum(axis=1)
@@ -40,6 +40,7 @@ def calculate_n(x, y):
     else:
         raise ValueError("Unsupported cluster size for n calculation")
 
+# Method implemented to Cluster class
 def calculate_versor(x, y):
     if x.shape[1] == 2:
         n = np.array([x[:, 1] - x[:, 0], y[:, 1] - y[:, 0]]).T
@@ -51,6 +52,7 @@ def calculate_versor(x, y):
     # least for this type of reconstruction. We make the cut while reading the file.
     return n / np.sqrt(np.sum(n**2, axis=1, keepdims=True))
 
+# This will be implemented in zero suppression phase
 def mask_topology(x, y):
     """Check if the angle between the two vectors is 60 degrees (adjacent pixels)
     """
@@ -80,6 +82,8 @@ def hxeta(npixels = 2, numbins= 10):
     y = []
     absx = []
     absy = []
+    eta = []
+    n = []
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         if cluster.size() == npixels:
@@ -90,6 +94,9 @@ def hxeta(npixels = 2, numbins= 10):
             mc_event = input_file.mc_event(i)
             absx.append(mc_event.absx)
             absy.append(mc_event.absy)
+            eta.append(cluster.eta())
+            n.append(cluster.n_versor())
+
     input_file.close()
     x = np.array(x)
     y = np.array(y)
@@ -100,12 +107,13 @@ def hxeta(npixels = 2, numbins= 10):
     pha = np.array(pha)[mask]
     absx = np.array(absx)[mask]
     absy = np.array(absy)[mask]
+    eta = np.array(eta)[mask]
+    n = np.array(n)[mask]
 
-    n = calculate_versor(x, y)
     photon_pos = np.array([absx - x[:, 0], absy - y[:, 0]]).T / header['pitch']
     r = np.sqrt(np.sum(photon_pos**2, axis=1))
     if npixels == 2:
-        eta = calculate_eta(pha)
+        eta = eta.flatten()
         x_binning = np.linspace(0., 0.5, numbins + 1)
         y_binning = np.linspace(0., 0.6, 100)
         # We consider the projection of the photon position along the direction of the line that
@@ -115,26 +123,21 @@ def hxeta(npixels = 2, numbins= 10):
         hist.fill(eta, dr)
         plt.figure("r vs eta")
         hist.plot()
-        r_mean = np.sum(hist.content * hist.bin_centers(axis=1)[np.newaxis, :], axis=1) / np.sum(hist.content, axis=1)
-        r_std = np.sqrt(np.sum(hist.content * (hist.bin_centers(axis=1)[np.newaxis, :] - r_mean[:, np.newaxis])**2, axis=1) / np.sum(hist.content, axis=1))
+        r_mean_hist, r_rms_hist = hist.collapse_axis(1)
+        r_mean = r_mean_hist.content
+        r_mean_std = np.sqrt(r_rms_hist.content**2 - r_mean**2) / np.sqrt(np.sum(hist.content))
         plt.figure("r mean")
-        plt.errorbar(hist.bin_centers(axis=0), r_mean, yerr=r_std, fmt='.k')
+        plt.errorbar(hist.bin_centers(axis=0), r_mean, yerr=r_mean_std, fmt='.k')
         plt.xlabel("eta")
         plt.ylabel("r")
-        # Fit with power law
-        popt, pcov = curve_fit(lambda x, b: 1/2* (x*2)**b, hist.bin_centers(axis=0)[~np.isnan(r_mean)], r_mean[~np.isnan(r_mean)], sigma=r_std[~np.isnan(r_mean)], absolute_sigma=True)
+        # Fit with power law, will use aptapy when power law accepts scale factor
+        popt, pcov = curve_fit(lambda x, b: 1/2* (x*2)**b, hist.bin_centers(axis=0)[~np.isnan(r_mean)], r_mean[~np.isnan(r_mean)], sigma=r_mean_std[~np.isnan(r_mean)], absolute_sigma=True)
         xx = np.linspace(0, 0.5, 1000)
-        plt.plot(xx, 1/2 * (xx*2)**popt[0], 'r--', label=f"fit")
+        plt.plot(xx, 1/2 * (xx*2)**popt[0], 'b', label=f"PowerLaw")
         plt.xscale('linear')
         plt.yscale('linear')
-        print(f"Fit parameters: b = {popt[0]:.2f} +/- {np.sqrt(pcov[0,0]):.2f}")
+        print(f"Fit parameter: gamma = {popt[0]} +/- {np.sqrt(pcov[0,0])}")
         plt.legend() 
-
-        plt.figure("r slices")
-        r_slice = hist.extract_column(1)
-        r_slice.plot()
-        print(r_slice.binned_statistics(), r_std[1])
-
 
     if npixels == 3:
         cos_theta = np.sum(photon_pos * n, axis=1) / r
@@ -142,7 +145,7 @@ def hxeta(npixels = 2, numbins= 10):
         plt.figure("theta")
         plt.hist(theta, bins=100)
 
-        eta1, eta2 = calculate_eta(pha)
+        eta1, eta2 = eta[:, 0], eta[:, 1]
         x = eta1 + eta2
         x_r_binning = np.linspace(0., 2/3, numbins + 1)
         x_theta_binning = np.linspace(0.2, 2/3, 2)
@@ -170,7 +173,7 @@ def hxeta(npixels = 2, numbins= 10):
         r_slice_mean, r_slice_rms = r_slice.collapse_axis(2)
         x_fit = r_slice_mean.bin_centers(axis=0)
         y_fit = r_slice_mean.content.flatten()
-        y_err = np.sqrt(r_slice_rms.content.flatten()**2 - y_fit**2)
+        y_err = np.sqrt(r_slice_rms.content.flatten()**2 - y_fit**2) / np.sqrt(np.sum(r_slice.content))
         plt.figure("r vs eta sum")
         plt.errorbar(x_fit, y_fit, yerr=y_err, fmt=".k")
         plt.xlabel("eta1 + eta2")
@@ -200,9 +203,9 @@ def hxeta(npixels = 2, numbins= 10):
         mask_zero = theta_slice_mean.content.flatten() > 0
         x_fit = theta_slice_mean.bin_centers(axis=1)[mask_zero]
         y_fit = theta_slice_mean.content.flatten()[mask_zero]
-        y_err = np.sqrt(theta_slice_rms.content.flatten()[mask_zero]**2 - y_fit**2)
+        y_err = np.sqrt(theta_slice_rms.content.flatten()[mask_zero]**2 - y_fit**2) / np.sqrt(np.sum(theta_slice.content))
         model = PowerLaw()
-        model.prefactor.freeze(np.pi/6)
+        # model.prefactor.freeze(np.pi/6)
         model.fit(x_fit, y_fit, sigma=y_err, absolute_sigma=True)
         plt.figure("theta vs eta diff ratio")
         plt.errorbar(x_fit, y_fit, yerr=y_err, fmt=".k")
@@ -214,30 +217,5 @@ def hxeta(npixels = 2, numbins= 10):
         plt.legend()
 
     plt.show()
-
-
-def test_calculate_n():
-    x = np.array([[1, 1, -1]])
-    y = np.array([[1, 2, -1]])
-    n0, n1 = calculate_n(x, y)
-    assert np.array_equal(n0, np.array([[0, 1]]))
-    assert np.array_equal(n1, np.array([[-1/np.sqrt(2), -1/np.sqrt(2)]]))
-
-def test_versor():
-    x = np.array([[0, 1, 0]])
-    y = np.array([[0, 0, -1]])
-    n = calculate_versor(x, y)
-    expected = np.array([[1, -1]]) / np.sqrt(2)
-    assert np.allclose(n, expected)
-
-def test_calculate_eta():
-    pha = np.array([60, 30, 10]).reshape(1, 3)
-    eta1, eta2 = calculate_eta(pha)
-    assert np.isclose(eta1, 0.3)
-    assert np.isclose(eta2, 0.1)
-
-test_calculate_n()
-test_versor()
-test_calculate_eta()
 
 hxeta(npixels=2, numbins=20)
