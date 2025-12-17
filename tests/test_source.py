@@ -92,7 +92,7 @@ def test_triangular_beam(num_photons: int = 10000):
     plt.figure('Triangular beam x projection')
     hx = Histogram1d(binning_x).fill(x)
     hx.plot()
-    plt.figure('Triangular beam x projection')
+    plt.figure('Triangular beam y projection')
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
 
@@ -112,7 +112,7 @@ def test_hexagonal_beam(size: int = 10000):
     plt.figure('Hexagonal beam x projection')
     hx = Histogram1d(binning_x).fill(x)
     hx.plot()
-    plt.figure('Hexagonal beam x projection')
+    plt.figure('Hexagonal beam y projection')
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
 

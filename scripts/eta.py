@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+import scipy.stats
 from aptapy.hist import Histogram1d, Histogram2d, Histogram3d
 from aptapy.models import PowerLaw
 from aptapy.plotting import plt
@@ -125,20 +126,19 @@ def hxeta(**kwargs):
     plt.ylabel("r / pitch")
     plt.xscale('linear')
     plt.yscale('linear')
-    # plt.legend()
 
     def probit(x, a):
         """Probit function to fit theta vs eta ratio.
         """
-        from scipy.stats import norm
-        f = norm(0, 0.14)
+        f = scipy.stats.norm(0, 0.14)
         return a*f.ppf(x) + 0.5
+
     popt, pcov = curve_fit(probit, x_fit_2pix, r_mean, sigma=r_mean_std, absolute_sigma=True)
     xx = np.linspace(0, 0.5, 100)
     chisq = np.sum(((r_mean - probit(x_fit_2pix, *popt)) / r_mean_std)**2)
-    plt.plot(xx, probit(xx, *popt), 'r--', label=f"Probit fit\nchisq / ndof: {chisq:.2f} / {(len(r_mean) - 1)}\na = {popt[0]:.3f} +/- {np.sqrt(pcov[0,0]):.3f}")
+    plt.plot(xx, probit(xx, *popt), 'r--', label=f"Probit fit\nchisq / ndof: {chisq:.2f} / \
+             {(len(r_mean) - 1)}\na = {popt[0]:.3f} +/- {np.sqrt(pcov[0,0]):.3f}")
     plt.legend()
-    print(probit(0.5, *popt))
 
     # 3-pixel events calibration
     mask_3pix = size == 3
