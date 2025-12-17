@@ -192,10 +192,10 @@ class TriangularBeam(BeamBase):
         The y-coordinate of the first vertex of the triangle in cm.
     
     v1 : Tuple[float, float]
-        The (x, y) coordinates of the second vertex of the hexagon in cm.
+        The (x, y) coordinates of the second vertex of the triangle in cm.
     
     v2 : Tuple[float, float]
-        The (x, y) coordinates of the third vertex of the hexagon in cm.
+        The (x, y) coordinates of the third vertex of the triangle in cm.
     """
 
     v1: Tuple[float, float] = (1., 0.)
@@ -390,12 +390,12 @@ class Line(SpectrumBase):
 
         Arguments
         ---------
-            size : int, optiona
+        size : int, optional
             The number of X-ray photon energies to be generated. Defaults to 1.
 
         Returns
         -------
-            energy : np.ndarray
+        energy : np.ndarray
             The photon energies in eV.
         """
         return np.full(size, self._energy)

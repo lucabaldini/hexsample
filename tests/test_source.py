@@ -79,7 +79,7 @@ def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     model.plot(fit_output=True)
     plt.legend()
 
-def test_triangular_beam(num_photons = 1000000):
+def test_triangular_beam(num_photons: int = 10000):
     """Test for TriangularBeam class
     """
     beam = TriangularBeam(0, 0, (0, 1), (1, 0))
@@ -96,14 +96,14 @@ def test_triangular_beam(num_photons = 1000000):
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
 
-def test_hexagonal_beam(num_photons = 1000000):
+def test_hexagonal_beam(size: int = 10000):
     """Test for HexagonalBeam class
 
     Args:
-        size (int, optional): _description_. Defaults to 10000.
+        size (int, optional): Number of photons to sample. Defaults to 10000.
     """
     beam = HexagonalBeam(0, 0, (1, 0), (.5, np.sqrt(3)/2))
-    x, y = beam.rvs(num_photons)
+    x, y = beam.rvs(size)
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
     plt.figure('Hexagonal beam')
@@ -154,7 +154,7 @@ def test_mn_k_forest():
     """
     _test_forest("Mn", chisq_test=False)
 
-def test_line(energy = 6000, size = 100000):
+def test_line(energy: float = 6000, size: int = 10000):
     """Test for line class
     """
     line = Line(energy)
