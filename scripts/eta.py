@@ -20,8 +20,8 @@ __description__ = \
 """
 
 # Parser object.
-HXRECON_ARGPARSER = ArgumentParser(description=__description__)
-HXRECON_ARGPARSER.add_infile()
+HXETA_ARGPARSER = ArgumentParser(description=__description__)
+HXETA_ARGPARSER.add_infile()
 
 NUMBINS = 20
 
@@ -90,6 +90,10 @@ def hxeta(**kwargs):
     # 2-pixel events calibration
     mask_2pix = size == 2
     eta_2pix = eta[mask_2pix].flatten()
+    plt.figure("Eta distribution 2-pixel")
+    eta_hist = Histogram1d(np.linspace(0, 0.5, NUMBINS), xlabel="eta")
+    eta_hist.fill(eta_2pix)
+    eta_hist.plot()
     photon_pos_2pix = photon_pos[mask_2pix]
     n_2pix = n[mask_2pix]
     x_binning = np.linspace(0., 0.5, NUMBINS + 1)
@@ -234,4 +238,4 @@ def hxeta(**kwargs):
     plt.show()
 
 if __name__ == "__main__":
-    hxeta(**vars(HXRECON_ARGPARSER.parse_args()))
+    hxeta(**vars(HXETA_ARGPARSER.parse_args()))
