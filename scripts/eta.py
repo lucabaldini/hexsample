@@ -36,6 +36,8 @@ def mask_topology(x, y):
         v = np.array([x[:, 2] - x[:, 0], y[:, 2] - y[:, 0]]).T
         cos_theta = np.sum(u * v, axis=1) / (np.linalg.norm(u, axis=1) * np.linalg.norm(v, axis=1))
         mask = np.isclose(cos_theta, 0.5, atol=1e-2)
+    else:
+        mask = np.full(x.shape[0], False)
     return mask
 
 def hxeta(**kwargs):
@@ -119,7 +121,20 @@ def hxeta(**kwargs):
     plt.ylabel("r / pitch")
     plt.xscale('linear')
     plt.yscale('linear')
-    plt.legend() 
+    # plt.legend()
+
+    def probit(x, a):
+        """Probit function to fit theta vs eta ratio.
+        """
+        from scipy.stats import norm
+        f = norm(0, 0.14)
+        return a*f.ppf(x) + 0.5
+    popt, pcov = curve_fit(probit, x_fit_2pix, r_mean, sigma=r_mean_std, absolute_sigma=True)
+    xx = np.linspace(0, 0.5, 100)
+    chisq = np.sum(((r_mean - probit(x_fit_2pix, *popt)) / r_mean_std)**2)
+    plt.plot(xx, probit(xx, *popt), 'r--', label=f"Probit fit\nchisq / ndof: {chisq:.2f} / {(len(r_mean) - 1)}\na = {popt[0]:.3f} +/- {np.sqrt(pcov[0,0]):.3f}")
+    plt.legend()
+    print(probit(0.5, *popt))
 
     # 3-pixel events calibration
     mask_3pix = size == 3
