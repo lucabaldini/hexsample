@@ -41,7 +41,7 @@ dependencies = [
     "tqdm",
     "uncertainties",
     "xraydb",
-    "aptapy==0.13.0",
+    "aptapy",
   ]
 
 [project.optional-dependencies]

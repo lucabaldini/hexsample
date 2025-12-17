@@ -82,12 +82,14 @@ class Cluster:
         elif self.x.shape[0] == 3:
             n = np.array([self.x[1] + self.x[2] - 2 * self.x[0],\
                           self.y[1] + self.y[2] - 2 * self.y[0]]).T
+        else:
+            raise RuntimeError('Cluster must contain 2 or 3 pixels to calculate n versor')
         # It can happen that the versor is [0, 0] for events with strange geometries.
         # In that case we avoid NaN by setting the versor to [0, 0].
         with np.errstate(invalid='ignore'):
             n = n / np.sqrt(np.sum(n**2))
             if np.any(np.isnan(n)):
-                n = np.array([0., 0.])              
+                n = np.array([0., 0.])
         return n
     
     def eta(self, gamma: tuple[float, float, float], pitch: float) -> Tuple[float, float]:
