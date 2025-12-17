@@ -130,8 +130,8 @@ def hxeta(**kwargs):
     def probit(x, a):
         """Probit function to fit theta vs eta ratio.
         """
-        f = scipy.stats.norm(0, 0.14)
-        return a*f.ppf(x) + 0.5
+        f = scipy.stats.norm(0, a)
+        return f.ppf(x) + 0.5
 
     popt, pcov = curve_fit(probit, x_fit_2pix, r_mean, sigma=r_mean_std, absolute_sigma=True)
     xx = np.linspace(0, 0.5, 100)

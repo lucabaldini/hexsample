@@ -112,11 +112,14 @@ class Cluster:
             dr = PowerLaw().evaluate(_eta[0]/0.5, 0.5, gamma[0]) * pitch
             x_recon = self.x[0] + dr * n[0]
             y_recon = self.y[0] + dr * n[1]
-        if self.size() == 3:
+        elif self.size() == 3:
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
             dr = PowerLaw().evaluate(eta_sum / (2/3), 1/np.sqrt(3), gamma[1]) * pitch
             theta = (np.pi/6) * (np.exp(eta_diff * gamma[2]) - 1) / (np.exp(gamma[2]) - 1)
+            # We need to determine the sign of theta depending on the cluster orientation.
+            theta = theta * np.sign(np.cross(n, np.array([self.x[1] - self.x[0],
+                                                          self.y[1] - self.y[0]])))
             x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
             y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
         else:
