@@ -91,7 +91,7 @@ class Cluster:
             if np.any(np.isnan(n)):
                 n = np.array([0., 0.])
         return n
-    
+
     def eta(self, gamma: tuple[float, float, float], pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function.
         
@@ -119,6 +119,9 @@ class Cluster:
             theta = (np.pi/6) * (np.exp(eta_diff * gamma[2]) - 1) / (np.exp(gamma[2]) - 1)
             x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
             y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
+        else:
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position using \
+                               eta function")
         return x_recon, y_recon
 
 
