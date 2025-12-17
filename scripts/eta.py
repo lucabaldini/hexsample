@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+import scipy.stats
 from aptapy.hist import Histogram1d, Histogram2d, Histogram3d
 from aptapy.models import PowerLaw
 from aptapy.plotting import plt
@@ -20,8 +21,8 @@ __description__ = \
 """
 
 # Parser object.
-HXRECON_ARGPARSER = ArgumentParser(description=__description__)
-HXRECON_ARGPARSER.add_infile()
+HXETA_ARGPARSER = ArgumentParser(description=__description__)
+HXETA_ARGPARSER.add_infile()
 
 NUMBINS = 20
 
@@ -36,6 +37,8 @@ def mask_topology(x, y):
         v = np.array([x[:, 2] - x[:, 0], y[:, 2] - y[:, 0]]).T
         cos_theta = np.sum(u * v, axis=1) / (np.linalg.norm(u, axis=1) * np.linalg.norm(v, axis=1))
         mask = np.isclose(cos_theta, 0.5, atol=1e-2)
+    else:
+        mask = np.full(x.shape[0], False)
     return mask
 
 def hxeta(**kwargs):
@@ -88,6 +91,10 @@ def hxeta(**kwargs):
     # 2-pixel events calibration
     mask_2pix = size == 2
     eta_2pix = eta[mask_2pix].flatten()
+    plt.figure("Eta distribution 2-pixel")
+    eta_hist = Histogram1d(np.linspace(0, 0.5, NUMBINS), xlabel="eta")
+    eta_hist.fill(eta_2pix)
+    eta_hist.plot()
     photon_pos_2pix = photon_pos[mask_2pix]
     n_2pix = n[mask_2pix]
     x_binning = np.linspace(0., 0.5, NUMBINS + 1)
@@ -119,7 +126,19 @@ def hxeta(**kwargs):
     plt.ylabel("r / pitch")
     plt.xscale('linear')
     plt.yscale('linear')
-    plt.legend() 
+
+    def probit(x, a):
+        """Probit function to fit theta vs eta ratio.
+        """
+        f = scipy.stats.norm(0, 0.14)
+        return a*f.ppf(x) + 0.5
+
+    popt, pcov = curve_fit(probit, x_fit_2pix, r_mean, sigma=r_mean_std, absolute_sigma=True)
+    xx = np.linspace(0, 0.5, 100)
+    chisq = np.sum(((r_mean - probit(x_fit_2pix, *popt)) / r_mean_std)**2)
+    plt.plot(xx, probit(xx, *popt), 'r--', label=f"Probit fit\nchisq / ndof: {chisq:.2f} / \
+             {(len(r_mean) - 1)}\na = {popt[0]:.3f} +/- {np.sqrt(pcov[0,0]):.3f}")
+    plt.legend()
 
     # 3-pixel events calibration
     mask_3pix = size == 3
@@ -219,4 +238,4 @@ def hxeta(**kwargs):
     plt.show()
 
 if __name__ == "__main__":
-    hxeta(**vars(HXRECON_ARGPARSER.parse_args()))
+    hxeta(**vars(HXETA_ARGPARSER.parse_args()))

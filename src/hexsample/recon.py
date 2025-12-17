@@ -121,7 +121,7 @@ class ReconEvent:
         recon_method = getattr(self.cluster, self.method)
 
         signature = inspect.signature(recon_method)
-        available = {'pitch':self.pitch, 'gamma':self.gamma}
+        available = {'pitch': self.pitch, 'gamma': self.gamma}
         args = [available[_par] for _par in signature.parameters]
 
         return recon_method(*args)
