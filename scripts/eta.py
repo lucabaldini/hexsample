@@ -4,7 +4,7 @@
 import numpy as np
 import scipy.stats
 from aptapy.hist import Histogram1d, Histogram2d, Histogram3d
-from aptapy.models import PowerLaw
+from aptapy.models import PowerLaw, Probit
 from aptapy.plotting import plt
 from scipy.optimize import curve_fit
 from tqdm import tqdm
@@ -122,22 +122,17 @@ def hxeta(**kwargs):
     model.fit(x_fit_2pix, r_mean, sigma=r_mean_std, absolute_sigma=True)
     model.set_plotting_range(0, 0.5)
     model.plot(fit_output=True)
+
+    probit_model = Probit()
+    probit_model.offset.freeze(0.5)
+    probit_model.fit(x_fit_2pix, r_mean, sigma=r_mean_std)
+    probit_model.set_plotting_range(0, 0.5)
+    probit_model.plot(fit_output=True)
+
     plt.xlabel("eta")
     plt.ylabel("r / pitch")
     plt.xscale('linear')
     plt.yscale('linear')
-
-    def probit(x, a):
-        """Probit function to fit theta vs eta ratio.
-        """
-        f = scipy.stats.norm(0, a)
-        return f.ppf(x) + 0.5
-
-    popt, pcov = curve_fit(probit, x_fit_2pix, r_mean, sigma=r_mean_std, absolute_sigma=True)
-    xx = np.linspace(0, 0.5, 100)
-    chisq = np.sum(((r_mean - probit(x_fit_2pix, *popt)) / r_mean_std)**2)
-    plt.plot(xx, probit(xx, *popt), 'r--', label=f"Probit fit\nchisq / ndof: {chisq:.2f} / \
-             {(len(r_mean) - 1)}\na = {popt[0]:.3f} +/- {np.sqrt(pcov[0,0]):.3f}")
     plt.legend()
 
     # 3-pixel events calibration
@@ -220,6 +215,7 @@ def hxeta(**kwargs):
     model = PowerLaw()
     model.prefactor.freeze(np.pi/6)
     model.fit(x_fit, y_fit, sigma=y_err, absolute_sigma=True)
+    model.set_plotting_range(0, 1)
     model.plot(fit_output=True)
     # Fitting with a better model
     def fit_func(x, a):

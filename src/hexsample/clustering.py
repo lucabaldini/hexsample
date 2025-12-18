@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from aptapy.models import PowerLaw
+from aptapy.models import PowerLaw, Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular, DigiEventSparse
 from .hexagon import HexagonalGrid
@@ -109,7 +109,8 @@ class Cluster:
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the eta function calibration.
-            dr = PowerLaw().evaluate(_eta[0]/0.5, 0.5, gamma[0]) * pitch
+            # dr = PowerLaw().evaluate(_eta[0]/0.5, 0.5, gamma[0]) * pitch
+            dr = Probit().evaluate(_eta[0], 0.5, gamma[0]) * pitch
             x_recon = self.x[0] + dr * n[0]
             y_recon = self.y[0] + dr * n[1]
         elif self.size() == 3:
