@@ -60,7 +60,7 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     h.plot()
     setup_gca(xlabel="Absorption depth [cm]", logy=True)
     model = Exponential()
-    model.fit_histogram(h)
+    model.fit(h)
     model.plot(fit_output=True)
     scale = model.scale.value
     sigma_scale = model.scale.error
