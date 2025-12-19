@@ -15,7 +15,7 @@ hexsample (X-ray hexagonal sampling)
    install
    api
    release_notes
-
+   team
 
 
 Indices and tables
