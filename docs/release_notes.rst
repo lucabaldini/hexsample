@@ -8,7 +8,10 @@ Release notes
 * Release notes re-formatted and cleaned up.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/77
   - https://github.com/lucabaldini/hexsample/pull/76
+  - https://github.com/lucabaldini/hexsample/issues/74
+  - https://github.com/lucabaldini/hexsample/issues/73
   - https://github.com/lucabaldini/hexsample/issues/72
 
 
