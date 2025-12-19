@@ -7,6 +7,7 @@ Release notes
 * aptapy version bumped to >=0.17.2
 * Release notes re-formatted and cleaned up.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/76
   - https://github.com/lucabaldini/hexsample/issues/72
 
@@ -28,6 +29,7 @@ Version 0.11.0 (2025-11-19)
 * Full linting with ruff and pylint.
 * github workflows updated.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/63
   - https://github.com/lucabaldini/hexsample/issues/59
 
@@ -43,6 +45,7 @@ Version 0.10.0 (2025-11-13)
 * Modified API calls to match aptapy's interface.
 * Updates CI/CD configuration to use Ubuntu 22.04 and test on Python 3.7 and 3.13.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/58
 
 
@@ -53,6 +56,7 @@ Version 0.9.0 (2025-04-30)
 * Minor tweaks to the docs to make clear that all the lengths are in cm.
 * Minor formatting changes.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/46
 
 
@@ -61,6 +65,7 @@ Version 0.9.0 (2025-04-30)
 
 * Better parameter initialization for the DoubleGaussian model.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/45
   - https://github.com/lucabaldini/hexsample/issues/44
 
@@ -69,9 +74,10 @@ Version 0.9.0 (2025-04-30)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * New functions in the analysis module.
-* New ``scripts`` foldes, and first script to analyze the output of a
+* New ``scripts`` folder, and first script to analyze the output of a
   thickness-noise scan.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/42
 
 
@@ -86,6 +92,7 @@ Version 0.9.0 (2025-04-30)
 * Fit with parameter bounds now supported.
 * Specific class for a double gaussian fit, with sensible initial values.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/39
   - https://github.com/lucabaldini/hexsample/pull/38
 
@@ -96,6 +103,7 @@ Version 0.6.0 (2023-10-19)
 * New random number generation scheme, (sort of) following the best practices
   suggested on the numpy documentation.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/35
   - https://github.com/lucabaldini/hexsample/issues/24
 
@@ -111,6 +119,7 @@ Version 0.5.1 (2023-10-18)
 
 * Attempt at compiling the docs on github pages whenever a new tag is created.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/3
 
 
@@ -125,6 +134,7 @@ Version 0.5.1 (2023-10-18)
   OutputFileBase and read automatically by InputFileBase.
 * New fileio.open_input_file() function added to open input files transparently.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/31
   - https://github.com/lucabaldini/hexsample/pull/30
   - https://github.com/lucabaldini/hexsample/pull/29
@@ -147,6 +157,7 @@ Version 0.5.1 (2023-10-18)
   order to be able to make strict comparisons between output digi files.
 * Seed for a small utility to compare digi files added.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/22
   - https://github.com/lucabaldini/hexsample/issues/12
 
@@ -157,6 +168,7 @@ Version 0.3.2 (2023-10-16)
 * Command-line switch to set the random seed added.
 * Version and tag date added to the output file header.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/25
   - https://github.com/lucabaldini/hexsample/issues/23
 
@@ -167,6 +179,7 @@ Version 0.3.1 (2023-10-13)
 * Added support for Python 3.7 through small tweaks to the type annotations.
 * Added setup.bat script to support development under Windows.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/20
 
 
@@ -176,6 +189,7 @@ Version 0.3.0 (2023-10-13)
 * Cleanup and linting.
 * Glaring bug in the simulation (the z coordinate of absorption was swapped) fixed.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/19
   - https://github.com/lucabaldini/hexsample/pull/18
 
@@ -187,7 +201,7 @@ Version 0.2.0 (2023-10-12)
 * Merging https://github.com/lucabaldini/hexsample/pull/10
 * Merging https://github.com/lucabaldini/hexsample/pull/17
 * Casting the outputfile default argument to string in ArgumentParser in order
-  to avoid possible problems downstream with patlib.Path instances.
+  to avoid possible problems downstream with pathlib.Path instances.
 * mc option removed from output digi and recon files.
 * Base classes for input and output files added, and machinery for adding
   and retrieving metadata information to/from file headers added.
@@ -211,4 +225,5 @@ Version 0.1.0 (2023-10-10)
 * Initial setup of the repository.
 * Simple versioning system in place.
 * Pull requests merged and issues closed:
+
   - https://github.com/lucabaldini/hexsample/pull/10
