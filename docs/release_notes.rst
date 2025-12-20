@@ -16,6 +16,7 @@ Release notes
   - https://github.com/lucabaldini/hexsample/issues/74
   - https://github.com/lucabaldini/hexsample/issues/73
   - https://github.com/lucabaldini/hexsample/issues/72
+  - https://github.com/lucabaldini/hexsample/issues/69
 
 
 Version 0.11.0 (2025-11-19)
