@@ -1,4 +1,4 @@
-# Copyright (C) 2022--2023 luca.baldini@pi.infn.it
+# Copyright (C) 2023--2025 the hexsample team.
 #
 # For the license terms see the file LICENSE, distributed along with this
 # software.

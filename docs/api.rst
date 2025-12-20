@@ -22,7 +22,6 @@ List of modules
    digi
    display
    fileio
-   fitting
    hexagon
    mc
    pprint
