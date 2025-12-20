@@ -14,16 +14,21 @@ def calculate_eta(r, sigma: float = 0.12) -> float:
     return eta
 
 def calculate_r(eta: float, sigma: float = 0.12) -> float:
-    return 0.5 + norm.ppf(eta, scale=sigma)
+    r = 0.5 + norm.ppf(eta, scale=sigma)
+    try:
+        r[np.isinf(r)] = 0.
+    except TypeError:
+        pass
+    return r
 
 # r = np.linspace(0., 0.5, 25)
 # eta = [calculate_eta(_r, sigma) for _r in r]
 
 
-eta = np.linspace(0., 0.5, 100)
+eta = np.linspace(0., 0.5, 500)
 bbox_kwargs = dict(facecolor="white", edgecolor="none", pad=0.1, alpha=0.9)
 label_kwargs = dict(fontsize="small", va='center', ha='center', bbox=bbox_kwargs)
-for denom in 10, 8, 6, 5, 4:
+for denom in 15, 10, 8, 6, 5, 4:
     sigma = 1.0 / denom
     plt.plot(eta, calculate_r(eta, sigma), color="black")
     x = 0.075
