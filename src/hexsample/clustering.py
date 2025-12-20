@@ -67,7 +67,7 @@ class Cluster:
 
     def eta(self, gamma: float, pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function.
-        
+
         Arguments
         ---------
         gamma : float
@@ -84,7 +84,7 @@ class Cluster:
 
         # Consider to create a separate method for this
         eta = self.pha[1] / self.pulse_height()
-        r_fit = PowerLaw().evaluate(eta/0.5, 0.5, gamma)*pitch
+        r_fit = PowerLaw().evaluate(eta / 0.5, 0.5, gamma)*pitch
         x_fit = self.x[0] + r_fit * n[0]
         y_fit = self.y[0] + r_fit * n[1]
 

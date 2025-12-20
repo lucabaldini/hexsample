@@ -467,13 +467,13 @@ class HexagonalGrid:
         row : np.array
             array with row pixel coordinates of hexagons
 
-        i : int, optional
+        section : int, optional
             triangular section. Defaults to 0.
 
         Returns
         -------
         Tuple[np.array, np.array, np.array]
-            The first array containts the (x, y) coordinates of the center of the hexagon,
+            The first array contains the (x, y) coordinates of the center of the hexagon,
             and the second and third arrays contain the (x, y) coordinates of the other two
             vertices of the triangle
         """
