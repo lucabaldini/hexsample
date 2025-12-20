@@ -20,6 +20,7 @@
 """Reconstruction facilities.
 """
 
+import inspect
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -99,6 +100,10 @@ class ReconEvent:
     livetime: int
     #roi_size: int
     cluster: Cluster
+    method: str
+    pitch: float
+    gamma: float
+
 
     def energy(self, ionization_potential: float = DEFAULT_IONIZATION_POTENTIAL) -> float:
         """Return the energy of the event in eV.
@@ -113,4 +118,10 @@ class ReconEvent:
     def position(self) -> Tuple[float, float]:
         """Return the reconstructed position of the event.
         """
-        return self.cluster.centroid()
+        recon_method = getattr(self.cluster, self.method)
+
+        signature = inspect.signature(recon_method)
+        available = {'pitch': self.pitch, 'gamma': self.gamma}
+        args = [available[_par] for _par in signature.parameters]
+
+        return recon_method(*args)

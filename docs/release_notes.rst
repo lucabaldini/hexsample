@@ -3,8 +3,11 @@
 Release notes
 =============
 
+* Added the possibility to use the eta function to reconstruct events.
+* Added new triangular and hexagonal (spatially) uniform beams.
+* Added a new (spectrally) monochromatic beam.
 * Obsolete fitting module removed.
-* aptapy version bumped to >=0.17.2
+* aptapy version bumped to >=0.18.0
 * Release notes re-formatted and cleaned up.
 * Pull requests merged and issues closed:
 
@@ -13,6 +16,7 @@ Release notes
   - https://github.com/lucabaldini/hexsample/issues/74
   - https://github.com/lucabaldini/hexsample/issues/73
   - https://github.com/lucabaldini/hexsample/issues/72
+  - https://github.com/lucabaldini/hexsample/issues/69
 
 
 Version 0.11.0 (2025-11-19)

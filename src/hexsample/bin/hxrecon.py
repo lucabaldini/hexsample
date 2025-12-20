@@ -52,6 +52,7 @@ HXRECON_ARGPARSER = ArgumentParser(description=__description__)
 HXRECON_ARGPARSER.add_infile()
 HXRECON_ARGPARSER.add_suffix("recon")
 HXRECON_ARGPARSER.add_clustering_options()
+HXRECON_ARGPARSER.add_reconstruction_options()
 
 
 def hxrecon(**kwargs):
@@ -98,15 +99,18 @@ def hxrecon(**kwargs):
     output_file.update_digi_header(**input_file.header)
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
-        args = event.trigger_id, event.timestamp(), event.livetime, cluster
-        recon_event = ReconEvent(*args)
-        mc_event = input_file.mc_event(i)
-        output_file.add_row(recon_event, mc_event)
+        # allow nneighbors to consider all events
+        if kwargs['nneighbors'] == 0 or cluster.size() == kwargs['nneighbors']:
+            # Need to pass the recon method and other stuff as argument to ReconEvent
+            args = event.trigger_id, event.timestamp(), event.livetime, cluster, \
+                kwargs['rcmethod'], header['pitch'], kwargs['gamma']
+            recon_event = ReconEvent(*args)
+            mc_event = input_file.mc_event(i)
+            output_file.add_row(recon_event, mc_event)
     output_file.flush()
     input_file.close()
     output_file.close()
     return output_file_path
-
 
 
 if __name__ == "__main__":

@@ -115,3 +115,22 @@ def test_routing_7(nside: int = 10, pitch: float = 0.1) -> None:
             adc = grid.adc_channel(_col, _row)
             plt.text(_x, _y, f"{adc}", **fmt)
         display.setup_gca()
+
+def test_find_vertices():
+    """Test find_vertices method
+    """
+    target_cols = np.array([0, 1, 2, 3])
+    target_rows = np.array([0, 0, 0, 0])
+
+    layout = HexagonalLayout("ODD_R")
+    pitch = 0.005
+    plt.figure("Test find vertices")
+    grid = HexagonalGrid(layout, 10, 8, pitch)
+    display = HexagonalGridDisplay(grid)
+    display.draw(pixel_labels=True)
+    a, b, c = grid.find_vertices(target_cols, target_rows, section=6)
+    plt.plot(a[:, 0], a[:, 1], '+r')
+    plt.plot(b[:, 0], b[:, 1], '+b')
+    plt.plot(c[:, 0], c[:, 1], '+g')
+
+    display.setup_gca()

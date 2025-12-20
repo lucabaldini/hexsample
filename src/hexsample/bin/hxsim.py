@@ -27,13 +27,13 @@ from tqdm import tqdm
 from hexsample import HEXSAMPLE_DATA, rng
 from hexsample.app import ArgumentParser
 from hexsample.fileio import digioutput_class
-from hexsample.hexagon import HexagonalLayout
+from hexsample.hexagon import HexagonalGrid, HexagonalLayout
 from hexsample.logging_ import logger
 from hexsample.mc import PhotonList
 from hexsample.readout import HexagonalReadoutMode, readout_chip
 from hexsample.roi import Padding
 from hexsample.sensor import Material, Sensor
-from hexsample.source import GaussianBeam, LineForest, Source
+from hexsample.source import GaussianBeam, HexagonalBeam, LineForest, Source, TriangularBeam
 
 __description__ = \
 """Simulate a list of digitized events from an arbitrary X-ray source.
@@ -55,7 +55,22 @@ def hxsim(**kwargs):
     # pylint: disable=too-many-locals, invalid-name
     rng.initialize(seed=kwargs["seed"])
     spectrum = LineForest(kwargs["srcelement"], kwargs["srclevel"])
-    beam = GaussianBeam(kwargs["srcposx"], kwargs["srcposy"], kwargs["srcsigma"])
+    grid_args = HexagonalLayout(kwargs["layout"]), kwargs["numcolumns"], kwargs["numrows"],\
+        kwargs["pitch"]
+    if kwargs["beamshape"] == "gaussian":
+        beam = GaussianBeam(kwargs["srcposx"], kwargs["srcposy"], kwargs["srcsigma"])
+    elif kwargs["beamshape"] == "triangular":
+        grid = HexagonalGrid(*grid_args)
+        target_col, target_row = grid.world_to_pixel(kwargs["srcposx"], kwargs["srcposy"])
+        center, v0, v1 = grid.find_vertices(target_col, target_row, kwargs["trngindex"])
+        beam = TriangularBeam(*center, tuple(v0), tuple(v1))
+    elif kwargs["beamshape"] == "hexagonal":
+        grid = HexagonalGrid(*grid_args)
+        target_col, target_row = grid.world_to_pixel(kwargs["srcposx"], kwargs["srcposy"])
+        center, v0, v1 = grid.find_vertices(target_col, target_row)
+        beam = HexagonalBeam(*center, tuple(v0), tuple(v1))
+    else:
+        raise RuntimeError
     source = Source(spectrum, beam)
     material = Material(kwargs["actmedium"], kwargs["fano"])
     sensor = Sensor(material, kwargs["thickness"], kwargs["transdiffsigma"])

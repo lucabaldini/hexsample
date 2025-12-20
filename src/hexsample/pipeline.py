@@ -32,8 +32,8 @@ sys.path.append(f"{_HEXSAMPLE_BIN}")
 sys.dont_write_bytecode = 1
 
 # pylint: disable=import-error, wrong-import-position, wrong-import-order
-from hxrecon import HXRECON_ARGPARSER, hxrecon as _hxrecon # noqa: E402, I001
-from hxsim import HXSIM_ARGPARSER, hxsim as _hxsim # noqa: E402, I001
+from .bin.hxrecon import HXRECON_ARGPARSER, hxrecon as _hxrecon # noqa: E402, I001
+from .bin.hxsim import HXSIM_ARGPARSER, hxsim as _hxsim # noqa: E402, I001
 
 
 def required_arguments(parser: ArgumentParser) -> list:
