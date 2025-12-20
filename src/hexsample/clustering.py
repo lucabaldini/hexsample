@@ -70,7 +70,7 @@ class Cluster:
         
         Arguments
         ---------
-        gamma : floar
+        gamma : float
             The index of the power law of the eta function.
         pitch : float
             The pitch of the pixels.
