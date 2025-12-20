@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.12.0 (2025-12-20)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Added the possibility to use the eta function to reconstruct events.
 * Added new triangular and hexagonal (spatially) uniform beams.
 * Added a new (spectrally) monochromatic beam.
