@@ -312,6 +312,39 @@ class SpectrumBase:
         raise NotImplementedError
 
 
+class Line(SpectrumBase):
+
+    """Class describing a monochromatic emission line at a given energy
+    """
+
+    def __init__(self, energy: float) -> None:
+        """Constructor of the class
+        """
+        self._energy = energy
+
+    def rvs(self, size: int = 1) -> np.ndarray:
+        """Generate energies at a fixed value.
+
+        Arguments
+        ---------
+        size : int, optional
+            The number of X-ray photon energies to be generated. Defaults to 1.
+
+        Returns
+        -------
+        energy : np.ndarray
+            The photon energies in eV.
+        """
+        return np.full(size, self._energy)
+
+    def plot(self) -> None:
+        """Plot the monochromatic line
+        """
+        plt.bar(self._energy, 1., width=0.001, color='black')
+        plt.xlabel('Energy [eV]')
+        plt.ylabel('Relative intensity')
+        plt.yscale('log')
+        plt.grid()
 
 class LineForest(SpectrumBase):
 
@@ -375,41 +408,6 @@ class LineForest(SpectrumBase):
         """String formatting.
         """
         return f"{self.line_dict}"
-
-
-class Line(SpectrumBase):
-
-    """Class describing a monochromatic emission line at a given energy
-    """
-
-    def __init__(self, energy : float) -> None:
-        """Constructor of the class
-        """
-        self._energy = energy
-
-    def rvs(self, size: int = 1) -> np.ndarray:
-        """Generate energies at a fixed value.
-
-        Arguments
-        ---------
-        size : int, optional
-            The number of X-ray photon energies to be generated. Defaults to 1.
-
-        Returns
-        -------
-        energy : np.ndarray
-            The photon energies in eV.
-        """
-        return np.full(size, self._energy)
-
-    def plot(self) -> None:
-        """Plot the monochromatic line
-        """
-        plt.bar(self._energy, 1., width=0.001, color='black')
-        plt.xlabel('Energy [eV]')
-        plt.ylabel('Relative intensity')
-        plt.yscale('log')
-        plt.grid()
 
 
 class Source:
