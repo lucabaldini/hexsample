@@ -1,4 +1,4 @@
-# Copyright (C) 2024 the hexample team.
+# Copyright (C) 2023--2025 the hexsample team.
 #
 # For the license terms see the file LICENSE, distributed along with this
 # software.

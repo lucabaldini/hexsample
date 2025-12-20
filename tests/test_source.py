@@ -1,4 +1,4 @@
-# Copyright (C) 2022 luca.baldini@pi.infn.it
+# Copyright (C) 2023--2025 the hexsample team.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
+from aptapy.models import Gaussian
 from aptapy.plotting import plt, setup_gca
 
 from hexsample import rng
-from hexsample.fitting import fit_gaussian_iterative
 from hexsample.logging_ import logger
 from hexsample.source import (
     DiskBeam,
@@ -66,14 +66,16 @@ def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     plt.figure("Gaussian beam x projection")
     hx = Histogram1d(binning).fill(x)
     hx.plot()
-    model = fit_gaussian_iterative(hx, num_sigma_left=3., num_sigma_right=3.)
+    model = Gaussian()
+    model.fit_iterative(hx, num_sigma_left=3., num_sigma_right=3.)
     model.plot(fit_output=True)
     plt.legend()
 
     plt.figure("Gaussian beam y projection")
     hy = Histogram1d(binning).fill(y)
     hy.plot()
-    model = fit_gaussian_iterative(hy, num_sigma_left=3., num_sigma_right=3.)
+    model = Gaussian()
+    model.fit_iterative(hy, num_sigma_left=3., num_sigma_right=3.)
     model.plot(fit_output=True)
     plt.legend()
 

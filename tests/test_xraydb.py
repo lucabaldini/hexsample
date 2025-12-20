@@ -1,5 +1,5 @@
 
-# Copyright (C) 2022 luca.baldini@pi.infn.it
+# Copyright (C) 2023--2025 the hexsample team.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
