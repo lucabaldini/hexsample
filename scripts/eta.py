@@ -109,23 +109,22 @@ def hxeta(**kwargs):
     hist.fill(eta_2pix, dr_2pix)
     hist.plot()
     # Calculate mean and rms along r axis
-    r_mean_hist, r_rms_hist = hist.collapse_axis(1)
+    r_mean_hist, r_stddev_hist = hist.project_statistics()
     r_mean = r_mean_hist.content
-    # We want the stddev of the mean
-    r_mean_std = np.sqrt(r_rms_hist.content**2 - r_mean**2) / np.sqrt(np.sum(hist.content))
-    x_fit_2pix = hist.bin_centers(axis=0)
+    r_stddev = r_stddev_hist.content
+    x_r = r_mean_hist.bin_centers()
     plt.figure("r vs eta 2-pixel")
-    plt.errorbar(x_fit_2pix, r_mean, yerr=r_mean_std, fmt='.k')
+    plt.errorbar(x_r, r_mean, yerr=r_stddev, fmt='.k')
     # Fit with power law
     model = PowerLaw(0.5)
     model.prefactor.freeze(0.5)
-    model.fit(x_fit_2pix, r_mean, sigma=r_mean_std, absolute_sigma=True)
+    model.fit(x_r, r_mean, sigma=r_stddev)
     model.set_plotting_range(0, 0.5)
     model.plot(fit_output=True)
-
+    # Fit with probit model
     probit_model = Probit()
     probit_model.offset.freeze(0.5)
-    probit_model.fit(x_fit_2pix, r_mean, sigma=r_mean_std)
+    probit_model.fit(x_r, r_mean, sigma=r_stddev)
     probit_model.set_plotting_range(0, 0.5)
     probit_model.plot(fit_output=True)
 
@@ -164,7 +163,7 @@ def hxeta(**kwargs):
     r_hist3d = Histogram3d(x_r_binning, y_binning, r_binning, xlabel=xlabel, ylabel=ylabel,
                            zlabel="r")
     r_hist3d.fill(eta_sum, eta_diff, r)
-    r_mean, _ = r_hist3d.collapse_axis(2)
+    r_mean = r_hist3d.project_mean()
     r_mean.zlabel = "r mean"
     r_mean.plot()
 
@@ -172,21 +171,26 @@ def hxeta(**kwargs):
     r_slice = Histogram3d(x_r_binning, y_r_binning, r_binning, xlabel=xlabel, ylabel=ylabel,
                           zlabel="r")
     r_slice.fill(eta_sum, eta_diff, r)
-    r_slice_mean, r_slice_rms = r_slice.collapse_axis(2)
+    r_slice_mean, r_slice_stddev = r_slice.project_statistics()
     # Plot r vs eta sum
     plt.figure("r vs eta sum - 3 pixels")
     x_fit = r_slice_mean.bin_centers(axis=0)
     y_fit = r_slice_mean.content.flatten()
-    y_err = np.sqrt(r_slice_rms.content.flatten()**2 - y_fit**2) / np.sqrt(np.sum(r_slice.content))
-    plt.errorbar(x_fit, y_fit, yerr=y_err, fmt=".k")
+    r_slice_stddev = r_slice_stddev.content.flatten()
+    plt.errorbar(x_fit, y_fit, fmt=".k")
     plt.xlabel("eta1 + eta2")
     plt.ylabel("r / pitch")
     # Fit with power law
     model = PowerLaw(2/3)
     model.prefactor.freeze(1 / np.sqrt(3))
-    model.fit(x_fit, y_fit, sigma=y_err, absolute_sigma=True)
+    model.fit(x_fit, y_fit)
     model.set_plotting_range(0, 2/3)
     model.plot(fit_output=True)
+    # Note that a probit seems to be a good model also for the 3-pixel events using this
+    # parametrization, maybe we should work to explain that and use it in the reconstruction.
+    model_probit = Probit()
+    model_probit.fit(x_fit, y_fit)
+    model_probit.plot(fit_output=True)
     plt.xscale('linear')
     plt.yscale('linear')
     plt.legend()
@@ -196,35 +200,32 @@ def hxeta(**kwargs):
     theta_hist3d = Histogram3d(x_r_binning, y_binning, theta_binning, xlabel=xlabel, ylabel=ylabel,
                                zlabel="theta")
     theta_hist3d.fill(eta_sum, eta_diff, theta)
-    theta_mean, _ = theta_hist3d.collapse_axis(2)
+    theta_mean = theta_hist3d.project_mean()
     plt.figure("theta mean")
     theta_mean.plot()
     # Create histogram slice to fit theta vs eta diff ratio
     theta_slice = Histogram3d(x_theta_binning, y_binning, theta_binning, xlabel=xlabel,
                               ylabel=ylabel, zlabel="theta")
     theta_slice.fill(eta_sum, eta_diff, theta)
-    theta_slice_mean, theta_slice_rms = theta_slice.collapse_axis(2)
+    theta_slice_mean = theta_slice.project_mean()
     mask_zero = theta_slice_mean.content.flatten() > 0
     x_fit = theta_slice_mean.bin_centers(axis=1)[mask_zero]
     y_fit = theta_slice_mean.content.flatten()[mask_zero]
-    N = np.sum(theta_slice.content)
-    # Calculate the standard deviation of the mean
-    y_err = np.sqrt(theta_slice_rms.content.flatten()[mask_zero]**2 - y_fit**2) / np.sqrt(N)
     # This is just to make a comparison, a power law is not good
     plt.figure("theta vs eta diff ratio")
     model = PowerLaw()
     model.prefactor.freeze(np.pi/6)
-    model.fit(x_fit, y_fit, sigma=y_err, absolute_sigma=True)
+    model.fit(x_fit, y_fit)
     model.set_plotting_range(0, 1)
     model.plot(fit_output=True)
     # Fitting with a better model
     def fit_func(x, a):
         return (np.pi/6) * (np.exp(x*a) - 1) / (np.exp(a) - 1)
-    popt, pcov = curve_fit(fit_func, x_fit, y_fit, sigma=y_err, absolute_sigma=True)
+    popt, pcov = curve_fit(fit_func, x_fit, y_fit)
     xx = np.linspace(0, 1, 100)
     print(f"Fit parameter: gamma = {popt[0]} +/- {np.sqrt(pcov[0,0])}")
     plt.plot(xx, fit_func(xx, *popt), 'r--')
-    plt.errorbar(x_fit, y_fit, yerr=y_err, fmt=".k")
+    plt.errorbar(x_fit, y_fit, fmt=".k")
     plt.xlabel("(eta1 - eta2) / (eta1 + eta2)")
     plt.ylabel("theta [rad]")
     plt.xscale("linear")
