@@ -20,6 +20,7 @@
 """X-ray source description.
 """
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 
@@ -31,27 +32,22 @@ from . import rng
 from .hexagon import HexagonalGrid
 
 
-@dataclass
-class BeamBase:
+class AbstractBeamBase(ABC):
 
-    """Base class describing the morphology of a X-ray beam.
+    """Abstract base class for all the X-ray beam shapes.
 
-    Arguments
-    ---------
-    x0 : float
-        The x-coordinate of the beam centroid in cm.
+    This defines a single abstract method, :meth:`rvs`, that must be implemented
+    in all concrete subclasses, and should return random photon positions in the
+    xy plane with the proper distribution.
 
-    y0 : float
-        The y-coordinate of the beam centroid in cm.
+    Note all the positios in this context are expressed in cm.
     """
 
-    # pylint: disable=too-few-public-methods, invalid-name
-
-    x0: float = 0.
-    y0: float = 0.
-
+    @abstractmethod
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Do-nothing hook to generate random positions in the x-y plane.
+
+        Concrete subclasses must implement this method.
 
         Arguments
         ---------
@@ -63,14 +59,12 @@ class BeamBase:
         x, y : 2-element tuple of np.ndarray of shape ``size``
             The photon positions on the x-y plane.
         """
-        raise NotImplementedError
 
 
+@dataclass(slots=True)
+class PointBeamSpec:
 
-@dataclass
-class PointBeam(BeamBase):
-
-    """Point-like X-ray beam.
+    """Specification for a point-like X-ray beam.
 
     Arguments
     ---------
@@ -81,18 +75,18 @@ class PointBeam(BeamBase):
         The y-coordinate of the beam centroid in cm.
     """
 
+    x0: float = 0.
+    y0: float = 0.
+
+
+@dataclass
+class PointBeam(PointBeamSpec, AbstractBeamBase):
+
+    """Point-like X-ray beam.
+    """
+
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
-
-        Arguments
-        ---------
-        size : int
-            The number of X-ray photon positions to be generated.
-
-        Returns
-        -------
-        x, y : 2-element tuple of np.ndarray of shape ``size``
-            The photon positions on the x-y plane.
         """
         # pylint: disable=invalid-name
         x = np.full(size, self.x0)
@@ -100,11 +94,10 @@ class PointBeam(BeamBase):
         return x, y
 
 
+@dataclass(slots=True)
+class DiskBeamSpec:
 
-@dataclass
-class DiskBeam(BeamBase):
-
-    """Uniform disk X-ray beam.
+    """Specification for a uniform disk X-ray beam.
 
     Arguments
     ---------
@@ -118,20 +111,20 @@ class DiskBeam(BeamBase):
         The disk radius in cm.
     """
 
+    # pylint: disable=invalid-name
+    x0: float = 0.
+    y0: float = 0.
     radius: float = 0.1
+
+
+@dataclass
+class DiskBeam(DiskBeamSpec, AbstractBeamBase):
+
+    """Uniform disk X-ray beam.
+    """
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
-
-        Arguments
-        ---------
-        size : int
-            The number of X-ray photon positions to be generated.
-
-        Returns
-        -------
-        x, y : 2-element tuple of np.ndarray of shape ``size``
-            The photon positions on the x-y plane.
         """
         # pylint: disable=invalid-name
         r = self.radius * np.sqrt(rng.generator.uniform(size=size))
@@ -141,10 +134,10 @@ class DiskBeam(BeamBase):
         return x, y
 
 
-@dataclass
-class GaussianBeam(BeamBase):
+@dataclass(slots=True)
+class GaussianBeamSpec:
 
-    """Azimuthally-simmetric gaussian beam.
+    """Specification for an azimuthally-symmetric gaussian beam.
 
     Arguments
     ---------
@@ -158,20 +151,20 @@ class GaussianBeam(BeamBase):
         The beam sigma in cm.
     """
 
+    # pylint: disable=invalid-name
+    x0: float = 0.
+    y0: float = 0.
     sigma: float = 0.1
+
+
+@dataclass
+class GaussianBeam(GaussianBeamSpec, AbstractBeamBase):
+
+    """Azimuthally-simmetric gaussian beam.
+    """
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
-
-        Arguments
-        ---------
-        size : int
-            The number of X-ray photon positions to be generated.
-
-        Returns
-        -------
-        x, y : 2-element tuple of np.ndarray of shape ``size``
-            The photon positions on the x-y plane.
         """
         # pylint: disable=invalid-name
         x = rng.generator.normal(self.x0, self.sigma, size=size)
@@ -179,10 +172,10 @@ class GaussianBeam(BeamBase):
         return x, y
 
 
-@dataclass
-class TriangularBeam(BeamBase):
+@dataclass(slots=True)
+class TriangularBeamSpec:
 
-    """Triangular uniform X-ray beam.
+    """Specification for a triangular uniform X-ray beam.
 
     Arguments
     ---------
@@ -199,21 +192,21 @@ class TriangularBeam(BeamBase):
         The (x, y) coordinates of the third vertex of the triangle in cm.
     """
 
+    # pylint: disable=invalid-name
+    x0: float = 0.
+    y0: float = 0.
     v1: Tuple[float, float] = (1., 0.)
     v2: Tuple[float, float] = (0., 1.)
 
+
+@dataclass
+class TriangularBeam(TriangularBeamSpec,AbstractBeamBase):
+
+    """Triangular uniform X-ray beam.
+    """
+
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
-
-        Arguments
-        ---------
-        size : int
-            The number of X-ray photon positions to be generated.
-
-        Returns
-        -------
-        x, y : 2-element tuple of np.ndarray of shape ``size``
-            The photon positions on the x-y plane.
         """
         if len(self.v1) != 2 or len(self.v2) != 2:
             raise ValueError("v1 and v2 must have 2 elements.")
@@ -230,10 +223,10 @@ class TriangularBeam(BeamBase):
         return w[:, 0], w[:, 1]
 
 
-@dataclass
-class HexagonalBeam(BeamBase):
+@dataclass(slots=True)
+class HexagonalBeamSpec:
 
-    """Hexagonal uniform X-ray beam.
+    """Specification for a hexagonal uniform X-ray beam.
 
     Arguments
     ---------
@@ -248,23 +241,23 @@ class HexagonalBeam(BeamBase):
 
     v1 : Tuple[float, float]
         The (x, y) coordinates of the second vertex of the hexagon in cm.
-
     """
+
+    # pylint: disable=invalid-name
+    x0: float = 0.
+    y0: float = 0.
     v0: Tuple[float, float] = (1., 0.)
     v1: Tuple[float, float] = (0., 1.)
 
+
+@dataclass
+class HexagonalBeam(HexagonalBeamSpec, AbstractBeamBase):
+
+    """Hexagonal uniform X-ray beam.
+    """
+
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
-
-        Arguments
-        ---------
-        size : int
-            The number of X-ray photon positions to be generated.
-
-        Returns
-        -------
-        x, y : 2-element tuple of np.ndarray of shape ``size``
-            The photon positions on the x-y plane.
         """
         _, size_t = np.unique(rng.generator.integers(0, 6, size), return_counts=True)
         x = np.zeros(size)
@@ -286,11 +279,22 @@ class HexagonalBeam(BeamBase):
         return x, y
 
 
-class SpectrumBase:
+class AbstractSpectrumBase(ABC):
 
-    """Base class for a photon energy spectrum.
+    """Abstract base class for a X-ray energy spectrum.
+
+    This defines a single abstract method, :meth:`rvs`, that must be implemented
+    in all concrete subclasses, and should return random photon energies with the
+    proper distribution.
+
+    In addition, a :meth:`plot` method is defined to visualize the spectrum, which
+    can be optionally overridden in concrete subclasses, where appropriate (i.e., when
+    it makes sense to plot the underlying spectrum).
+
+    Note all the energies in this context are expressed in eV.
     """
 
+    @abstractmethod
     def rvs(self, size: int = 1) -> np.ndarray:
         """Do-nothing hook to generate random energies.
 
@@ -304,7 +308,6 @@ class SpectrumBase:
         energy : np.ndarray of shape ``size``
             The photon energies in eV.
         """
-        raise NotImplementedError
 
     def plot(self) -> None:
         """Do-nothing plotting hook.
@@ -312,67 +315,76 @@ class SpectrumBase:
         raise NotImplementedError
 
 
-class Line(SpectrumBase):
+@dataclass(slots=True)
+class LineSpec:
+
+    """Specification for a monochromatic emission line at a given energy.
+    """
+
+    energy: float = 6000.0
+
+
+class Line(LineSpec, AbstractSpectrumBase):
 
     """Class describing a monochromatic emission line at a given energy
     """
 
-    def __init__(self, energy: float) -> None:
-        """Constructor of the class
-        """
-        self._energy = energy
-
     def rvs(self, size: int = 1) -> np.ndarray:
-        """Generate energies at a fixed value.
-
-        Arguments
-        ---------
-        size : int, optional
-            The number of X-ray photon energies to be generated. Defaults to 1.
-
-        Returns
-        -------
-        energy : np.ndarray
-            The photon energies in eV.
+        """Overloaded method.
         """
-        return np.full(size, self._energy)
+        return np.full(size, self.energy)
 
     def plot(self) -> None:
-        """Plot the monochromatic line
+        """Overloaded method.
         """
-        plt.bar(self._energy, 1., width=0.001, color='black')
+        plt.bar(self.energy, 1., width=0.001, color='black')
         plt.xlabel('Energy [eV]')
         plt.ylabel('Relative intensity')
         plt.yscale('log')
         plt.grid()
 
-class LineForest(SpectrumBase):
 
-    """Class describing a set of X-ray emission lines for a given element and
-    initial level or excitation energy.
+@dataclass(slots=True)
+class LineForestSpec:
+
+    """Specification for a set of X-ray emission lines for a given element and
+    initial level.
 
     See https://xraypy.github.io/XrayDB/python.html#x-ray-emission-lines for
     more information.
 
+    .. info::
+        Note that the Python interface to XrayDB allows specifying either the
+        initial level or the excitation energy (in eV), with the latter superceding
+        the former, as it means "all intial levels with below this energy".
+
+        In this initial implementation we only support specifying the initial level,
+        and support for excitation energy may be added in the future, if needed.
+
     Arguments
     ---------
     element : int or str
-        atomic number or atomic symbol for the given element
+        atomic number or atomic symbol for the given element (default: "Cu").
 
     initial_level : str, optional
-        iupac symbol of the initial level
-
-    excitation_energy : float, optional
-        excitation energy in eV
+        iupac symbol of the initial level (default: "K").
     """
 
-    def __init__(self, element: Union[str, int], initial_level: Optional[str] = None,
-                 excitation_energy: Optional[float] = None) -> None:
+    element: Union[str, int] = "Cu"
+    initial_level: str = "K"
+
+
+class LineForest(LineForestSpec, AbstractSpectrumBase):
+
+    """Class describing a set of X-ray emission lines for a given element and
+    initial level or excitation energy.
+    """
+
+    def __init__(self, element: Union[str, int], initial_level: str) -> None:
         """Constructor.
         """
-        super().__init__()
         # Retrieve all the X-ray lines for the given element and setup.
-        self.line_dict = xraydb.xray_lines(element, initial_level, excitation_energy)
+        self.line_dict = xraydb.xray_lines(element, initial_level, None)
         # Cache the line energies (in eV) and the corresponding probabilities...
         self._energies = np.array([line.energy for line in self.line_dict.values()])
         self._probs = np.array([line.intensity for line in self.line_dict.values()])
@@ -380,22 +392,12 @@ class LineForest(SpectrumBase):
         self._probs /= self._probs.sum()
 
     def rvs(self, size: int  = 1) -> np.ndarray:
-        """Throw random energies from the line forest.
-
-        Arguments
-        ---------
-        size : int
-            The number of X-ray energies to be generated.
-
-        Returns
-        -------
-        energy : np.ndarray of shape ``size``
-            The photon energies in eV.
+        """Overloaded method.
         """
         return rng.generator.choice(self._energies, size, replace=True, p=self._probs)
 
     def plot(self) -> None:
-        """Plot the line forest.
+        """Overloaded method.
         """
         # pylint: disable=invalid-name
         plt.bar(self._energies, self._probs, width=0.0001, color="black")
@@ -422,11 +424,11 @@ class Source:
     spectrum : SpectrumBase
         The source spectrum.
 
-    beam : BeamBase
+    beam : AbstractBeamBase
         The source beam morphology.
     """
 
-    def __init__(self, spectrum: SpectrumBase, beam: BeamBase, rate: float = 100.) -> None:
+    def __init__(self, spectrum: AbstractSpectrumBase, beam: AbstractBeamBase, rate: float = 100.) -> None:
         """Constructor.
         """
         self.spectrum = spectrum
@@ -469,3 +471,13 @@ class Source:
         energy = self.spectrum.rvs(size)
         x, y = self.beam.rvs(size)
         return timestamp, energy, x, y
+
+
+
+@dataclass
+class SourceConfiguration:
+
+    """Dataclass to hold source configuration parameters.
+    """
+
+    source_type: str
