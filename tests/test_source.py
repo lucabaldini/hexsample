@@ -44,6 +44,7 @@ def test_point_beam(x0 : float = 1., y0 : float = -1., num_photons : int = 1000)
     assert np.allclose(x, np.full(num_photons, x0))
     assert np.allclose(y, np.full(num_photons, y0))
 
+
 def test_disk_beam(radius : float = 0.1, num_photons : int = 1000000):
     """Unit test for the gaussian beam
     """
@@ -53,6 +54,7 @@ def test_disk_beam(radius : float = 0.1, num_photons : int = 1000000):
     plt.figure("Disk beam")
     Histogram2d(binning, binning).fill(x, y).plot()
     setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+
 
 def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     """Test a gaussian beam
@@ -79,6 +81,7 @@ def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     model.plot(fit_output=True)
     plt.legend()
 
+
 def test_triangular_beam(num_photons: int = 10000):
     """Test for TriangularBeam class
     """
@@ -86,15 +89,19 @@ def test_triangular_beam(num_photons: int = 10000):
     x, y = beam.rvs(num_photons)
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
+
     plt.figure('Triangular beam')
     Histogram2d(binning_x, binning_y).fill(x, y).plot()
     setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+
     plt.figure('Triangular beam x projection')
     hx = Histogram1d(binning_x).fill(x)
     hx.plot()
+
     plt.figure('Triangular beam y projection')
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
+
 
 def test_hexagonal_beam(size: int = 10000):
     """Test for HexagonalBeam class
@@ -106,15 +113,19 @@ def test_hexagonal_beam(size: int = 10000):
     x, y = beam.rvs(size)
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
+
     plt.figure('Hexagonal beam')
     Histogram2d(binning_x, binning_y).fill(x, y).plot()
     setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+
     plt.figure('Hexagonal beam x projection')
     hx = Histogram1d(binning_x).fill(x)
     hx.plot()
+
     plt.figure('Hexagonal beam y projection')
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
+
 
 def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True):
     """Generic test for a line forest.
@@ -141,10 +152,12 @@ def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True)
         logger.debug(f"Chisquare / ndof = {chi2} / {ndof}...")
         assert chi2 - ndof <= 5. * np.sqrt(2. * ndof)
 
+
 def test_cu_k_forest():
     """Test the Cu K forest.
     """
     _test_forest("Cu", chisq_test=False)
+
 
 def test_mn_k_forest():
     """Test the Mn K forest.
@@ -153,6 +166,7 @@ def test_mn_k_forest():
     same energy, and the thing would require extra code to deal with that.
     """
     _test_forest("Mn", chisq_test=False)
+
 
 def test_line(energy: float = 6000, size: int = 10000):
     """Test for line class

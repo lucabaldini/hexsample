@@ -122,13 +122,13 @@ def test_find_vertices():
     target_cols = np.array([0, 1, 2, 3])
     target_rows = np.array([0, 0, 0, 0])
 
-    layout = HexagonalLayout('ODD_R')
+    layout = HexagonalLayout("ODD_R")
     pitch = 0.005
     plt.figure("Test find vertices")
     grid = HexagonalGrid(layout, 10, 8, pitch)
     display = HexagonalGridDisplay(grid)
     display.draw(pixel_labels=True)
-    a, b, c = grid.find_vertices(target_cols, target_rows, i=6)
+    a, b, c = grid.find_vertices(target_cols, target_rows, section=6)
     plt.plot(a[:, 0], a[:, 1], '+r')
     plt.plot(b[:, 0], b[:, 1], '+b')
     plt.plot(c[:, 0], c[:, 1], '+g')

@@ -181,19 +181,20 @@ class GaussianBeam(BeamBase):
 
 @dataclass
 class TriangularBeam(BeamBase):
-    """Triangular uniform X-ray beam. 
+
+    """Triangular uniform X-ray beam.
 
     Arguments
     ---------
     x0 : float
         The x-coordinate of the first vertex of the triangle in cm.
-    
+
     y0 : float
         The y-coordinate of the first vertex of the triangle in cm.
-    
+
     v1 : Tuple[float, float]
         The (x, y) coordinates of the second vertex of the triangle in cm.
-    
+
     v2 : Tuple[float, float]
         The (x, y) coordinates of the third vertex of the triangle in cm.
     """
@@ -225,13 +226,14 @@ class TriangularBeam(BeamBase):
         mask = u[:, 0] + u[:, 1] > 1
         u[mask, :] = 1 - u[mask, :]
 
-        w = (v1_ar - v0_ar)*u[:, 0, None] + (v2_ar - v0_ar)*u[:, 1, None] + v0_ar
+        w = (v1_ar - v0_ar) * u[:, 0, None] + (v2_ar - v0_ar) * u[:, 1, None] + v0_ar
         return w[:, 0], w[:, 1]
 
 
 @dataclass
 class HexagonalBeam(BeamBase):
-    """Hexagonal uniform X-ray beam. 
+
+    """Hexagonal uniform X-ray beam.
 
     Arguments
     ---------
@@ -271,14 +273,14 @@ class HexagonalBeam(BeamBase):
         j = 0
         c = np.array([self.x0, self.y0])
         for i, t_s in enumerate(size_t):
-            rotator = HexagonalGrid.create_rotator(np.pi/3*i)
+            rotator = HexagonalGrid.create_rotator(np.pi / 3. * i)
             v0_rot = rotator((self.v0[0] - c[0], self.v0[1] - c[1])) + c
             v1_rot = rotator((self.v1[0] - c[0], self.v1[1] - c[1])) + c
             beam = TriangularBeam(self.x0, self.y0, tuple(v0_rot), tuple(v1_rot))
             x_tr, y_tr = beam.rvs(t_s)
 
-            x[j:j+t_s] = x_tr
-            y[j:j+t_s] = y_tr
+            x[j:j + t_s] = x_tr
+            y[j:j + t_s] = y_tr
             j += t_s
 
         return x, y
@@ -310,6 +312,39 @@ class SpectrumBase:
         raise NotImplementedError
 
 
+class Line(SpectrumBase):
+
+    """Class describing a monochromatic emission line at a given energy
+    """
+
+    def __init__(self, energy: float) -> None:
+        """Constructor of the class
+        """
+        self._energy = energy
+
+    def rvs(self, size: int = 1) -> np.ndarray:
+        """Generate energies at a fixed value.
+
+        Arguments
+        ---------
+        size : int, optional
+            The number of X-ray photon energies to be generated. Defaults to 1.
+
+        Returns
+        -------
+        energy : np.ndarray
+            The photon energies in eV.
+        """
+        return np.full(size, self._energy)
+
+    def plot(self) -> None:
+        """Plot the monochromatic line
+        """
+        plt.bar(self._energy, 1., width=0.001, color='black')
+        plt.xlabel('Energy [eV]')
+        plt.ylabel('Relative intensity')
+        plt.yscale('log')
+        plt.grid()
 
 class LineForest(SpectrumBase):
 
@@ -373,41 +408,6 @@ class LineForest(SpectrumBase):
         """String formatting.
         """
         return f"{self.line_dict}"
-
-
-class Line(SpectrumBase):
-    """Class describing a monochromatic emission line at a given energy
-    """
-
-    def __init__(self, energy : float) -> None:
-        """Constructor of the class
-        """
-        self._energy = energy
-        self._prob = 1
-
-    def rvs(self, size: int = 1) -> np.ndarray:
-        """Generate energies at a fixed value.
-
-        Arguments
-        ---------
-        size : int, optional
-            The number of X-ray photon energies to be generated. Defaults to 1.
-
-        Returns
-        -------
-        energy : np.ndarray
-            The photon energies in eV.
-        """
-        return np.full(size, self._energy)
-
-    def plot(self) -> None:
-        """Plot the monochromatic line
-        """
-        plt.bar(self._energy, self._prob, width=0.001, color='black')
-        plt.xlabel('Energy [eV]')
-        plt.ylabel('Relative intensity')
-        plt.yscale('log')
-        plt.grid()
 
 
 class Source:

@@ -94,7 +94,7 @@ class Cluster:
 
     def eta(self, gamma: tuple[float, float, float], pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function.
-        
+
         Arguments
         ---------
         gamma : tuple[float, float, float]
