@@ -30,6 +30,7 @@ from hexsample.source import (
     Line,
     LineForest,
     PointBeam,
+    Source,
     TriangularBeam,
 )
 
@@ -183,3 +184,18 @@ def test_line(energy: float = 6000, size: int = 10000):
         # Check if all events have the same energy given as input
         assert val == energy
         assert cnts == size
+
+
+def test_source():
+    """Test different ways to create a fully-fledged X-ray source.
+    """
+    source = Source(
+        spectrum=Line(energy=8000.),
+        beam=GaussianBeam(sigma=0.1),
+        rate=5000.,
+    )
+    assert source.spectrum.energy == 8000.
+    assert source.beam.x0 == 0.
+    assert source.beam.y0 == 0.
+    assert source.beam.sigma == 0.1
+    assert source.rate == 5000.
