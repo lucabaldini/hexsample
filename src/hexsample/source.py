@@ -172,6 +172,23 @@ SpectrumSpec = Union[
     ]
 
 
+# Dispatching dictionary for spectrum objects.
+_SPECTRUM_DICT = {
+    "line": Line,
+    "forest": LineForest
+}
+
+
+def spectrum(**kwargs) -> AbstractSpectrumBase:
+    """Factory function to create spectrum objects from specifications.
+    """
+    spectrum_type = kwargs.get("type")
+    if spectrum_type not in _SPECTRUM_DICT:
+        raise ValueError(f"Unknown spectral type: {spectrum_type!r}")
+    cls = _SPECTRUM_DICT[spectrum_type]
+    return cls(**{key: value for key, value in kwargs.items() if key != "type"})
+
+
 class AbstractBeamBase(ABC):
 
     """Abstract base class for all the X-ray beam shapes.
@@ -427,6 +444,26 @@ BeamSpec = Union[
     TriangularBeamSpec,
     HexagonalBeamSpec
     ]
+
+
+# Dispatching dictionary for beam objects.
+_BEAM_DICT = {
+    "point": PointBeam,
+    "disk": DiskBeam,
+    "gaussian": GaussianBeam,
+    "triangular": TriangularBeam,
+    "hexagonal": HexagonalBeam
+}
+
+
+def beam(**kwargs) -> AbstractBeamBase:
+    """Factory function to create beam objects from specifications.
+    """
+    beam_type = kwargs.get("type")
+    if beam_type not in _BEAM_DICT:
+        raise ValueError(f"Unknown beam type: {beam_type!r}")
+    cls = _BEAM_DICT[beam_type]
+    return cls(**{key: value for key, value in kwargs.items() if key != "type"})
 
 
 @dataclass(slots=True)
