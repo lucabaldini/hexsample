@@ -2,7 +2,6 @@
 """
 
 import numpy as np
-import scipy.stats
 from aptapy.hist import Histogram1d, Histogram2d, Histogram3d
 from aptapy.models import PowerLaw, Probit
 from aptapy.plotting import plt
