@@ -92,12 +92,12 @@ class Cluster:
                 n = np.array([0., 0.])
         return n
 
-    def eta(self, gamma: tuple[float, float, float], pitch: float) -> Tuple[float, float]:
+    def eta(self, gamma: Tuple[float, float, float], pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function.
 
         Arguments
         ---------
-        gamma : tuple[float, float, float]
+        gamma : Tuple[float, float, float]
             The parameters to use for the eta function reconstruction, one for 2-pixel events (dr),
             and two for 3-pixel events (dr, theta).
         pitch : float
