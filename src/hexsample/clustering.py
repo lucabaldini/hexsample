@@ -72,16 +72,16 @@ class Cluster:
         return eta
 
     def n_versor(self) -> np.ndarray:
-        """Return the versor n for the cluster. Its definitions depends on the cluster size.
+        """Return the versor n for the cluster. Its definition depends on the cluster size.
         For 2-pixel clusters it is the versor that points from the center of the pixel with the
         highest pha to the center of the other one. For 3-pixel clusters it points from the center
         of the pixel with the highest pha to the midpoint of the line that connects the centers of
         the other two pixels."""
         if self.x.shape[0] == 2:
-            n = np.array([self.x[1] - self.x[0], self.y[1] - self.y[0]]).T
+            n = np.array([self.x[1] - self.x[0], self.y[1] - self.y[0]])
         elif self.x.shape[0] == 3:
-            n = np.array([self.x[1] + self.x[2] - 2 * self.x[0],\
-                          self.y[1] + self.y[2] - 2 * self.y[0]]).T
+            n = np.array([self.x[1] + self.x[2] - 2 * self.x[0],
+                          self.y[1] + self.y[2] - 2 * self.y[0]])
         else:
             raise RuntimeError('Cluster must contain 2 or 3 pixels to calculate n versor')
         # It can happen that the versor is [0, 0] for events with strange geometries.
@@ -98,8 +98,8 @@ class Cluster:
         Arguments
         ---------
         gamma : Tuple[float, float, float]
-            The parameters to use for the eta function reconstruction, one for 2-pixel events (dr),
-            and two for 3-pixel events (dr, theta).
+            The parameters to use for the eta function reconstruction, the first for 2-pixel
+            events (dr), the other two for 3-pixel events (dr, theta).
         pitch : float
             The pitch of the pixels.
         """
@@ -124,7 +124,7 @@ class Cluster:
             x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
             y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
         else:
-            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position using \
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position using\
                                eta function")
         return x_recon, y_recon
 

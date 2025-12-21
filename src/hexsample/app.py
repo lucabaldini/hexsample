@@ -145,16 +145,16 @@ class ArgumentParser(argparse.ArgumentParser):
     def add_reconstruction_options(self) -> None:
         """Add an option group for reconstruction.
         """
-        group = self.add_argument_group('reconstruction', 'Options for event reconstruction')
-        group.add_argument('--rcmethod', choices=['centroid', 'eta', 'dnn', 'gnn'], type=str,
-            default='centroid', help='How to reconstruct position')
-        group.add_argument('--gamma', default=[0.245, 0.330, 1.84], type=float,
-            help='index of the power law for eta reconstruction')
-        group.add_argument('--nnmodel', type=str, default='pretrained',
+        group = self.add_argument_group("reconstruction", "Options for event reconstruction")
+        group.add_argument("--rcmethod", choices=['centroid', 'eta', 'dnn', 'gnn'], type=str,
+            default="centroid", help="How to reconstruct position")
+        group.add_argument("--gamma", default=[0.245, 0.330, 1.84], type=float, nargs=3,
+            help="parameters for the eta function reconstruction for 2 and 3 pixel clusters")
+        group.add_argument("--nnmodel", type=str, default="pretrained",
                            choices=['pretrained', 'custom'],
-                           help='model to use for neural network reconstruction')
-        group.add_argument('--modelpath', type=str,
-            help='path of the model to use, in case of custom model')
+                           help="model to use for neural network reconstruction")
+        group.add_argument("--modelpath", type=str,
+            help="path of the model to use, in case of custom model")
 
     def add_readout_options(self) -> None:
         """Add an option group for the readout properties.

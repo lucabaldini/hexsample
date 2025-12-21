@@ -16,7 +16,7 @@ from hexsample.logging_ import logger
 from hexsample.readout import HexagonalReadoutCircular, HexagonalReadoutMode
 
 __description__ = \
-"""Run the calibration of the eta function
+"""Run the calibration of the eta function.
 """
 
 # Parser object.
@@ -27,7 +27,11 @@ NUMBINS = 20
 
 
 def mask_topology(x, y):
-    """Check if the angle between the two vectors is 60 degrees (adjacent pixels)
+    """Check whether the pixel topology corresponds to adjacent pixels, by checking the angle
+    between the vectors that connect the pixel with the highest pha to the other pixels.
+
+    This function will not be useful when the zero suppression will be improved to remove noisy
+    pixels from events.
     """
     if x.shape[1] == 2:
         mask = np.full(x.shape[0], True)
@@ -39,6 +43,7 @@ def mask_topology(x, y):
     else:
         mask = np.full(x.shape[0], False)
     return mask
+
 
 def hxeta(**kwargs):
     """Application to calibrate the eta function.
@@ -59,11 +64,11 @@ def hxeta(**kwargs):
     nneighbors = 6
     logger.info(f'Readout chip: {readout}')
     clustering = ClusteringNN(readout, header["zsupthreshold"], nneighbors)
-    # Create all the list we need to fill
+    # Create all the lists we need to fill
     size, x0, y0, absx, absy, eta, n = [[] for _ in range(7)]
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
-        # This cut will be made at the zero supression level
+        # This cut will be made at the zero suppression level
         valid_topology = mask_topology(cluster.x.reshape(1, -1), cluster.y.reshape(1, -1))[0]
         if (cluster.size() == 2 or cluster.size() == 3) and valid_topology:
             # Check if the event topology is acceptable
@@ -84,7 +89,7 @@ def hxeta(**kwargs):
     absy = np.array(absy)
     eta = np.array(eta, dtype=object)
     n = np.array(n)
-    # Calculate the photon position with respsect to the central pixel
+    # Calculate the photon position with respect to the central pixel
     photon_pos = np.array([absx - x0, absy - y0]).T / header['pitch']
 
     # 2-pixel events calibration
@@ -170,12 +175,11 @@ def hxeta(**kwargs):
     r_slice = Histogram3d(x_r_binning, y_r_binning, r_binning, xlabel=xlabel, ylabel=ylabel,
                           zlabel="r")
     r_slice.fill(eta_sum, eta_diff, r)
-    r_slice_mean, r_slice_stddev = r_slice.project_statistics()
+    r_slice_mean = r_slice.project_mean()
     # Plot r vs eta sum
     plt.figure("r vs eta sum - 3 pixels")
     x_fit = r_slice_mean.bin_centers(axis=0)
     y_fit = r_slice_mean.content.flatten()
-    r_slice_stddev = r_slice_stddev.content.flatten()
     plt.errorbar(x_fit, y_fit, fmt=".k")
     plt.xlabel("eta1 + eta2")
     plt.ylabel("r / pitch")
