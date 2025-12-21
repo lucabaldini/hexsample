@@ -189,6 +189,7 @@ def hxeta(**kwargs):
     # Note that a probit seems to be a good model also for the 3-pixel events using this
     # parametrization, maybe we should work to explain that and use it in the reconstruction.
     model_probit = Probit()
+    model_probit.offset.freeze(0.5)
     model_probit.fit(x_fit, y_fit)
     model_probit.plot(fit_output=True)
     plt.xscale('linear')
