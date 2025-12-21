@@ -68,7 +68,7 @@ class AbstractSpectrumBase(ABC):
         raise NotImplementedError
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class LineSpec:
 
     """Specifications for a monochromatic emission line at a given energy.
@@ -90,14 +90,14 @@ class Line(LineSpec, AbstractSpectrumBase):
     def plot(self) -> None:
         """Overloaded method.
         """
-        plt.bar(self.energy, 1., width=0.001, color='black')
-        plt.xlabel('Energy [eV]')
-        plt.ylabel('Relative intensity')
-        plt.yscale('log')
+        plt.bar(self.energy, 1., width=0.001, color="black")
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("Relative intensity")
+        plt.yscale("log")
         plt.grid()
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class LineForestSpec:
 
     """Specifications for a set of X-ray emission lines for a given element and
@@ -218,7 +218,7 @@ class AbstractBeamBase(ABC):
         """
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class PointBeamSpec:
 
     """Specifications for a point-like X-ray beam.
@@ -236,7 +236,6 @@ class PointBeamSpec:
     y0: float = 0.
 
 
-@dataclass
 class PointBeam(PointBeamSpec, AbstractBeamBase):
 
     """Point-like X-ray beam.
@@ -251,7 +250,7 @@ class PointBeam(PointBeamSpec, AbstractBeamBase):
         return x, y
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class DiskBeamSpec:
 
     """Specifications for a uniform disk X-ray beam.
@@ -274,7 +273,6 @@ class DiskBeamSpec:
     radius: float = 0.1
 
 
-@dataclass
 class DiskBeam(DiskBeamSpec, AbstractBeamBase):
 
     """Uniform disk X-ray beam.
@@ -291,7 +289,7 @@ class DiskBeam(DiskBeamSpec, AbstractBeamBase):
         return x, y
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class GaussianBeamSpec:
 
     """Specifications for an azimuthally-symmetric gaussian beam.
@@ -314,7 +312,6 @@ class GaussianBeamSpec:
     sigma: float = 0.1
 
 
-@dataclass
 class GaussianBeam(GaussianBeamSpec, AbstractBeamBase):
 
     """Azimuthally-simmetric gaussian beam.
@@ -329,7 +326,7 @@ class GaussianBeam(GaussianBeamSpec, AbstractBeamBase):
         return x, y
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class TriangularBeamSpec:
 
     """Specifications for a triangular uniform X-ray beam.
@@ -356,7 +353,6 @@ class TriangularBeamSpec:
     v2: Tuple[float, float] = (0., 1.)
 
 
-@dataclass
 class TriangularBeam(TriangularBeamSpec,AbstractBeamBase):
 
     """Triangular uniform X-ray beam.
@@ -380,7 +376,7 @@ class TriangularBeam(TriangularBeamSpec,AbstractBeamBase):
         return w[:, 0], w[:, 1]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class HexagonalBeamSpec:
 
     """Specifications for a hexagonal uniform X-ray beam.
@@ -407,7 +403,6 @@ class HexagonalBeamSpec:
     v1: Tuple[float, float] = (0., 1.)
 
 
-@dataclass
 class HexagonalBeam(HexagonalBeamSpec, AbstractBeamBase):
 
     """Hexagonal uniform X-ray beam.
@@ -466,7 +461,7 @@ def beam(**kwargs) -> AbstractBeamBase:
     return cls(**{key: value for key, value in kwargs.items() if key != "type"})
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class SourceSpec:
 
     """Specifications for a fully-fledged X-ray source.

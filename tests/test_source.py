@@ -91,15 +91,15 @@ def test_triangular_beam(num_photons: int = 10000):
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
 
-    plt.figure('Triangular beam')
+    plt.figure("Triangular beam")
     Histogram2d(binning_x, binning_y).fill(x, y).plot()
-    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 
-    plt.figure('Triangular beam x projection')
+    plt.figure("Triangular beam x projection")
     hx = Histogram1d(binning_x).fill(x)
     hx.plot()
 
-    plt.figure('Triangular beam y projection')
+    plt.figure("Triangular beam y projection")
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
 
@@ -115,15 +115,15 @@ def test_hexagonal_beam(size: int = 10000):
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
 
-    plt.figure('Hexagonal beam')
+    plt.figure("Hexagonal beam")
     Histogram2d(binning_x, binning_y).fill(x, y).plot()
-    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 
-    plt.figure('Hexagonal beam x projection')
+    plt.figure("Hexagonal beam x projection")
     hx = Histogram1d(binning_x).fill(x)
     hx.plot()
 
-    plt.figure('Hexagonal beam y projection')
+    plt.figure("Hexagonal beam y projection")
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
 
@@ -177,10 +177,10 @@ def test_line(energy: float = 6000, size: int = 10000):
     x = line.rvs(size)
 
     values, counts = np.unique(x, return_counts=True)
-    logger.debug(f'Beam energy: {energy}')
-    logger.debug(f'Number of events: {size}')
+    logger.debug(f"Beam energy: {energy}")
+    logger.debug(f"Number of events: {size}")
     for val, cnts in zip(values, counts):
-        logger.debug(f'{val} eV -> {cnts} counts')
+        logger.debug(f"{val} eV -> {cnts} counts")
         # Check if all events have the same energy given as input
         assert val == energy
         assert cnts == size
