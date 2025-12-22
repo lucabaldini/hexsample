@@ -26,7 +26,7 @@ from typing import Tuple
 import numpy as np
 
 from .logging_ import logger
-from .pprint import AnsiFontEffect, ansi_format, line, space
+from .pretty import AnsiFontEffect, ansi_format, line, space
 from .roi import Padding, RegionOfInterest
 
 
