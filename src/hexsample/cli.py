@@ -215,9 +215,13 @@ class CliArgumentParser(argparse.ArgumentParser):
     def run(self) -> None:
         """Run the actual command tied to the specific options.
         """
+        # Parse the command-line arguments. We keep track of the both the namespace
+        # object and the corresponding dictionary of command-line arguments.
+        # Each sub-command in the main argument parser is tied to a specific function
+        # that is accessed through the 'runner' attribute in the namespace.
         ns = self.parse_args()
         kwargs = vars(ns)
-        runner = ns.runner
+        runner = kwargs.pop("runner")
         # Simulate?
         if runner == tasks.simulate:
             src = source.source_factory(**kwargs)
