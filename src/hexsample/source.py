@@ -299,15 +299,15 @@ class PointBeamSpec:
 
     Arguments
     ---------
-    x0 : float
+    posx : float
         The x-coordinate of the beam centroid in cm.
 
-    y0 : float
+    posy : float
         The y-coordinate of the beam centroid in cm.
     """
 
-    x0: float = 0.
-    y0: float = 0.
+    posx: float = 0.
+    posy: float = 0.
 
 
 class PointBeam(PointBeamSpec, AbstractBeamBase):
@@ -319,8 +319,8 @@ class PointBeam(PointBeamSpec, AbstractBeamBase):
         """Overloaded method.
         """
         # pylint: disable=invalid-name
-        x = np.full(size, self.x0)
-        y = np.full(size, self.y0)
+        x = np.full(size, self.posx)
+        y = np.full(size, self.posy)
         return x, y
 
 
@@ -331,10 +331,10 @@ class DiskBeamSpec:
 
     Arguments
     ---------
-    x0 : float
+    posx : float
         The x-coordinate of the beam centroid in cm.
 
-    y0 : float
+    posy : float
         The y-coordinate of the beam centroid in cm.
 
     radius : float
@@ -342,8 +342,8 @@ class DiskBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = PointBeamSpec.x0
-    y0: float = PointBeamSpec.y0
+    posx: float = PointBeamSpec.posx
+    posy: float = PointBeamSpec.posy
     radius: float = 0.1
 
 
@@ -358,8 +358,8 @@ class DiskBeam(DiskBeamSpec, AbstractBeamBase):
         # pylint: disable=invalid-name
         r = self.radius * np.sqrt(rng.generator.uniform(size=size))
         theta = rng.generator.uniform(0., 2. * np.pi, size=size)
-        x = self.x0 + r * np.cos(theta)
-        y = self.y0 + r * np.sin(theta)
+        x = self.posx + r * np.cos(theta)
+        y = self.posy + r * np.sin(theta)
         return x, y
 
 
@@ -370,10 +370,10 @@ class GaussianBeamSpec:
 
     Arguments
     ---------
-    x0 : float
+    posx : float
         The x-coordinate of the beam centroid in cm.
 
-    y0 : float
+    posy : float
         The y-coordinate of the beam centroid in cm.
 
     sigma : float
@@ -381,8 +381,8 @@ class GaussianBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = PointBeamSpec.x0
-    y0: float = PointBeamSpec.y0
+    posx: float = PointBeamSpec.posx
+    posy: float = PointBeamSpec.posy
     sigma: float = 0.1
 
 
@@ -395,8 +395,8 @@ class GaussianBeam(GaussianBeamSpec, AbstractBeamBase):
         """Overloaded method.
         """
         # pylint: disable=invalid-name
-        x = rng.generator.normal(self.x0, self.sigma, size=size)
-        y = rng.generator.normal(self.y0, self.sigma, size=size)
+        x = rng.generator.normal(self.posx, self.sigma, size=size)
+        y = rng.generator.normal(self.posy, self.sigma, size=size)
         return x, y
 
 
@@ -407,10 +407,10 @@ class TriangularBeamSpec:
 
     Arguments
     ---------
-    x0 : float
+    posx : float
         The x-coordinate of the first vertex of the triangle in cm.
 
-    y0 : float
+    posy : float
         The y-coordinate of the first vertex of the triangle in cm.
 
     v1 : Tuple[float, float]
@@ -421,8 +421,8 @@ class TriangularBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = PointBeamSpec.x0
-    y0: float = PointBeamSpec.y0
+    posx: float = PointBeamSpec.posx
+    posy: float = PointBeamSpec.posy
     v1: Tuple[float, float] = (1., 0.)
     v2: Tuple[float, float] = (0., 1.)
 
@@ -438,7 +438,7 @@ class TriangularBeam(TriangularBeamSpec, AbstractBeamBase):
         if len(self.v1) != 2 or len(self.v2) != 2:
             raise ValueError("v1 and v2 must have 2 elements.")
 
-        v0_ar = np.array([self.x0, self.y0])
+        v0_ar = np.array([self.posx, self.posy])
         v1_ar = np.array(self.v1)
         v2_ar = np.array(self.v2)
 
@@ -457,10 +457,10 @@ class HexagonalBeamSpec:
 
     Arguments
     ---------
-    x0 : float
+    posx : float
         The x-coordinate of the center of the hexagon in cm.
 
-    y0 : float
+    posy : float
         The y-coordinate of the center of the hexagon in cm.
 
     v0 : Tuple[float, float]
@@ -471,8 +471,8 @@ class HexagonalBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = PointBeamSpec.x0
-    y0: float = PointBeamSpec.y0
+    posx: float = PointBeamSpec.posx
+    posy: float = PointBeamSpec.posy
     v0: Tuple[float, float] = (1., 0.)
     v1: Tuple[float, float] = (0., 1.)
 
@@ -490,12 +490,12 @@ class HexagonalBeam(HexagonalBeamSpec, AbstractBeamBase):
         y = np.zeros(size)
 
         j = 0
-        c = np.array([self.x0, self.y0])
+        c = np.array([self.posx, self.posy])
         for i, t_s in enumerate(size_t):
             rotator = HexagonalGrid.create_rotator(np.pi / 3. * i)
             v0_rot = rotator((self.v0[0] - c[0], self.v0[1] - c[1])) + c
             v1_rot = rotator((self.v1[0] - c[0], self.v1[1] - c[1])) + c
-            beam = TriangularBeam(self.x0, self.y0, tuple(v0_rot), tuple(v1_rot))
+            beam = TriangularBeam(self.posx, self.posy, tuple(v0_rot), tuple(v1_rot))
             x_tr, y_tr = beam.rvs(t_s)
 
             x[j:j + t_s] = x_tr

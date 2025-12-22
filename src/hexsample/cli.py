@@ -117,10 +117,10 @@ class CliArgumentParser(argparse.ArgumentParser):
         # ... morphological part...
         group.add_argument("--beam", type=str, choices=source.beam_types(),
                            default=source.default_beam_type(),
-                           help="beam shape of the X-ray source")
-        group.add_argument("--x0", type=float, default=source.PointBeamSpec.x0,
+                           help="beam shape for the X-ray source")
+        group.add_argument("--posx", type=float, default=source.PointBeamSpec.posx,
                            help="x-coordinate of the beam centroid in cm")
-        group.add_argument("--y0", type=float, default=source.PointBeamSpec.y0,
+        group.add_argument("--posy", type=float, default=source.PointBeamSpec.posy,
                            help="y-coordinate of the beam centroid in cm")
         group.add_argument("--radius", type=float, default=source.DiskBeamSpec.radius,
                            help="radius of the disk beam in cm")
