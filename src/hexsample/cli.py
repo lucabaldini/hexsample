@@ -114,7 +114,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="element generating the line forest")
         group.add_argument("--initial_level", type=str, default=source.LineForestSpec.initial_level,
                            help="initial level for the line forest")
-        # ... and morphological part.
+        # ... morphological part...
         group.add_argument("--beam", type=str, choices=source.beam_types(),
                            default=source.default_beam_type(),
                            help="beam shape of the X-ray source")
@@ -126,6 +126,9 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="radius of the disk beam in cm")
         group.add_argument("--sigma", type=float, default=source.GaussianBeamSpec.sigma,
                            help="standard deviation of the gaussian beam in cm")
+        # ... and overall rate.
+        group.add_argument("--rate", type=float, default=source.Source.rate,
+                           help="overall source rate in photons/s")
 
     @staticmethod
     def add_sensor_options(parser: argparse.ArgumentParser) -> None:
@@ -192,38 +195,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         return {key: getattr(ns, key) for key in keys}
 
     @staticmethod
-    def source_from_namespace(ns: argparse.Namespace) -> source.Source:
-        """Create a Source object from the command-line arguments.
-
-        Arguments
-        ---------
-        ns : argparse.Namespace
-            The namespace containing the command-line arguments.
-
-        Returns
-        -------
-        source.Source
-            The source object.
-        """
-        # Parse the spectrum options.
-        spectrum_type = ns.spectrum
-        if spectrum_type == "line":
-            kwargs = CliArgumentParser.filter_namespace(ns, "energy")
-        elif spectrum_type == "forest":
-            kwargs = CliArgumentParser.filter_namespace(ns, "element", "level")
-        spectrum = source.spectrum_factory(spectrum_type, **kwargs)
-        # Parse the beam options.
-        beam_type = ns.beam
-        if beam_type == "point":
-            kwargs = CliArgumentParser.filter_namespace(ns, "x0", "y0")
-        elif beam_type == "disk":
-            kwargs = CliArgumentParser.filter_namespace(ns, "x0", "y0", "radius")
-        elif beam_type == "gaussian":
-            kwargs = CliArgumentParser.filter_namespace(ns, "x0", "y0", "sigma")
-        beam = source.beam_factory(beam_type, **kwargs)
-        return source.Source(spectrum, beam)
-
-    @staticmethod
     def sensor_from_namespace(ns: argparse.Namespace) -> sensor.Sensor:
         """Create a Sensor object from the command-line arguments.
 
@@ -245,12 +216,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Run the actual command tied to the specific options.
         """
         ns = self.parse_args()
+        kwargs = vars(ns)
         runner = ns.runner
         # Simulate?
         if runner == tasks.simulate:
-            source = self.source_from_namespace(ns)
+            src = source.source_factory(**kwargs)
             sensor = self.sensor_from_namespace(ns)
-            runner(source, sensor)
+            runner(src, sensor)
 
 
 def main() -> None:

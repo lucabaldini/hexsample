@@ -79,17 +79,13 @@ class LineSpec:
 
 class Line(LineSpec, AbstractSpectrumBase):
 
-    """Class describing a monochromatic emission line at a given energy
+    """Class describing a monochromatic emission line at a given energy.
     """
 
     def rvs(self, size: int = 1) -> np.ndarray:
-        """Overloaded method.
-        """
         return np.full(size, self.energy)
 
     def plot(self) -> None:
-        """Overloaded method.
-        """
         plt.bar(self.energy, 1., width=0.001, color="black")
         plt.xlabel("Energy [eV]")
         plt.ylabel("Relative intensity")
@@ -136,6 +132,7 @@ class LineForest(LineForestSpec, AbstractSpectrumBase):
     def __init__(self, element: Union[str, int], initial_level: str) -> None:
         """Constructor.
         """
+        LineForestSpec.__init__(self, element, initial_level)
         # Retrieve all the X-ray lines for the given element and setup.
         self.line_dict = xraydb.xray_lines(element, initial_level, None)
         # Cache the line energies (in eV) and the corresponding probabilities...
@@ -165,13 +162,6 @@ class LineForest(LineForestSpec, AbstractSpectrumBase):
         return f"{self.line_dict}"
 
 
-# Type alias for the specification of the source spectrum.
-SpectrumSpec = Union[
-    LineSpec,
-    LineForestSpec
-    ]
-
-
 # Dispatching dictionary for spectrum objects.
 _SPECTRUM_DICT = {
     "line": Line,
@@ -191,13 +181,38 @@ def default_spectrum_type() -> str:
     return "line"
 
 
-def spectrum_factory(spectrum_type: str, **kwargs) -> AbstractSpectrumBase:
+def spectrum_factory(**kwargs) -> AbstractSpectrumBase:
     """Factory function to create spectrum objects from specifications.
+
+    This does a few very specific things:
+
+    1. look for the ``spectrum`` keyword argument to determine the spectrum type
+       (keep this in mind, because all the code downstream needs to be aware);
+    2. filter out the keyword arguments that are not relevant for the selected
+       spectrum type;
+    3. instantiate and return the corresponding spectrum object, with all the
+       relevant keyword arguments.
+
+    Admittedly, this is not really streamlined for speed, but since this
+    function is only called once at the beginning of a simulation, this should
+    not be a problem.
+
+    Arguments
+    ---------
+    kwargs : dict
+        The keyword arguments containing the spectrum specifications.
+
+    Returns
+    -------
+    AbstractSpectrumBase
+        The spectrum object.
     """
+    spectrum_type = kwargs.get("spectrum", default_spectrum_type())
     if spectrum_type not in _SPECTRUM_DICT:
         raise ValueError(f"Unknown spectral type: {spectrum_type!r}")
     cls = _SPECTRUM_DICT[spectrum_type]
-    return cls(**{key: value for key, value in kwargs.items()})
+    kwargs = {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
+    return cls(**kwargs)
 
 
 class AbstractBeamBase(ABC):
@@ -442,16 +457,6 @@ class HexagonalBeam(HexagonalBeamSpec, AbstractBeamBase):
         return x, y
 
 
-# Type alias for the specification of the source morphology.
-BeamSpec = Union[
-    PointBeamSpec,
-    DiskBeamSpec,
-    GaussianBeamSpec,
-    TriangularBeamSpec,
-    HexagonalBeamSpec
-    ]
-
-
 # Dispatching dictionary for beam objects.
 _BEAM_DICT = {
     "point": PointBeam,
@@ -474,13 +479,25 @@ def default_beam_type() -> str:
     return "gaussian"
 
 
-def beam_factory(beam_type: str, **kwargs) -> AbstractBeamBase:
+def beam_factory(**kwargs) -> AbstractBeamBase:
     """Factory function to create beam objects from specifications.
+
+    Arguments
+    ---------
+    kwargs : dict
+        The keyword arguments containing the beam specifications.
+
+    Returns
+    -------
+    AbstractBeamBase
+        The beam object.
     """
+    beam_type = kwargs.get("beam", default_beam_type())
     if beam_type not in _BEAM_DICT:
         raise ValueError(f"Unknown beam type: {beam_type!r}")
     cls = _BEAM_DICT[beam_type]
-    return cls(**{key: value for key, value in kwargs.items()})
+    kwargs = {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
+    return cls(**kwargs)
 
 
 @dataclass(frozen=True)
@@ -525,3 +542,9 @@ class Source:
         energy = self.spectrum.rvs(size)
         x, y = self.beam.rvs(size)
         return t, energy, x, y
+
+
+def source_factory(**kwargs) -> Source:
+    """Factory function to create source objects from specifications.
+    """
+    return Source(spectrum_factory(**kwargs), beam_factory(**kwargs), kwargs.get("rate", Source.rate))
