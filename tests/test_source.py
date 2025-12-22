@@ -37,13 +37,13 @@ from hexsample.source import (
 rng.initialize()
 
 
-def test_point_beam(posx : float = 1., posy : float = -1., num_photons : int = 1000):
+def test_point_beam(x0 : float = 1., y0 : float = -1., num_photons : int = 1000):
     """Unit test for the point beam.
     """
-    beam = PointBeam(posx, posy)
+    beam = PointBeam(x0, y0)
     x, y = beam.rvs(num_photons)
-    assert np.allclose(x, np.full(num_photons, posx))
-    assert np.allclose(y, np.full(num_photons, posy))
+    assert np.allclose(x, np.full(num_photons, x0))
+    assert np.allclose(y, np.full(num_photons, y0))
 
 
 def test_disk_beam(radius : float = 0.1, num_photons : int = 1000000):
@@ -195,7 +195,7 @@ def test_source():
         rate=5000.,
     )
     assert source.spectrum.energy == 8000.
-    assert source.beam.posx == 0.
-    assert source.beam.posy == 0.
+    assert source.beam.x0 == 0.
+    assert source.beam.y0 == 0.
     assert source.beam.sigma == 0.1
     assert source.rate == 5000.
