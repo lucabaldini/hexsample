@@ -83,14 +83,15 @@ class Line(LineSpec, AbstractSpectrumBase):
     """
 
     def rvs(self, size: int = 1) -> np.ndarray:
+        """Overloaded method.
+        """
         return np.full(size, self.energy)
 
     def plot(self) -> None:
+        """Overloaded method.
+        """
         plt.bar(self.energy, 1., width=0.001, color="black")
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("Relative intensity")
-        plt.yscale("log")
-        plt.grid()
+        setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", grids=True)
 
 
 @dataclass(frozen=True)
