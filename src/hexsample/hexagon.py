@@ -200,7 +200,7 @@ _ADC_PROXY_DICT = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass
 class HexagonalGridSpec:
 
     """Dataclass describing a hexagonal grid specification.
@@ -226,7 +226,8 @@ class HexagonalGridSpec:
     pitch: float = 0.005
 
 
-class HexagonalGrid:
+@dataclass
+class HexagonalGrid(HexagonalGridSpec):
 
     # pylint: disable = too-many-instance-attributes
 
@@ -234,15 +235,10 @@ class HexagonalGrid:
     at its center.
     """
 
-    def __init__(self, layout: HexagonalLayout, num_cols: int, num_rows: int,
-                 pitch: float) -> None:
-        """Constructor.
+    def __post_init__(self) -> None:
+        """Post-initialization.
         """
-        self.layout = layout
-        self.num_cols = num_cols
-        self.num_rows = num_rows
         self.num_pixels = self.num_cols * self.num_rows
-        self.pitch = pitch
         self.secondary_pitch = 0.5 * np.sqrt(3.) * self.pitch
         self._hexagon_size = self.pitch / np.sqrt(3.)
         # Definition of the origin of coordinates.
