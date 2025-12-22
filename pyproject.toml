@@ -64,6 +64,9 @@ docs = [
 Homepage = "https://github.com/lucabaldini/hexsample"
 Issues = "https://github.com/lucabaldini/hexsample/issues"
 
+[project.scripts]
+hexsample = "hexsample.cli:main"
+
 [tool.hatch.version]
 path = "src/hexsample/_version.py"
 
