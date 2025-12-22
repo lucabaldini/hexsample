@@ -32,8 +32,62 @@ from . import rng
 from .hexagon import HexagonalGrid
 
 
+__all__ = [
+    "Line",
+    "LineForest",
+    "spectrum_types",
+    "default_spectrum_type",
+    "spectrum_factory",
+    "PointBeam",
+    "DiskBeam",
+    "GaussianBeam",
+    "TriangularBeam",
+    "HexagonalBeam",
+    "beam_types",
+    "default_beam_type",
+    "beam_factory",
+    "Source",
+    "source_factory"
+]
+
+
 def _object_factory(proxy_dict: dict, key: str, default_type: str, **kwargs) -> Any:
-    """Factory function to create object instances.
+    """Factory function to create generic object instances from keyword arguments.
+
+    This is used to implement both the spectrum and beam factory functions below.
+    The basic logic assumes that we have a dispatching dictionary mapping the names
+    we want to use to identify the various object types to the actual classes implementing
+    those types. The keyword arguments passed to this function would generally contain a
+    key (e.g., "spectrum" or "beam") specifying the name of the object type to be created,
+    and the remaining keyword arguments are used to initialize the object of the selected
+    type.
+
+    This function does a few, very specific things:
+    1. It retrieves the object type name from the keyword arguments, using the provided
+       key and default type name.
+    2. It checks that the specified object type name is valid (i.e., it exists in the
+       dispatching dictionary); if not, it raises a ValueError.
+    3. It retrieves the corresponding class from the dispatching dictionary.
+    4. It filters the keyword arguments to only include those that are valid for the
+       selected class (i.e., those that are defined as dataclass fields in the class).
+    5. It creates and returns an instance of the selected class, initialized with the
+       filtered keyword arguments.
+
+    Arguments
+    ---------
+    proxy_dict : dict
+        The dispatching dictionary mapping the names of the object types to the actuall
+        classes.
+
+    key : str
+        The key in the keyword arguments that specifies the name of the object type.
+
+    default_type : str
+        The default object type name to be used if none is specified in the keyword
+        arguments.
+
+    kwargs : dict
+        The keyword arguments containing the object specifications.
     """
     object_type = kwargs.get(key, default_type)
     if object_type not in proxy_dict:
@@ -175,7 +229,7 @@ class LineForest(LineForestSpec, AbstractSpectrumBase):
 
 
 # Dispatching dictionary for spectrum objects.
-_SPECTRUM_DICT = {
+_SPECTRUM_PROXY_DICT = {
     "line": Line,
     "forest": LineForest
 }
@@ -184,7 +238,7 @@ _SPECTRUM_DICT = {
 def spectrum_types() -> Tuple[str, ...]:
     """Return the available spectrum types.
     """
-    return tuple(_SPECTRUM_DICT.keys())
+    return tuple(_SPECTRUM_PROXY_DICT.keys())
 
 
 def default_spectrum_type() -> str:
@@ -206,7 +260,7 @@ def spectrum_factory(**kwargs) -> AbstractSpectrumBase:
     AbstractSpectrumBase
         The spectrum object.
     """
-    return _object_factory(_SPECTRUM_DICT, "spectrum", default_spectrum_type(), **kwargs)
+    return _object_factory(_SPECTRUM_PROXY_DICT, "spectrum", default_spectrum_type(), **kwargs)
 
 
 class AbstractBeamBase(ABC):
@@ -452,7 +506,7 @@ class HexagonalBeam(HexagonalBeamSpec, AbstractBeamBase):
 
 
 # Dispatching dictionary for beam objects.
-_BEAM_DICT = {
+_BEAM_PROXY_DICT = {
     "point": PointBeam,
     "disk": DiskBeam,
     "gaussian": GaussianBeam,
@@ -464,7 +518,7 @@ _BEAM_DICT = {
 def beam_types() -> Tuple[str, ...]:
     """Return the available beam types.
     """
-    return tuple(_BEAM_DICT.keys())
+    return tuple(_BEAM_PROXY_DICT.keys())
 
 
 def default_beam_type() -> str:
@@ -486,7 +540,7 @@ def beam_factory(**kwargs) -> AbstractBeamBase:
     AbstractBeamBase
         The beam object.
     """
-    return _object_factory(_BEAM_DICT, "beam", default_beam_type(), **kwargs)
+    return _object_factory(_BEAM_PROXY_DICT, "beam", default_beam_type(), **kwargs)
 
 
 @dataclass(frozen=True)
