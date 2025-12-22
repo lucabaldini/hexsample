@@ -175,43 +175,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         # group.add_argument("--zsupthreshold", type=int, default=0,
         #     help="zero-suppression threshold in ADC counts")
 
-    @staticmethod
-    def filter_namespace(ns: argparse.Namespace, *keys) -> dict:
-        """Filter the command-line arguments in a namespace.
-
-        Arguments
-        ---------
-        ns : argparse.Namespace
-            The namespace containing the command-line arguments.
-
-        keys : str
-            The keys to filter for.
-
-        Returns
-        -------
-        dict
-            A dictionary containing only the requested keys in the original namespace.
-        """
-        return {key: getattr(ns, key) for key in keys}
-
-    @staticmethod
-    def sensor_from_namespace(ns: argparse.Namespace) -> sensor.Sensor:
-        """Create a Sensor object from the command-line arguments.
-
-        Arguments
-        ---------
-        ns : argparse.Namespace
-            The namespace containing the command-line arguments.
-
-        Returns
-        -------
-        sensor.Sensor
-            The sensor object.
-        """
-        keys = ("material_symbol", "thickness", "diffusion_sigma", "fano_factor")
-        return sensor.Sensor(**CliArgumentParser.filter_namespace(ns, *keys))
-
-
     def run(self) -> None:
         """Run the actual command tied to the specific options.
         """
@@ -224,9 +187,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         runner = kwargs.pop("runner")
         # Simulate?
         if runner == tasks.simulate:
-            src = source.source_factory(**kwargs)
-            sensor = self.sensor_from_namespace(ns)
-            runner(src, sensor)
+            _source = source.source_factory(**kwargs)
+            _sensor = sensor.sensor_factory(**kwargs)
+            runner(_source, _sensor)
 
 
 def main() -> None:

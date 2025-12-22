@@ -295,3 +295,10 @@ class Sensor(SensorSpec):
         to have a momentum parallel to the z axis.
         """
         return self.thickness - self.rvs_absorption_depth(energy)
+
+
+def sensor_factory(**kwargs) -> Sensor:
+    """Factory function to create a sensor instance from keyword arguments.
+    """
+    kwargs = {k: v for k, v in kwargs.items() if k in SensorSpec.__dataclass_fields__}
+    return Sensor(**kwargs)
