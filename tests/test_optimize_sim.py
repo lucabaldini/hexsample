@@ -32,7 +32,7 @@ from hexsample.logging_ import logger
 from hexsample.mc import PhotonList
 from hexsample.readout import HexagonalReadoutRectangular
 from hexsample.roi import Padding, RegionOfInterest
-from hexsample.sensor import SiliconSensor
+from hexsample.sensor import Sensor
 from hexsample.source import GaussianBeam, LineForest, Source
 
 rng.initialize()
@@ -257,10 +257,10 @@ def test_photon_list(num_photons=100):
     spectrum = LineForest("Cu", "K")
     beam = GaussianBeam(0., 0., 0.1)
     source = Source(spectrum, beam)
-    sensor = SiliconSensor(0.05, 40.)
+    sensor = Sensor("Si", thickness=0.05)
     photon_list = PhotonList(source, sensor, num_photons)
     for mc_event in photon_list:
-        x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
+        x, y = mc_event.propagate(sensor.diffusion_sigma)
         _compare_readouts(x, y)
 
 @pytest.mark.skip(reason="just a timing experiment...")

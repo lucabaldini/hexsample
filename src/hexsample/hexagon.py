@@ -20,6 +20,7 @@
 """Geometrical facilities on a hexagonal grid.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Tuple
 
@@ -40,6 +41,11 @@ class HexagonalLayout(Enum):
     # Vertical, flat top, even columns are shoved down.
     EVEN_Q = "EVEN_Q"
 
+    @classmethod
+    def values(cls) -> Tuple[str, ...]:
+        """Return a tuple with all the enum values.
+        """
+        return tuple(item.value for item in cls)
 
 
 def neighbors_odd_r(col: int, row: int) -> tuple:
@@ -194,14 +200,10 @@ _ADC_PROXY_DICT = {
 }
 
 
+@dataclass(frozen=True)
+class HexagonalGridSpec:
 
-
-class HexagonalGrid:
-
-    # pylint: disable = too-many-instance-attributes
-
-    """Generic hexagonal grid, with the origin of the physical coordinate
-    system at its center.
+    """Dataclass describing a hexagonal grid specification.
 
     Arguments
     ---------
@@ -216,6 +218,20 @@ class HexagonalGrid:
 
     pitch : float
         The grid pitch in mm.
+    """
+
+    layout: HexagonalLayout = HexagonalLayout.ODD_R
+    num_cols: int = 304
+    num_rows: int = 352
+    pitch: float = 0.005
+
+
+class HexagonalGrid:
+
+    # pylint: disable = too-many-instance-attributes
+
+    """Generic hexagonal grid, with the origin of the physical coordinate system
+    at its center.
     """
 
     def __init__(self, layout: HexagonalLayout, num_cols: int, num_rows: int,

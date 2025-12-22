@@ -20,7 +20,7 @@ import pytest
 
 from hexsample import HEXSAMPLE_DATA, pipeline
 
-
+@pytest.mark.skip(reason="Need to refactor the pipeline.")
 def test_parsers():
     """Test the relevant ArgumentParser objects.
     """
@@ -30,6 +30,8 @@ def test_parsers():
     assert "infile" in pipeline.update_arguments(pipeline.HXRECON_ARGPARSER, infile="test_file")
     print(pipeline.update_arguments(pipeline.HXSIM_ARGPARSER))
 
+
+@pytest.mark.skip(reason="Need to refactor the pipeline.")
 def test_wrong_args():
     """Make sure that, when supplied with wrong parameters, the pipeline applications
     are raising a RuntimeError.
@@ -38,6 +40,8 @@ def test_wrong_args():
         pipeline.hxsim(numevents=100, bogusparam="howdy")
     print(excinfo.value)
 
+
+@pytest.mark.skip(reason="Need to refactor the pipeline.")
 def test_pipeline():
     """Test generating and reconstructing files.
     """

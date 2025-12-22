@@ -179,14 +179,25 @@ _SPECTRUM_DICT = {
 }
 
 
-def spectrum(**kwargs) -> AbstractSpectrumBase:
+def spectrum_types() -> Tuple[str, ...]:
+    """Return the available spectrum types.
+    """
+    return tuple(_SPECTRUM_DICT.keys())
+
+
+def default_spectrum_type() -> str:
+    """Return the default spectrum type.
+    """
+    return "line"
+
+
+def spectrum_factory(spectrum_type: str, **kwargs) -> AbstractSpectrumBase:
     """Factory function to create spectrum objects from specifications.
     """
-    spectrum_type = kwargs.get("type")
     if spectrum_type not in _SPECTRUM_DICT:
         raise ValueError(f"Unknown spectral type: {spectrum_type!r}")
     cls = _SPECTRUM_DICT[spectrum_type]
-    return cls(**{key: value for key, value in kwargs.items() if key != "type"})
+    return cls(**{key: value for key, value in kwargs.items()})
 
 
 class AbstractBeamBase(ABC):
@@ -197,7 +208,7 @@ class AbstractBeamBase(ABC):
     in all concrete subclasses, and should return random photon positions in the
     xy plane with the proper distribution.
 
-    Note all the positios in this context are expressed in cm.
+    Note all the positions in this context are expressed in cm.
     """
 
     @abstractmethod
@@ -268,8 +279,8 @@ class DiskBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = 0.
-    y0: float = 0.
+    x0: float = PointBeamSpec.x0
+    y0: float = PointBeamSpec.y0
     radius: float = 0.1
 
 
@@ -307,8 +318,8 @@ class GaussianBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = 0.
-    y0: float = 0.
+    x0: float = PointBeamSpec.x0
+    y0: float = PointBeamSpec.y0
     sigma: float = 0.1
 
 
@@ -347,13 +358,13 @@ class TriangularBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = 0.
-    y0: float = 0.
+    x0: float = PointBeamSpec.x0
+    y0: float = PointBeamSpec.y0
     v1: Tuple[float, float] = (1., 0.)
     v2: Tuple[float, float] = (0., 1.)
 
 
-class TriangularBeam(TriangularBeamSpec,AbstractBeamBase):
+class TriangularBeam(TriangularBeamSpec, AbstractBeamBase):
 
     """Triangular uniform X-ray beam.
     """
@@ -397,8 +408,8 @@ class HexagonalBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = 0.
-    y0: float = 0.
+    x0: float = PointBeamSpec.x0
+    y0: float = PointBeamSpec.y0
     v0: Tuple[float, float] = (1., 0.)
     v1: Tuple[float, float] = (0., 1.)
 
@@ -451,42 +462,47 @@ _BEAM_DICT = {
 }
 
 
-def beam(**kwargs) -> AbstractBeamBase:
+def beam_types() -> Tuple[str, ...]:
+    """Return the available beam types.
+    """
+    return tuple(_BEAM_DICT.keys())
+
+
+def default_beam_type() -> str:
+    """Return the default beam type.
+    """
+    return "gaussian"
+
+
+def beam_factory(beam_type: str, **kwargs) -> AbstractBeamBase:
     """Factory function to create beam objects from specifications.
     """
-    beam_type = kwargs.get("type")
     if beam_type not in _BEAM_DICT:
         raise ValueError(f"Unknown beam type: {beam_type!r}")
     cls = _BEAM_DICT[beam_type]
-    return cls(**{key: value for key, value in kwargs.items() if key != "type"})
+    return cls(**{key: value for key, value in kwargs.items()})
 
 
 @dataclass(frozen=True)
-class SourceSpec:
+class Source:
 
-    """Specifications for a fully-fledged X-ray source.
+    """Class describing a fully-fledged X-ray source.
 
-    Arguments
+     Arguments
     ---------
-    spectrum : SpectrumSpec
+    spectrum : AbstractSpectrumBase
         The source spectrum.
 
-    beam : BeamSpec
+    beam : AbstractBeamBase
         The source morphology.
 
     rate : float
         The photon rate in Hz.
     """
 
-    spectrum: SpectrumSpec
-    beam: BeamSpec
+    spectrum: AbstractSpectrumBase = Line()
+    beam: AbstractBeamBase = GaussianBeam()
     rate: float = 100.
-
-
-class Source(SourceSpec):
-
-    """Class describing a X-ray source.
-    """
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Extract random X-ray initial properties.

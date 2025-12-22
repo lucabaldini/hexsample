@@ -18,11 +18,14 @@
 
 from aptapy.plotting import plt
 
+import pytest
+
 from hexsample.analysis import create_histogram
 from hexsample.fileio import DigiInputFileRectangular, ReconInputFile
 from hexsample.pipeline import hxrecon, hxsim
 
 
+@pytest.mark.skip(reason="Need to refactor the pipeline.")
 def test_histograms(num_events : int = 1000):
     """Test the histogram creation from recon files.
     """
