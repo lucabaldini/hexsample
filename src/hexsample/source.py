@@ -22,7 +22,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 import numpy as np
 import xraydb
@@ -30,6 +30,17 @@ from aptapy.plotting import plt, setup_gca
 
 from . import rng
 from .hexagon import HexagonalGrid
+
+
+def _object_factory(proxy_dict: dict, key: str, default_type: str, **kwargs) -> Any:
+    """Factory function to create object instances.
+    """
+    object_type = kwargs.get(key, default_type)
+    if object_type not in proxy_dict:
+        raise ValueError(f"Unknown {key} type: {object_type!r}")
+    cls = proxy_dict[object_type]
+    kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
+    return cls(**kwargs)
 
 
 class AbstractSpectrumBase(ABC):
@@ -185,19 +196,6 @@ def default_spectrum_type() -> str:
 def spectrum_factory(**kwargs) -> AbstractSpectrumBase:
     """Factory function to create spectrum objects from specifications.
 
-    This does a few very specific things:
-
-    1. look for the ``spectrum`` keyword argument to determine the spectrum type
-       (keep this in mind, because all the code downstream needs to be aware);
-    2. filter out the keyword arguments that are not relevant for the selected
-       spectrum type;
-    3. instantiate and return the corresponding spectrum object, with all the
-       relevant keyword arguments.
-
-    Admittedly, this is not really streamlined for speed, but since this
-    function is only called once at the beginning of a simulation, this should
-    not be a problem.
-
     Arguments
     ---------
     kwargs : dict
@@ -208,12 +206,7 @@ def spectrum_factory(**kwargs) -> AbstractSpectrumBase:
     AbstractSpectrumBase
         The spectrum object.
     """
-    spectrum_type = kwargs.get("spectrum", default_spectrum_type())
-    if spectrum_type not in _SPECTRUM_DICT:
-        raise ValueError(f"Unknown spectral type: {spectrum_type!r}")
-    cls = _SPECTRUM_DICT[spectrum_type]
-    kwargs = {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
-    return cls(**kwargs)
+    return _object_factory(_SPECTRUM_DICT, "spectrum", default_spectrum_type(), **kwargs)
 
 
 class AbstractBeamBase(ABC):
@@ -493,12 +486,7 @@ def beam_factory(**kwargs) -> AbstractBeamBase:
     AbstractBeamBase
         The beam object.
     """
-    beam_type = kwargs.get("beam", default_beam_type())
-    if beam_type not in _BEAM_DICT:
-        raise ValueError(f"Unknown beam type: {beam_type!r}")
-    cls = _BEAM_DICT[beam_type]
-    kwargs = {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
-    return cls(**kwargs)
+    return _object_factory(_BEAM_DICT, "beam", default_beam_type(), **kwargs)
 
 
 @dataclass(frozen=True)
