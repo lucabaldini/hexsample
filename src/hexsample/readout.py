@@ -27,9 +27,9 @@ from typing import Tuple
 
 import numpy as np
 
-from . import rng, xpol
+from . import rng
 from .digi import DigiEventCircular, DigiEventRectangular, DigiEventSparse
-from .hexagon import HexagonalGrid, HexagonalGridSpec, HexagonalLayout
+from .hexagon import HexagonalGrid, HexagonalGridSpec
 from .roi import Padding, RegionOfInterest
 
 
@@ -189,8 +189,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
     event is kept with its positional information in (col, row) on the hexagonal grid.
     """
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
-        offset: int = 0) -> DigiEventSparse:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventSparse:
         """Sparse readout an event.
 
         Arguments
@@ -204,9 +203,6 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         y : array_like
             The physical x coordinates of the input charge.
 
-        trg_threshold : float
-            Trigger threshold in electron equivalent.
-
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
@@ -214,7 +210,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
         columns, rows, pha = np.array([[*key, value] for key, value in signal.items()]).T
         # ...apply the trigger...
-        trigger_mask = self.discriminate(pha, trg_threshold)
+        trigger_mask = self.discriminate(pha, self.trg_threshold)
         columns, rows, pha = columns[trigger_mask], rows[trigger_mask], pha[trigger_mask]
         # .. and digitize the pha values.
         pha = self.digitize(pha, offset)
@@ -309,7 +305,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         signal = np.bincount(index, minlength=num_cols * num_rows).reshape((num_rows, num_cols))
         return min_col, min_row, signal
 
-    def trigger(self, signal: np.ndarray, trg_threshold, min_col: int, min_row: int,
+    def trigger(self, signal: np.ndarray, min_col: int, min_row: int,
         padding: Padding) -> Tuple[RegionOfInterest, np.ndarray]:
         """Apply the trigger, calculate the region of interest, and pad the
         signal array to the proper dimension.
@@ -323,7 +319,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         # Sum the sampled signal into the 2 x 2 trigger miniclusters.
         trg_signal = self.sum_miniclusters(signal)
         # Zero-suppress the trigger signal below the trigger threshold.
-        self.zero_suppress(trg_signal, trg_threshold)
+        self.zero_suppress(trg_signal, self.trg_threshold)
         # This is tricky, and needs to be documented properly---basically we
         # build arrays with all the (minicluster) columns and rows for which
         # at least one minicluster is above threshold. The multiplicative factor
@@ -348,8 +344,8 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         self.trigger_id += 1
         return roi, pha
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
-        padding: Padding, offset: int = 0) -> DigiEventRectangular:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, padding: Padding,
+             offset: int = 0) -> DigiEventRectangular:
         """Readout an event.
 
         Arguments
@@ -363,9 +359,6 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         y : array_like
             The physical x coordinates of the input charge.
 
-        trg_threshold : float
-            Trigger threshold in electron equivalent.
-
         padding : Padding
             The padding to be applied to the ROT.
 
@@ -374,7 +367,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         """
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
-        roi, pha = self.trigger(signal, trg_threshold, min_col, min_row, padding)
+        roi, pha = self.trigger(signal, min_col, min_row, padding)
         pha = self.digitize(pha, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
@@ -411,8 +404,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
     NUM_PIXELS = 7
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
-        offset: int = 0) -> DigiEventCircular:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventCircular:
         """Circular readout an event.
 
         Arguments
@@ -425,9 +417,6 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
         y : float
             The physical y coordinate of the highest pha pixel.
-
-        trg_threshold : float
-            Trigger threshold in electron equivalent.
 
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
@@ -452,7 +441,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # ...apply the trigger...
         # Not sure the trigger is needed, the highest px passed
         # necessarily the trigger or there is no event
-        # trigger_mask = self.discriminate(pha, trg_threshold)
+        # trigger_mask = self.discriminate(pha, self.trg_threshold)
         # .. and digitize the pha values.
         pha = self.digitize(pha, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)

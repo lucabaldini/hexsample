@@ -70,7 +70,7 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     gain: float = 0.5, num_pairs: int = 1000, trg_threshold: float = 200.):
     """Test for sparse event digitalization class.
     """
-    readout = HexagonalReadoutSparse(layout, num_cols, num_rows, pitch, enc, gain)
+    readout = HexagonalReadoutSparse(layout, num_cols, num_rows, pitch, enc, gain, trg_threshold)
     # Pick out some particular pixels...
     col1, row1 = num_cols // 3, num_rows // 4
     col2, row2 = col1 + 8, row1 + 5
@@ -89,7 +89,7 @@ def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     n = int(0.5 * trg_threshold)
     x = np.append(x, np.full(n, x3))
     y = np.append(y, np.full(n, y3))
-    event = readout.read(0., x, y, 100.) #this is a DigiEventSparse
+    event = readout.read(0., x, y) #this is a DigiEventSparse
     print(event.ascii())
 
 #@pytest.mark.skip("Under development")
@@ -126,7 +126,7 @@ def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     x, y = np.full(int(num_pairs), x1), np.full(int(num_pairs), y1)
     x = np.append(x, np.full(num_pairs, x2))
     y = np.append(y, np.full(num_pairs, y2))
-    event = readout.read(0., x, y, 100.) #this is a DigiEventCircular
+    event = readout.read(0., x, y) #this is a DigiEventCircular
     print(event.ascii())
 
 def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row: int = 15,
@@ -165,7 +165,7 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     """
     if padding is None:
         padding = Padding(1)
-    readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc, gain)
+    readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc, gain, trg_threshold)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f"Testing pixel ({col}, {row})...")
@@ -179,12 +179,12 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     assert signal[row - min_row, col - min_col] == num_pairs
     assert np.nonzero(signal) == (row - min_row, col - min_col)
     # Apply the trigger.
-    roi, _ = readout.trigger(signal, trg_threshold, min_col, min_row, padding)
+    roi, _ = readout.trigger(signal, min_col, min_row, padding)
     assert roi.min_col == 2 * (col // 2) - padding.left
     assert roi.max_col == 2 * (col // 2) + 1 + padding.right
     assert roi.min_row == 2 * (row // 2) - padding.bottom
     assert roi.max_row == 2 * (row // 2) + 1 + padding.top
     # And now, redo all the steps and create an actual digi event.
-    evt = readout.read(0., x, y, trg_threshold, padding)
+    evt = readout.read(0., x, y, padding)
     assert evt(col, row) == round(num_pairs * gain)
     print(evt.ascii())

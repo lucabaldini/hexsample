@@ -46,10 +46,11 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
     """
 
     def __init__(self, layout : HexagonalLayout, num_cols : int, num_rows : int,
-                 pitch : float, enc : float, gain : float) -> None:
+                 pitch : float, enc : float, gain : float, trg_threshold : float,
+                 zero_sup_threshold : float) -> None:
         """Constructor.
         """
-        super().__init__(layout, num_cols, num_rows, pitch, enc, gain)
+        super().__init__(layout, num_cols, num_rows, pitch, enc, gain, trg_threshold, zero_sup_threshold)
         self._col_binning = np.arange(self.num_cols + 1) - 0.5
         self._row_binning = np.arange(self.num_rows + 1) - 0.5
         self._binning = (self._row_binning, self._col_binning)
@@ -100,7 +101,7 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         counts, _, _ = np.histogram2d(row, col, self._binning)
         return counts
 
-    def trigger(self, signal : np.ndarray, trg_threshold : float) -> np.ndarray:
+    def trigger(self, signal : np.ndarray) -> np.ndarray:
         """Apply the trigger to a given signal array and with a fixed threshold.
 
         Here we downsample in the signal into the 2 x 2 trigger miniclusters,
@@ -118,7 +119,7 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         """
         # pylint: disable=arguments-differ
         trg = self.sum_miniclusters(signal)
-        self.zero_suppress(trg, trg_threshold)
+        self.zero_suppress(trg, self.trg_threshold)
         self.trigger_id += 1
         return trg
 
@@ -141,8 +142,7 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         max_row = np.clip(rows.max() + 1 + padding.bottom, 0, self.num_rows)
         return RegionOfInterest(min_col, max_col, min_row, max_row, padding)
 
-    def digitize(self, signal : np.ndarray, roi : RegionOfInterest,
-        zero_sup_threshold : int = 0, offset : int = 0) -> np.ndarray:
+    def digitize(self, signal : np.ndarray, roi : RegionOfInterest, offset : int = 0) -> np.ndarray:
         """Digitize the actual signal within a given ROI.
 
         Arguments
@@ -172,13 +172,13 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         # ... if necessary, add the offset for diagnostic events...
         pha += offset
         # ... zero suppress the thing...
-        self.zero_suppress(pha, zero_sup_threshold)
+        self.zero_suppress(pha, self.zero_sup_threshold)
         # ... flatten the array to simulate the serial readout and return the
         # array as the BEE would have.
         return pha.flatten()
 
-    def read(self, timestamp : float, x : np.ndarray, y : np.ndarray, trg_threshold : float,
-        padding : Padding, zero_sup_threshold : int = 0, offset : int = 0) -> DigiEventRectangular:
+    def read(self, timestamp : float, x : np.ndarray, y : np.ndarray, padding : Padding,
+             offset : int = 0) -> DigiEventRectangular:
         """Readout an event.
 
         Arguments
@@ -192,23 +192,17 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
         y : array_like
             The physical x coordinates of the input charge.
 
-        trg_threshold : float
-            Trigger threshold in electron equivalent.
-
         padding : Padding
             The padding to be applied to the ROT.
-
-        zero_sup_threshold : int
-            Zero suppression threshold in ADC counts.
 
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
         # pylint: disable=invalid-name, too-many-arguments
         signal = self.sample(x, y)
-        trg = self.trigger(signal, trg_threshold)
+        trg = self.trigger(signal)
         roi = self.calculate_roi(trg, padding)
-        pha = self.digitize(signal, roi, zero_sup_threshold, offset)
+        pha = self.digitize(signal, roi, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 
@@ -217,9 +211,9 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
 # Note that we set the noise to 0. in order to allow for a deterministic
 # comparison among the two readouts.
 OLD_READOUT = HexagonalReadoutCompat(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE,
-                                     xpol.XPOL_PITCH, 0., 1.)
+                                     xpol.XPOL_PITCH, 0., 1., 500., 0)
 NEW_READOUT = HexagonalReadoutRectangular(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE,
-                                          xpol.XPOL_PITCH, 0., 1.)
+                                          xpol.XPOL_PITCH, 0., 1., 500., 0)
 
 
 def _compare_readouts(x, y, trg_threshold=200., padding=None):
@@ -227,7 +221,7 @@ def _compare_readouts(x, y, trg_threshold=200., padding=None):
     """
     if padding is None:
         padding = Padding(2)
-    args = 0., x, y, trg_threshold, padding
+    args = 0., x, y, padding
     old = OLD_READOUT.read(*args)
     #print(old.ascii())
     new = NEW_READOUT.read(*args)
