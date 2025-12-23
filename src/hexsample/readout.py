@@ -32,17 +32,13 @@ from .hexagon import HexagonalGrid, HexagonalLayout
 from .roi import Padding, RegionOfInterest
 
 
-class HexagonalReadoutMode(Enum):
+class HexagonalReadoutMode(str, Enum):
     """Enum class expressing the possible readout strategies.
     """
 
-    # Sparse readout strategy.
-    SPARSE = "SPARSE"
-    # Rectangular readout, a la XPOL.
-    RECTANGULAR = "RECTANGULAR"
-    # Circular readout, with the highest pixel and the 6 neirest.
-    CIRCULAR = "CIRCULAR"
-
+    SPARSE = "sparse"
+    RECTANGULAR = "rectangular"
+    CIRCULAR = "circular"
 
 
 class HexagonalReadoutBase(HexagonalGrid):
