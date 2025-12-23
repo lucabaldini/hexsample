@@ -47,6 +47,14 @@ class HexagonalReadoutBaseSpec(HexagonalGridSpec):
 
     """Specifications for a pixel readout chip on a hexagonal matrix.
 
+    Note that, in addition to the physical properties (noise and gain) the readout
+    chip comes up at creation time with a well defined configuration, in terms of
+    trigger and zero-suppression thresholds. Arguably, in the future we might add the
+    possibility to change these parameters at runtime to make things more germane to
+    what happens in real life, but for the time being that seems hardly necessary.
+
+    Also note the readout chip inherits all the members from HexagonalGridSpec.
+
     Arguments
     ---------
     enc : float
@@ -93,6 +101,9 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
         comparison operators (e.g., < vs <=) when comparing the content of an array
         with a threshold, and all functions downstream doing this (e.g., zero_suppress)
         should use this and refrain from re-implementing their own logic.
+
+        Note this is a static method that can be used interchangeably, e.g., to operate
+        on the pulse height array or the trigger signal array.
         """
         return array > threshold
 
@@ -102,6 +113,9 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
 
         This is returning an array of the same shape of the input where all the
         values lower or equal than the zero suppression threshold are set to zero.
+
+        Note this is a static method that can be used interchangeably, e.g., to operate
+        on the pulse height array or the trigger signal array.
 
         Arguments
         ---------
@@ -131,8 +145,7 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
         livetime = 0
         return int(seconds), int(1000000 * microseconds), livetime
 
-    def digitize(self, pha: np.ndarray, zero_sup_threshold: int = 0,
-        offset: int = 0) -> np.ndarray:
+    def digitize(self, pha: np.ndarray, offset: int = 0) -> np.ndarray:
         """Digitize the actual signal.
 
         Arguments
@@ -140,15 +153,12 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
         pha : array_like
             The input array of pixel signals to be digitized.
 
-        zero_sup_threshold : int
-            Zero-suppression threshold in ADC counts.
-
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
         # Note that the array type of the input pha argument is not guaranteed, here.
         # Over the course of the calculation the pha is bound to be a float (the noise
-        # and the gain are floating-point numbere) before it is rounded to the neirest
+        # and the gain are floating-point numbere) before it is rounded to the nearest
         # integer. In order to take advantage of the automatic type casting that
         # numpy implements in multiplication and addition, we use the pha = pha +/*
         # over the pha +/*= form.
@@ -164,7 +174,7 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
         # ... if necessary, add the offset for diagnostic events...
         pha += offset
         # ... zero suppress the thing...
-        self.zero_suppress(pha, zero_sup_threshold)
+        self.zero_suppress(pha, self.zero_sup_threshold)
         # ... flatten the array to simulate the serial readout and return the
         # array as the BEE would have.
         return pha.flatten()
@@ -230,7 +240,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         trigger_mask = self.discriminate(pha, trg_threshold)
         columns, rows, pha = columns[trigger_mask], rows[trigger_mask], pha[trigger_mask]
         # .. and digitize the pha values.
-        pha = self.digitize(pha, zero_sup_threshold, offset)
+        pha = self.digitize(pha, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
@@ -391,7 +401,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
         roi, pha = self.trigger(signal, trg_threshold, min_col, min_row, padding)
-        pha = self.digitize(pha, zero_sup_threshold, offset)
+        pha = self.digitize(pha, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 
@@ -486,7 +496,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # necessarily the trigger or there is no event
         # trigger_mask = self.discriminate(pha, trg_threshold)
         # .. and digitize the pha values.
-        pha = self.digitize(pha, zero_sup_threshold, offset)
+        pha = self.digitize(pha, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
