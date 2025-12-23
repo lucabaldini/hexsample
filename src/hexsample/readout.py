@@ -183,30 +183,10 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
 
 class HexagonalReadoutSparse(HexagonalReadoutBase):
 
-    """Description of a pixel sparse readout chip on a hexagonal matrix.
-    In the following readout, no ROI is formed, every (and only) triggered pixel of
-    the event is kept with its positional information in (col, row) format on the
-    hexagonal grid.
+    """Sparse readout chip on a hexagonal matrix.
 
-    Arguments
-    ---------
-    layout : HexagonalLayout
-        The layout of the hexagonal matrix.
-
-    num_cols : int
-        The number of columns in the readout.
-
-    num_rows : int
-        The number of rows in the readout.
-
-    pitch : float
-        The readout pitch in cm.
-
-    enc : float
-        The equivalent noise charge in electrons.
-
-    gain : float
-        The readout gain in ADC counts per electron.
+    In the following readout, no ROI is formed, every (and only) triggered pixel of the
+    event is kept with its positional information in (col, row) on the hexagonal grid.
     """
 
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
@@ -404,19 +384,6 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         pha = self.digitize(pha, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
-
-
-
-class Xpol3(HexagonalReadoutRectangular):
-
-    """Derived class representing the XPOL-III readout chip.
-    """
-
-    def __init__(self, enc: float = 20., gain: float = 1.) -> None:
-        """Constructor.
-        """
-        super().__init__(xpol.XPOL1_LAYOUT, *xpol.XPOL3_SIZE, xpol.XPOL_PITCH, enc, gain)
-
 
 
 class HexagonalReadoutCircular(HexagonalReadoutBase):
