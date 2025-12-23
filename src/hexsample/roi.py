@@ -89,10 +89,6 @@ class RegionOfInterest:
         self.num_cols = self.max_col - self.min_col + 1
         self.num_rows = self.max_row - self.min_row + 1
         self.size = self.num_cols * self.num_rows
-        # Convenience hack to be able to pass an integer to the constructor, in
-        # case the padding is the same on all four sides.
-        if isinstance(self.padding, int):
-            self.padding = Padding(self.padding)
 
     def __eq__(self, other):
         """Overloaded comparison operator.
