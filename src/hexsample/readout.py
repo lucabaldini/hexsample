@@ -190,7 +190,7 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
     """
 
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
-        zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventSparse:
+        offset: int = 0) -> DigiEventSparse:
         """Sparse readout an event.
 
         Arguments
@@ -206,9 +206,6 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
 
         trg_threshold : float
             Trigger threshold in electron equivalent.
-
-        zero_sup_threshold : int
-            Zero suppression threshold in ADC counts.
 
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
@@ -352,7 +349,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         return roi, pha
 
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
-        padding: Padding, zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventRectangular:
+        padding: Padding, offset: int = 0) -> DigiEventRectangular:
         """Readout an event.
 
         Arguments
@@ -371,9 +368,6 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
 
         padding : Padding
             The padding to be applied to the ROT.
-
-        zero_sup_threshold : int
-            Zero suppression threshold in ADC counts.
 
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
@@ -418,7 +412,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
     NUM_PIXELS = 7
 
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, trg_threshold: float,
-        zero_sup_threshold: int = 0, offset: int = 0) -> DigiEventCircular:
+        offset: int = 0) -> DigiEventCircular:
         """Circular readout an event.
 
         Arguments
@@ -434,9 +428,6 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
         trg_threshold : float
             Trigger threshold in electron equivalent.
-
-        zero_sup_threshold : int
-            Zero suppression threshold in ADC counts.
 
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
