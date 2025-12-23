@@ -77,10 +77,11 @@ class Line(LineSpec, AbstractSpectrum):
     def _render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
         """Overloaded method.
         """
-        kwargs.setdefault("width", 0.01)
+        kwargs.setdefault("width", 0.001)
         kwargs.setdefault("color", "black")
         axes.bar(self.energy, 1., **kwargs)
-        setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", grids=True)
+        setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity",
+                  xmin=self.energy - 100., xmax=self.energy + 100., grids=True)
 
 
 @dataclass(frozen=True)

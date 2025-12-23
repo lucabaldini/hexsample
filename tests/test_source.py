@@ -37,6 +37,63 @@ from hexsample.source import (
 rng.initialize()
 
 
+def test_line():
+    """Test the Line class.
+    """
+    # Test parameters.
+    energy = 5900.
+    num_events = 10000
+
+    # Create the line and sample it.
+    line = Line(energy)
+    rvs = line.rvs(num_events)
+    assert len(rvs) == num_events
+    assert np.allclose(rvs, np.full(num_events, energy))
+    plt.figure("Spectral line")
+    line.plot()
+
+
+def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True):
+    """Generic test for a line forest.
+    """
+    # Create the forest.
+    # pylint: disable=protected-access
+    forest = LineForest(element, initial_level)
+    logger.debug(forest)
+    plt.figure(f"{element} {initial_level} line forest")
+    forest.plot()
+    if chisq_test:
+        # Extract a bunch of random energies...
+        energy = forest.rvs(num_events)
+        # ... and do a chisquare test against the original line probabilities.
+        values, counts = np.unique(energy, return_counts=True)
+        for val, cnts in zip(values, counts):
+            logger.debug(f"{val} eV -> {cnts} counts")
+        p = counts / counts.sum()
+        sigma = np.sqrt(counts) / counts.sum() * (1. - p)
+        logger.debug(f"Forest energies: {forest._energies}")
+        logger.debug(f"Forest probabilities: {forest._probs}")
+        chi2 = (((forest._probs - p) / sigma)**2).sum()
+        ndof = len(values) - 1
+        logger.debug(f"Chisquare / ndof = {chi2} / {ndof}...")
+        assert chi2 - ndof <= 5. * np.sqrt(2. * ndof)
+
+
+def test_cu_k_forest():
+    """Test the Cu K forest.
+    """
+    _test_forest("Cu", chisq_test=False)
+
+
+def test_mn_k_forest():
+    """Test the Mn K forest.
+
+    Note we're not doing the chisquare test, here, as two of the lines have the
+    same energy, and the thing would require extra code to deal with that.
+    """
+    _test_forest("Mn", chisq_test=False)
+
+
 def test_point_beam(x0 : float = 1., y0 : float = -1., num_photons : int = 1000):
     """Unit test for the point beam.
     """
@@ -126,64 +183,6 @@ def test_hexagonal_beam(size: int = 10000):
     plt.figure("Hexagonal beam y projection")
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
-
-
-def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True):
-    """Generic test for a line forest.
-    """
-    # Create the forest.
-    # pylint: disable=protected-access
-    forest = LineForest(element, initial_level)
-    logger.debug(forest)
-    plt.figure(f"{element} {initial_level} line forest")
-    forest.plot()
-    if chisq_test:
-        # Extract a bunch of random energies...
-        energy = forest.rvs(num_events)
-        # ... and do a chisquare test against the original line probabilities.
-        values, counts = np.unique(energy, return_counts=True)
-        for val, cnts in zip(values, counts):
-            logger.debug(f"{val} eV -> {cnts} counts")
-        p = counts / counts.sum()
-        sigma = np.sqrt(counts) / counts.sum() * (1. - p)
-        logger.debug(f"Forest energies: {forest._energies}")
-        logger.debug(f"Forest probabilities: {forest._probs}")
-        chi2 = (((forest._probs - p) / sigma)**2).sum()
-        ndof = len(values) - 1
-        logger.debug(f"Chisquare / ndof = {chi2} / {ndof}...")
-        assert chi2 - ndof <= 5. * np.sqrt(2. * ndof)
-
-
-def test_cu_k_forest():
-    """Test the Cu K forest.
-    """
-    _test_forest("Cu", chisq_test=False)
-
-
-def test_mn_k_forest():
-    """Test the Mn K forest.
-
-    Note we're not doing the chisquare test, here, as two of the lines have the
-    same energy, and the thing would require extra code to deal with that.
-    """
-    _test_forest("Mn", chisq_test=False)
-
-
-def test_line(energy: float = 6000, size: int = 10000):
-    """Test for line class
-    """
-    line = Line(energy)
-    logger.debug(line)
-    x = line.rvs(size)
-
-    values, counts = np.unique(x, return_counts=True)
-    logger.debug(f"Beam energy: {energy}")
-    logger.debug(f"Number of events: {size}")
-    for val, cnts in zip(values, counts):
-        logger.debug(f"{val} eV -> {cnts} counts")
-        # Check if all events have the same energy given as input
-        assert val == energy
-        assert cnts == size
 
 
 def test_source():
