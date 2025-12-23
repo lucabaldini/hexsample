@@ -30,6 +30,7 @@ import xraydb
 from aptapy.plotting import plt, setup_gca
 
 from . import rng
+from .base import type_proxy
 from .hexagon import HexagonalGrid
 
 
@@ -44,54 +45,7 @@ __all__ = [
     "HexagonalBeam",
     "BeamType",
     "Source",
-    "source_factory"
 ]
-
-
-def _object_factory(proxy_dict: dict, key: str, default_type: str, **kwargs) -> Any:
-    """Factory function to create generic object instances from keyword arguments.
-
-    This is used to implement both the spectrum and beam factory functions below.
-    The basic logic assumes that we have a dispatching dictionary mapping the names
-    we want to use to identify the various object types to the actual classes implementing
-    those types. The keyword arguments passed to this function would generally contain a
-    key (e.g., "spectrum" or "beam") specifying the name of the object type to be created,
-    and the remaining keyword arguments are used to initialize the object of the selected
-    type.
-
-    This function does a few, very specific things:
-    1. It retrieves the object type name from the keyword arguments, using the provided
-       key and default type name.
-    2. It checks that the specified object type name is valid (i.e., it exists in the
-       dispatching dictionary); if not, it raises a ValueError.
-    3. It retrieves the corresponding class from the dispatching dictionary.
-    4. It filters the keyword arguments to only include those that are valid for the
-       selected class (i.e., those that are defined as dataclass fields in the class).
-    5. It creates and returns an instance of the selected class, initialized with the
-       filtered keyword arguments.
-
-    Arguments
-    ---------
-    proxy_dict : dict
-        The dispatching dictionary mapping the names of the object types to the actuall
-        classes.
-
-    key : str
-        The key in the keyword arguments that specifies the name of the object type.
-
-    default_type : str
-        The default object type name to be used if none is specified in the keyword
-        arguments.
-
-    kwargs : dict
-        The keyword arguments containing the object specifications.
-    """
-    object_type = kwargs.get(key, default_type)
-    if object_type not in proxy_dict:
-        raise ValueError(f"Unknown {key} type: {object_type!r}")
-    cls = proxy_dict[object_type]
-    kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
-    return cls(**kwargs)
 
 
 class AbstractSpectrum(ABC):
@@ -220,45 +174,18 @@ class LineForest(LineForestSpec, AbstractSpectrum):
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
 
 
-class SpectrumType(str, Enum):
+@type_proxy
+class SpectrumType:
 
-    """Enumeration of the available spectrum types.
+    """Type proxy for the available spectrum types.
     """
 
-    LINE = "line"
-    FOREST = "forest"
+    _KEY = "spectrum"
 
-    @staticmethod
-    def key() -> str:
-        return "spectrum"
-
-    @classmethod
-    def values(cls) -> Tuple[str, ...]:
-        return tuple(item.value for item in cls)
-
-    @classmethod
-    def default_value(cls) -> str:
-        return cls.LINE.value
-
-    @classmethod
-    def factory(cls, **kwargs) -> AbstractSpectrum:
-        """Factory method to create spectrum objects from specifications.
-
-        Arguments
-        ---------
-        kwargs : dict
-            The keyword arguments containing the spectrum specifications.
-
-        Returns
-        -------
-        AbstractSpectrum
-            The spectrum object.
-        """
-        _proxy_dict = {
-            cls.LINE.value: Line,
-            cls.FOREST.value: LineForest
-        }
-        return _object_factory(_proxy_dict, cls.key(), cls.default_value(), **kwargs)
+    _PROXY_DICT = {
+        "line": Line,
+        "forest": LineForest,
+    }
 
 
 class AbstractBeam(ABC):
@@ -503,51 +430,21 @@ class HexagonalBeam(HexagonalBeamSpec, AbstractBeam):
         return x, y
 
 
-class BeamType(str, Enum):
+@type_proxy(default="gaussian")
+class BeamType:
 
-    """Enumeration of the available spectrum types.
+    """Type proxy for the available beam types.
     """
 
-    POINT = "point"
-    DISK = "disk"
-    GAUSSIAN = "gaussian"
-    TRIANGULAR = "triangular"
-    HEXAGONAL = "hexagonal"
+    _KEY = "beam"
 
-    @staticmethod
-    def key() -> str:
-        return "beam"
-
-    @classmethod
-    def values(cls) -> Tuple[str, ...]:
-        return tuple(item.value for item in cls)
-
-    @classmethod
-    def default_value(cls) -> str:
-        return cls.GAUSSIAN.value
-
-    @classmethod
-    def factory(cls, **kwargs) -> AbstractBeam:
-        """Factory method to create spectrum objects from specifications.
-
-        Arguments
-        ---------
-        kwargs : dict
-            The keyword arguments containing the spectrum specifications.
-
-        Returns
-        -------
-        AbstractSpectrum
-            The spectrum object.
-        """
-        _proxy_dict = {
-            cls.POINT.value: PointBeam,
-            cls.DISK.value: DiskBeam,
-            cls.GAUSSIAN.value: GaussianBeam,
-            cls.TRIANGULAR.value: TriangularBeam,
-            cls.HEXAGONAL.value: HexagonalBeam
-        }
-        return _object_factory(_proxy_dict, cls.key(), cls.default_value(), **kwargs)
+    _PROXY_DICT = {
+        "point": PointBeam,
+        "disk": DiskBeam,
+        "gaussian": GaussianBeam,
+        "triangular": TriangularBeam,
+        "hexagonal": HexagonalBeam,
+    }
 
 
 @dataclass(frozen=True)

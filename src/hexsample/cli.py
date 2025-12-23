@@ -149,8 +149,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         group = parser.add_argument_group("source", "X-ray source properties")
         # Spectral part...
         group.add_argument(f"--{source.SpectrumType.key()}", type=str,
-                           choices=source.SpectrumType.values(),
-                           default=source.SpectrumType.default_value(),
+                           choices=source.SpectrumType.choices(),
+                           default=source.SpectrumType.default(),
                            help="spectrum of the X-ray source")
         group.add_argument("--energy", type=float, default=source.LineSpec.energy,
                            help="line energy in eV")
@@ -160,8 +160,8 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="initial level for the line forest")
         # ... morphological part...
         group.add_argument(f"--{source.BeamType.key()}", type=str,
-                           choices=source.BeamType.values(),
-                           default=source.BeamType.default_value(),
+                           choices=source.BeamType.choices(),
+                           default=source.BeamType.default(),
                            help="beam shape of the X-ray source")
         group.add_argument("--x0", type=float, default=source.PointBeamSpec.x0,
                            help="x-coordinate of the beam centroid in cm")
