@@ -33,15 +33,6 @@ from .hexagon import HexagonalGrid, HexagonalGridSpec
 from .roi import Padding, RegionOfInterest
 
 
-class HexagonalReadoutMode(str, Enum):
-    """Enum class expressing the possible readout strategies.
-    """
-
-    SPARSE = "sparse"
-    RECTANGULAR = "rectangular"
-    CIRCULAR = "circular"
-
-
 @dataclass
 class HexagonalReadoutBaseSpec(HexagonalGridSpec):
 
@@ -88,8 +79,22 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
         """Post-initialization.
         """
         HexagonalGrid.__post_init__(self)
-        self.shape = (self.num_rows, self.num_cols)
         self.trigger_id = -1
+
+    @staticmethod
+    def is_odd(value: int) -> bool:
+        """Return whether the input integer is odd.
+
+        See https://stackoverflow.com/questions/14651025/ for some metrics about
+        the speed of this particular implementation.
+        """
+        return value & 0x1
+
+    @staticmethod
+    def is_even(value: int) -> bool:
+        """Return whether the input integer is even.
+        """
+        return not value & 0x1
 
     @staticmethod
     def discriminate(array: np.ndarray, threshold: float) -> np.ndarray:
@@ -238,21 +243,6 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         """
         num_rows, num_cols = array.shape
         return array.reshape((num_rows // 2, 2, num_cols // 2, 2)).sum(-1).sum(1)
-
-    @staticmethod
-    def is_odd(value: int) -> bool:
-        """Return whether the input integer is odd.
-
-        See https://stackoverflow.com/questions/14651025/ for some metrics about
-        the speed of this particular implementation.
-        """
-        return value & 0x1
-
-    @staticmethod
-    def is_even(value: int) -> bool:
-        """Return whether the input integer is even.
-        """
-        return not HexagonalReadoutRectangular.is_odd(value)
 
     def sample(self, x: np.ndarray, y: np.ndarray) -> Tuple[Tuple[int, int], np.ndarray]:
         """Spatially sample a pair of arrays of x and y coordinates in physical
@@ -435,6 +425,15 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # The pha array is always in the order
         # [pha(adc0), pha(adc1), pha(adc2), pha(adc3), pha(adc4), pha(adc5), pha(adc6)]
         return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha, *coord_max)
+
+
+class HexagonalReadoutMode(str, Enum):
+    """Enum class expressing the possible readout strategies.
+    """
+
+    SPARSE = "sparse"
+    RECTANGULAR = "rectangular"
+    CIRCULAR = "circular"
 
 
 # Mapping for the readout chip classes for each readout mode.
