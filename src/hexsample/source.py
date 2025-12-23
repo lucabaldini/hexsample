@@ -37,18 +37,12 @@ __all__ = [
     "Line",
     "LineForest",
     "SpectrumType",
-    "spectrum_types",
-    "default_spectrum_type",
-    "spectrum_factory",
     "PointBeam",
     "DiskBeam",
     "GaussianBeam",
     "TriangularBeam",
     "HexagonalBeam",
     "BeamType",
-    "beam_types",
-    "default_beam_type",
-    "beam_factory",
     "Source",
     "source_factory"
 ]
@@ -557,11 +551,11 @@ class BeamType(str, Enum):
 
 
 @dataclass(frozen=True)
-class Source:
+class SourceSpec:
 
-    """Class describing a fully-fledged X-ray source.
+    """Specifications for a fully-fledged X-ray source.
 
-     Arguments
+    Arguments
     ---------
     spectrum : AbstractSpectrum
         The source spectrum.
@@ -576,6 +570,31 @@ class Source:
     spectrum: AbstractSpectrum = Line()
     beam: AbstractBeam = GaussianBeam()
     rate: float = 100.
+
+
+class Source(SourceSpec):
+
+    """Class describing a fully-fledged X-ray source.
+    """
+
+    @classmethod
+    def from_kwargs(cls, **kwargs) -> "Source":
+        """Alternative constructor to create source objects from specifications.
+
+        Arguments
+        ---------
+        kwargs : dict
+            The keyword arguments containing the source specifications.
+
+        Returns
+        -------
+        Source
+            The source object.
+        """
+        spectrum = SpectrumType.factory(**kwargs)
+        beam = BeamType.factory(**kwargs)
+        rate = kwargs.get("rate", cls.rate)
+        return cls(spectrum, beam, rate)
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Extract random X-ray initial properties.
@@ -598,11 +617,3 @@ class Source:
         energy = self.spectrum.rvs(size)
         x, y = self.beam.rvs(size)
         return t, energy, x, y
-
-
-def source_factory(**kwargs) -> Source:
-    """Factory function to create source objects from specifications.
-    """
-    source = SpectrumType.factory(**kwargs)
-    beam = BeamType.factory(**kwargs)
-    return Source(source, beam, kwargs.get("rate", Source.rate))

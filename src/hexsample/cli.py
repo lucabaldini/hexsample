@@ -232,7 +232,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         runner = kwargs.pop("runner")
         # Simulate?
         if runner == tasks.simulate:
-            _source = source.source_factory(**kwargs)
+            _source = source.Source.from_kwargs(**kwargs)
             _sensor = sensor.sensor_factory(**kwargs)
             runner(_source, _sensor)
 
