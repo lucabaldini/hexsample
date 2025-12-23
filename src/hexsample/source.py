@@ -106,7 +106,7 @@ class LineForestSpec:
         atomic number or atomic symbol for the given element (default: "Cu").
 
     initial_level : str, optional
-        iupac symbol of the initial level (default: "K").
+        IUPAC symbol of the initial level (default: "K").
     """
 
     element: Union[str, int] = "Cu"
