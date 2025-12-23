@@ -35,8 +35,6 @@ from .roi import Padding, RegionOfInterest
 
 class HexagonalReadoutMode(str, Enum):
     """Enum class expressing the possible readout strategies.
-
-    TODO: rename as ReadoutMode
     """
 
     SPARSE = "sparse"
