@@ -53,13 +53,21 @@ class HexagonalReadoutBaseSpec(HexagonalGridSpec):
         The equivalent noise charge in electrons.
 
     gain : float
-        The readout gain in ADC counts per electron (default 1).
+        The readout gain in ADC counts per electron (default 1, which means that
+        the PHA you get out are the electrons collected).
+
+    trg_threshold : float
+        Trigger threshold in electron equivalent (note this is a float because it
+        is expressed in physical space, not in electronics space).
+
+    zero_sup_threshold : int
+        Zero suppression threshold in ADC counts.
     """
 
     enc: float = 30.
     gain: float = 1.
-    trigger_threshold: float = 500
-    zero_suppression_threshold: int = 0
+    trg_threshold: float = 500
+    zero_sup_threshold: int = 0
 
 
 @dataclass
