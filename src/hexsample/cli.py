@@ -21,7 +21,6 @@
 """
 
 import argparse
-from tokenize import group
 
 from hexsample import __name__ as __package_name__, __version__
 from hexsample import hexagon, sensor, source, tasks
@@ -78,6 +77,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         simulate = subparsers.add_parser("simulate",
             help="run a simulation",
             formatter_class=self._FORMATTER_CLASS)
+        self.add_num_events(simulate, default=1000, intent="generated")
+        self.add_output_file(simulate, default="simulation_output.h5")
+        self.add_random_seed(simulate)
         self.add_source_options(simulate)
         self.add_sensor_options(simulate)
         self.add_readout_options(simulate)
@@ -92,6 +94,47 @@ class CliArgumentParser(argparse.ArgumentParser):
         display = subparsers.add_parser("display",
             help="run the single-event display",
             formatter_class=self._FORMATTER_CLASS)
+
+    @staticmethod
+    def add_input_file(parser: argparse.ArgumentParser) -> None:
+        """Add an option for the input file.
+        """
+        parser.add_argument("input_file", type=str,
+            help="path to the input file")
+
+    @staticmethod
+    def add_num_events(parser: argparse.ArgumentParser, default: int,
+                       intent: str = "generated") -> None:
+        """Add an option for the number of events.
+        """
+        parser.add_argument("--num_events", "-n", type=int, default=default,
+            help=f"number of events to be {intent}")
+
+    @staticmethod
+    def add_output_file(parser: argparse.ArgumentParser, default: str) -> None:
+        """Add an option for the output file.
+
+        Note that we cast the default to a string---this prevents having
+        pathlib.Path instances around, which would then needed to be handled
+        properly in specific places (such as adding metadata to the output HDF5
+        file headers).
+        """
+        parser.add_argument("--output_file", "-o", type=str, default=str(default),
+            help="path to the output file")
+
+    @staticmethod
+    def add_random_seed(parser: argparse.ArgumentParser) -> None:
+        """Add an option for the random seed of a simulation.
+        """
+        parser.add_argument("--random_seed", "-s", type=int, default=None,
+            help="random seed for the simulation")
+
+    @staticmethod
+    def add_suffix(parser: argparse.ArgumentParser, default: str) -> None:
+        """Add an option for the output suffix.
+        """
+        parser.add_argument("--suffix", type=str, default=default,
+            help="suffix for the output file")
 
     @staticmethod
     def add_source_options(parser: argparse.ArgumentParser) -> None:

@@ -22,6 +22,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Tuple, Union
 
 import numpy as np
@@ -35,6 +36,7 @@ from .hexagon import HexagonalGrid
 __all__ = [
     "Line",
     "LineForest",
+    "SpectrumType",
     "spectrum_types",
     "default_spectrum_type",
     "spectrum_factory",
@@ -43,6 +45,7 @@ __all__ = [
     "GaussianBeam",
     "TriangularBeam",
     "HexagonalBeam",
+    "BeamType",
     "beam_types",
     "default_beam_type",
     "beam_factory",
@@ -228,10 +231,27 @@ class LineForest(LineForestSpec, AbstractSpectrumBase):
         return f"{self.line_dict}"
 
 
+class SpectrumType(str, Enum):
+
+    """Enumeration of the available spectrum types.
+    """
+
+    LINE = "line"
+    FOREST = "forest"
+
+    @classmethod
+    def default(cls) -> "SpectrumType":
+        return cls.LINE
+
+    @classmethod
+    def choices(cls) -> Tuple[str, ...]:
+        return tuple(item.value for item in cls)
+
+
 # Dispatching dictionary for spectrum objects.
 _SPECTRUM_PROXY_DICT = {
-    "line": Line,
-    "forest": LineForest
+    SpectrumType.LINE: Line,
+    SpectrumType.FOREST: LineForest
 }
 
 
@@ -505,13 +525,33 @@ class HexagonalBeam(HexagonalBeamSpec, AbstractBeamBase):
         return x, y
 
 
+class BeamType(str, Enum):
+
+    """Enumeration of the available spectrum types.
+    """
+
+    POINT = "point"
+    DISK = "disk"
+    GAUSSIAN = "gaussian"
+    TRIANGULAR = "triangular"
+    HEXAGONAL = "hexagonal"
+
+    @classmethod
+    def default(cls) -> "BeamType":
+        return cls.GAUSSIAN
+
+    @classmethod
+    def choices(cls) -> Tuple[str, ...]:
+        return tuple(item.value for item in cls)
+
+
 # Dispatching dictionary for beam objects.
 _BEAM_PROXY_DICT = {
     "point": PointBeam,
     "disk": DiskBeam,
     "gaussian": GaussianBeam,
-    "triangular": TriangularBeam,
-    "hexagonal": HexagonalBeam
+    "triangle": TriangularBeam,
+    "hexagon": HexagonalBeam
 }
 
 
