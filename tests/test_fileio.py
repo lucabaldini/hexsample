@@ -49,7 +49,7 @@ def _mc_event(index : int) -> MonteCarloEvent:
 def _digi_event_rectangular(index : int) -> DigiEventRectangular:
     """Create a bogus DigiEvent object with index-dependent properties.
     """
-    roi = RegionOfInterest(100, 107, 150, 155 + index * 2, Padding(2))
+    roi = RegionOfInterest(100, 107, 150, 155 + index * 2, Padding(2, 2, 2, 2))
     pha = np.full(roi.size, index)
     return DigiEventRectangular(index, index, index, 0, pha, roi)
 

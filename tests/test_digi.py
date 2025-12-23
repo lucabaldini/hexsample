@@ -149,7 +149,7 @@ def test_digi_event_rectangular(min_col: int = 106, max_col: int = 113, min_row:
 def test_digi_event_rectangular_comparison():
     """Test the comparison operators for rectangular digi events.
     """
-    padding = Padding(2)
+    padding = Padding(2, 2, 2, 2)
     roi = RegionOfInterest(10, 23, 10, 23, padding)
     pha = np.full(roi.size, 2)
     evt1 = DigiEventRectangular(0, 0, 0, 0, pha, roi)
@@ -164,7 +164,7 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     """Create a fake digi event and test all the steps of the digitization.
     """
     if padding is None:
-        padding = Padding(1)
+        padding = Padding(1, 1, 1, 1)
     readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc, gain, trg_threshold)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4

@@ -220,7 +220,7 @@ def _compare_readouts(x, y, trg_threshold=200., padding=None):
     """
     """
     if padding is None:
-        padding = Padding(2)
+        padding = Padding(2, 2, 2, 2)
     args = 0., x, y, padding
     old = OLD_READOUT.read(*args)
     #print(old.ascii())
