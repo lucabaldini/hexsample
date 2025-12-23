@@ -78,11 +78,12 @@ class Line(AbstractSpectrum):
     def render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
         """Overloaded method.
         """
+        padding = 100.
         kwargs.setdefault("width", 0.001)
         kwargs.setdefault("color", "black")
         axes.bar(self.energy, 1., **kwargs)
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity",
-                  xmin=self.energy - 100., xmax=self.energy + 100., grids=True)
+                  xmin=self.energy - padding, xmax=self.energy + padding, grids=True)
 
 
 @dataclass
@@ -147,7 +148,6 @@ class SpectrumProxy:
     """
 
     _KEY = "spectrum"
-
     _PROXY_DICT = {
         "line": Line,
         "forest": LineForest,
@@ -355,7 +355,6 @@ class BeamProxy:
     """
 
     _KEY = "beam"
-
     _PROXY_DICT = {
         "point": PointBeam,
         "disk": DiskBeam,
