@@ -29,9 +29,8 @@ import xraydb
 from aptapy.plotting import setup_gca
 
 from . import rng
-from .base import AbstractRandomGenerator, AbstractPlottable, type_proxy
+from .base import AbstractPlottable, AbstractRandomGenerator, type_proxy
 from .hexagon import HexagonalGrid
-
 
 __all__ = [
     "Line",

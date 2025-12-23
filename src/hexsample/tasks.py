@@ -36,7 +36,6 @@ from hexsample.sensor import Sensor
 from hexsample.source import Source
 
 
-
 def simulate(source: Source, sensor: Sensor) -> str:
     """Run a simulation.
     """

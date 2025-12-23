@@ -20,6 +20,7 @@ import pytest
 
 from hexsample import HEXSAMPLE_DATA, pipeline
 
+
 @pytest.mark.skip(reason="Need to refactor the pipeline.")
 def test_parsers():
     """Test the relevant ArgumentParser objects.

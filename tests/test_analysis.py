@@ -16,9 +16,8 @@
 """Test suite for hexsample.analysis
 """
 
-from aptapy.plotting import plt
-
 import pytest
+from aptapy.plotting import plt
 
 from hexsample.analysis import create_histogram
 from hexsample.fileio import DigiInputFileRectangular, ReconInputFile

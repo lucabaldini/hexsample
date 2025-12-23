@@ -86,14 +86,14 @@ class CliArgumentParser(argparse.ArgumentParser):
         simulate.set_defaults(runner=tasks.simulate)
 
         # Run the event reconstruction?
-        recon = subparsers.add_parser("recon",
-            help="run the event reconstruction",
-            formatter_class=self._FORMATTER_CLASS)
+        #recon = subparsers.add_parser("recon",
+        #    help="run the event reconstruction",
+        #    formatter_class=self._FORMATTER_CLASS)
 
         # Run the single-event display?
-        display = subparsers.add_parser("display",
-            help="run the single-event display",
-            formatter_class=self._FORMATTER_CLASS)
+        #display = subparsers.add_parser("display",
+        #    help="run the single-event display",
+        #    formatter_class=self._FORMATTER_CLASS)
 
     @staticmethod
     def add_input_file(parser: argparse.ArgumentParser) -> None:

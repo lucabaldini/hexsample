@@ -268,7 +268,7 @@ class Sensor(SensorSpec):
         self.material = material(self.material_symbol)
         # Are we overriding the tabulated Fano factor?
         if self.fano_factor is not None:
-            self.material.fano_factor = fano_factor
+            self.material.fano_factor = self.fano_factor
 
     def photabsorption_efficiency(self, energy: np.ndarray) -> np.ndarray:
         """Return the photabsorption efficiency for a given array of energy values.

@@ -24,9 +24,9 @@ from abc import ABC, abstractmethod
 from dataclasses import is_dataclass
 from typing import Tuple
 
-from aptapy.plotting import plt
 import matplotlib
 import numpy as np
+from aptapy.plotting import plt
 
 
 class AbstractRandomGenerator(ABC):
