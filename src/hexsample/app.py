@@ -146,12 +146,12 @@ class ArgumentParser(argparse.ArgumentParser):
         """Add an option group for reconstruction.
         """
         group = self.add_argument_group("reconstruction", "Options for event reconstruction")
-        group.add_argument("--rcmethod", choices=['centroid', 'eta', 'dnn', 'gnn'], type=str,
+        group.add_argument("--rcmethod", choices=["centroid", "eta", "dnn", "gnn"], type=str,
             default="centroid", help="How to reconstruct position")
         group.add_argument("--gamma", default=[0.245, 0.330, 1.84], type=float, nargs=3,
             help="parameters for the eta function reconstruction for 2 and 3 pixel clusters")
         group.add_argument("--nnmodel", type=str, default="pretrained",
-                           choices=['pretrained', 'custom'],
+                           choices=["pretrained", "custom"],
                            help="model to use for neural network reconstruction")
         group.add_argument("--modelpath", type=str,
             help="path of the model to use, in case of custom model")
@@ -215,5 +215,5 @@ class ArgumentParser(argparse.ArgumentParser):
             help="y position of the source centroid in cm")
         group.add_argument("--srcsigma", type=float, default=0.1,
             help="one-dimensional standard deviation of the gaussian beam in cm")
-        group.add_argument('--trngindex', type=int, default=0,
-            help='triangular section of the hexagon')
+        group.add_argument("--trngindex", type=int, default=0,
+            help="triangular section of the hexagon")

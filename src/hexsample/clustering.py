@@ -109,13 +109,14 @@ class Cluster:
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the eta function calibration.
-            # dr = PowerLaw().evaluate(_eta[0]/0.5, 0.5, gamma[0]) * pitch
             dr = Probit().evaluate(_eta[0], 0.5, gamma[0]) * pitch
             x_recon = self.x[0] + dr * n[0]
             y_recon = self.y[0] + dr * n[1]
         elif self.size() == 3:
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
+            # When we will decide to use the probit model for three pixel events, we will need to
+            # change this line.
             dr = PowerLaw().evaluate(eta_sum / (2/3), 1/np.sqrt(3), gamma[1]) * pitch
             theta = (np.pi/6) * (np.exp(eta_diff * gamma[2]) - 1) / (np.exp(gamma[2]) - 1)
             # We need to determine the sign of theta depending on the cluster orientation.

@@ -58,11 +58,11 @@ def hxeta(**kwargs):
         raise RuntimeError("Only CIRCULAR readout is supported.")
     input_file = DigiInputFileCircular(input_file_path)
     header = input_file.header
-    args = HexagonalLayout(header['layout']), header['numcolumns'], header['numrows'],\
-        header['pitch'], header['noise'], header['gain']
+    args = HexagonalLayout(header["layout"]), header["numcolumns"], header["numrows"],\
+        header["pitch"], header["noise"], header["gain"]
     readout = HexagonalReadoutCircular(*args)
     nneighbors = 6
-    logger.info(f'Readout chip: {readout}')
+    logger.info(f"Readout chip: {readout}")
     clustering = ClusteringNN(readout, header["zsupthreshold"], nneighbors)
     # Create all the lists we need to fill
     size, x0, y0, absx, absy, eta, n = [[] for _ in range(7)]
@@ -90,7 +90,7 @@ def hxeta(**kwargs):
     eta = np.array(eta, dtype=object)
     n = np.array(n)
     # Calculate the photon position with respect to the central pixel
-    photon_pos = np.array([absx - x0, absy - y0]).T / header['pitch']
+    photon_pos = np.array([absx - x0, absy - y0]).T / header["pitch"]
 
     # 2-pixel events calibration
     mask_2pix = size == 2
@@ -113,29 +113,27 @@ def hxeta(**kwargs):
     hist.fill(eta_2pix, dr_2pix)
     hist.plot()
     # Calculate mean and rms along r axis
-    r_mean_hist, r_stddev_hist = hist.project_statistics()
+    r_mean_hist = hist.project_mean()
     r_mean = r_mean_hist.content
-    r_stddev = r_stddev_hist.content
+    intervals = []
+    for i in range(r_mean.size):
+        r_slice = hist.slice1d(i)
+        intervals.append(r_slice.minimum_coverage_interval(0.68))
     x_r = r_mean_hist.bin_centers()
+    lower_limits = np.array([interval[0] for interval in intervals])
+    upper_limits = np.array([interval[1] for interval in intervals])
     plt.figure("r vs eta 2-pixel")
-    plt.errorbar(x_r, r_mean, yerr=r_stddev, fmt='.k')
-    # Fit with power law
-    model = PowerLaw(0.5)
-    model.prefactor.freeze(0.5)
-    model.fit(x_r, r_mean, sigma=r_stddev)
-    model.set_plotting_range(0, 0.5)
-    model.plot(fit_output=True)
+    plt.hlines(lower_limits, x_r - 0.005, x_r + 0.005, color="k", alpha=0.8)
+    plt.hlines(upper_limits, x_r - 0.005, x_r + 0.005, color="k", alpha=0.8, label="MCI 68%")
+    plt.errorbar(x_r, r_mean, fmt=".k")
     # Fit with probit model
     probit_model = Probit()
     probit_model.offset.freeze(0.5)
-    probit_model.fit(x_r, r_mean, sigma=r_stddev)
+    probit_model.fit(x_r, r_mean)
     probit_model.set_plotting_range(0, 0.5)
     probit_model.plot(fit_output=True)
-
     plt.xlabel("eta")
     plt.ylabel("r / pitch")
-    plt.xscale('linear')
-    plt.yscale('linear')
     plt.legend()
 
     # 3-pixel events calibration
@@ -192,11 +190,10 @@ def hxeta(**kwargs):
     # Note that a probit seems to be a good model also for the 3-pixel events using this
     # parametrization, maybe we should work to explain that and use it in the reconstruction.
     model_probit = Probit()
-    model_probit.offset.freeze(0.5)
     model_probit.fit(x_fit, y_fit)
     model_probit.plot(fit_output=True)
-    plt.xscale('linear')
-    plt.yscale('linear')
+    plt.xscale("linear")
+    plt.yscale("linear")
     plt.legend()
     # Calibration of the angle theta vs eta diff ratio
     # This histogram is just to plot
@@ -228,7 +225,7 @@ def hxeta(**kwargs):
     popt, pcov = curve_fit(fit_func, x_fit, y_fit)
     xx = np.linspace(0, 1, 100)
     print(f"Fit parameter: gamma = {popt[0]} +/- {np.sqrt(pcov[0,0])}")
-    plt.plot(xx, fit_func(xx, *popt), 'r--')
+    plt.plot(xx, fit_func(xx, *popt), "r--")
     plt.errorbar(x_fit, y_fit, fmt=".k")
     plt.xlabel("(eta1 - eta2) / (eta1 + eta2)")
     plt.ylabel("theta [rad]")
