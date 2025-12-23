@@ -22,8 +22,8 @@
 
 import argparse
 
-from hexsample import __name__ as __package_name__, __version__
-from hexsample import hexagon, sensor, source, tasks
+from hexsample import __name__ as __package_name__
+from hexsample import __version__, hexagon, sensor, source, tasks
 
 
 def start_message() -> None:

@@ -223,8 +223,8 @@ def material(symbol: str) -> Material:
     """
     try:
         return _MATERIAL_DICT[symbol]
-    except KeyError:
-        raise ValueError(f"Unknown material symbol: {symbol}")
+    except KeyError as error:
+        raise ValueError(f"Unknown material symbol: {symbol}") from error
 
 
 @dataclass

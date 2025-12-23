@@ -193,7 +193,8 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
     event is kept with its positional information in (col, row) on the hexagonal grid.
     """
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventSparse:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
+             offset: int = 0) -> DigiEventSparse:
         """Sparse readout an event.
 
         Arguments
@@ -379,7 +380,8 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
     NUM_PIXELS = 7
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventCircular:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
+             offset: int = 0) -> DigiEventCircular:
         """Circular readout an event.
 
         Arguments

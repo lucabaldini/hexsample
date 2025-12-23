@@ -165,7 +165,8 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     """
     if padding is None:
         padding = Padding(1, 1, 1, 1)
-    readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc, gain, trg_threshold)
+    readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch,
+                                          enc, gain, trg_threshold)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f"Testing pixel ({col}, {row})...")

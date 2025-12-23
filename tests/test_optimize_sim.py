@@ -50,7 +50,8 @@ class HexagonalReadoutCompat(HexagonalReadoutRectangular):
                  zero_sup_threshold : float) -> None:
         """Constructor.
         """
-        super().__init__(layout, num_cols, num_rows, pitch, enc, gain, trg_threshold, zero_sup_threshold)
+        super().__init__(layout, num_cols, num_rows, pitch, enc, gain,
+                         trg_threshold, zero_sup_threshold)
         self._col_binning = np.arange(self.num_cols + 1) - 0.5
         self._row_binning = np.arange(self.num_rows + 1) - 0.5
         self._binning = (self._row_binning, self._col_binning)
