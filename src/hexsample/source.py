@@ -20,17 +20,16 @@
 """X-ray source description.
 """
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Tuple, Union
+from typing import Tuple, Union
 
+import matplotlib
 import numpy as np
 import xraydb
-from aptapy.plotting import plt, setup_gca
+from aptapy.plotting import setup_gca
 
 from . import rng
-from .base import type_proxy
+from .base import AbstractRandomGenerator, AbstractPlottable, type_proxy
 from .hexagon import HexagonalGrid
 
 
@@ -48,40 +47,12 @@ __all__ = [
 ]
 
 
-class AbstractSpectrum(ABC):
+class AbstractSpectrum(AbstractRandomGenerator, AbstractPlottable):
 
     """Abstract base class for a X-ray energy spectrum.
-
-    This defines a single abstract method, :meth:`rvs`, that must be implemented
-    in all concrete subclasses, and should return random photon energies with the
-    proper distribution.
-
-    In addition, a :meth:`plot` method is defined to visualize the spectrum, which
-    can be optionally overridden in concrete subclasses, where appropriate (i.e., when
-    it makes sense to plot the underlying spectrum).
-
-    Note all the energies in this context are expressed in eV.
     """
 
-    @abstractmethod
-    def rvs(self, size: int = 1) -> np.ndarray:
-        """Do-nothing hook to generate random energies.
-
-        Arguments
-        ---------
-        size : int
-            The number of X-ray energies to be generated.
-
-        Returns
-        -------
-        energy : np.ndarray of shape ``size``
-            The photon energies in eV.
-        """
-
-    def plot(self) -> None:
-        """Do-nothing plotting hook.
-        """
-        raise NotImplementedError
+    pass
 
 
 @dataclass(frozen=True)
@@ -103,10 +74,12 @@ class Line(LineSpec, AbstractSpectrum):
         """
         return np.full(size, self.energy)
 
-    def plot(self) -> None:
+    def _render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
         """Overloaded method.
         """
-        plt.bar(self.energy, 1., width=0.001, color="black")
+        kwargs.setdefault("width", 0.01)
+        kwargs.setdefault("color", "black")
+        axes.bar(self.energy, 1., **kwargs)
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", grids=True)
 
 
@@ -163,14 +136,15 @@ class LineForest(LineForestSpec, AbstractSpectrum):
         """
         return rng.generator.choice(self._energies, size, replace=True, p=self._probs)
 
-    def plot(self) -> None:
+    def _render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
         """Overloaded method.
         """
-        # pylint: disable=invalid-name
-        plt.bar(self._energies, self._probs, width=0.0001, color="black")
+        kwargs.setdefault("width", 0.01)
+        kwargs.setdefault("color", "black")
+        axes.bar(self._energies, self._probs, **kwargs)
         for x, y, name in zip(self._energies, self._probs, self.line_dict.keys()):
             label = f"{name} ({y:.2e} @ {x:.0f} eV)"
-            plt.text(x, 1.2 * y, label, ha="center", size="small")
+            axes.text(x, 1.2 * y, label, ha="center", size="small")
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
 
 
@@ -188,33 +162,12 @@ class SpectrumType:
     }
 
 
-class AbstractBeam(ABC):
+class AbstractBeam(AbstractRandomGenerator):
 
     """Abstract base class for all the X-ray beam shapes.
-
-    This defines a single abstract method, :meth:`rvs`, that must be implemented
-    in all concrete subclasses, and should return random photon positions in the
-    xy plane with the proper distribution.
-
-    Note all the positions in this context are expressed in cm.
     """
 
-    @abstractmethod
-    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
-        """Do-nothing hook to generate random positions in the x-y plane.
-
-        Concrete subclasses must implement this method.
-
-        Arguments
-        ---------
-        size : int
-            The number of X-ray photon positions to be generated.
-
-        Returns
-        -------
-        x, y : 2-element tuple of np.ndarray of shape ``size``
-            The photon positions on the x-y plane.
-        """
+    pass
 
 
 @dataclass(frozen=True)
