@@ -21,6 +21,7 @@
 """
 
 from collections import Counter
+from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
 
@@ -28,12 +29,14 @@ import numpy as np
 
 from . import rng, xpol
 from .digi import DigiEventCircular, DigiEventRectangular, DigiEventSparse
-from .hexagon import HexagonalGrid, HexagonalLayout
+from .hexagon import HexagonalGrid, HexagonalGridSpec, HexagonalLayout
 from .roi import Padding, RegionOfInterest
 
 
 class HexagonalReadoutMode(str, Enum):
     """Enum class expressing the possible readout strategies.
+
+    TODO: rename as ReadoutMode
     """
 
     SPARSE = "sparse"
@@ -41,39 +44,36 @@ class HexagonalReadoutMode(str, Enum):
     CIRCULAR = "circular"
 
 
-class HexagonalReadoutBase(HexagonalGrid):
+@dataclass
+class HexagonalReadoutBaseSpec(HexagonalGridSpec):
 
-    """Description of a pixel readout chip on a hexagonal matrix.
+    """Specifications for a pixel readout chip on a hexagonal matrix.
 
     Arguments
     ---------
-    layout : HexagonalLayout
-        The layout of the hexagonal matrix.
-
-    num_cols : int
-        The number of columns in the readout.
-
-    num_rows : int
-        The number of rows in the readout.
-
-    pitch : float
-        The readout pitch in cm.
-
     enc : float
         The equivalent noise charge in electrons.
 
     gain : float
-        The readout gain in ADC counts per electron.
+        The readout gain in ADC counts per electron (default 1).
     """
 
-    def __init__(self, layout: HexagonalLayout, num_cols: int, num_rows: int,
-                 pitch: float, enc: float, gain: float) -> None:
-        """Constructor.
+    enc: float = 30.
+    gain: float = 1.
+    trigger_threshold: float = 500
+    zero_suppression_threshold: int = 0
+
+
+@dataclass
+class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
+
+    """Description of a pixel readout chip on a hexagonal matrix.
+    """
+
+    def __post_init__(self):
+        """Post-initialization.
         """
-        # pylint: disable=too-many-arguments
-        super().__init__(layout, num_cols, num_rows, pitch)
-        self.enc = enc
-        self.gain = gain
+        HexagonalGrid.__post_init__(self)
         self.shape = (self.num_rows, self.num_cols)
         self.trigger_id = -1
 
