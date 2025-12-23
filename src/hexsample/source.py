@@ -95,8 +95,8 @@ class LineForestSpec:
 
     .. info::
         Note that the Python interface to XrayDB allows specifying either the
-        initial level or the excitation energy (in eV), with the latter superceding
-        the former, as it means "all intial levels with below this energy".
+        initial level or the excitation energy (in eV), with the latter superseding
+        the former, as it means "all initial levels with below this energy".
 
         In this initial implementation we only support specifying the initial level,
         and support for excitation energy may be added in the future, if needed.
