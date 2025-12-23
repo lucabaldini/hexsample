@@ -100,7 +100,7 @@ def _object_factory(proxy_dict: dict, key: str, default_type: str, **kwargs) -> 
     return cls(**kwargs)
 
 
-class AbstractSpectrumBase(ABC):
+class AbstractSpectrum(ABC):
 
     """Abstract base class for a X-ray energy spectrum.
 
@@ -145,7 +145,7 @@ class LineSpec:
     energy: float = 6000.0
 
 
-class Line(LineSpec, AbstractSpectrumBase):
+class Line(LineSpec, AbstractSpectrum):
 
     """Class describing a monochromatic emission line at a given energy.
     """
@@ -192,7 +192,7 @@ class LineForestSpec:
     initial_level: str = "K"
 
 
-class LineForest(LineForestSpec, AbstractSpectrumBase):
+class LineForest(LineForestSpec, AbstractSpectrum):
 
     """Class describing a set of X-ray emission lines for a given element and
     initial level or excitation energy.
@@ -225,11 +225,6 @@ class LineForest(LineForestSpec, AbstractSpectrumBase):
             plt.text(x, 1.2 * y, label, ha="center", size="small")
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
 
-    def __str__(self):
-        """String formatting.
-        """
-        return f"{self.line_dict}"
-
 
 class SpectrumType(str, Enum):
 
@@ -239,51 +234,40 @@ class SpectrumType(str, Enum):
     LINE = "line"
     FOREST = "forest"
 
-    @classmethod
-    def default(cls) -> "SpectrumType":
-        return cls.LINE
+    @staticmethod
+    def key() -> str:
+        return "spectrum"
 
     @classmethod
-    def choices(cls) -> Tuple[str, ...]:
+    def values(cls) -> Tuple[str, ...]:
         return tuple(item.value for item in cls)
 
+    @classmethod
+    def default_value(cls) -> str:
+        return cls.LINE.value
 
-# Dispatching dictionary for spectrum objects.
-_SPECTRUM_PROXY_DICT = {
-    SpectrumType.LINE: Line,
-    SpectrumType.FOREST: LineForest
-}
+    @classmethod
+    def factory(cls, **kwargs) -> AbstractSpectrum:
+        """Factory method to create spectrum objects from specifications.
 
+        Arguments
+        ---------
+        kwargs : dict
+            The keyword arguments containing the spectrum specifications.
 
-def spectrum_types() -> Tuple[str, ...]:
-    """Return the available spectrum types.
-    """
-    return tuple(_SPECTRUM_PROXY_DICT.keys())
-
-
-def default_spectrum_type() -> str:
-    """Return the default spectrum type.
-    """
-    return "line"
-
-
-def spectrum_factory(**kwargs) -> AbstractSpectrumBase:
-    """Factory function to create spectrum objects from specifications.
-
-    Arguments
-    ---------
-    kwargs : dict
-        The keyword arguments containing the spectrum specifications.
-
-    Returns
-    -------
-    AbstractSpectrumBase
-        The spectrum object.
-    """
-    return _object_factory(_SPECTRUM_PROXY_DICT, "spectrum", default_spectrum_type(), **kwargs)
+        Returns
+        -------
+        AbstractSpectrum
+            The spectrum object.
+        """
+        _proxy_dict = {
+            cls.LINE.value: Line,
+            cls.FOREST.value: LineForest
+        }
+        return _object_factory(_proxy_dict, cls.key(), cls.default_value(), **kwargs)
 
 
-class AbstractBeamBase(ABC):
+class AbstractBeam(ABC):
 
     """Abstract base class for all the X-ray beam shapes.
 
@@ -330,7 +314,7 @@ class PointBeamSpec:
     y0: float = 0.
 
 
-class PointBeam(PointBeamSpec, AbstractBeamBase):
+class PointBeam(PointBeamSpec, AbstractBeam):
 
     """Point-like X-ray beam.
     """
@@ -367,7 +351,7 @@ class DiskBeamSpec:
     radius: float = 0.1
 
 
-class DiskBeam(DiskBeamSpec, AbstractBeamBase):
+class DiskBeam(DiskBeamSpec, AbstractBeam):
 
     """Uniform disk X-ray beam.
     """
@@ -406,7 +390,7 @@ class GaussianBeamSpec:
     sigma: float = 0.1
 
 
-class GaussianBeam(GaussianBeamSpec, AbstractBeamBase):
+class GaussianBeam(GaussianBeamSpec, AbstractBeam):
 
     """Azimuthally-simmetric gaussian beam.
     """
@@ -447,7 +431,7 @@ class TriangularBeamSpec:
     v2: Tuple[float, float] = (0., 1.)
 
 
-class TriangularBeam(TriangularBeamSpec, AbstractBeamBase):
+class TriangularBeam(TriangularBeamSpec, AbstractBeam):
 
     """Triangular uniform X-ray beam.
     """
@@ -497,7 +481,7 @@ class HexagonalBeamSpec:
     v1: Tuple[float, float] = (0., 1.)
 
 
-class HexagonalBeam(HexagonalBeamSpec, AbstractBeamBase):
+class HexagonalBeam(HexagonalBeamSpec, AbstractBeam):
 
     """Hexagonal uniform X-ray beam.
     """
@@ -536,51 +520,40 @@ class BeamType(str, Enum):
     TRIANGULAR = "triangular"
     HEXAGONAL = "hexagonal"
 
-    @classmethod
-    def default(cls) -> "BeamType":
-        return cls.GAUSSIAN
+    @staticmethod
+    def key() -> str:
+        return "beam"
 
     @classmethod
-    def choices(cls) -> Tuple[str, ...]:
+    def values(cls) -> Tuple[str, ...]:
         return tuple(item.value for item in cls)
 
+    @classmethod
+    def default_value(cls) -> str:
+        return cls.GAUSSIAN.value
 
-# Dispatching dictionary for beam objects.
-_BEAM_PROXY_DICT = {
-    "point": PointBeam,
-    "disk": DiskBeam,
-    "gaussian": GaussianBeam,
-    "triangle": TriangularBeam,
-    "hexagon": HexagonalBeam
-}
+    @classmethod
+    def factory(cls, **kwargs) -> AbstractBeam:
+        """Factory method to create spectrum objects from specifications.
 
+        Arguments
+        ---------
+        kwargs : dict
+            The keyword arguments containing the spectrum specifications.
 
-def beam_types() -> Tuple[str, ...]:
-    """Return the available beam types.
-    """
-    return tuple(_BEAM_PROXY_DICT.keys())
-
-
-def default_beam_type() -> str:
-    """Return the default beam type.
-    """
-    return "gaussian"
-
-
-def beam_factory(**kwargs) -> AbstractBeamBase:
-    """Factory function to create beam objects from specifications.
-
-    Arguments
-    ---------
-    kwargs : dict
-        The keyword arguments containing the beam specifications.
-
-    Returns
-    -------
-    AbstractBeamBase
-        The beam object.
-    """
-    return _object_factory(_BEAM_PROXY_DICT, "beam", default_beam_type(), **kwargs)
+        Returns
+        -------
+        AbstractSpectrum
+            The spectrum object.
+        """
+        _proxy_dict = {
+            cls.POINT.value: PointBeam,
+            cls.DISK.value: DiskBeam,
+            cls.GAUSSIAN.value: GaussianBeam,
+            cls.TRIANGULAR.value: TriangularBeam,
+            cls.HEXAGONAL.value: HexagonalBeam
+        }
+        return _object_factory(_proxy_dict, cls.key(), cls.default_value(), **kwargs)
 
 
 @dataclass(frozen=True)
@@ -590,18 +563,18 @@ class Source:
 
      Arguments
     ---------
-    spectrum : AbstractSpectrumBase
+    spectrum : AbstractSpectrum
         The source spectrum.
 
-    beam : AbstractBeamBase
+    beam : AbstractBeam
         The source morphology.
 
     rate : float
         The photon rate in Hz.
     """
 
-    spectrum: AbstractSpectrumBase = Line()
-    beam: AbstractBeamBase = GaussianBeam()
+    spectrum: AbstractSpectrum = Line()
+    beam: AbstractBeam = GaussianBeam()
     rate: float = 100.
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -630,4 +603,6 @@ class Source:
 def source_factory(**kwargs) -> Source:
     """Factory function to create source objects from specifications.
     """
-    return Source(spectrum_factory(**kwargs), beam_factory(**kwargs), kwargs.get("rate", Source.rate))
+    source = SpectrumType.factory(**kwargs)
+    beam = BeamType.factory(**kwargs)
+    return Source(source, beam, kwargs.get("rate", Source.rate))
