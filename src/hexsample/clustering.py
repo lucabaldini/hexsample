@@ -66,7 +66,7 @@ class Cluster:
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
 
     def calculate_eta(self) -> np.ndarray:
-        """Return the eta values for the cluster.
+        """Return the eta values of the pixels in the cluster.
         """
         eta = np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
         return eta
@@ -83,17 +83,18 @@ class Cluster:
             n = np.array([self.x[1] + self.x[2] - 2 * self.x[0],
                           self.y[1] + self.y[2] - 2 * self.y[0]])
         else:
-            raise RuntimeError('Cluster must contain 2 or 3 pixels to calculate n versor')
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to calculate n versor")
         # It can happen that the versor is [0, 0] for events with strange geometries.
         # In that case we avoid NaN by setting the versor to [0, 0].
-        with np.errstate(invalid='ignore'):
+        with np.errstate(invalid="ignore"):
             n = n / np.sqrt(np.sum(n**2))
             if np.any(np.isnan(n)):
                 n = np.array([0., 0.])
         return n
 
     def eta(self, gamma: Tuple[float, float, float], pitch: float) -> Tuple[float, float]:
-        """Return the cluster reconstructed position using the eta function.
+        """Return the cluster reconstructed position using the eta function calibrated for 2
+        and 3 pixel clusters.
 
         Arguments
         ---------
@@ -125,8 +126,8 @@ class Cluster:
             x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
             y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
         else:
-            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position using\
-                               eta function")
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position using "
+                               "eta function")
         return x_recon, y_recon
 
 

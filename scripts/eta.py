@@ -115,13 +115,13 @@ def hxeta(**kwargs):
     # Calculate mean and rms along r axis
     r_mean_hist = hist.project_mean()
     r_mean = r_mean_hist.content
-    intervals = []
+    coverage_intervals = []
     for i in range(r_mean.size):
         r_slice = hist.slice1d(i)
-        intervals.append(r_slice.minimum_coverage_interval(0.68))
+        coverage_intervals.append(r_slice.minimum_coverage_interval(0.68))
     x_r = r_mean_hist.bin_centers()
-    lower_limits = np.array([interval[0] for interval in intervals])
-    upper_limits = np.array([interval[1] for interval in intervals])
+    lower_limits = np.array([interval[0] for interval in coverage_intervals])
+    upper_limits = np.array([interval[1] for interval in coverage_intervals])
     plt.figure("r vs eta 2-pixel")
     plt.hlines(lower_limits, x_r - 0.005, x_r + 0.005, color="k", alpha=0.8)
     plt.hlines(upper_limits, x_r - 0.005, x_r + 0.005, color="k", alpha=0.8, label="MCI 68%")
@@ -220,12 +220,14 @@ def hxeta(**kwargs):
     model.set_plotting_range(0, 1)
     model.plot(fit_output=True)
     # Fitting with a better model
-    def fit_func(x, a):
+    def theta_eta_model(x, a):
+        """Empirical model to fit theta as a function of eta difference ratio.
+        """
         return (np.pi/6) * (np.exp(x*a) - 1) / (np.exp(a) - 1)
-    popt, pcov = curve_fit(fit_func, x_fit, y_fit)
+    popt, pcov = curve_fit(theta_eta_model, x_fit, y_fit)
     xx = np.linspace(0, 1, 100)
     print(f"Fit parameter: gamma = {popt[0]} +/- {np.sqrt(pcov[0,0])}")
-    plt.plot(xx, fit_func(xx, *popt), "r--")
+    plt.plot(xx, theta_eta_model(xx, *popt), "r--")
     plt.errorbar(x_fit, y_fit, fmt=".k")
     plt.xlabel("(eta1 - eta2) / (eta1 + eta2)")
     plt.ylabel("theta [rad]")
