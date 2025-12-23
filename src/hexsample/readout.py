@@ -180,7 +180,6 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
         return pha.flatten()
 
 
-
 class HexagonalReadoutSparse(HexagonalReadoutBase):
 
     """Sparse readout chip on a hexagonal matrix.
@@ -220,10 +219,14 @@ class HexagonalReadoutSparse(HexagonalReadoutBase):
         return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
 
 
-
 class HexagonalReadoutRectangular(HexagonalReadoutBase):
 
-    """Description of a pixel readout chip on a hexagonal matrix.
+    """ROI-based readout chip on a hexagonal matrix.
+
+    This mimics the functionality of the various generations of XPOL readout chips,
+    where a ROT (region of trigger) is automatically defines based on the 2 x 2
+    minicluster trigger logic, and then expanded with a configurable padding to form
+    the ROI (region of interest) that is actually read out.
     """
 
     @staticmethod
@@ -375,31 +378,13 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
 
 class HexagonalReadoutCircular(HexagonalReadoutBase):
 
-    """Description of a pixel circular readout chip on a hexagonal matrix.
-    In the following readout, the maximum PHA pixel is found and the ROI
-    formed by that pixel and its 6 adjacent neighbours.
-    The standard shape of columns, rows and pha array is then 7, except
-    for events on border, that will have len<7.
+    """Fixed 7-pixel ROI readout chip on a hexagonal matrix.
 
-    Arguments
-    ---------
-    layout : HexagonalLayout
-        The layout of the hexagonal matrix.
+    This class mimics a readout chip with a fixed 7-pixel ROI on a hexagonal matrix,
+    where the maximum PHA is found and the ROI formed by that pixel and its 6 adjacent
+    neighbours.
 
-    num_cols : int
-        The number of columns in the readout.
-
-    num_rows : int
-        The number of rows in the readout.
-
-    pitch : float
-        The readout pitch in cm.
-
-    enc : float
-        The equivalent noise charge in electrons.
-
-    gain : float
-        The readout gain in ADC counts per electron.
+    Note events on border will have less than 7 pixels.
     """
 
     NUM_PIXELS = 7
