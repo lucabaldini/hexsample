@@ -148,32 +148,32 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         group = parser.add_argument_group("source", "X-ray source properties")
         # Spectral part...
-        group.add_argument(f"--{source.SpectrumType.key()}", type=str,
-                           choices=source.SpectrumType.choices(),
-                           default=source.SpectrumType.default(),
+        group.add_argument(f"--{source.SpectrumProxy.key()}", type=str,
+                           choices=source.SpectrumProxy.choices(),
+                           default=source.SpectrumProxy.default(),
                            help="spectrum of the X-ray source")
-        group.add_argument("--energy", type=float, default=source.LineSpec.energy,
+        group.add_argument("--energy", type=float, default=source.Line.energy,
                            help="line energy in eV")
-        group.add_argument("--element", type=str, default=source.LineForestSpec.element,
+        group.add_argument("--element", type=str, default=source.LineForest.element,
                            help="element generating the line forest")
-        group.add_argument("--initial_level", type=str, default=source.LineForestSpec.initial_level,
+        group.add_argument("--initial_level", type=str, default=source.LineForest.initial_level,
                            help="initial level for the line forest")
         # ... morphological part...
-        group.add_argument(f"--{source.BeamType.key()}", type=str,
-                           choices=source.BeamType.choices(),
-                           default=source.BeamType.default(),
+        group.add_argument(f"--{source.BeamProxy.key()}", type=str,
+                           choices=source.BeamProxy.choices(),
+                           default=source.BeamProxy.default(),
                            help="beam shape of the X-ray source")
-        group.add_argument("--x0", type=float, default=source.PointBeamSpec.x0,
+        group.add_argument("--x0", type=float, default=source.PointBeam.x0,
                            help="x-coordinate of the beam centroid in cm")
-        group.add_argument("--y0", type=float, default=source.PointBeamSpec.y0,
+        group.add_argument("--y0", type=float, default=source.PointBeam.y0,
                            help="y-coordinate of the beam centroid in cm")
-        group.add_argument("--radius", type=float, default=source.DiskBeamSpec.radius,
+        group.add_argument("--radius", type=float, default=source.DiskBeam.radius,
                            help="radius of the disk beam in cm")
-        group.add_argument("--sigma", type=float, default=source.GaussianBeamSpec.sigma,
+        group.add_argument("--sigma", type=float, default=source.GaussianBeam.sigma,
                            help="standard deviation of the gaussian beam in cm")
         # ... and overall rate.
         group.add_argument("--rate", type=float, default=source.Source.rate,
-                           help="overall source rate in photons/s")
+                           help="source rate in photons/s")
 
     @staticmethod
     def add_sensor_options(parser: argparse.ArgumentParser) -> None:

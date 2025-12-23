@@ -20,7 +20,7 @@
 """X-ray source description.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple, Union
 
 import matplotlib
@@ -35,13 +35,13 @@ from .hexagon import HexagonalGrid
 __all__ = [
     "Line",
     "LineForest",
-    "SpectrumType",
+    "SpectrumProxy",
     "PointBeam",
     "DiskBeam",
     "GaussianBeam",
     "TriangularBeam",
     "HexagonalBeam",
-    "BeamType",
+    "BeamProxy",
     "Source",
 ]
 
@@ -49,31 +49,33 @@ __all__ = [
 class AbstractSpectrum(AbstractRandomGenerator, AbstractPlottable):
 
     """Abstract base class for a X-ray energy spectrum.
+
+    Subclasses must implement the `rvs` (to generate random energies) and
+    `render` (for plotting) methods.
     """
 
     pass
 
 
-@dataclass(frozen=True)
-class LineSpec:
+@dataclass
+class Line(AbstractSpectrum):
 
-    """Specifications for a monochromatic emission line at a given energy.
+    """Class describing a monochromatic emission line at a given energy.
+
+    Arguments
+    ---------
+    energy : float
+        The line energy in eV.
     """
 
     energy: float = 6000.0
-
-
-class Line(LineSpec, AbstractSpectrum):
-
-    """Class describing a monochromatic emission line at a given energy.
-    """
 
     def rvs(self, size: int = 1) -> np.ndarray:
         """Overloaded method.
         """
         return np.full(size, self.energy)
 
-    def _render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
+    def render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
         """Overloaded method.
         """
         kwargs.setdefault("width", 0.001)
@@ -83,22 +85,15 @@ class Line(LineSpec, AbstractSpectrum):
                   xmin=self.energy - 100., xmax=self.energy + 100., grids=True)
 
 
-@dataclass(frozen=True)
-class LineForestSpec:
+@dataclass
+class LineForest(AbstractSpectrum):
 
-    """Specifications for a set of X-ray emission lines for a given element and
-    initial level.
+    """Class describing a set of X-ray emission lines for a given element and
+    initial level or excitation energy.
 
-    See https://xraypy.github.io/XrayDB/python.html#x-ray-emission-lines for
-    more information.
-
-    .. info::
-        Note that the Python interface to XrayDB allows specifying either the
-        initial level or the excitation energy (in eV), with the latter superseding
-        the former, as it means "all initial levels with below this energy".
-
-        In this initial implementation we only support specifying the initial level,
-        and support for excitation energy may be added in the future, if needed.
+    The underlying implementation relies on the XrayDB package. See
+    https://xraypy.github.io/XrayDB/python.html#x-ray-emission-lines
+    for more information.
 
     Arguments
     ---------
@@ -106,29 +101,26 @@ class LineForestSpec:
         atomic number or atomic symbol for the given element (default: "Cu").
 
     initial_level : str, optional
-        IUPAC symbol of the initial level (default: "K").
+        IUPAC symbol of the initial level (default: "K"). Note that the Python interface
+        to XrayDB allows specifying either the initial level or the excitation energy
+        (in eV), with the latter superseding the former, as it means "all initial levels
+        with below this energy". In this initial implementation we only support specifying
+        the initial level, and support for excitation energy may be added in the future,
+        if truly needed.
     """
 
     element: Union[str, int] = "Cu"
     initial_level: str = "K"
 
-
-class LineForest(LineForestSpec, AbstractSpectrum):
-
-    """Class describing a set of X-ray emission lines for a given element and
-    initial level or excitation energy.
-    """
-
-    def __init__(self, element: Union[str, int], initial_level: str) -> None:
-        """Constructor.
+    def __post_init__(self) -> None:
+        """Post-initialization.
         """
-        LineForestSpec.__init__(self, element, initial_level)
         # Retrieve all the X-ray lines for the given element and setup.
-        self.line_dict = xraydb.xray_lines(element, initial_level, None)
+        self.line_dict = xraydb.xray_lines(self.element, self.initial_level, None)
         # Cache the line energies (in eV) and the corresponding probabilities...
         self._energies = np.array([line.energy for line in self.line_dict.values()])
         self._probs = np.array([line.intensity for line in self.line_dict.values()])
-        # ... and make sure the probabilities are correctly normalized.
+        # ... and normalize the probabilities to one.
         self._probs /= self._probs.sum()
 
     def rvs(self, size: int  = 1) -> np.ndarray:
@@ -136,7 +128,7 @@ class LineForest(LineForestSpec, AbstractSpectrum):
         """
         return rng.generator.choice(self._energies, size, replace=True, p=self._probs)
 
-    def _render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
+    def render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
         """Overloaded method.
         """
         kwargs.setdefault("width", 0.01)
@@ -149,7 +141,7 @@ class LineForest(LineForestSpec, AbstractSpectrum):
 
 
 @type_proxy
-class SpectrumType:
+class SpectrumProxy:
 
     """Type proxy for the available spectrum types.
     """
@@ -165,15 +157,17 @@ class SpectrumType:
 class AbstractBeam(AbstractRandomGenerator):
 
     """Abstract base class for all the X-ray beam shapes.
+
+    Subclasses must implement the `rvs` method.
     """
 
     pass
 
 
-@dataclass(frozen=True)
-class PointBeamSpec:
+@dataclass
+class PointBeam(AbstractBeam):
 
-    """Specifications for a point-like X-ray beam.
+    """Point-like X-ray beam.
 
     Arguments
     ---------
@@ -187,25 +181,18 @@ class PointBeamSpec:
     x0: float = 0.
     y0: float = 0.
 
-
-class PointBeam(PointBeamSpec, AbstractBeam):
-
-    """Point-like X-ray beam.
-    """
-
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
         """
-        # pylint: disable=invalid-name
         x = np.full(size, self.x0)
         y = np.full(size, self.y0)
         return x, y
 
 
-@dataclass(frozen=True)
-class DiskBeamSpec:
+@dataclass
+class DiskBeam(AbstractBeam):
 
-    """Specifications for a uniform disk X-ray beam.
+    """Uniform disk X-ray beam.
 
     Arguments
     ---------
@@ -219,16 +206,9 @@ class DiskBeamSpec:
         The disk radius in cm.
     """
 
-    # pylint: disable=invalid-name
-    x0: float = PointBeamSpec.x0
-    y0: float = PointBeamSpec.y0
+    x0: float = PointBeam.x0
+    y0: float = PointBeam.y0
     radius: float = 0.1
-
-
-class DiskBeam(DiskBeamSpec, AbstractBeam):
-
-    """Uniform disk X-ray beam.
-    """
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
@@ -241,10 +221,10 @@ class DiskBeam(DiskBeamSpec, AbstractBeam):
         return x, y
 
 
-@dataclass(frozen=True)
-class GaussianBeamSpec:
+@dataclass
+class GaussianBeam(AbstractBeam):
 
-    """Specifications for an azimuthally-symmetric gaussian beam.
+    """Azimuthally-simmetric gaussian beam.
 
     Arguments
     ---------
@@ -258,30 +238,22 @@ class GaussianBeamSpec:
         The beam sigma in cm.
     """
 
-    # pylint: disable=invalid-name
-    x0: float = PointBeamSpec.x0
-    y0: float = PointBeamSpec.y0
+    x0: float = PointBeam.x0
+    y0: float = PointBeam.y0
     sigma: float = 0.1
-
-
-class GaussianBeam(GaussianBeamSpec, AbstractBeam):
-
-    """Azimuthally-simmetric gaussian beam.
-    """
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
         """
-        # pylint: disable=invalid-name
         x = rng.generator.normal(self.x0, self.sigma, size=size)
         y = rng.generator.normal(self.y0, self.sigma, size=size)
         return x, y
 
 
-@dataclass(frozen=True)
-class TriangularBeamSpec:
+@dataclass
+class TriangularBeam(AbstractBeam):
 
-    """Specifications for a triangular uniform X-ray beam.
+    """Triangular uniform X-ray beam.
 
     Arguments
     ---------
@@ -298,17 +270,10 @@ class TriangularBeamSpec:
         The (x, y) coordinates of the third vertex of the triangle in cm.
     """
 
-    # pylint: disable=invalid-name
-    x0: float = PointBeamSpec.x0
-    y0: float = PointBeamSpec.y0
+    x0: float = PointBeam.x0
+    y0: float = PointBeam.y0
     v1: Tuple[float, float] = (1., 0.)
     v2: Tuple[float, float] = (0., 1.)
-
-
-class TriangularBeam(TriangularBeamSpec, AbstractBeam):
-
-    """Triangular uniform X-ray beam.
-    """
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
@@ -328,7 +293,7 @@ class TriangularBeam(TriangularBeamSpec, AbstractBeam):
         return w[:, 0], w[:, 1]
 
 
-@dataclass(frozen=True)
+@dataclass
 class HexagonalBeamSpec:
 
     """Specifications for a hexagonal uniform X-ray beam.
@@ -349,8 +314,8 @@ class HexagonalBeamSpec:
     """
 
     # pylint: disable=invalid-name
-    x0: float = PointBeamSpec.x0
-    y0: float = PointBeamSpec.y0
+    x0: float = PointBeam.x0
+    y0: float = PointBeam.y0
     v0: Tuple[float, float] = (1., 0.)
     v1: Tuple[float, float] = (0., 1.)
 
@@ -384,7 +349,7 @@ class HexagonalBeam(HexagonalBeamSpec, AbstractBeam):
 
 
 @type_proxy(default="gaussian")
-class BeamType:
+class BeamProxy:
 
     """Type proxy for the available beam types.
     """
@@ -400,10 +365,10 @@ class BeamType:
     }
 
 
-@dataclass(frozen=True)
-class SourceSpec:
+@dataclass
+class Source:
 
-    """Specifications for a fully-fledged X-ray source.
+    """Class describing a fully-fledged X-ray source.
 
     Arguments
     ---------
@@ -417,15 +382,9 @@ class SourceSpec:
         The photon rate in Hz.
     """
 
-    spectrum: AbstractSpectrum = Line()
-    beam: AbstractBeam = GaussianBeam()
+    spectrum: AbstractSpectrum = field(default_factory=SpectrumProxy.default)
+    beam: AbstractBeam = field(default_factory=BeamProxy.default)
     rate: float = 100.
-
-
-class Source(SourceSpec):
-
-    """Class describing a fully-fledged X-ray source.
-    """
 
     @classmethod
     def from_kwargs(cls, **kwargs) -> "Source":
@@ -441,8 +400,8 @@ class Source(SourceSpec):
         Source
             The source object.
         """
-        spectrum = SpectrumType.factory(**kwargs)
-        beam = BeamType.factory(**kwargs)
+        spectrum = SpectrumProxy.factory(**kwargs)
+        beam = BeamProxy.factory(**kwargs)
         rate = kwargs.get("rate", cls.rate)
         return cls(spectrum, beam, rate)
 

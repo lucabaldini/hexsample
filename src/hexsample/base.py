@@ -56,7 +56,7 @@ class AbstractPlottable(ABC):
     """
 
     @abstractmethod
-    def _render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
+    def render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
         """Render the object on the given axes.
 
         Arguments
@@ -91,7 +91,7 @@ class AbstractPlottable(ABC):
         """
         if axes is None:
             axes = plt.gca()
-        self._render(axes, **kwargs)
+        self.render(axes, **kwargs)
         return axes
 
 
