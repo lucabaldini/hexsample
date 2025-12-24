@@ -29,18 +29,18 @@ import xraydb
 from aptapy.plotting import setup_gca
 
 from . import rng
-from .base import AbstractPlottable, AbstractRandomGenerator, type_proxy
+from .base import AbstractPlottable, AbstractRandomGenerator, TypeProxy
 from .hexagon import HexagonalGrid
 
 __all__ = [
     "Line",
     "LineForest",
-    "SpectrumProxy",
     "PointBeam",
     "DiskBeam",
     "GaussianBeam",
     "TriangularBeam",
     "HexagonalBeam",
+    "SpectrumProxy",
     "BeamProxy",
     "Source",
 ]
@@ -139,19 +139,6 @@ class LineForest(AbstractSpectrum):
             label = f"{name} ({y:.2e} @ {x:.0f} eV)"
             axes.text(x, 1.2 * y, label, ha="center", size="small")
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
-
-
-@type_proxy
-class SpectrumProxy:
-
-    """Type proxy for the available spectrum types.
-    """
-
-    _KEY = "spectrum"
-    _PROXY_DICT = {
-        "line": Line,
-        "forest": LineForest,
-    }
 
 
 class AbstractBeam(AbstractRandomGenerator):
@@ -341,20 +328,19 @@ class HexagonalBeam(AbstractBeam):
         return x, y
 
 
-@type_proxy(default="gaussian")
-class BeamProxy:
+# Definition of the type proxies for spectral types.
+SpectrumProxy = TypeProxy("spectrum")
+SpectrumProxy.register("line", Line, default=True)
+SpectrumProxy.register("forest", LineForest)
 
-    """Type proxy for the available beam types.
-    """
 
-    _KEY = "beam"
-    _PROXY_DICT = {
-        "point": PointBeam,
-        "disk": DiskBeam,
-        "gaussian": GaussianBeam,
-        "triangular": TriangularBeam,
-        "hexagonal": HexagonalBeam,
-    }
+# Definition of the type proxies for beam types.
+BeamProxy = TypeProxy("beam")
+BeamProxy.register("point", PointBeam)
+BeamProxy.register("disk", DiskBeam)
+BeamProxy.register("gaussian", GaussianBeam, default=True)
+BeamProxy.register("triangular", TriangularBeam)
+BeamProxy.register("hexagonal", HexagonalBeam)
 
 
 @dataclass
@@ -392,8 +378,8 @@ class Source:
         Source
             The source object.
         """
-        spectrum = SpectrumProxy.factory(**kwargs)
-        beam = BeamProxy.factory(**kwargs)
+        spectrum = SpectrumProxy.from_kwargs(**kwargs)
+        beam = BeamProxy.from_kwargs(**kwargs)
         rate = kwargs.get("rate", cls.rate)
         return cls(spectrum, beam, rate)
 

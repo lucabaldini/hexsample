@@ -22,7 +22,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import is_dataclass
-from typing import Tuple
+from typing import Any, Dict, Tuple, Type
 
 import matplotlib
 import numpy as np
@@ -95,78 +95,157 @@ class AbstractPlottable(ABC):
         return axes
 
 
-def type_proxy(target_class: type = None, *, default: str = None):
+class TypeProxy:
 
-    """Dual-mode class decorator to create type proxy classes.
+    """Base class for type proxy classes.
 
-    Since we have a few situations in which we might instantiate different type
-    of objects depending on user input (e.g., different spectrum types, or
-    different beam shapes), we provide this decorator to create type proxy classes
-    that can be used to manage such situations in a uniform way, dispatching things
-    accordingly.
+    This class implements a simple type proxy mechanism, allowing to register
+    different dataclass types under different names, and to create concrete
+    objects of the desired type based on keyword arguments.
 
-    The class to be decorated must define two class attributes:
-    - `_KEY`: the name of the keyword argument that will be used to select the desired type;
-    - `_PROXY_DICT`: a dictionary mapping object names (strings) to dataclass types.
-    Everything else happens more or less automatically.
+    .. warning::
+
+       Only dataclass types can be registered. This is intrumental for the
+       inner workings of the type proxy mechanism, since we rely on the
+       dataclass fields to filter the keyword arguments when creating concrete objects.
 
     Arguments
-    ----------
-    target_class: class, optional
-        The target class to decorate. If not provided, the decorator is assumed
-        to be used with arguments.
-
-    default: str, optional
-        The default object name to use when none is provided. If not provided, the first
-        object in the proxy dictionary is used.
+    ---------
+    key : str
+        The name of the keyword argument that will be used to select the desired type
+        when creating objects from keyword arguments.
     """
 
-    _REQUIRED_ATTRS = ("_KEY", "_PROXY_DICT")
-
-    def wrapper(cls):
-        """Class decorator implementation.
+    def __init__(self, key: str) -> None:
+        """Constructor.
         """
-        # Validate the target class: it must define _KEY and _PROXY_DICT class attributes.
-        for attr in _REQUIRED_ATTRS:
-            if not hasattr(cls, attr):
-                raise ValueError(f"Type-proxy classes must define a {attr} attribute.")
+        self._key = key
+        self._proxy_dict: Dict[str, Type[Any]] = {}
+        self._default = None
 
-        # Validate the proxy dictionary: all values must be dataclass types.
-        for type_ in cls._PROXY_DICT.values():
-            if not is_dataclass(type_):
-                raise ValueError(f"{type_} is not a dataclass.")
+    def key(self) -> str:
+        """Return the key used to select the desired type.
 
-        # Determine default key
-        default_name = default or next(iter(cls._PROXY_DICT))
+        Returns
+        -------
+        str
+            The key used to select the desired type.
+        """
+        return self._key
 
-        # Add static methods to retrieve default and available choices.
-        cls.key = staticmethod(lambda: cls._KEY)
-        cls.default = staticmethod(lambda: default_name)
-        cls.choices = staticmethod(lambda: tuple(cls._PROXY_DICT.keys()))
+    def register(self, name: str, cls: type, default: bool = False) -> None:
+        """Register a new dataclass in the proxy dictionary.
 
-        # Add factory method to create objects of the desired type.
-        def factory(cls, **kwargs):
-            """Factory method to create objects of the desired type.
+        Arguments
+        ---------
+        name : str
+            The name of the type to register.
 
-            Note this will filter out silently any unexpected keyword arguments
-            not defined in the target dataclass. This is ok when used in
-            conjunction with argument parsers, where the input is controlled, but
-            is error-prone when used in the wild.
-            """
-            object_name = kwargs.get(cls._KEY, default_name)
-            if object_name not in cls._PROXY_DICT:
-                raise ValueError(f"Unknown {cls._KEY} type: {object_name!r}")
-            cls_ = cls._PROXY_DICT[object_name]
-            kwargs = {k: v for k, v in kwargs.items() if k in cls_.__dataclass_fields__}
-            return cls_(**kwargs)
+        cls : class
+            The dataclass type to register.
+        """
+        # Note that is_dataclass() returns True on both dataclass types and instances.
+        if not (isinstance(cls, type) and is_dataclass(cls)):
+            raise ValueError(f"{cls} is not a dataclass type and cannot be registered.")
+        self._proxy_dict[name] = cls
+        if default or self._default is None:
+            self._default = name
 
-        cls.factory = classmethod(factory)
+    def choices(self) -> Tuple[str, ...]:
+        """Return the available choices.
 
-        return cls
+        Returns
+        -------
+        tuple of str
+            The available choices.
+        """
+        return tuple(self._proxy_dict.keys())
 
-    # Proxy used without arguments, i.e., @type_proxy
-    if target_class is not None:
-        return wrapper(target_class)
+    def default(self) -> str:
+        """Return the default choice.
 
-    # Proxy used with arguments, i.e., @type_proxy(default=)
-    return wrapper
+        Returns
+        -------
+        str
+            The default choice.
+        """
+        if self._default is None:
+            raise RuntimeError(f"No default type registered in {self.__class__.__name__}.")
+        return self._default
+
+    @staticmethod
+    def filter_dataclass_kwargs(cls: type, kwargs: dict) -> dict:
+        """Filter keyword arguments to keep only those defined in the dataclass.
+
+        Arguments
+        ---------
+        cls : class
+            The dataclass type.
+
+        kwargs : dict
+            The keyword arguments to filter.
+
+        Returns
+        -------
+        dict
+            The filtered keyword arguments.
+        """
+        return {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
+
+    def _cls(self, name: str) -> Type[Any]:
+        """Return the type corresponding to the given name.
+
+        Arguments
+        ---------
+        name : str
+            The name of the desired type.
+
+        Returns
+        -------
+        class
+            The class of the desired type.
+        """
+        if name not in self._proxy_dict:
+            raise ValueError(f"Unknown proxy type: {name!r}")
+        return self._proxy_dict[name]
+
+    def create(self, name: str,**kwargs) -> Any:
+        """Create an object of the desired type.
+
+        Arguments
+        ---------
+        name : str
+            The name of the desired type.
+
+        kwargs : keyword arguments
+            The keyword arguments to pass to the constructor.
+
+        Returns
+        -------
+        object
+            The created object.
+        """
+        cls = self._cls(name)
+        return cls(**kwargs)
+
+    def from_kwargs(self, **kwargs) -> Any:
+        """Create an object of the desired type based only on keyword arguments.
+
+        This is extracting the desired type from the keyword arguments using
+        the configured key, and filtering the keyword arguments to keep only those
+        defined in the target dataclass.
+
+        Arguments
+        ---------
+        kwargs : keyword arguments
+            The keyword arguments to pass to the constructor.
+
+        Returns
+        -------
+        object
+            The created object.
+        """
+        name = kwargs.get(self._key, self._default)
+        cls = self._cls(name)
+        kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
+        return cls(**kwargs)
