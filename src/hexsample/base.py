@@ -146,7 +146,9 @@ class TypeProxy:
         """
         # Note that is_dataclass() returns True on both dataclass types and instances.
         if not (isinstance(cls, type) and is_dataclass(cls)):
-            raise ValueError(f"{cls} is not a dataclass type and cannot be registered.")
+            raise TypeError(f"{cls} is not a dataclass type and cannot be registered.")
+        if name in self._proxy_dict:
+            raise ValueError(f"{name!r} already registered.")
         self._proxy_dict[name] = cls
         if default or self._default is None:
             self._default = name
@@ -247,5 +249,5 @@ class TypeProxy:
         """
         name = kwargs.get(self._key, self._default)
         cls = self._cls(name)
-        kwargs = {k: v for k, v in kwargs.items() if k in cls.__dataclass_fields__}
+        kwargs = self.filter_dataclass_kwargs(cls, kwargs)
         return cls(**kwargs)
