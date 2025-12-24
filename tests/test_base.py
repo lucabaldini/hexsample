@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from hexsample.base import type_proxy
+from hexsample.base import TypeProxy
 
 # A few helper classes to help test things without having to import other modules
 # that might evolve in the future.
@@ -40,60 +40,30 @@ class _Vanilla:
     pass
 
 
-
 def test_type_proxy_decorator():
-    """Test for the type_proxy class decorator.
+    """Test for the TypeProxy class.
     """
-
-    @type_proxy()
-    class TypeA:
-
-        _KEY = "spectrum"
-        _PROXY_DICT = {
-            "line": _Line,
-            "forest": _LineForest,
-        }
-
-    assert TypeA.choices() == ("line", "forest")
-    assert TypeA.default() == "line"
-
-    obj = TypeA.factory()
-    assert isinstance(obj, _Line)
-    assert obj.energy == _Line.energy
-
-    obj = TypeA.factory(spectrum="line", energy=2000.)
-    assert isinstance(obj, _Line)
-    assert obj.energy == 2000.
-
-    obj = TypeA.factory(spectrum="forest")
-    assert isinstance(obj, _LineForest)
-
-    @type_proxy(default="forest")
-    class TypeB:
-
-        _KEY = "spectrum"
-        _PROXY_DICT = {
-            "line": _Line,
-            "forest": _LineForest,
-        }
-
-    assert TypeB.choices() == ("line", "forest")
-    assert TypeB.default() == "forest"
-
+    proxy = TypeProxy("spectrum")
+    proxy.register("line", _Line)
+    proxy.register("forest", _LineForest)
+    # We actively prevent registering non-dataclass types.
+    with pytest.raises(TypeError):
+       proxy.register("vanilla", _Vanilla)
+    # And we do not allow re-registering existing keys.
     with pytest.raises(ValueError):
-
-        @type_proxy
-        class TypeC:
-
-            _KEY = "spectrum"
-            _PROXY_DICT = {
-                "vanilla": _Vanilla,  # Not a dataclass
-            }
-
-    with pytest.raises(ValueError):
-
-        @type_proxy
-        class TypeD:
-
-            # Missing _KEY and _PROXY_DICT
-            pass
+        proxy.register("line", _Line)
+    # Basic functionality.
+    assert proxy.key() == "spectrum"
+    assert proxy.choices() == ("line", "forest")
+    assert proxy.default() == "line"
+    # Create objects.
+    spectrum = proxy.create("line")
+    assert isinstance(spectrum, _Line)
+    assert spectrum.energy == _Line.energy
+    spectrum = proxy.create("line", energy=2000.)
+    assert isinstance(spectrum, _Line)
+    assert spectrum.energy == 2000.
+    spectrum = proxy.create("forest")
+    assert isinstance(spectrum, _LineForest)
+    assert spectrum.element == _LineForest.element
+    assert spectrum.initial_level == _LineForest.initial_level

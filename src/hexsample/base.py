@@ -198,7 +198,7 @@ class TypeProxy:
             raise ValueError(f"Unknown proxy type {name!r} for {self.__class__.__name__}.")
         return self._proxy_dict[name]
 
-    def create(self, name: str,**kwargs) -> Any:
+    def create(self, name: str, **kwargs) -> Any:
         """Create an object of the desired type.
 
         Arguments
