@@ -23,14 +23,12 @@ from hexsample.digi import (
     DigiEventBase,
     DigiEventCircular,
     DigiEventRectangular,
-    DigiEventSparse,
 )
 from hexsample.hexagon import HexagonalLayout
 from hexsample.logging_ import logger
 from hexsample.readout import (
     HexagonalReadoutCircular,
     HexagonalReadoutRectangular,
-    HexagonalReadoutSparse,
 )
 from hexsample.roi import Padding, RegionOfInterest
 
@@ -43,56 +41,7 @@ def test_digi_event_base():
     print(event)
     print(event.timestamp())
 
-def test_digi_event_sparse():
-    """Test for sparse digi event class.
-    """
-    pha = np.array([50., 150., 25.])
-    rows = np.array([1, 2, 3])
-    columns = np.array([11, 12, 12])
-    event = DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
-    print(event)
-    #print(event.highest_pixel())
-    print(event.timestamp())
-    print(event.ascii())
-    # Make sure that the check on the dimensions of the row and column arrays is
-    # at work
-    with pytest.raises(RuntimeError):
-        rows = np.array([1, 2, 3])
-        columns = np.array([11, 12, 12, 12])
-        event = DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
-    with pytest.raises(RuntimeError):
-        rows = np.array([1, 2, 3, 4])
-        columns = np.array([11, 12, 12])
-        event = DigiEventSparse(0, 0, 0, 0, pha, rows, columns)
 
-def test_digitization_sparse(layout: HexagonalLayout = HexagonalLayout.ODD_R,
-    num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
-    gain: float = 0.5, num_pairs: int = 1000, trg_threshold: float = 200.):
-    """Test for sparse event digitalization class.
-    """
-    readout = HexagonalReadoutSparse(layout, num_cols, num_rows, pitch, enc, gain, trg_threshold)
-    # Pick out some particular pixels...
-    col1, row1 = num_cols // 3, num_rows // 4
-    col2, row2 = col1 + 8, row1 + 5
-    col3, row3 = col1 + 4, row1 + 2
-    logger.debug(f"Testing pixel ({col1}, {row1}) and ({col2}, {row2})...")
-    # ... create the x and y arrays of the pair positions in the center of the pixel.
-    x1, y1 = readout.pixel_to_world(col1, row1)
-    x2, y2 = readout.pixel_to_world(col2, row2)
-    x, y = np.full(int(num_pairs), x1), np.full(int(num_pairs), y1)
-    x = np.append(x, np.full(num_pairs, x2))
-    y = np.append(y, np.full(num_pairs, y2))
-    # Add one more pixel below the trigger threshold, that we want to see disappear
-    # in the final event.
-    logger.debug(f"Adding pixel ({col3}, {row3}) below the trigger threshold...")
-    x3, y3 = readout.pixel_to_world(col3, row3)
-    n = int(0.5 * trg_threshold)
-    x = np.append(x, np.full(n, x3))
-    y = np.append(y, np.full(n, y3))
-    event = readout.read(0., x, y) #this is a DigiEventSparse
-    print(event.ascii())
-
-#@pytest.mark.skip("Under development")
 def test_digi_event_circular():
     """Test for circular digi event class.
     """
@@ -108,7 +57,7 @@ def test_digi_event_circular():
     # Make sure that the check on the dimensions of the row and column arrays is
     # at work
 
-#@pytest.mark.skip("Under development")
+
 def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
     gain: float = 0.5, num_pairs: int = 1000):

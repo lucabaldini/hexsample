@@ -201,9 +201,12 @@ _ADC_PROXY_DICT = {
 
 
 @dataclass
-class HexagonalGridSpec:
+class HexagonalGrid:
 
-    """Dataclass describing a hexagonal grid specification.
+    # pylint: disable = too-many-instance-attributes
+
+    """Generic hexagonal grid, with the origin of the physical coordinate system
+    at its center.
 
     Arguments
     ---------
@@ -224,16 +227,6 @@ class HexagonalGridSpec:
     num_cols: int = 304
     num_rows: int = 352
     pitch: float = 0.005
-
-
-@dataclass
-class HexagonalGrid(HexagonalGridSpec):
-
-    # pylint: disable = too-many-instance-attributes
-
-    """Generic hexagonal grid, with the origin of the physical coordinate system
-    at its center.
-    """
 
     def __post_init__(self) -> None:
         """Post-initialization.

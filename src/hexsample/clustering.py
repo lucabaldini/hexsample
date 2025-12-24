@@ -26,7 +26,7 @@ from typing import Tuple
 import numpy as np
 from aptapy.models import PowerLaw
 
-from .digi import DigiEventCircular, DigiEventRectangular, DigiEventSparse
+from .digi import DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .readout import HexagonalReadoutCircular
 
@@ -138,9 +138,7 @@ class ClusteringNN(ClusteringBase):
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
-        if isinstance(event, DigiEventSparse):
-            pass
-        elif isinstance(event, DigiEventCircular):
+        if isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
             # Trailing -1 is bc the central px is already considered.
             self.num_neighbors = HexagonalReadoutCircular.NUM_PIXELS - 1

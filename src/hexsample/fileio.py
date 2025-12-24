@@ -30,7 +30,7 @@ import numpy as np
 import tables
 
 from . import __version__
-from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular, DigiEventSparse
+from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .logging_ import logger
 from .mc import MonteCarloEvent
 from .readout import HexagonalReadoutCircular, HexagonalReadoutMode
@@ -98,29 +98,6 @@ def _fill_digi_row_base(row: tables.tableextension.Row, event: DigiEventBase) ->
     row["seconds"] = event.seconds
     row["microseconds"] = event.microseconds
     row["livetime"] = event.livetime
-
-
-
-class DigiDescriptionSparse(DigiDescriptionBase):
-
-    """Description of the (flat) digi part of the file format for a sparse readout
-    DigiEvent.
-    """
-
-def _fill_digi_row_sparse(row: tables.tableextension.Row, event: DigiEventBase) -> None:
-    """Overloaded method.
-    It uses the _fill_digi_row_base() function for filling the trigger_id and time
-    coordinates of the event.
-
-    .. note::
-        This would have naturally belonged to the DigiDescriptionSparse class as
-        a @staticmethod, but doing so is apparently breaking something into the
-        tables internals, and all of a sudden you get an exception due to the
-        fact that a staticmethod cannot be pickled.
-    """
-    _fill_digi_row_base(row, event)
-    row.append()
-
 
 
 class DigiDescriptionRectangular(DigiDescriptionBase):
@@ -367,67 +344,6 @@ class OutputFileBase(tables.File):
         """
         raise NotImplementedError
 
-class DigiOutputFileSparse(OutputFileBase):
-
-    """Description of a sparse digitized output file.
-
-    This can represent either a digitized files written by the DAQ, or the
-    output of a simulation, in which case it contains an additional group and
-    table for the Monte Carlo ground truth.
-
-    Arguments
-    ---------
-    file_path : str
-        The path to the file on disk.
-    """
-
-    _FILE_TYPE = FileType.DIGI
-    #_READOUT_MODE = HexagonalReadoutMode.SPARSE
-    DIGI_TABLE_SPECS = ("digi_table", DigiDescriptionSparse, "Digi data")
-    COLUMNS_ARRAY_SPECS = ("columns", tables.Int32Atom(shape=()))
-    ROWS_ARRAY_SPECS = ("rows", tables.Int32Atom(shape=()))
-    PHA_ARRAY_SPECS = ("pha", tables.Int32Atom(shape=()))
-    MC_TABLE_SPECS = ("mc_table", MonteCarloDescription, "Monte Carlo data")
-
-    def __init__(self, file_path: str):
-        """Constructor.
-        """
-        super().__init__(file_path)
-        #self.update_header(readoutmode=self._READOUT_MODE.value)
-        self.digi_group = self.create_group(self.root, "digi", "Digi")
-        self.digi_table = self.create_table(self.digi_group, *self.DIGI_TABLE_SPECS)
-        self.columns_array = self.create_vlarray(self.digi_group, *self.COLUMNS_ARRAY_SPECS)
-        self.rows_array = self.create_vlarray(self.digi_group, *self.ROWS_ARRAY_SPECS)
-        self.pha_array = self.create_vlarray(self.digi_group, *self.PHA_ARRAY_SPECS)
-        self.mc_group = self.create_group(self.root, "mc", "Monte Carlo")
-        self.mc_table = self.create_table(self.mc_group, *self.MC_TABLE_SPECS)
-
-    def add_row(self, digi_event: DigiEventSparse, mc_event: MonteCarloEvent) -> None:
-        """Add one row to the file.
-
-        Arguments
-        ---------
-        digi : DigiEventSparse
-            The digitized event contribution.
-
-        mc : MonteCarloEvent
-            The Monte Carlo event contribution.
-        """
-        # pylint: disable=arguments-differ
-        _fill_digi_row_sparse(self.digi_table.row, digi_event)
-        self.columns_array.append(digi_event.columns.flatten())
-        self.rows_array.append(digi_event.rows.flatten())
-        self.pha_array.append(digi_event.pha.flatten())
-        _fill_mc_row(self.mc_table.row, mc_event)
-
-    def flush(self) -> None:
-        """Flush the basic file components.
-        """
-        self.digi_table.flush()
-        self.columns_array.flush()
-        self.rows_array.flush()
-        self.pha_array.flush()
-        self.mc_table.flush()
 
 class DigiOutputFileRectangular(OutputFileBase):
 
@@ -535,7 +451,6 @@ class DigiOutputFileCircular(OutputFileBase):
 
 # Mapping for the digi description classes for each readout mode.
 _FILEIO_CLASS_DICT = {
-    HexagonalReadoutMode.SPARSE: DigiOutputFileSparse,
     HexagonalReadoutMode.RECTANGULAR: DigiOutputFileRectangular,
     HexagonalReadoutMode.CIRCULAR: DigiOutputFileCircular
 }
@@ -680,53 +595,6 @@ class DigiInputFileBase(InputFileBase):
         return self.digi_event(self.__index)
 
 
-class DigiInputFileSparse(DigiInputFileBase):
-
-    """Description of a sparse digitized input file.
-
-    This has a very simple interface: we cache references to the relevant tables
-    when we open the file and we provide methods to reassemble a specific table
-    row into the corresponding DigiEvent or MonteCarloEvent objects, along with
-    an implementation of the iterator protocol to make event loops easier.
-    """
-
-    def __init__(self, file_path: str):
-        """Constructor.
-        """
-        super().__init__(file_path)
-        self.columns_array = self.root.digi.columns
-        self.rows_array = self.root.digi.rows
-        self.pha_array = self.root.digi.pha
-        self.__index = -1
-
-    def digi_event(self, row_index: int) -> DigiEventSparse:
-        """Random access to the DigiEventSparse part of the event contribution.
-
-        Arguments
-        ---------
-        row_index : int
-            The index of the target row in the event file.
-        """
-        row = self.digi_table[row_index]
-        columns = self.columns_array[row_index]
-        rows = self.rows_array[row_index]
-        pha = self.pha_array[row_index]
-        return DigiEventSparse.from_digi(row, pha, columns, rows)
-
-    def __iter__(self):
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index = -1
-        return self
-
-    def __next__(self) -> DigiEventSparse:
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index += 1
-        if self.__index == len(self.digi_table):
-            raise StopIteration
-        return self.digi_event(self.__index)
-
 class DigiInputFileRectangular(DigiInputFileBase):
 
     """Description of a rectangular digitized input file.
@@ -787,7 +655,7 @@ class DigiInputFileCircular(DigiInputFileBase):
         self.__index = -1
 
     def digi_event(self, row_index: int) -> DigiEventCircular:
-        """Random access to the DigiEventSparse part of the event contribution.
+        """Random access to the DigiEventCircular part of the event contribution.
 
         Arguments
         ---------
@@ -878,8 +746,6 @@ def open_input_file(file_path: str) -> InputFileBase:
     file_type = peek_file_type(file_path)
     if file_type == FileType.DIGI:
         readout_type = peek_readout_type(file_path)
-        if readout_type == HexagonalReadoutMode.SPARSE:
-            return DigiInputFileSparse(file_path)
         if readout_type == HexagonalReadoutMode.RECTANGULAR:
             return DigiInputFileRectangular(file_path)
         if readout_type == HexagonalReadoutMode.CIRCULAR:

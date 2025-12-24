@@ -29,7 +29,6 @@ from hexsample.clustering import ClusteringNN
 from hexsample.fileio import (
     DigiInputFileCircular,
     DigiInputFileRectangular,
-    DigiInputFileSparse,
     ReconOutputFile,
     peek_readout_type,
 )
@@ -39,7 +38,6 @@ from hexsample.readout import (
     HexagonalReadoutCircular,
     HexagonalReadoutMode,
     HexagonalReadoutRectangular,
-    HexagonalReadoutSparse,
 )
 from hexsample.recon import ReconEvent
 
@@ -68,14 +66,7 @@ def hxrecon(**kwargs):
     # corresponds to a different DigiEvent type.
     readout_mode = peek_readout_type(input_file_path)
     # Now we can construct a set of if/else.
-    if readout_mode is HexagonalReadoutMode.SPARSE:
-        input_file = DigiInputFileSparse(input_file_path)
-        header = input_file.header
-        args = HexagonalLayout(header["layout"]), header["numcolumns"], header["numrows"],\
-            header["pitch"], header["noise"], header["gain"]
-        readout = HexagonalReadoutSparse(*args)
-        logger.info(f"Readout chip: {readout}")
-    elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
+    if readout_mode is HexagonalReadoutMode.RECTANGULAR:
         input_file = DigiInputFileRectangular(input_file_path)
         header = input_file.header
         args = HexagonalLayout(header["layout"]), header["numcolumns"], header["numrows"],\

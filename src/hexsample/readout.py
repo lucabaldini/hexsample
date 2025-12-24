@@ -28,15 +28,15 @@ from typing import Tuple
 import numpy as np
 
 from . import rng
-from .digi import DigiEventCircular, DigiEventRectangular, DigiEventSparse
-from .hexagon import HexagonalGrid, HexagonalGridSpec
+from .digi import DigiEventCircular, DigiEventRectangular
+from .hexagon import HexagonalGrid
 from .roi import Padding, RegionOfInterest
 
 
 @dataclass
-class HexagonalReadoutBaseSpec(HexagonalGridSpec):
+class HexagonalReadoutBase(HexagonalGrid):
 
-    """Specifications for a pixel readout chip on a hexagonal matrix.
+    """Description of a pixel readout chip on a hexagonal matrix.
 
     Note that, in addition to the physical properties (noise and gain) the readout
     chip comes up at creation time with a well defined configuration, in terms of
@@ -44,7 +44,7 @@ class HexagonalReadoutBaseSpec(HexagonalGridSpec):
     possibility to change these parameters at runtime to make things more germane to
     what happens in real life, but for the time being that seems hardly necessary.
 
-    Also note the readout chip inherits all the members from HexagonalGridSpec.
+    Also note the readout chip inherits all the members from HexagonalGrid.
 
     Arguments
     ---------
@@ -67,13 +67,6 @@ class HexagonalReadoutBaseSpec(HexagonalGridSpec):
     gain: float = 1.
     trg_threshold: float = 500
     zero_sup_threshold: int = 0
-
-
-@dataclass
-class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
-
-    """Description of a pixel readout chip on a hexagonal matrix.
-    """
 
     def __post_init__(self):
         """Post-initialization.
@@ -183,46 +176,6 @@ class HexagonalReadoutBase(HexagonalReadoutBaseSpec, HexagonalGrid):
         # ... flatten the array to simulate the serial readout and return the
         # array as the BEE would have.
         return pha.flatten()
-
-
-class HexagonalReadoutSparse(HexagonalReadoutBase):
-
-    """Sparse readout chip on a hexagonal matrix.
-
-    In the following readout, no ROI is formed, every (and only) triggered pixel of the
-    event is kept with its positional information in (col, row) on the hexagonal grid.
-    """
-
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
-             offset: int = 0) -> DigiEventSparse:
-        """Sparse readout an event.
-
-        Arguments
-        ---------
-        timestamp : float
-            The event timestamp.
-
-        x : array_like
-            The physical x coordinates of the input charge.
-
-        y : array_like
-            The physical x coordinates of the input charge.
-
-        offset : int
-            Optional offset in ADC counts to be applied before the zero suppression.
-        """
-        # Sample the input positions over the readout...
-        signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
-        columns, rows, pha = np.array([[*key, value] for key, value in signal.items()]).T
-        # ...apply the trigger...
-        trigger_mask = self.discriminate(pha, self.trg_threshold)
-        columns, rows, pha = columns[trigger_mask], rows[trigger_mask], pha[trigger_mask]
-        # .. and digitize the pha values.
-        pha = self.digitize(pha, offset)
-        seconds, microseconds, livetime = self.latch_timestamp(timestamp)
-        # And do not forget to increment the trigger identifier!
-        self.trigger_id += 1
-        return DigiEventSparse(self.trigger_id, seconds, microseconds, livetime, pha, columns, rows)
 
 
 class HexagonalReadoutRectangular(HexagonalReadoutBase):
@@ -433,14 +386,12 @@ class HexagonalReadoutMode(str, Enum):
     """Enum class expressing the possible readout strategies.
     """
 
-    SPARSE = "sparse"
     RECTANGULAR = "rectangular"
     CIRCULAR = "circular"
 
 
 # Mapping for the readout chip classes for each readout mode.
 _READOUT_CLASS_DICT = {
-    HexagonalReadoutMode.SPARSE: HexagonalReadoutSparse,
     HexagonalReadoutMode.RECTANGULAR: HexagonalReadoutRectangular,
     HexagonalReadoutMode.CIRCULAR: HexagonalReadoutCircular
 }

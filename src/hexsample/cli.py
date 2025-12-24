@@ -23,7 +23,7 @@
 import argparse
 
 from hexsample import __name__ as __package_name__
-from hexsample import __version__, hexagon, sensor, source, tasks
+from hexsample import __version__, hexagon, readout, sensor, source, tasks
 
 
 def start_message() -> None:
@@ -196,13 +196,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         group = parser.add_argument_group("readout", "Redout configuration")
         group.add_argument("--layout", type=str, choices=hexagon.HexagonalLayout.values(),
-                           default=hexagon.HexagonalGridSpec.layout,
+                           default=hexagon.HexagonalGrid.layout,
                            help="chip layout")
-        group.add_argument("--num_cols", type=int, default=hexagon.HexagonalGridSpec.num_cols,
+        group.add_argument("--num_cols", type=int, default=hexagon.HexagonalGrid.num_cols,
                            help="number of colums in the readout chip")
-        group.add_argument("--num_rows", type=int, default=hexagon.HexagonalGridSpec.num_rows,
+        group.add_argument("--num_rows", type=int, default=hexagon.HexagonalGrid.num_rows,
                            help="number of rows in the readout chip")
-        group.add_argument("--pitch", type=float, default=hexagon.HexagonalGridSpec.pitch,
+        group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
         # modes = [item.value for item in HexagonalReadoutMode]
         # group.add_argument("--readoutmode", type=str, choices=modes, default="RECTANGULAR",
