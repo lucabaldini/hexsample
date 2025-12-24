@@ -208,7 +208,7 @@ class TypeProxy:
             The class of the desired type.
         """
         if name not in self._proxy_dict:
-            raise ValueError(f"Unknown proxy type: {name!r}")
+            raise ValueError(f"Unknown proxy type {name!r} for {self.__class__.__name__}.")
         return self._proxy_dict[name]
 
     def create(self, name: str,**kwargs) -> Any:
@@ -247,7 +247,7 @@ class TypeProxy:
         object
             The created object.
         """
-        name = kwargs.get(self._key, self._default)
+        name = kwargs.get(self._key) or self.default()
         cls = self._cls(name)
         kwargs = self.filter_dataclass_kwargs(cls, kwargs)
         return cls(**kwargs)
