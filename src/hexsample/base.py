@@ -126,6 +126,8 @@ class TypeProxy:
     def key(self) -> str:
         """Return the key used to select the desired type.
 
+        This is useful, e.g., for argparse argument names.
+
         Returns
         -------
         str
@@ -156,6 +158,8 @@ class TypeProxy:
     def choices(self) -> Tuple[str, ...]:
         """Return the available choices.
 
+        This is useful for argparse choices, for instance.
+
         Returns
         -------
         tuple of str
@@ -166,6 +170,8 @@ class TypeProxy:
     def default(self) -> str:
         """Return the default choice.
 
+        This is useful for argparse default values, for instance.
+
         Returns
         -------
         str
@@ -174,25 +180,6 @@ class TypeProxy:
         if self._default is None:
             raise RuntimeError(f"No default type registered in {self.__class__.__name__}.")
         return self._default
-
-    @staticmethod
-    def filter_dataclass_kwargs(cls: type, kwargs: dict) -> dict:
-        """Filter keyword arguments to keep only those defined in the dataclass.
-
-        Arguments
-        ---------
-        cls : class
-            The dataclass type.
-
-        kwargs : dict
-            The keyword arguments to filter.
-
-        Returns
-        -------
-        dict
-            The filtered keyword arguments.
-        """
-        return {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
 
     def _cls(self, name: str) -> Type[Any]:
         """Return the type corresponding to the given name.
@@ -230,12 +217,39 @@ class TypeProxy:
         cls = self._cls(name)
         return cls(**kwargs)
 
+    @staticmethod
+    def filter_dataclass_kwargs(cls: type, kwargs: dict) -> dict:
+        """Filter keyword arguments to keep only those defined in the dataclass.
+
+        Arguments
+        ---------
+        cls : class
+            The dataclass type.
+
+        kwargs : dict
+            The keyword arguments to filter.
+
+        Returns
+        -------
+        dict
+            The filtered keyword arguments.
+        """
+        return {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
+
     def from_kwargs(self, **kwargs) -> Any:
         """Create an object of the desired type based only on keyword arguments.
 
         This is extracting the desired type from the keyword arguments using
         the configured key, and filtering the keyword arguments to keep only those
         defined in the target dataclass.
+
+        .. warning::
+
+           Use this with caution, as we are silently dropping any keyword argument
+           that is not defined in the target dataclass. This may be fine when the
+           class acts as an interface layer to argparse, but if you use the function
+           in the wild, you might end up having typos in your keyword arguments that
+           go undetected.
 
         Arguments
         ---------
