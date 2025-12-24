@@ -178,6 +178,69 @@ class HexagonalReadoutBase(HexagonalGrid):
         return pha.flatten()
 
 
+class HexagonalReadoutCircular(HexagonalReadoutBase):
+
+    """Fixed 7-pixel ROI readout chip on a hexagonal matrix.
+
+    This class mimics a readout chip with a fixed 7-pixel ROI on a hexagonal matrix,
+    where the maximum PHA is found and the ROI formed by that pixel and its 6 adjacent
+    neighbours.
+
+    Note events on border will have less than 7 pixels.
+    """
+
+    NUM_PIXELS = 7
+
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
+             offset: int = 0) -> DigiEventCircular:
+        """Circular readout an event.
+
+        Arguments
+        ---------
+        timestamp : float
+            The event timestamp.
+
+        x : float
+            The physical x coordinate of the highest pha pixel.
+
+        y : float
+            The physical y coordinate of the highest pha pixel.
+
+        offset : int
+            Optional offset in ADC counts to be applied before the zero suppression.
+        """
+        # pylint: disable=unused-argument
+        # Sample the input positions over the readout...
+        sparse_signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
+        # ...sampling the input position of the highest PHA pixel over the readout...
+        # See: https://stackoverflow.com/questions/70094914/max-on-collections-counter
+        coord_max = max(sparse_signal, key=sparse_signal.get)
+        # col_max, row_max = coord_max
+        #... and converting it in ADC channel coordinates (value from 0 to 6)...
+        adc_max = self.adc_channel(*coord_max)
+        # ... creating a 7-elements array containing the PHA of the ADC channels from 0 to 6
+        # in increasing order and filling it with PHAs of the highest px and its neigbors...
+        pha = np.empty(self.NUM_PIXELS)
+        pha[adc_max] = sparse_signal[coord_max]
+        # ... identifying the 6 neighbors of the central pixel and saving the signal pixels
+        # prepending the coordinates of the highest one...
+        for coords in self.neighbors(*coord_max):
+            pha[self.adc_channel(*coords)] = sparse_signal[coords]
+        # ...apply the trigger...
+        # Not sure the trigger is needed, the highest px passed
+        # necessarily the trigger or there is no event
+        # trigger_mask = self.discriminate(pha, self.trg_threshold)
+        # .. and digitize the pha values.
+        pha = self.digitize(pha, offset)
+        seconds, microseconds, livetime = self.latch_timestamp(timestamp)
+        # And do not forget to increment the trigger identifier!
+        self.trigger_id += 1
+        # The pha array is always in the order
+        # [pha(adc0), pha(adc1), pha(adc2), pha(adc3), pha(adc4), pha(adc5), pha(adc6)]
+        return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha, *coord_max)
+
+
+@dataclass
 class HexagonalReadoutRectangular(HexagonalReadoutBase):
 
     """ROI-based readout chip on a hexagonal matrix.
@@ -187,6 +250,8 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
     minicluster trigger logic, and then expanded with a configurable padding to form
     the ROI (region of interest) that is actually read out.
     """
+
+    padding: Padding = Padding(2, 2, 2, 2)
 
     @staticmethod
     def sum_miniclusters(array: np.ndarray) -> np.ndarray:
@@ -252,8 +317,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         signal = np.bincount(index, minlength=num_cols * num_rows).reshape((num_rows, num_cols))
         return min_col, min_row, signal
 
-    def trigger(self, signal: np.ndarray, min_col: int, min_row: int,
-        padding: Padding) -> Tuple[RegionOfInterest, np.ndarray]:
+    def trigger(self, signal: np.ndarray, min_col: int, min_row: int) -> Tuple[RegionOfInterest, np.ndarray]:
         """Apply the trigger, calculate the region of interest, and pad the
         signal array to the proper dimension.
 
@@ -275,24 +339,23 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         trg_rows = 2 * np.nonzero(trg_signal.sum(axis=1))[0]
         # Build the actual ROI in chip coordinates and initialize the RegionOfInterest
         # object.
-        roi_min_col = min_col + trg_cols.min() - padding.left
-        roi_max_col = min_col + trg_cols.max() + 1 + padding.right
-        roi_min_row = min_row + trg_rows.min() - padding.top
-        roi_max_row = min_row + trg_rows.max() + 1 + padding.bottom
-        roi = RegionOfInterest(roi_min_col, roi_max_col, roi_min_row, roi_max_row, padding)
+        roi_min_col = min_col + trg_cols.min() - self.padding.left
+        roi_max_col = min_col + trg_cols.max() + 1 + self.padding.right
+        roi_min_row = min_row + trg_rows.min() - self.padding.top
+        roi_max_row = min_row + trg_rows.max() + 1 + self.padding.bottom
+        roi = RegionOfInterest(roi_min_col, roi_max_col, roi_min_row, roi_max_row, self.padding)
         # And now the actual PHA array: we start with all zeroes...
         pha = np.full(roi.shape(), 0.)
         # ...and then we patch the original signal array into the proper submask.
         num_rows, num_cols = signal.shape
-        start_row = padding.bottom - trg_rows.min()
-        start_col = padding.left - trg_cols.min()
+        start_row = self.padding.bottom - trg_rows.min()
+        start_col = self.padding.left - trg_cols.min()
         pha[start_row:start_row + num_rows, start_col:start_col + num_cols] = signal
         # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
         return roi, pha
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, padding: Padding,
-             offset: int = 0) -> DigiEventRectangular:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventRectangular:
         """Readout an event.
 
         Arguments
@@ -306,80 +369,15 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         y : array_like
             The physical x coordinates of the input charge.
 
-        padding : Padding
-            The padding to be applied to the ROT.
-
         offset : int
             Optional offset in ADC counts to be applied before the zero suppression.
         """
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
-        roi, pha = self.trigger(signal, min_col, min_row, padding)
+        roi, pha = self.trigger(signal, min_col, min_row)
         pha = self.digitize(pha, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
-
-
-class HexagonalReadoutCircular(HexagonalReadoutBase):
-
-    """Fixed 7-pixel ROI readout chip on a hexagonal matrix.
-
-    This class mimics a readout chip with a fixed 7-pixel ROI on a hexagonal matrix,
-    where the maximum PHA is found and the ROI formed by that pixel and its 6 adjacent
-    neighbours.
-
-    Note events on border will have less than 7 pixels.
-    """
-
-    NUM_PIXELS = 7
-
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
-             offset: int = 0) -> DigiEventCircular:
-        """Circular readout an event.
-
-        Arguments
-        ---------
-        timestamp : float
-            The event timestamp.
-
-        x : float
-            The physical x coordinate of the highest pha pixel.
-
-        y : float
-            The physical y coordinate of the highest pha pixel.
-
-        offset : int
-            Optional offset in ADC counts to be applied before the zero suppression.
-        """
-        # pylint: disable=unused-argument
-        # Sample the input positions over the readout...
-        sparse_signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
-        # ...sampling the input position of the highest PHA pixel over the readout...
-        # See: https://stackoverflow.com/questions/70094914/max-on-collections-counter
-        coord_max = max(sparse_signal, key=sparse_signal.get)
-        # col_max, row_max = coord_max
-        #... and converting it in ADC channel coordinates (value from 0 to 6)...
-        adc_max = self.adc_channel(*coord_max)
-        # ... creating a 7-elements array containing the PHA of the ADC channels from 0 to 6
-        # in increasing order and filling it with PHAs of the highest px and its neigbors...
-        pha = np.empty(self.NUM_PIXELS)
-        pha[adc_max] = sparse_signal[coord_max]
-        # ... identifying the 6 neighbors of the central pixel and saving the signal pixels
-        # prepending the coordinates of the highest one...
-        for coords in self.neighbors(*coord_max):
-            pha[self.adc_channel(*coords)] = sparse_signal[coords]
-        # ...apply the trigger...
-        # Not sure the trigger is needed, the highest px passed
-        # necessarily the trigger or there is no event
-        # trigger_mask = self.discriminate(pha, self.trg_threshold)
-        # .. and digitize the pha values.
-        pha = self.digitize(pha, offset)
-        seconds, microseconds, livetime = self.latch_timestamp(timestamp)
-        # And do not forget to increment the trigger identifier!
-        self.trigger_id += 1
-        # The pha array is always in the order
-        # [pha(adc0), pha(adc1), pha(adc2), pha(adc3), pha(adc4), pha(adc5), pha(adc6)]
-        return DigiEventCircular(self.trigger_id, seconds, microseconds, livetime, pha, *coord_max)
 
 
 class HexagonalReadoutMode(str, Enum):

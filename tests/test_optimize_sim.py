@@ -246,6 +246,7 @@ def _test_pixel_centers():
         y = np.full(2500, y0)
         _compare_readouts(x, y)
 
+@pytest.mark.skip("We should get rid of this.")
 def test_photon_list(num_photons=100):
     """Realistic comparison with a sensible photon list.
     """

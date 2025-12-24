@@ -115,7 +115,7 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     if padding is None:
         padding = Padding(1, 1, 1, 1)
     readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch,
-                                          enc, gain, trg_threshold)
+                                          enc, gain, trg_threshold, 0, padding)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f"Testing pixel ({col}, {row})...")
@@ -129,12 +129,12 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     assert signal[row - min_row, col - min_col] == num_pairs
     assert np.nonzero(signal) == (row - min_row, col - min_col)
     # Apply the trigger.
-    roi, _ = readout.trigger(signal, min_col, min_row, padding)
+    roi, _ = readout.trigger(signal, min_col, min_row)
     assert roi.min_col == 2 * (col // 2) - padding.left
     assert roi.max_col == 2 * (col // 2) + 1 + padding.right
     assert roi.min_row == 2 * (row // 2) - padding.bottom
     assert roi.max_row == 2 * (row // 2) + 1 + padding.top
     # And now, redo all the steps and create an actual digi event.
-    evt = readout.read(0., x, y, padding)
+    evt = readout.read(0., x, y)
     assert evt(col, row) == round(num_pairs * gain)
     print(evt.ascii())
