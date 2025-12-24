@@ -294,9 +294,9 @@ class TriangularBeam(AbstractBeam):
 
 
 @dataclass
-class HexagonalBeamSpec:
+class HexagonalBeam(AbstractBeam):
 
-    """Specifications for a hexagonal uniform X-ray beam.
+    """Hexagonal uniform X-ray beam.
 
     Arguments
     ---------
@@ -313,17 +313,10 @@ class HexagonalBeamSpec:
         The (x, y) coordinates of the second vertex of the hexagon in cm.
     """
 
-    # pylint: disable=invalid-name
     x0: float = PointBeam.x0
     y0: float = PointBeam.y0
     v0: Tuple[float, float] = (1., 0.)
     v1: Tuple[float, float] = (0., 1.)
-
-
-class HexagonalBeam(HexagonalBeamSpec, AbstractBeam):
-
-    """Hexagonal uniform X-ray beam.
-    """
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
