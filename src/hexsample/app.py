@@ -148,7 +148,7 @@ class ArgumentParser(argparse.ArgumentParser):
         group = self.add_argument_group("reconstruction", "Options for event reconstruction")
         group.add_argument("--rcmethod", choices=["centroid", "eta", "dnn", "gnn"], type=str,
             default="centroid", help="How to reconstruct position")
-        group.add_argument("--gamma", default=[0.245, 0.330, 1.84], type=float, nargs=3,
+        group.add_argument("--gamma", default=[0.1295, 0.297, 2.03], type=float, nargs=3,
             help="parameters for the eta function reconstruction for 2 and 3 pixel clusters")
         group.add_argument("--nnmodel", type=str, default="pretrained",
                            choices=["pretrained", "custom"],
