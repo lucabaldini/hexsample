@@ -22,16 +22,6 @@
 
 # from tqdm import tqdm
 
-# from hexsample import rng
-# from hexsample.fileio import digioutput_class
-# from hexsample.hexagon import HexagonalGrid, HexagonalLayout
-# from hexsample.logging_ import logger
-# from hexsample.mc import PhotonList
-# from hexsample.readout import HexagonalReadoutMode, readout_chip
-# from hexsample.roi import Padding
-# from hexsample.sensor import Material, Sensor
-# from hexsample.source import GaussianBeam, HexagonalBeam, LineForest, Source, TriangularBeam
-
 from hexsample.readout import AbstractReadout
 from hexsample.sensor import Sensor
 from hexsample.source import Source
