@@ -20,6 +20,7 @@
 """Readout facilities.
 """
 
+from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
@@ -28,13 +29,41 @@ from typing import Tuple
 import numpy as np
 
 from . import rng
-from .digi import DigiEventCircular, DigiEventRectangular
+from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .roi import Padding, RegionOfInterest
 
 
+class AbstractReadout(ABC):
+
+    """Abstract base class for a generic pixel readout chip.
+
+    This is a simple abstract class defining the a single static method read(), along
+    with the associated signature, that all readout chips must implement.
+    """
+
+    @abstractmethod
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventBase:
+        """Readout a single event, given the input coordinates of the charge.
+
+        Arguments
+        ---------
+        timestamp : float
+            The event timestamp.
+
+        x : array_like
+            The physical x coordinates of the input charge.
+
+        y : array_like
+            The physical y coordinates of the input charge.
+
+        offset : int
+            Optional offset in ADC counts to be applied before the zero suppression.
+        """
+
+
 @dataclass
-class HexagonalReadoutBase(HexagonalGrid):
+class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
 
     """Description of a pixel readout chip on a hexagonal matrix.
 
@@ -191,23 +220,8 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
     NUM_PIXELS = 7
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
-             offset: int = 0) -> DigiEventCircular:
-        """Circular readout an event.
-
-        Arguments
-        ---------
-        timestamp : float
-            The event timestamp.
-
-        x : float
-            The physical x coordinate of the highest pha pixel.
-
-        y : float
-            The physical y coordinate of the highest pha pixel.
-
-        offset : int
-            Optional offset in ADC counts to be applied before the zero suppression.
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventCircular:
+        """Overloaded method.
         """
         # pylint: disable=unused-argument
         # Sample the input positions over the readout...
@@ -356,21 +370,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         return roi, pha
 
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventRectangular:
-        """Readout an event.
-
-        Arguments
-        ---------
-        timestamp : float
-            The event timestamp.
-
-        x : array_like
-            The physical x coordinates of the input charge.
-
-        y : array_like
-            The physical x coordinates of the input charge.
-
-        offset : int
-            Optional offset in ADC counts to be applied before the zero suppression.
+        """Overloaded method.
         """
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
