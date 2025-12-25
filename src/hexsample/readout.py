@@ -29,6 +29,7 @@ from typing import Tuple
 import numpy as np
 
 from . import rng
+from .base import TypeProxy
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .roi import Padding, RegionOfInterest
@@ -94,7 +95,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
 
     enc: float = 30.
     gain: float = 1.
-    trg_threshold: float = 500
+    trg_threshold: float = 500.
     zero_sup_threshold: int = 0
 
     def __post_init__(self):
@@ -379,6 +380,14 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 
+
+# Definition of the readout proxy.
+ReadoutProxy = TypeProxy("readout_mode")
+ReadoutProxy.register("circular", HexagonalReadoutCircular)
+ReadoutProxy.register("rectangular", HexagonalReadoutRectangular)
+
+
+# TO BE REMOVED!
 
 class HexagonalReadoutMode(str, Enum):
     """Enum class expressing the possible readout strategies.

@@ -28,7 +28,10 @@ import numpy as np
 import scipy.stats
 import xraydb
 
+from hexsample.source import Source
+
 from . import rng
+from .base import TypeProxy
 
 
 class CrossSection(Enum):
@@ -228,9 +231,12 @@ def material(symbol: str) -> Material:
 
 
 @dataclass
-class SensorSpec:
+class Sensor:
 
-    """Dataclass describing a sensor specification.
+    """Simple class describing a sensor.
+
+    This is essentially a parallel-plate like slab of material acting as an
+    absorbing medium for impinging X-rays.
 
     Arguments
     ---------
@@ -252,16 +258,6 @@ class SensorSpec:
     diffusion_sigma: float = 40.0
     fano_factor: float = None
 
-
-@dataclass
-class Sensor(SensorSpec):
-
-    """Simple class describing a sensor.
-
-    This is essentially a parallel-plate like slab of material acting as an
-    absorbing medium for impinging X-rays.
-    """
-
     def __post_init__(self) -> None:
         """Post-initialization processing.
         """
@@ -269,6 +265,23 @@ class Sensor(SensorSpec):
         # Are we overriding the tabulated Fano factor?
         if self.fano_factor is not None:
             self.material.fano_factor = self.fano_factor
+
+    @classmethod
+    def from_kwargs(cls, **kwargs) -> "Sensor":
+        """Alternative constructor to create sensor objects from specifications.
+
+        Arguments
+        ---------
+        kwargs : dict
+            The keyword arguments containing the source specifications.
+
+        Returns
+        -------
+        Sensor
+            The sensor object.
+        """
+        kwargs = TypeProxy.filter_dataclass_kwargs(cls, kwargs)
+        return cls(**kwargs)
 
     def photabsorption_efficiency(self, energy: np.ndarray) -> np.ndarray:
         """Return the photabsorption efficiency for a given array of energy values.
@@ -295,10 +308,3 @@ class Sensor(SensorSpec):
         to have a momentum parallel to the z axis.
         """
         return self.thickness - self.rvs_absorption_depth(energy)
-
-
-def sensor_factory(**kwargs) -> Sensor:
-    """Factory function to create a sensor instance from keyword arguments.
-    """
-    kwargs = {k: v for k, v in kwargs.items() if k in SensorSpec.__dataclass_fields__}
-    return Sensor(**kwargs)

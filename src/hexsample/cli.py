@@ -181,11 +181,11 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         group = parser.add_argument_group("sensor", "Sensor properties")
         group.add_argument("--material_symbol", type=str, choices=sensor.material_symbols(),
-                           default=sensor.SensorSpec.material_symbol,
+                           default=sensor.Sensor.material_symbol,
                            help="active sensor material")
-        group.add_argument("--thickness", type=float, default=sensor.SensorSpec.thickness,
+        group.add_argument("--thickness", type=float, default=sensor.Sensor.thickness,
                            help="sensor thickness in cm")
-        group.add_argument("--diffusion_sigma", type=float, default=40.,
+        group.add_argument("--diffusion_sigma", type=float, default=sensor.Sensor.diffusion_sigma,
                            help="diffusion sigma in um / cm^1/2")
         group.add_argument("--fano_factor", type=float, default=None,
                            help="fano factor, overriding the tabulated value if specified")
@@ -204,21 +204,20 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of rows in the readout chip")
         group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
-        # modes = [item.value for item in HexagonalReadoutMode]
-        # group.add_argument("--readoutmode", type=str, choices=modes, default="RECTANGULAR",
-        #     help="readout mode")
-        # group.add_argument("--padding", type=int, nargs=4, default=(2, 2, 2, 2),
-        #     help="padding on the four sides of the ROT")
-        # group.add_argument("--noise", type=float, default=20.,
-        #     help="equivalent noise charge rms in electrons")
-        # group.add_argument("--gain", type=float, default=1.,
-        #     help="conversion factors between electron equivalent and ADC counts")
-        # group.add_argument("--offset", type=int, default=0,
-        #     help="optional signal offset in ADC counts")
-        # group.add_argument("--trgthreshold", type=float, default=500.,
-        #     help="trigger threshold in electron equivalent")
-        # group.add_argument("--zsupthreshold", type=int, default=0,
-        #     help="zero-suppression threshold in ADC counts")
+        group.add_argument("--enc", type=float, default=readout.HexagonalReadoutBase.enc,
+                           help="equivalent noise charge in electrons")
+        group.add_argument("--gain", type=float, default=readout.HexagonalReadoutBase.gain,
+                           help="conversion factor between electron equivalent and ADC counts")
+        group.add_argument("--trg_threshold", type=float, default=readout.HexagonalReadoutBase.trg_threshold,
+                           help="trigger threshold in electron equivalent")
+        group.add_argument("--zero_sup_threshold", type=int, default=readout.HexagonalReadoutBase.zero_sup_threshold,
+                           help="zero suppression threshold in ADC counts")
+        group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
+                           choices=readout.ReadoutProxy.choices(),
+                           default=readout.ReadoutProxy.default(),
+                           help="chip readout mode")
+        #group.add_argument("--padding", type=int, nargs=4, default=(2, 2, 2, 2),
+        #                   help="padding on the four sides of the ROT")
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
@@ -233,8 +232,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         # Simulate?
         if runner == tasks.simulate:
             _source = source.Source.from_kwargs(**kwargs)
-            _sensor = sensor.sensor_factory(**kwargs)
-            runner(_source, _sensor)
+            _sensor = sensor.Sensor.from_kwargs(**kwargs)
+            _readout = readout.ReadoutProxy.from_kwargs(**kwargs)
+            runner(_source, _sensor, _readout)
 
 
 def main() -> None:

@@ -497,9 +497,3 @@ class HexagonalGrid:
         b = a + v0
         c = a + v1
         return a, b, c
-
-    def __str__(self):
-        """String formatting.
-        """
-        return f"{self.num_cols}x{self.num_rows} {self.layout.name} "\
-            f"{self.__class__.__name__} @ {self.pitch} mm pitch"

@@ -32,49 +32,20 @@
 # from hexsample.sensor import Material, Sensor
 # from hexsample.source import GaussianBeam, HexagonalBeam, LineForest, Source, TriangularBeam
 
+from hexsample.readout import AbstractReadout
 from hexsample.sensor import Sensor
 from hexsample.source import Source
 
 
-def simulate(source: Source, sensor: Sensor) -> str:
+def simulate(source: Source, sensor: Sensor, readout: AbstractReadout) -> str:
     """Run a simulation.
     """
     print("Running a simulation...")
     # rng.initialize(seed=kwargs["seed"])
     print(source)
     print(sensor)
-
-    # grid_args = HexagonalLayout(kwargs["layout"]), kwargs["numcolumns"], kwargs["numrows"],\
-    #     kwargs["pitch"]
-    # if kwargs["beamshape"] == "gaussian":
-    #     beam = GaussianBeam(kwargs["srcposx"], kwargs["srcposy"], kwargs["srcsigma"])
-    # elif kwargs["beamshape"] == "triangular":
-    #     grid = HexagonalGrid(*grid_args)
-    #     target_col, target_row = grid.world_to_pixel(kwargs["srcposx"], kwargs["srcposy"])
-    #     center, v0, v1 = grid.find_vertices(target_col, target_row, kwargs["trngindex"])
-    #     beam = TriangularBeam(*center, tuple(v0), tuple(v1))
-    # elif kwargs["beamshape"] == "hexagonal":
-    #     grid = HexagonalGrid(*grid_args)
-    #     target_col, target_row = grid.world_to_pixel(kwargs["srcposx"], kwargs["srcposy"])
-    #     center, v0, v1 = grid.find_vertices(target_col, target_row)
-    #     beam = HexagonalBeam(*center, tuple(v0), tuple(v1))
-    # else:
-    #     raise RuntimeError
+    print(readout)
     # photon_list = PhotonList(source, sensor, kwargs["numevents"])
-    # readout_mode = HexagonalReadoutMode(kwargs["readoutmode"])
-    # # Is there any nicer way to do this? See https://github.com/lucabaldini/hexsample/issues/51
-    # if readout_mode is HexagonalReadoutMode.SPARSE:
-    #     readout_args = kwargs["trgthreshold"], kwargs["zsupthreshold"], kwargs["offset"]
-    # elif readout_mode is HexagonalReadoutMode.RECTANGULAR:
-    #     padding = Padding(*kwargs["padding"])
-    #     readout_args = kwargs["trgthreshold"], padding, kwargs["zsupthreshold"], kwargs["offset"]
-    # elif readout_mode is HexagonalReadoutMode.CIRCULAR:
-    #     readout_args = kwargs["trgthreshold"], kwargs["zsupthreshold"], kwargs["offset"]
-    # else:
-    #     raise RuntimeError
-    # args = HexagonalLayout(kwargs["layout"]), kwargs["numcolumns"], kwargs["numrows"],\
-    #     kwargs["pitch"], kwargs["noise"], kwargs["gain"]
-    # readout = readout_chip(readout_mode, *args)
     # logger.info(f"Readout chip: {readout}")
     # output_file_path = kwargs.get("outfile")
     # output_file = digioutput_class(readout_mode)(output_file_path)
