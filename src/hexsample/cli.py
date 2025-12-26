@@ -163,9 +163,9 @@ class CliArgumentParser(argparse.ArgumentParser):
                            choices=source.BeamProxy.choices(),
                            default=source.BeamProxy.default(),
                            help="beam shape of the X-ray source")
-        group.add_argument("--x0", type=float, default=source.PointBeam.x0,
+        group.add_argument("--x0", type=float, default=source.AbstractBeam.x0,
                            help="x-coordinate of the beam centroid in cm")
-        group.add_argument("--y0", type=float, default=source.PointBeam.y0,
+        group.add_argument("--y0", type=float, default=source.AbstractBeam.y0,
                            help="y-coordinate of the beam centroid in cm")
         group.add_argument("--radius", type=float, default=source.DiskBeam.radius,
                            help="radius of the disk beam in cm")

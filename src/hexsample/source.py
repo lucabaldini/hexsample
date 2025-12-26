@@ -141,14 +141,27 @@ class LineForest(AbstractSpectrum):
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
 
 
+@dataclass
 class AbstractBeam(AbstractRandomGenerator):
 
     """Abstract base class for all the X-ray beam shapes.
 
+    Since, presumably, all beam shapes are defined in terms of the x and y coordinates
+    of the beam centroid, this is a dataclass with x0 and y0 members.
+
     Subclasses must implement the `rvs` method.
+
+    Arguments
+    ---------
+    x0 : float
+        The x-coordinate of the beam centroid in cm.
+
+    y0 : float
+        The y-coordinate of the beam centroid in cm.
     """
 
-    pass
+    x0: float = 0.
+    y0: float = 0.
 
 
 @dataclass
@@ -164,9 +177,6 @@ class PointBeam(AbstractBeam):
     y0 : float
         The y-coordinate of the beam centroid in cm.
     """
-
-    x0: float = 0.
-    y0: float = 0.
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
@@ -193,8 +203,6 @@ class DiskBeam(AbstractBeam):
         The disk radius in cm.
     """
 
-    x0: float = PointBeam.x0
-    y0: float = PointBeam.y0
     radius: float = 0.1
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
@@ -225,8 +233,6 @@ class GaussianBeam(AbstractBeam):
         The beam sigma in cm.
     """
 
-    x0: float = PointBeam.x0
-    y0: float = PointBeam.y0
     sigma: float = 0.1
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
@@ -257,8 +263,6 @@ class TriangularBeam(AbstractBeam):
         The (x, y) coordinates of the third vertex of the triangle in cm.
     """
 
-    x0: float = PointBeam.x0
-    y0: float = PointBeam.y0
     v1: Tuple[float, float] = (1., 0.)
     v2: Tuple[float, float] = (0., 1.)
 
@@ -300,8 +304,6 @@ class HexagonalBeam(AbstractBeam):
         The (x, y) coordinates of the second vertex of the hexagon in cm.
     """
 
-    x0: float = PointBeam.x0
-    y0: float = PointBeam.y0
     v0: Tuple[float, float] = (1., 0.)
     v1: Tuple[float, float] = (0., 1.)
 
