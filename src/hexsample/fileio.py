@@ -38,6 +38,7 @@ from .recon import ReconEvent
 
 # pylint: disable=c-extension-no-member
 
+
 class MonteCarloDescription(tables.IsDescription):
 
     """Description of the Monte Carlo part of the file format.
@@ -164,6 +165,7 @@ def _fill_digi_row_circular(row: tables.tableextension.Row, event: DigiEventBase
     row["row"] = event.row
     row.append()
 
+
 class DigiDescription(tables.IsDescription):
 
     """Description of the (flat) digi part of the file format.
@@ -210,7 +212,6 @@ def _fill_digi_row(row: tables.tableextension.Row, event: DigiEventBase) -> None
     row.append()
 
 
-
 class ReconDescription(tables.IsDescription):
 
     """Description of the recon file format. This should be common to all the
@@ -247,7 +248,6 @@ def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     row.append()
 
 
-
 class FileType(Enum):
 
     """Enum class for the different file types.
@@ -256,7 +256,6 @@ class FileType(Enum):
 
     DIGI = "Digi"
     RECON = "Recon"
-
 
 
 class OutputFileBase(tables.File):
@@ -399,6 +398,7 @@ class DigiOutputFileRectangular(OutputFileBase):
         self.pha_array.flush()
         self.mc_table.flush()
 
+
 class DigiOutputFileCircular(OutputFileBase):
 
     """Description of a circular digitized output file.
@@ -449,11 +449,13 @@ class DigiOutputFileCircular(OutputFileBase):
         self.digi_table.flush()
         self.mc_table.flush()
 
+
 # Mapping for the digi description classes for each readout mode.
 _FILEIO_CLASS_DICT = {
     HexagonalReadoutMode.RECTANGULAR: DigiOutputFileRectangular,
     HexagonalReadoutMode.CIRCULAR: DigiOutputFileCircular
 }
+
 
 def digioutput_class(mode: HexagonalReadoutMode):
     """Return the proper class to be used as DigiOutputFile, depending on the
@@ -514,7 +516,6 @@ class ReconOutputFile(OutputFileBase):
         self.mc_table.flush()
 
 
-
 class InputFileBase(tables.File):
 
     """Base class for input files.
@@ -548,6 +549,7 @@ class InputFileBase(tables.File):
         """Return the header value corresponding to a given key.
         """
         return self.header.get(key, default)
+
 
 class DigiInputFileBase(InputFileBase):
 
@@ -638,6 +640,7 @@ class DigiInputFileRectangular(DigiInputFileBase):
             raise StopIteration
         return self.digi_event(self.__index)
 
+
 class DigiInputFileCircular(DigiInputFileBase):
 
     """Description of a circular digitized input file.
@@ -678,6 +681,7 @@ class DigiInputFileCircular(DigiInputFileBase):
         if self.__index == len(self.digi_table):
             raise StopIteration
         return self.digi_event(self.__index)
+
 
 class ReconInputFile(InputFileBase):
 
