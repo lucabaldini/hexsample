@@ -267,7 +267,7 @@ class Sensor:
             self.material.fano_factor = self.fano_factor
 
     @classmethod
-    def from_kwargs(cls, **kwargs) -> "Sensor":
+    def from_filtered_kwargs(cls, **kwargs) -> "Sensor":
         """Alternative constructor to create sensor objects from specifications.
 
         Arguments
@@ -280,6 +280,8 @@ class Sensor:
         Sensor
             The sensor object.
         """
+        # TODO: this might be implemented in a Kwargable base class from which
+        # Sensor would inherit.
         kwargs = TypeProxy.filter_dataclass_kwargs(cls, kwargs)
         return cls(**kwargs)
 

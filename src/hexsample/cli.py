@@ -231,9 +231,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         runner = kwargs.pop("runner")
         # Simulate?
         if runner == tasks.simulate:
-            _source = source.Source.from_kwargs(**kwargs)
-            _sensor = sensor.Sensor.from_kwargs(**kwargs)
-            _readout = readout.ReadoutProxy.from_kwargs(**kwargs)
+            _source = source.Source.from_filtered_kwargs(**kwargs)
+            _sensor = sensor.Sensor.from_filtered_kwargs(**kwargs)
+            _readout = readout.ReadoutProxy.from_filtered_kwargs(**kwargs)
             runner(_source, _sensor, _readout)
 
 

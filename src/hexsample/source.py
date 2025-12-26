@@ -367,7 +367,7 @@ class Source:
     rate: float = 100.
 
     @classmethod
-    def from_kwargs(cls, **kwargs) -> "Source":
+    def from_filtered_kwargs(cls, **kwargs) -> "Source":
         """Alternative constructor to create source objects from specifications.
 
         Arguments
@@ -380,8 +380,8 @@ class Source:
         Source
             The source object.
         """
-        spectrum = SpectrumProxy.from_kwargs(**kwargs)
-        beam = BeamProxy.from_kwargs(**kwargs)
+        spectrum = SpectrumProxy.from_filtered_kwargs(**kwargs)
+        beam = BeamProxy.from_filtered_kwargs(**kwargs)
         rate = kwargs.get("rate", cls.rate)
         return cls(spectrum, beam, rate)
 

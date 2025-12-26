@@ -258,7 +258,7 @@ class TypeProxy:
         """
         return {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
 
-    def from_kwargs(self, **kwargs) -> Any:
+    def from_filtered_kwargs(self, **kwargs) -> Any:
         """Create an object of the desired type based only on keyword arguments.
 
         This is extracting the desired type from the keyword arguments using
