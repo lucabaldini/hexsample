@@ -20,32 +20,41 @@
 """Basic simulation, reconstruction and analysis tasks.
 """
 
-# from tqdm import tqdm
+from tqdm import tqdm
 
-from hexsample.readout import AbstractReadout
-from hexsample.sensor import Sensor
-from hexsample.source import Source
+from . import rng
+from .logging_ import logger
+from .mc import PhotonList
+from .readout import AbstractReadout
+from .sensor import Sensor
+from .source import Source
 
 
-def simulate(source: Source, sensor: Sensor, readout: AbstractReadout) -> str:
+def simulate(
+        source: Source,
+        sensor: Sensor,
+        readout: AbstractReadout,
+        num_events: int,
+        output_file_path: str,
+        random_seed: int = None
+        ) -> str:
     """Run a simulation.
     """
-    print("Running a simulation...")
-    # rng.initialize(seed=kwargs["seed"])
-    print(source)
-    print(sensor)
-    print(readout)
-    # photon_list = PhotonList(source, sensor, kwargs["numevents"])
-    # logger.info(f"Readout chip: {readout}")
-    # output_file_path = kwargs.get("outfile")
+    rng.initialize(seed=random_seed)
+    logger.info("Setting up the simulation...")
+    logger.info(source)
+    logger.info(sensor)
+    logger.info(readout)
+    photon_list = PhotonList(source, sensor, num_events)
     # output_file = digioutput_class(readout_mode)(output_file_path)
     # output_file.update_header(**kwargs)
-    # logger.info("Starting the event loop...")
-    # for mc_event in tqdm(photon_list):
-    #     x, y = mc_event.propagate(sensor.trans_diffusion_sigma)
-    #     digi_event = readout.read(mc_event.timestamp, x, y, *readout_args)
+    logger.info("Starting the event loop...")
+    for mc_event in tqdm(photon_list):
+        x, y = mc_event.propagate(sensor.diffusion_sigma)
+        digi_event = readout.read(mc_event.timestamp, x, y)
+        #print(digi_event)
     #     output_file.add_row(digi_event, mc_event)
-    # logger.info("Done!")
+    logger.info("Done!")
     # output_file.flush()
     # output_file.close()
     # return output_file_path

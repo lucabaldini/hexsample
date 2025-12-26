@@ -17,6 +17,7 @@
 """
 
 import sys
+from typing import List
 
 from loguru import logger
 
@@ -26,6 +27,12 @@ from . import __name__ as __package_name__
 logger.remove()
 # Disable log emission from this namespace by default.
 logger.disable(__package_name__)
+
+
+def logging_levels() -> List[str]:
+    """Return the list of the available logging levels.
+    """
+    return list(logger._core.levels.keys())
 
 
 def setup_logger(level: str = "DEBUG") -> int:

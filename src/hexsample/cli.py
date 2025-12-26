@@ -23,7 +23,7 @@
 import argparse
 
 from hexsample import __name__ as __package_name__
-from hexsample import __version__, hexagon, readout, sensor, source, tasks
+from hexsample import __version__, hexagon, logging_, readout, sensor, source, tasks
 
 
 def start_message() -> None:
@@ -80,6 +80,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_num_events(simulate, default=1000, intent="generated")
         self.add_output_file(simulate, default="simulation_output.h5")
         self.add_random_seed(simulate)
+        self.add_logging_level(simulate)
         self.add_source_options(simulate)
         self.add_sensor_options(simulate)
         self.add_readout_options(simulate)
@@ -103,12 +104,20 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="path to the input file")
 
     @staticmethod
+    def add_logging_level(parser: argparse.ArgumentParser) -> None:
+        """Add an option for the input file.
+        """
+        parser.add_argument("--logging_level", type=str, choices=logging_.logging_levels(),
+                            default="INFO",
+                            help="logging level")
+
+    @staticmethod
     def add_num_events(parser: argparse.ArgumentParser, default: int,
                        intent: str = "generated") -> None:
         """Add an option for the number of events.
         """
         parser.add_argument("--num_events", "-n", type=int, default=default,
-            help=f"number of events to be {intent}")
+                            help=f"number of events to be {intent}")
 
     @staticmethod
     def add_output_file(parser: argparse.ArgumentParser, default: str) -> None:
@@ -120,21 +129,21 @@ class CliArgumentParser(argparse.ArgumentParser):
         file headers).
         """
         parser.add_argument("--output_file", "-o", type=str, default=str(default),
-            help="path to the output file")
+                            help="path to the output file")
 
     @staticmethod
     def add_random_seed(parser: argparse.ArgumentParser) -> None:
         """Add an option for the random seed of a simulation.
         """
         parser.add_argument("--random_seed", "-s", type=int, default=None,
-            help="random seed for the simulation")
+                            help="random seed for the simulation")
 
     @staticmethod
     def add_suffix(parser: argparse.ArgumentParser, default: str) -> None:
         """Add an option for the output suffix.
         """
         parser.add_argument("--suffix", type=str, default=default,
-            help="suffix for the output file")
+                            help="suffix for the output file")
 
     @staticmethod
     def add_source_options(parser: argparse.ArgumentParser) -> None:
@@ -222,19 +231,24 @@ class CliArgumentParser(argparse.ArgumentParser):
     def run(self) -> None:
         """Run the actual command tied to the specific options.
         """
+
         # Parse the command-line arguments. We keep track of the both the namespace
         # object and the corresponding dictionary of command-line arguments.
         # Each sub-command in the main argument parser is tied to a specific function
         # that is accessed through the 'runner' attribute in the namespace.
         ns = self.parse_args()
         kwargs = vars(ns)
+        # Setup logging.
+        logging_.setup_logger(kwargs.pop("logging_level"))
         runner = kwargs.pop("runner")
         # Simulate?
         if runner == tasks.simulate:
             _source = source.Source.from_filtered_kwargs(**kwargs)
             _sensor = sensor.Sensor.from_filtered_kwargs(**kwargs)
             _readout = readout.ReadoutProxy.from_filtered_kwargs(**kwargs)
-            runner(_source, _sensor, _readout)
+            num_events = kwargs["num_events"]
+            output_file_path = kwargs["output_file"]
+            runner(_source, _sensor, _readout, num_events, output_file_path)
 
 
 def main() -> None:
