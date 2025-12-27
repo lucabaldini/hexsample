@@ -46,15 +46,26 @@ def simulate(
     logger.info(sensor)
     logger.info(readout)
     photon_list = PhotonList(source, sensor, num_events)
-    # output_file = digioutput_class(readout_mode)(output_file_path)
-    # output_file.update_header(**kwargs)
+    file_type = readout.output_file_class()
+    output_file = file_type(output_file_path)
+    kwargs = {}
+    # Need to all all metadata here!
+    output_file.update_header(**kwargs)
     logger.info("Starting the event loop...")
     for mc_event in tqdm(photon_list):
         x, y = mc_event.propagate(sensor.diffusion_sigma)
         digi_event = readout.read(mc_event.timestamp, x, y)
-        #print(digi_event)
-    #     output_file.add_row(digi_event, mc_event)
+        output_file.add_row(digi_event, mc_event)
     logger.info("Done!")
-    # output_file.flush()
-    # output_file.close()
-    # return output_file_path
+    output_file.flush()
+    output_file.close()
+    return output_file_path
+
+
+def reconstruct(
+        input_file_path: str,
+        suffic: str = "recon",
+        ) -> str:
+    """Run the reconstruction.
+    """
+    pass

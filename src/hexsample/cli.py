@@ -87,9 +87,14 @@ class CliArgumentParser(argparse.ArgumentParser):
         simulate.set_defaults(runner=tasks.simulate)
 
         # Run the event reconstruction?
-        #recon = subparsers.add_parser("recon",
-        #    help="run the event reconstruction",
-        #    formatter_class=self._FORMATTER_CLASS)
+        recon = subparsers.add_parser("reconstruct",
+            help="run the event reconstruction",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_input_file(recon)
+        self.add_suffix(recon, default="recon")
+        self.add_logging_level(recon)
+        self.add_recon_options(recon)
+        recon.set_defaults(runner=tasks.reconstruct)
 
         # Run the single-event display?
         #display = subparsers.add_parser("display",
@@ -228,6 +233,24 @@ class CliArgumentParser(argparse.ArgumentParser):
         #group.add_argument("--padding", type=int, nargs=4, default=(2, 2, 2, 2),
         #                   help="padding on the four sides of the ROT")
 
+    def add_recon_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the reconstruction properties.
+        """
+        group = parser.add_argument_group("reconstruction", "Reconstruction configuration")
+        group.add_argument("--zero_sup_threshold", type=int, default=0,
+                           help="zero-suppression threshold in ADC counts")
+        group.add_argument("--num_neighbors", type=int, default=2,
+                           help="number of neighbors to be considered (0--6)")
+        group.add_argument('--recon_method', choices=['centroid', 'eta', 'dnn', 'gnn'], type=str,
+                           default='centroid', help='How to reconstruct position')
+        group.add_argument('--gamma', default=0.272, type=float,
+                           help='index of the power law for eta reconstruction')
+        group.add_argument('--nnmodel', type=str, default='pretrained',
+                           choices=['pretrained', 'custom'],
+                           help='model to use for neural network reconstruction')
+        group.add_argument('--model_path', type=str,
+                           help='path of the model to use, in case of custom model')
+
     def run(self) -> None:
         """Run the actual command tied to the specific options.
         """
@@ -248,7 +271,12 @@ class CliArgumentParser(argparse.ArgumentParser):
             _readout = readout.ReadoutProxy.from_filtered_kwargs(**kwargs)
             num_events = kwargs["num_events"]
             output_file_path = kwargs["output_file"]
-            runner(_source, _sensor, _readout, num_events, output_file_path)
+            return runner(_source, _sensor, _readout, num_events, output_file_path)
+        # Reconstruct?
+        if runner == tasks.reconstruct:
+            input_file_path = kwargs["input_file"]
+            suffix = kwargs["suffix"]
+            return runner(input_file_path, suffix)
 
 
 def main() -> None:

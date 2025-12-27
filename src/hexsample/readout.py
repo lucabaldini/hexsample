@@ -31,6 +31,7 @@ import numpy as np
 from . import rng
 from .base import TypeProxy
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
+from .fileio import DigiOutputFileCircular, DigiOutputFileRectangular
 from .hexagon import HexagonalGrid
 from .roi import Padding, RegionOfInterest
 
@@ -42,6 +43,12 @@ class AbstractReadout(ABC):
     This is a simple abstract class defining the a single static method read(), along
     with the associated signature, that all readout chips must implement.
     """
+
+    @abstractmethod
+    def output_file_class(self) -> type:
+        """Return the proper output file class to be used to store the digi events
+        produced by the readout chip.
+        """
 
     @abstractmethod
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventBase:
@@ -221,6 +228,11 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
     NUM_PIXELS = 7
 
+    def output_file_class(self) -> type:
+        """Overloaded method.
+        """
+        return DigiOutputFileCircular
+
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventCircular:
         """Overloaded method.
         """
@@ -267,6 +279,11 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
     """
 
     padding: Padding = Padding(2, 2, 2, 2)
+
+    def output_file_class(self) -> type:
+        """Overloaded method.
+        """
+        return DigiOutputFileRectangular
 
     @staticmethod
     def sum_miniclusters(array: np.ndarray) -> np.ndarray:
