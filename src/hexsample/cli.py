@@ -23,7 +23,7 @@
 import argparse
 
 from hexsample import __name__ as __package_name__
-from hexsample import __version__, hexagon, logging_, readout, roi, sensor, source, tasks
+from hexsample import __version__, hexagon, logging_, pipeline, readout, roi, sensor, source, tasks
 
 
 def start_message() -> None:
@@ -84,7 +84,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_source_options(simulate)
         self.add_sensor_options(simulate)
         self.add_readout_options(simulate)
-        simulate.set_defaults(runner=tasks.simulate)
+        simulate.set_defaults(runner=pipeline.simulate)
 
         # Run the event reconstruction?
         recon = subparsers.add_parser("reconstruct",
@@ -271,15 +271,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         logging_.setup_logger(kwargs.pop("logging_level"))
         runner = kwargs.pop("runner")
         # Simulate?
-        if runner == tasks.simulate:
-            _source = source.Source.from_filtered_kwargs(**kwargs)
-            _sensor = sensor.Sensor.from_filtered_kwargs(**kwargs)
-            _readout = readout.ReadoutProxy.from_filtered_kwargs(**kwargs)
-            num_events = kwargs["num_events"]
-            output_file_path = kwargs["output_file"]
-            random_seed = kwargs["random_seed"]
-            return runner(_source, _sensor, _readout, num_events, output_file_path,
-                          random_seed, kwargs)
+        if runner == pipeline.simulate:
+            return runner(**kwargs)
         # Reconstruct?
         if runner == tasks.reconstruct:
             input_file_path = kwargs["input_file"]
