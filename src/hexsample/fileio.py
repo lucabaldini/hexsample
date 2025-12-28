@@ -33,6 +33,7 @@ from . import __version__
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .logging_ import logger
 from .mc import MonteCarloEvent
+# from .readout import HexagonalReadoutMode
 from .recon import ReconEvent
 
 # pylint: disable=c-extension-no-member
@@ -449,6 +450,8 @@ class DigiOutputFileCircular(OutputFileBase):
         self.mc_table.flush()
 
 
+# TODO: to be removed.
+
 # # Mapping for the digi description classes for each readout mode.
 # _FILEIO_CLASS_DICT = {
 #     HexagonalReadoutMode.RECTANGULAR: DigiOutputFileRectangular,
@@ -461,6 +464,8 @@ class DigiOutputFileCircular(OutputFileBase):
 #     readout mode of the chip.
 #     """
 #     return _FILEIO_CLASS_DICT[mode]
+
+# End of obsolete stuff.
 
 
 class ReconOutputFile(OutputFileBase):
@@ -722,38 +727,40 @@ def peek_file_type(file_path: str) -> FileType:
             raise RuntimeError(f"File {file_path} has no type information.") from exception
 
 
-# def peek_readout_type(file_path: str) -> HexagonalReadoutMode:
-#     """Peek into the header of a HDF5 Digi file and determing the readout type.
+# TODO: to be removed.
 
-#     Arguments
-#     ---------
-#     file_path : str
-#         The path to the input file.
-#     """
-#     # pylint: disable=protected-access
-#     with tables.open_file(file_path, "r") as input_file:
-#         try:
-#             return HexagonalReadoutMode(input_file.root.header._v_attrs["readoutmode"])
-#         except KeyError as exception:
-#             raise RuntimeError(f"File {file_path} has no readout information.") from exception
+def peek_readout_type(file_path: str):
+    """Peek into the header of a HDF5 Digi file and determing the readout type.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the input file.
+    """
+    # pylint: disable=protected-access
+    with tables.open_file(file_path, "r") as input_file:
+        try:
+            return HexagonalReadoutMode(input_file.root.header._v_attrs["readoutmode"])
+        except KeyError as exception:
+            raise RuntimeError(f"File {file_path} has no readout information.") from exception
 
 
-# def open_input_file(file_path: str) -> InputFileBase:
-#     """Open an input file automatically determining the file type and readout type.
+def open_input_file(file_path: str) -> InputFileBase:
+    """Open an input file automatically determining the file type and readout type.
 
-#     Arguments
-#     ---------
-#     file_path : str
-#         The path to the output file.
-#     """
-#     file_type = peek_file_type(file_path)
-#     if file_type == FileType.DIGI:
-#         readout_type = peek_readout_type(file_path)
-#         if readout_type == HexagonalReadoutMode.RECTANGULAR:
-#             return DigiInputFileRectangular(file_path)
-#         if readout_type == HexagonalReadoutMode.CIRCULAR:
-#             return DigiInputFileCircular(file_path)
-#     if file_type == FileType.RECON:
-#         return ReconInputFile(file_path)
-#     raise RuntimeError(f"Invalid input file type {file_type} or invalid readout type "
-#                        f"for file type {readout_type}")
+    Arguments
+    ---------
+    file_path : str
+        The path to the output file.
+    """
+    file_type = peek_file_type(file_path)
+    if file_type == FileType.DIGI:
+        readout_type = peek_readout_type(file_path)
+        if readout_type == HexagonalReadoutMode.RECTANGULAR:
+            return DigiInputFileRectangular(file_path)
+        if readout_type == HexagonalReadoutMode.CIRCULAR:
+            return DigiInputFileCircular(file_path)
+    if file_type == FileType.RECON:
+        return ReconInputFile(file_path)
+    raise RuntimeError(f"Invalid input file type {file_type} or invalid readout type "
+                       f"for file type {readout_type}")

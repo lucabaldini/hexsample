@@ -404,7 +404,7 @@ ReadoutProxy.register("circular", HexagonalReadoutCircular)
 ReadoutProxy.register("rectangular", HexagonalReadoutRectangular)
 
 
-# TO BE REMOVED!
+# TODO: TO BE REMOVED!
 
 class HexagonalReadoutMode(str, Enum):
     """Enum class expressing the possible readout strategies.

@@ -36,7 +36,8 @@ def simulate(
         readout: AbstractReadout,
         num_events: int,
         output_file_path: str,
-        random_seed: int = None
+        random_seed: int = None,
+        kwargs: dict = None,
         ) -> str:
     """Run a simulation.
     """
@@ -48,9 +49,8 @@ def simulate(
     photon_list = PhotonList(source, sensor, num_events)
     file_type = readout.output_file_class()
     output_file = file_type(output_file_path)
-    kwargs = {}
-    # Need to all all metadata here!
-    output_file.update_header(**kwargs)
+    if kwargs is not None:
+        output_file.update_header(**kwargs)
     logger.info("Starting the event loop...")
     for mc_event in tqdm(photon_list):
         x, y = mc_event.propagate(sensor.diffusion_sigma)

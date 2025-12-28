@@ -23,7 +23,7 @@
 import argparse
 
 from hexsample import __name__ as __package_name__
-from hexsample import __version__, hexagon, logging_, readout, sensor, source, tasks
+from hexsample import __version__, hexagon, logging_, readout, roi, sensor, source, tasks
 
 
 def start_message() -> None:
@@ -222,16 +222,20 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="equivalent noise charge in electrons")
         group.add_argument("--gain", type=float, default=readout.HexagonalReadoutBase.gain,
                            help="conversion factor between electron equivalent and ADC counts")
-        group.add_argument("--trg_threshold", type=float, default=readout.HexagonalReadoutBase.trg_threshold,
-                           help="trigger threshold in electron equivalent")
-        group.add_argument("--zero_sup_threshold", type=int, default=readout.HexagonalReadoutBase.zero_sup_threshold,
-                           help="zero suppression threshold in ADC counts")
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
                            choices=readout.ReadoutProxy.choices(),
                            default=readout.ReadoutProxy.default(),
                            help="chip readout mode")
-        #group.add_argument("--padding", type=int, nargs=4, default=(2, 2, 2, 2),
-        #                   help="padding on the four sides of the ROT")
+        # Note this one reqquires 4 int arguments, and we do need to convert the
+        # iterable to an actual roi.Padding instance after the parse_args() call.
+        group.add_argument("--padding", type=int, nargs=4,
+                           default=readout.HexagonalReadoutRectangular.padding,
+                           help="padding on the four sides of the ROT")
+        group.add_argument("--trg_threshold", type=float, default=readout.HexagonalReadoutBase.trg_threshold,
+                           help="trigger threshold in electron equivalent")
+        group.add_argument("--zero_sup_threshold", type=int, default=readout.HexagonalReadoutBase.zero_sup_threshold,
+                           help="zero suppression threshold in ADC counts")
+
 
     def add_recon_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the reconstruction properties.
@@ -254,12 +258,14 @@ class CliArgumentParser(argparse.ArgumentParser):
     def run(self) -> None:
         """Run the actual command tied to the specific options.
         """
-
         # Parse the command-line arguments. We keep track of the both the namespace
         # object and the corresponding dictionary of command-line arguments.
         # Each sub-command in the main argument parser is tied to a specific function
         # that is accessed through the 'runner' attribute in the namespace.
         ns = self.parse_args()
+        # Convert padding to a roi.Padding instance.
+        if not isinstance(ns.padding, roi.Padding):
+            ns.padding = roi.Padding(*ns.padding)
         kwargs = vars(ns)
         # Setup logging.
         logging_.setup_logger(kwargs.pop("logging_level"))
@@ -271,7 +277,9 @@ class CliArgumentParser(argparse.ArgumentParser):
             _readout = readout.ReadoutProxy.from_filtered_kwargs(**kwargs)
             num_events = kwargs["num_events"]
             output_file_path = kwargs["output_file"]
-            return runner(_source, _sensor, _readout, num_events, output_file_path)
+            random_seed = kwargs["random_seed"]
+            return runner(_source, _sensor, _readout, num_events, output_file_path,
+                          random_seed, kwargs)
         # Reconstruct?
         if runner == tasks.reconstruct:
             input_file_path = kwargs["input_file"]
