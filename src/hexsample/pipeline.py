@@ -28,11 +28,6 @@ from .sensor import Sensor
 
 def simulate(**kwargs) -> str:
     """Run a simulation.
-
-    .. warning::
-
-       We still need to do something to make sure that we get a consistent behavior for
-       number of events and output file path across the CLI and programmatic usage.
     """
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
