@@ -77,9 +77,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         simulate = subparsers.add_parser("simulate",
             help="run a simulation",
             formatter_class=self._FORMATTER_CLASS)
-        self.add_num_events(simulate, default=1000, intent="generated")
-        self.add_output_file(simulate, default="simulation_output.h5")
-        self.add_random_seed(simulate)
+        self.add_num_events(simulate, default=tasks.SimulationDefaults.num_events, intent="generated")
+        self.add_output_file(simulate, default=tasks.SimulationDefaults.output_file_path)
+        self.add_random_seed(simulate, default=tasks.SimulationDefaults.random_seed)
         self.add_logging_level(simulate)
         self.add_source_options(simulate)
         self.add_sensor_options(simulate)
@@ -137,10 +137,10 @@ class CliArgumentParser(argparse.ArgumentParser):
                             help="path to the output file")
 
     @staticmethod
-    def add_random_seed(parser: argparse.ArgumentParser) -> None:
+    def add_random_seed(parser: argparse.ArgumentParser, default: int) -> None:
         """Add an option for the random seed of a simulation.
         """
-        parser.add_argument("--random_seed", "-s", type=int, default=None,
+        parser.add_argument("--random_seed", "-s", type=int, default=default,
                             help="random seed for the simulation")
 
     @staticmethod

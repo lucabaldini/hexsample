@@ -20,6 +20,8 @@
 """Basic simulation, reconstruction and analysis tasks.
 """
 
+from dataclasses import dataclass
+
 from tqdm import tqdm
 
 from . import rng
@@ -30,13 +32,22 @@ from .sensor import Sensor
 from .source import Source
 
 
+@dataclass(frozen=True)
+class SimulationDefaults:
+    """Default parameters for the simulation task.
+    """
+    num_events: int = 10000
+    output_file_path: str = "simulation_output.h5"
+    random_seed: int = None
+
+
 def simulate(
         source: Source,
         sensor: Sensor,
         readout: AbstractReadout,
-        num_events: int,
-        output_file_path: str,
-        random_seed: int = None,
+        num_events: int = SimulationDefaults.num_events,
+        output_file_path: str = SimulationDefaults.output_file_path,
+        random_seed: int = SimulationDefaults.random_seed,
         kwargs: dict = None,
         ) -> str:
     """Run a simulation.
