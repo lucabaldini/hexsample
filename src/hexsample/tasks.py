@@ -58,6 +58,7 @@ def simulate(
     logger.info(sensor)
     logger.info(readout)
     photon_list = PhotonList(source, sensor, num_events)
+    # Change this back to a function in the fileio module.
     file_type = readout.output_file_class()
     output_file = file_type(output_file_path)
     if kwargs is not None:
@@ -73,9 +74,16 @@ def simulate(
     return output_file_path
 
 
+@dataclass(frozen=True)
+class ReconstructionDefaults:
+    """Default parameters for the reconstruction task.
+    """
+    suffix: str = "recon"
+
+
 def reconstruct(
         input_file_path: str,
-        suffic: str = "recon",
+        suffix: str = ReconstructionDefaults.suffix,
         ) -> str:
     """Run the reconstruction.
     """
