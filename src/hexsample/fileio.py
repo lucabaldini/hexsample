@@ -33,7 +33,7 @@ from . import __version__
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .logging_ import logger
 from .mc import MonteCarloEvent
-# from .readout import HexagonalReadoutMode
+from .readout import HexagonalReadoutCircular, HexagonalReadoutMode, HexagonalReadoutRectangular
 from .recon import ReconEvent
 
 # pylint: disable=c-extension-no-member
@@ -450,24 +450,6 @@ class DigiOutputFileCircular(OutputFileBase):
         self.mc_table.flush()
 
 
-# TODO: to be removed.
-
-# # Mapping for the digi description classes for each readout mode.
-# _FILEIO_CLASS_DICT = {
-#     HexagonalReadoutMode.RECTANGULAR: DigiOutputFileRectangular,
-#     HexagonalReadoutMode.CIRCULAR: DigiOutputFileCircular
-# }
-
-
-# def digioutput_class(mode: HexagonalReadoutMode):
-#     """Return the proper class to be used as DigiOutputFile, depending on the
-#     readout mode of the chip.
-#     """
-#     return _FILEIO_CLASS_DICT[mode]
-
-# End of obsolete stuff.
-
-
 class ReconOutputFile(OutputFileBase):
 
     """Description of a reconstructed output file. This should be the same for
@@ -728,6 +710,32 @@ def peek_file_type(file_path: str) -> FileType:
 
 
 # TODO: to be removed.
+
+_DIGI_REGISTRY = {
+    HexagonalReadoutRectangular: DigiOutputFileRectangular,
+    HexagonalReadoutCircular: DigiOutputFileCircular
+}
+
+def digi_file_class(readout) -> type:
+    """Return the proper class to be used as DigiOutputFile, depending on the
+    readout type of the chip.
+    """
+    return _DIGI_REGISTRY[type(readout)]
+
+
+# Mapping for the digi description classes for each readout mode.
+_FILEIO_CLASS_DICT = {
+    HexagonalReadoutMode.RECTANGULAR: DigiOutputFileRectangular,
+    HexagonalReadoutMode.CIRCULAR: DigiOutputFileCircular
+}
+
+
+def digioutput_class(mode: HexagonalReadoutMode):
+    """Return the proper class to be used as DigiOutputFile, depending on the
+    readout mode of the chip.
+    """
+    return _FILEIO_CLASS_DICT[mode]
+
 
 def peek_readout_type(file_path: str):
     """Peek into the header of a HDF5 Digi file and determing the readout type.

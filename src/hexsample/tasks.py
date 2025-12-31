@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from tqdm import tqdm
 
 from . import rng
+from .fileio import digi_file_class
 from .logging_ import logger
 from .mc import PhotonList
 from .readout import AbstractReadout
@@ -58,8 +59,7 @@ def simulate(
     logger.info(sensor)
     logger.info(readout)
     photon_list = PhotonList(source, sensor, num_events)
-    # Change this back to a function in the fileio module.
-    file_type = readout.output_file_class()
+    file_type = digi_file_class(readout)
     output_file = file_type(output_file_path)
     if kwargs is not None:
         output_file.update_header(**kwargs)
