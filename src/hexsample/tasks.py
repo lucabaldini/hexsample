@@ -20,17 +20,33 @@
 """Basic simulation, reconstruction and analysis tasks.
 """
 
+import inspect
 from dataclasses import dataclass
+from typing import Tuple
 
 from tqdm import tqdm
 
 from . import rng
-from .fileio import digi_file_class
+from .clustering import ClusteringNN
+from .fileio import digi_input_file_class, digi_output_file_class, peek_readout_type, ReconOutputFile
+from .hexagon import HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
-from .readout import AbstractReadout
+from .readout import AbstractReadout, HexagonalReadoutCircular, HexagonalReadoutMode, HexagonalReadoutRectangular
+from .recon import ReconEvent
 from .sensor import Sensor
 from .source import Source
+
+
+def current_call() -> Tuple[str, dict]:
+    """Return the name and arguments of the current function call.
+    """
+    frame = inspect.currentframe().f_back
+    func = frame.f_code.co_name
+    sig = inspect.signature(frame.f_globals[func])
+    bound = sig.bind(**frame.f_locals)
+    bound.apply_defaults()
+    return func, bound.arguments
 
 
 @dataclass(frozen=True)
@@ -49,18 +65,19 @@ def simulate(
         num_events: int = SimulationDefaults.num_events,
         output_file_path: str = SimulationDefaults.output_file_path,
         random_seed: int = SimulationDefaults.random_seed,
+        # This will go away.
         kwargs: dict = None,
         ) -> str:
     """Run a simulation.
     """
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
     rng.initialize(seed=random_seed)
-    logger.info("Setting up the simulation...")
-    logger.info(source)
-    logger.info(sensor)
-    logger.info(readout)
     photon_list = PhotonList(source, sensor, num_events)
-    file_type = digi_file_class(readout)
+    file_type = digi_output_file_class(readout)
     output_file = file_type(output_file_path)
+    # This is just a momentary workaround until we write all the metadata in the
+    # hdf5 file properly.
     if kwargs is not None:
         output_file.update_header(**kwargs)
     logger.info("Starting the event loop...")
@@ -79,12 +96,64 @@ class ReconstructionDefaults:
     """Default parameters for the reconstruction task.
     """
     suffix: str = "recon"
+    zero_sup_threshold: int = 0
+    num_neighbors: int = 2
+    pos_recon_algorithm: str = "centroid"
+    eta_index: float = 0.27
 
 
 def reconstruct(
         input_file_path: str,
         suffix: str = ReconstructionDefaults.suffix,
+        zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
+        num_neighbors: int = ReconstructionDefaults.num_neighbors,
+        pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
+        eta_index: float = ReconstructionDefaults.eta_index,
+        # This will go away.
+        **kwargs,
         ) -> str:
     """Run the reconstruction.
     """
-    pass
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
+    input_file_path = str(input_file_path)
+    if not input_file_path.endswith(".h5"):
+        raise RuntimeError("Input file {input_file_path} does not look like a HDF5 file")
+
+    # It is necessary to extract the reaodut type because every readout type
+    # corresponds to a different DigiEvent type.
+    readout_mode = peek_readout_type(input_file_path)
+    # And we should get rid of all this crap when we store the readout type and all the
+    # relevant metadata in the hdf5 file in a sensible way.
+    file_type = digi_input_file_class(readout_mode)
+    input_file = file_type(input_file_path)
+    header = input_file.header
+    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"], header["enc"], header["gain"]
+    if readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
+    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+        readout = HexagonalReadoutCircular(*args)
+    else:
+        raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
+    logger.info(f"Readout chip: {readout}")
+
+    # Run the actual reconstruction.
+    clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors)
+    output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
+    output_file = ReconOutputFile(output_file_path)
+    output_file.update_header(**kwargs)
+    output_file.update_digi_header(**input_file.header)
+    for i, event in tqdm(enumerate(input_file)):
+        cluster = clustering.run(event)
+        if num_neighbors == 0 or cluster.size() == num_neighbors:
+            # Need to pass the recon method and other stuff as argument to ReconEvent
+            args = event.trigger_id, event.timestamp(), event.livetime, cluster
+            recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch, eta_index)
+            mc_event = input_file.mc_event(i)
+            output_file.add_row(recon_event, mc_event)
+    output_file.flush()
+    input_file.close()
+    output_file.close()
+    return output_file_path

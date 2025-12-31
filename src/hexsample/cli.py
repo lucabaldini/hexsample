@@ -264,7 +264,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         # that is accessed through the 'runner' attribute in the namespace.
         ns = self.parse_args()
         # Convert padding to a roi.Padding instance.
-        if not isinstance(ns.padding, roi.Padding):
+        if "padding" in ns and not isinstance(ns.padding, roi.Padding):
             ns.padding = roi.Padding(*ns.padding)
         kwargs = vars(ns)
         # Setup logging.

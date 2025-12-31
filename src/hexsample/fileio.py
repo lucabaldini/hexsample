@@ -711,16 +711,23 @@ def peek_file_type(file_path: str) -> FileType:
 
 # TODO: to be removed.
 
-_DIGI_REGISTRY = {
+_DIGI_INPUT_REGISTRY = {
+    HexagonalReadoutMode.RECTANGULAR: DigiInputFileRectangular,
+    HexagonalReadoutMode.CIRCULAR: DigiInputFileCircular
+}
+
+
+def digi_input_file_class(readout_mode) -> type:
+    return _DIGI_INPUT_REGISTRY[readout_mode]
+
+
+_DIGI_OUTPUT_REGISTRY = {
     HexagonalReadoutRectangular: DigiOutputFileRectangular,
     HexagonalReadoutCircular: DigiOutputFileCircular
 }
 
-def digi_file_class(readout) -> type:
-    """Return the proper class to be used as DigiOutputFile, depending on the
-    readout type of the chip.
-    """
-    return _DIGI_REGISTRY[type(readout)]
+def digi_output_file_class(readout) -> type:
+    return _DIGI_OUTPUT_REGISTRY[type(readout)]
 
 
 # Mapping for the digi description classes for each readout mode.
@@ -748,7 +755,7 @@ def peek_readout_type(file_path: str):
     # pylint: disable=protected-access
     with tables.open_file(file_path, "r") as input_file:
         try:
-            return HexagonalReadoutMode(input_file.root.header._v_attrs["readoutmode"])
+            return HexagonalReadoutMode(input_file.root.header._v_attrs["readout_mode"])
         except KeyError as exception:
             raise RuntimeError(f"File {file_path} has no readout information.") from exception
 
