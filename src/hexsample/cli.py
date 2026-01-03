@@ -94,7 +94,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_suffix(recon, default="recon")
         self.add_logging_level(recon)
         self.add_recon_options(recon)
-        recon.set_defaults(runner=tasks.reconstruct)
+        recon.set_defaults(runner=pipeline.reconstruct)
 
         # Run the single-event display?
         #display = subparsers.add_parser("display",
@@ -274,10 +274,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         if runner == pipeline.simulate:
             return runner(**kwargs)
         # Reconstruct?
-        if runner == tasks.reconstruct:
+        if runner == pipeline.reconstruct:
             input_file_path = kwargs["input_file"]
-            suffix = kwargs["suffix"]
-            return runner(input_file_path, suffix)
+            return runner(input_file_path, **kwargs)
 
 
 def main() -> None:

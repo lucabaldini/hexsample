@@ -60,6 +60,9 @@ def current_call() -> Tuple[str, dict]:
 @dataclass(frozen=True)
 class SimulationDefaults:
     """Default parameters for the simulation task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
     """
     # source: Source = Source()
     # sensor: Sensor = Sensor()
@@ -77,9 +80,40 @@ def simulate(
         output_file_path: str = SimulationDefaults.output_file_path,
         random_seed: int = SimulationDefaults.random_seed,
         # This will go away.
-        kwargs: dict = None,
+        header_kwargs: dict = None,
         ) -> str:
     """Run a simulation.
+
+    .. warning::
+
+       The last `header_kwargs` argument is a temporary workaround to allow passing
+       some metadata to be stored in the output file header. This will go away once
+       we have a proper mechanism to handle metadata.
+
+    Arguments
+    ----------
+    source : Source
+        The X-ray source.
+
+    sensor : Sensor
+        The sensor.
+
+    readout : AbstractReadout
+        The readout chip.
+
+    num_events : int
+        The number of events to simulate.
+
+    output_file_path : str
+        The path to the output file.
+
+    random_seed : int
+        The random seed to use.
+
+    Returns
+    -------
+    str
+        The path to the output file that the task has created.
     """
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
@@ -89,8 +123,8 @@ def simulate(
     output_file = file_type(output_file_path)
     # This is just a momentary workaround until we write all the metadata in the
     # hdf5 file properly.
-    if kwargs is not None:
-        output_file.update_header(**kwargs)
+    if header_kwargs is not None:
+        output_file.update_header(**header_kwargs)
     logger.info("Starting the event loop...")
     for mc_event in tqdm(photon_list):
         x, y = mc_event.propagate(sensor.diffusion_sigma)
@@ -105,6 +139,9 @@ def simulate(
 @dataclass(frozen=True)
 class ReconstructionDefaults:
     """Default parameters for the reconstruction task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
     """
     suffix: str = "recon"
     zero_sup_threshold: int = 0
@@ -121,9 +158,35 @@ def reconstruct(
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
         eta_index: float = ReconstructionDefaults.eta_index,
         # This will go away.
-        **kwargs,
+        header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
+
+    .. warning::
+
+       The last `header_kwargs` argument is a temporary workaround to allow passing
+       some metadata to be stored in the output file header. This will go away once
+       we have a proper mechanism to handle metadata.
+
+    Arguments
+    ----------
+    input_file_path : str
+        The path to the input file.
+
+    suffix : str
+        The suffix to append to the output file name.
+
+    zero_sup_threshold : int
+        The zero-suppression threshold.
+
+    num_neighbors : int
+        The number of neighbor pixels to be used for the clustering.
+
+    pos_recon_algorithm : str
+        The position reconstruction algorithm to use.
+
+    eta_index : float
+        The eta index to use.
     """
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
@@ -154,7 +217,8 @@ def reconstruct(
     clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors)
     output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
     output_file = ReconOutputFile(output_file_path)
-    output_file.update_header(**kwargs)
+    if header_kwargs is not None:
+        output_file.update_header(**header_kwargs)
     output_file.update_digi_header(**input_file.header)
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
