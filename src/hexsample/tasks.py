@@ -1,4 +1,4 @@
-# Copyright (C) 2025 the hexsample team.
+# Copyright (C) 2025--2026 the hexsample team.
 #
 # For the license terms see the file LICENSE, distributed along with this
 # software.
@@ -22,6 +22,7 @@
 
 import inspect
 from dataclasses import dataclass
+import pathlib
 from typing import Tuple
 
 from tqdm import tqdm
@@ -36,6 +37,13 @@ from .readout import AbstractReadout, HexagonalReadoutCircular, HexagonalReadout
 from .recon import ReconEvent
 from .sensor import Sensor
 from .source import Source
+
+
+# Make room for the output data.
+HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"
+if not HEXSAMPLE_DATA.exists():
+    logger.info(f"Creating data folder {HEXSAMPLE_DATA}...")
+    pathlib.Path.mkdir(HEXSAMPLE_DATA)
 
 
 def current_call() -> Tuple[str, dict]:
@@ -53,8 +61,11 @@ def current_call() -> Tuple[str, dict]:
 class SimulationDefaults:
     """Default parameters for the simulation task.
     """
+    # source: Source = Source()
+    # sensor: Sensor = Sensor()
+    # readout = ? For this one we need to reconcile the thing with argparse...
     num_events: int = 10000
-    output_file_path: str = "simulation_output.h5"
+    output_file_path: str = HEXSAMPLE_DATA / "simulation.h5"
     random_seed: int = None
 
 
