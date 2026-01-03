@@ -17,14 +17,13 @@
 # with this program; if not, write to the Free Software Foundation Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-"""System-wide facilities.
+"""Minimal __init__ file.
 """
 
 import pathlib
 import subprocess
 
 from ._version import __version__ as __base_version__
-from .logging_ import logger
 
 
 def _git_suffix() -> str:
