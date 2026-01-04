@@ -19,7 +19,7 @@
 import numpy as np
 import pytest
 
-from hexsample import HEXSAMPLE_DATA
+from hexsample.tasks import HEXSAMPLE_DATA
 from hexsample.digi import DigiEventCircular, DigiEventRectangular
 from hexsample.fileio import (
     DigiInputFileCircular,
