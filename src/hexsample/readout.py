@@ -386,7 +386,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
 
 
 # Definition of the readout proxy.
-ReadoutProxy = TypeProxy("readout_mode")
+ReadoutProxy = TypeProxy("readout_mode") # pylint: disable=invalid-name
 ReadoutProxy.register("circular", HexagonalReadoutCircular)
 ReadoutProxy.register("rectangular", HexagonalReadoutRectangular)
 

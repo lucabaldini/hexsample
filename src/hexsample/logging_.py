@@ -32,6 +32,7 @@ logger.disable(__package_name__)
 def logging_levels() -> List[str]:
     """Return the list of the available logging levels.
     """
+    # pylint: disable=protected-access
     return list(logger._core.levels.keys())
 
 

@@ -15,4 +15,3 @@
 
 """Test suite for hexsample.pipeline
 """
-

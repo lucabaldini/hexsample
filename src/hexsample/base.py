@@ -240,7 +240,7 @@ class TypeProxy:
         return cls(**kwargs)
 
     @staticmethod
-    def filter_dataclass_kwargs(cls: type, kwargs: dict) -> dict:
+    def filter_dataclass_kwargs(cls_: type, kwargs: dict) -> dict:
         """Filter keyword arguments to keep only those defined in the dataclass.
 
         Arguments
@@ -256,7 +256,7 @@ class TypeProxy:
         dict
             The filtered keyword arguments.
         """
-        return {key: value for key, value in kwargs.items() if key in cls.__dataclass_fields__}
+        return {key: value for key, value in kwargs.items() if key in cls_.__dataclass_fields__}
 
     def from_filtered_kwargs(self, **kwargs) -> Any:
         """Create an object of the desired type based only on keyword arguments.

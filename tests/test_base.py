@@ -48,7 +48,7 @@ def test_type_proxy_decorator():
     proxy.register("forest", _LineForest)
     # We actively prevent registering non-dataclass types.
     with pytest.raises(TypeError):
-       proxy.register("vanilla", _Vanilla)
+        proxy.register("vanilla", _Vanilla)
     # And we do not allow re-registering existing keys.
     with pytest.raises(ValueError):
         proxy.register("line", _Line)

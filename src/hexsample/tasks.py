@@ -256,7 +256,6 @@ class DisplayDefaults:
     This is a small helper dataclass to help ensure consistency between the main task
     definition in this Python module and the command-line interface.
     """
-    pass
 
 
 def display(input_file_path: str) -> None:
@@ -275,11 +274,11 @@ def display(input_file_path: str) -> None:
         header["pitch"], header["enc"], header["gain"]
     readout = HexagonalReadoutRectangular(*args)
     logger.info(f"Readout chip: {readout}")
-    display = HexagonalGridDisplay(readout)
+    grid_display = HexagonalGridDisplay(readout)
     for event in input_file:
         print(event.ascii())
-        display.draw_digi_event(event, zero_sup_threshold=0)
-        display.show()
+        grid_display.draw_digi_event(event, zero_sup_threshold=0)
+        grid_display.show()
     input_file.close()
 
 
@@ -289,7 +288,6 @@ class QuickLookDefaults:
     This is a small helper dataclass to help ensure consistency between the main task
     definition in this Python module and the command-line interface.
     """
-    pass
 
 
 def quicklook(input_file_path: str) -> None:

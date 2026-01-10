@@ -54,8 +54,6 @@ class AbstractSpectrum(AbstractRandomGenerator, AbstractPlottable):
     `render` (for plotting) methods.
     """
 
-    pass
-
 
 @dataclass
 class Line(AbstractSpectrum):
@@ -331,13 +329,13 @@ class HexagonalBeam(AbstractBeam):
 
 
 # Definition of the type proxies for spectral types.
-SpectrumProxy = TypeProxy("spectrum")
+SpectrumProxy = TypeProxy("spectrum") # pylint: disable=invalid-name
 SpectrumProxy.register("line", Line, default=True)
 SpectrumProxy.register("forest", LineForest)
 
 
 # Definition of the type proxies for beam types.
-BeamProxy = TypeProxy("beam")
+BeamProxy = TypeProxy("beam") # pylint: disable=invalid-name
 BeamProxy.register("point", PointBeam)
 BeamProxy.register("disk", DiskBeam)
 BeamProxy.register("gaussian", GaussianBeam, default=True)
