@@ -17,19 +17,11 @@
 """
 
 import numpy as np
-import pytest
 
-from hexsample.digi import (
-    DigiEventBase,
-    DigiEventCircular,
-    DigiEventRectangular,
-)
+from hexsample.digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from hexsample.hexagon import HexagonalLayout
 from hexsample.logging_ import logger
-from hexsample.readout import (
-    HexagonalReadoutCircular,
-    HexagonalReadoutRectangular,
-)
+from hexsample.readout import HexagonalReadoutCircular, HexagonalReadoutRectangular
 from hexsample.roi import Padding, RegionOfInterest
 
 

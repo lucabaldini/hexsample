@@ -44,7 +44,8 @@ class AbstractReadout(ABC):
     """
 
     @abstractmethod
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventBase:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
+             offset: int = 0) -> DigiEventBase:
         """Readout a single event, given the input coordinates of the charge.
 
         Arguments
@@ -221,7 +222,8 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
     NUM_PIXELS = 7
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventCircular:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
+             offset: int = 0) -> DigiEventCircular:
         """Overloaded method.
         """
         # pylint: disable=unused-argument
@@ -332,7 +334,8 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         signal = np.bincount(index, minlength=num_cols * num_rows).reshape((num_rows, num_cols))
         return min_col, min_row, signal
 
-    def trigger(self, signal: np.ndarray, min_col: int, min_row: int) -> Tuple[RegionOfInterest, np.ndarray]:
+    def trigger(self, signal: np.ndarray, min_col: int,
+                min_row: int) -> Tuple[RegionOfInterest, np.ndarray]:
         """Apply the trigger, calculate the region of interest, and pad the
         signal array to the proper dimension.
 
@@ -370,7 +373,8 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         self.trigger_id += 1
         return roi, pha
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray, offset: int = 0) -> DigiEventRectangular:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
+             offset: int = 0) -> DigiEventRectangular:
         """Overloaded method.
         """
         # pylint: disable=invalid-name, too-many-arguments

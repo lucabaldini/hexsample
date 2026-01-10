@@ -21,6 +21,8 @@
 
 """Event file viewer.
 """
+
+import argparse
 from ast import literal_eval
 
 import numpy as np
@@ -28,7 +30,6 @@ from aptapy.plotting import plt
 from hexsample.modeling import DoubleGaussian
 
 from hexsample.analysis import create_histogram, double_heatmap, fit_histogram, heatmap_with_labels
-from hexsample.app import ArgumentParser
 from hexsample.fileio import ReconInputFile
 
 __description__ = \
@@ -43,7 +44,7 @@ __description__ = \
 """
 
 # Parser object.
-ANALYZE_GRID_ARGPARSER = ArgumentParser(description=__description__)
+ANALYZE_GRID_ARGPARSER = argparse.ArgumentParser(description=__description__)
 ANALYZE_GRID_ARGPARSER.add_argument("1px_ratio_correction", type=str, help="Tells if correcting the\
                                     1px evts with the ratio 1px_evts/tot_evts.\
                                     Accepts True or False")

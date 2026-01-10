@@ -28,8 +28,6 @@ import numpy as np
 import scipy.stats
 import xraydb
 
-from hexsample.source import Source
-
 from . import rng
 from .base import TypeProxy
 

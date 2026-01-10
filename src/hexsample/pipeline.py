@@ -22,8 +22,8 @@
 
 from . import tasks
 from .readout import ReadoutProxy
-from .source import Source
 from .sensor import Sensor
+from .source import Source
 
 
 def simulate(**kwargs) -> str:
@@ -44,11 +44,14 @@ def reconstruct(**kwargs) -> str:
     """
     input_file_path = kwargs["input_file"]
     suffix = kwargs.get("suffix", tasks.ReconstructionDefaults.suffix)
-    zero_sup_threshold = kwargs.get("zero_sup_threshold", tasks.ReconstructionDefaults.zero_sup_threshold)
+    zero_sup_threshold = kwargs.get("zero_sup_threshold",
+                                    tasks.ReconstructionDefaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", tasks.ReconstructionDefaults.num_neighbors)
-    pos_recon_algorithm = kwargs.get("pos_recon_algorithm", tasks.ReconstructionDefaults.pos_recon_algorithm)
+    pos_recon_algorithm = kwargs.get("pos_recon_algorithm",
+                                     tasks.ReconstructionDefaults.pos_recon_algorithm)
     eta_index = kwargs.get("eta_index", tasks.ReconstructionDefaults.eta_index)
-    args = input_file_path, suffix, zero_sup_threshold, num_neighbors, pos_recon_algorithm, eta_index
+    args = input_file_path, suffix, zero_sup_threshold, num_neighbors, \
+           pos_recon_algorithm, eta_index
     return tasks.reconstruct(*args, kwargs)
 
 

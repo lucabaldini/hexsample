@@ -77,7 +77,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         simulate = subparsers.add_parser("simulate",
             help="run a simulation",
             formatter_class=self._FORMATTER_CLASS)
-        self.add_num_events(simulate, default=tasks.SimulationDefaults.num_events, intent="generated")
+        self.add_num_events(simulate, default=tasks.SimulationDefaults.num_events,
+                            intent="generated")
         self.add_output_file(simulate, default=tasks.SimulationDefaults.output_file_path)
         self.add_random_seed(simulate, default=tasks.SimulationDefaults.random_seed)
         self.add_logging_level(simulate)
@@ -242,9 +243,11 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--padding", type=int, nargs=4,
                            default=readout.HexagonalReadoutRectangular.padding,
                            help="padding on the four sides of the ROT")
-        group.add_argument("--trg_threshold", type=float, default=readout.HexagonalReadoutBase.trg_threshold,
+        group.add_argument("--trg_threshold", type=float,
+                           default=readout.HexagonalReadoutBase.trg_threshold,
                            help="trigger threshold in electron equivalent")
-        group.add_argument("--zero_sup_threshold", type=int, default=readout.HexagonalReadoutBase.zero_sup_threshold,
+        group.add_argument("--zero_sup_threshold", type=int,
+                           default=readout.HexagonalReadoutBase.zero_sup_threshold,
                            help="zero suppression threshold in ADC counts")
 
 

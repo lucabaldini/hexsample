@@ -19,7 +19,6 @@
 import numpy as np
 import pytest
 
-from hexsample.tasks import HEXSAMPLE_DATA
 from hexsample.digi import DigiEventCircular, DigiEventRectangular
 from hexsample.fileio import (
     DigiInputFileCircular,
@@ -31,12 +30,12 @@ from hexsample.fileio import (
     digioutput_class,
     open_input_file,
     peek_file_type,
-    peek_readout_type,
 )
 from hexsample.logging_ import logger
 from hexsample.mc import MonteCarloEvent
 from hexsample.readout import HexagonalReadoutCircular, HexagonalReadoutMode
 from hexsample.roi import Padding, RegionOfInterest
+from hexsample.tasks import HEXSAMPLE_DATA
 
 
 def _mc_event(index : int) -> MonteCarloEvent:

@@ -21,29 +21,39 @@
 """
 
 import inspect
-from dataclasses import dataclass
 import pathlib
+from dataclasses import dataclass
 from typing import Tuple
 
+import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.plotting import plt, setup_gca
-import numpy as np
 from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
 from .clustering import ClusteringNN
 from .display import HexagonalGridDisplay
-from .fileio import DigiInputFileRectangular, ReconInputFile, ReconOutputFile, \
-    digi_input_file_class, digi_output_file_class, peek_readout_type
+from .fileio import (
+    DigiInputFileRectangular,
+    ReconInputFile,
+    ReconOutputFile,
+    digi_input_file_class,
+    digi_output_file_class,
+    peek_readout_type,
+)
 from .hexagon import HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
-from .readout import AbstractReadout, HexagonalReadoutCircular, HexagonalReadoutMode, HexagonalReadoutRectangular
+from .readout import (
+    AbstractReadout,
+    HexagonalReadoutCircular,
+    HexagonalReadoutMode,
+    HexagonalReadoutRectangular,
+)
 from .recon import ReconEvent
 from .sensor import Sensor
 from .source import Source
-
 
 # Make room for the output data.
 HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"
