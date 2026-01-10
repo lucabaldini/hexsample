@@ -49,3 +49,9 @@ def reconstruct(input_file_path: str, **kwargs) -> str:
     eta_index = kwargs.get("eta_index", tasks.ReconstructionDefaults.eta_index)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, pos_recon_algorithm, eta_index
     return tasks.reconstruct(*args, kwargs)
+
+
+def display(file_path: str) -> None:
+    """Display events from a digi or recon file.
+    """
+    return tasks.display(file_path)

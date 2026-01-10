@@ -29,7 +29,8 @@ from tqdm import tqdm
 
 from . import rng
 from .clustering import ClusteringNN
-from .fileio import digi_input_file_class, digi_output_file_class, peek_readout_type, ReconOutputFile
+from .display import HexagonalGridDisplay
+from .fileio import DigiInputFileRectangular, digi_input_file_class, digi_output_file_class, peek_readout_type, ReconOutputFile
 from .hexagon import HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
@@ -232,3 +233,36 @@ def reconstruct(
     input_file.close()
     output_file.close()
     return output_file_path
+
+
+class DisplayDefaults:
+    """Default parameters for the display task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+    pass
+
+
+def display(file_path: str) -> None:
+    """Display events from a digi file.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the digi file.
+    """
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    input_file = DigiInputFileRectangular(file_path)
+    header = input_file.header
+    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"], header["enc"], header["gain"]
+    readout = HexagonalReadoutRectangular(*args)
+    logger.info(f"Readout chip: {readout}")
+    display = HexagonalGridDisplay(readout)
+    for event in input_file:
+        print(event.ascii())
+        display.draw_digi_event(event, zero_sup_threshold=0)
+        display.show()
+    input_file.close()

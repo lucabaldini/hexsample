@@ -97,9 +97,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         recon.set_defaults(runner=pipeline.reconstruct)
 
         # Run the single-event display?
-        #display = subparsers.add_parser("display",
-        #    help="run the single-event display",
-        #    formatter_class=self._FORMATTER_CLASS)
+        display = subparsers.add_parser("display",
+            help="run the single-event display",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_input_file(display)
+        self.add_logging_level(display)
+        display.set_defaults(runner=pipeline.display)
 
     @staticmethod
     def add_input_file(parser: argparse.ArgumentParser) -> None:
@@ -275,8 +278,12 @@ class CliArgumentParser(argparse.ArgumentParser):
             return runner(**kwargs)
         # Reconstruct?
         if runner == pipeline.reconstruct:
-            input_file_path = kwargs["input_file"]
-            return runner(input_file_path, **kwargs)
+            file_path = kwargs["input_file"]
+            return runner(file_path, **kwargs)
+        # Display?
+        if runner == pipeline.display:
+            file_path = kwargs["input_file"]
+            return runner(file_path)
 
 
 def main() -> None:
