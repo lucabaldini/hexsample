@@ -39,9 +39,10 @@ def simulate(**kwargs) -> str:
     return tasks.simulate(*args, kwargs)
 
 
-def reconstruct(input_file_path: str, **kwargs) -> str:
+def reconstruct(**kwargs) -> str:
     """Run a reconstruction.
     """
+    input_file_path = kwargs["input_file"]
     suffix = kwargs.get("suffix", tasks.ReconstructionDefaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", tasks.ReconstructionDefaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", tasks.ReconstructionDefaults.num_neighbors)
@@ -51,13 +52,15 @@ def reconstruct(input_file_path: str, **kwargs) -> str:
     return tasks.reconstruct(*args, kwargs)
 
 
-def display(file_path: str) -> None:
+def display(**kwargs) -> None:
     """Display events from a digi or recon file.
     """
-    return tasks.display(file_path)
+    input_file_path = kwargs["input_file"]
+    return tasks.display(input_file_path)
 
 
-def quicklook(file_path: str) -> None:
+def quicklook(**kwargs) -> None:
     """Quicklook at events from a recon file.
     """
-    return tasks.quicklook(file_path)
+    input_file_path = kwargs["input_file"]
+    return tasks.quicklook(input_file_path)

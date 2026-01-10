@@ -280,22 +280,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         kwargs = vars(ns)
         # Setup logging.
         logging_.setup_logger(kwargs.pop("logging_level"))
+        # Call the appropriate runner function.
         runner = kwargs.pop("runner")
-        # Simulate?
-        if runner == pipeline.simulate:
-            return runner(**kwargs)
-        # Reconstruct?
-        if runner == pipeline.reconstruct:
-            file_path = kwargs["input_file"]
-            return runner(file_path, **kwargs)
-        # Display?
-        if runner == pipeline.display:
-            file_path = kwargs["input_file"]
-            return runner(file_path)
-        # Quicklook?
-        if runner == pipeline.quicklook:
-            file_path = kwargs["input_file"]
-            return runner(file_path)
+        return runner(**kwargs)
 
 
 def main() -> None:
