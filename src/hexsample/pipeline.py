@@ -29,12 +29,13 @@ from .source import Source
 def simulate(**kwargs) -> str:
     """Run a simulation.
     """
+    defaults = tasks.SimulationDefaults
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
-    num_events = kwargs.get("num_events", tasks.SimulationDefaults.num_events)
-    output_file_path = kwargs.get("output_file", tasks.SimulationDefaults.output_file_path)
-    random_seed = kwargs.get("random_seed", tasks.SimulationDefaults.random_seed)
+    num_events = kwargs.get("num_events", defaults.num_events)
+    output_file_path = kwargs.get("output_file", defaults.output_file_path)
+    random_seed = kwargs.get("random_seed", defaults.random_seed)
     args = source, sensor, readout, num_events, output_file_path, random_seed
     return tasks.simulate(*args, kwargs)
 
@@ -42,14 +43,13 @@ def simulate(**kwargs) -> str:
 def reconstruct(**kwargs) -> str:
     """Run a reconstruction.
     """
+    defaults = tasks.ReconstructionDefaults
     input_file_path = kwargs["input_file"]
-    suffix = kwargs.get("suffix", tasks.ReconstructionDefaults.suffix)
-    zero_sup_threshold = kwargs.get("zero_sup_threshold",
-                                    tasks.ReconstructionDefaults.zero_sup_threshold)
-    num_neighbors = kwargs.get("num_neighbors", tasks.ReconstructionDefaults.num_neighbors)
-    pos_recon_algorithm = kwargs.get("pos_recon_algorithm",
-                                     tasks.ReconstructionDefaults.pos_recon_algorithm)
-    eta_index = kwargs.get("eta_index", tasks.ReconstructionDefaults.eta_index)
+    suffix = kwargs.get("suffix", defaults.suffix)
+    zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
+    num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
+    pos_recon_algorithm = kwargs.get("pos_recon_algorithm", defaults.pos_recon_algorithm)
+    eta_index = kwargs.get("eta_index", defaults.eta_index)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, \
            pos_recon_algorithm, eta_index
     return tasks.reconstruct(*args, kwargs)
