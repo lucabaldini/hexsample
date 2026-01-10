@@ -104,6 +104,14 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(display)
         display.set_defaults(runner=pipeline.display)
 
+        # Run the quicklook?
+        quicklook = subparsers.add_parser("quicklook",
+            help="run a quick-look analysis of a recon file",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_input_file(quicklook)
+        self.add_logging_level(quicklook)
+        quicklook.set_defaults(runner=pipeline.quicklook)
+
     @staticmethod
     def add_input_file(parser: argparse.ArgumentParser) -> None:
         """Add an option for the input file.
@@ -282,6 +290,10 @@ class CliArgumentParser(argparse.ArgumentParser):
             return runner(file_path, **kwargs)
         # Display?
         if runner == pipeline.display:
+            file_path = kwargs["input_file"]
+            return runner(file_path)
+        # Quicklook?
+        if runner == pipeline.quicklook:
             file_path = kwargs["input_file"]
             return runner(file_path)
 

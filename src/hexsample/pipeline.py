@@ -55,3 +55,9 @@ def display(file_path: str) -> None:
     """Display events from a digi or recon file.
     """
     return tasks.display(file_path)
+
+
+def quicklook(file_path: str) -> None:
+    """Quicklook at events from a recon file.
+    """
+    return tasks.quicklook(file_path)

@@ -25,12 +25,17 @@ from dataclasses import dataclass
 import pathlib
 from typing import Tuple
 
+from aptapy.hist import Histogram1d, Histogram2d
+from aptapy.plotting import plt, setup_gca
+import numpy as np
 from tqdm import tqdm
 
 from . import rng
+from .analysis import create_histogram
 from .clustering import ClusteringNN
 from .display import HexagonalGridDisplay
-from .fileio import DigiInputFileRectangular, digi_input_file_class, digi_output_file_class, peek_readout_type, ReconOutputFile
+from .fileio import DigiInputFileRectangular, ReconInputFile, ReconOutputFile, \
+    digi_input_file_class, digi_output_file_class, peek_readout_type
 from .hexagon import HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
@@ -244,7 +249,7 @@ class DisplayDefaults:
     pass
 
 
-def display(file_path: str) -> None:
+def display(input_file_path: str) -> None:
     """Display events from a digi file.
 
     Arguments
@@ -254,7 +259,7 @@ def display(file_path: str) -> None:
     """
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
-    input_file = DigiInputFileRectangular(file_path)
+    input_file = DigiInputFileRectangular(input_file_path)
     header = input_file.header
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], header["gain"]
@@ -266,3 +271,63 @@ def display(file_path: str) -> None:
         display.draw_digi_event(event, zero_sup_threshold=0)
         display.show()
     input_file.close()
+
+
+class QuickLookDefaults:
+    """Default parameters for the quicklook task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+    pass
+
+
+def quicklook(input_file_path: str) -> None:
+    """Quicklook at events from a recon file.
+
+    .. warning::
+       This needs to be rebuilt from the ground up, but the intent is a good one, I think.
+
+    Arguments
+    ---------
+    file_path : str
+        The path to the input recon file.
+    """
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    input_file = ReconInputFile(input_file_path)
+    # Plotting the reconstructed energy and the true energy
+    histo = create_histogram(input_file, "energy", mc=False)
+    mc_histo = create_histogram(input_file, "energy", mc=True, binning=histo.bin_edges())
+    plt.figure("Photons energy")
+    histo.plot(label="Reconstructed")
+    mc_histo.plot(label="MonteCarlo")
+    plt.xlabel("Energy [eV]")
+    plt.legend()
+
+    # Plotting the reconstructed x and y position and the true position.
+    plt.figure("Reconstructed photons position")
+    binning = np.linspace(-5. * 0.1, 5. * 0.1, 100)
+    x = input_file.column("posx")
+    y = input_file.column("posy")
+    histo = Histogram2d(binning, binning).fill(x, y)
+    histo.plot()
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+    plt.figure("True photons position")
+    x_mc = input_file.mc_column("absx")
+    y_mc = input_file.mc_column("absy")
+    histo_mc = Histogram2d(binning, binning).fill(x_mc, y_mc)
+    histo_mc.plot()
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+    #Closing the file and showing the figures.
+    plt.figure("x-direction resolution")
+    binning = np.linspace((x-x_mc).min(), (x-x_mc).max(), 100)
+    histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x-x_mc)
+    histx.plot()
+    plt.figure("y-direction resolution")
+    binning = np.linspace((y-y_mc).min(), (y-y_mc).max(), 100)
+    histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y-y_mc)
+    histy.plot()
+
+    input_file.close()
+    plt.show()
