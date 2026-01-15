@@ -32,7 +32,7 @@ Solid-state hybrid detectors with hexagonal sampling.
    fileio
    hexagon
    mc
-   pprint
+   pretty
    readout
    recon
    rng
