@@ -13,9 +13,29 @@ hexsample (X-ray hexagonal sampling)
    :caption: Contents:
 
    install
-   api
    release_notes
    team
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Modules:
+
+   analysis
+   base
+   cli
+   clustering
+   digi
+   display
+   fileio
+   hexagon
+   mc
+   pprint
+   readout
+   recon
+   rng
+   roi
+   sensor
+   source
 
 
 Indices and tables
