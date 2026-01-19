@@ -22,7 +22,7 @@ from aptapy.models import Exponential
 from aptapy.plotting import plt, setup_gca
 
 from hexsample import rng
-from hexsample.sensor import Silicon, SiliconSensor
+from hexsample.sensor import Sensor, material
 
 rng.initialize()
 
@@ -33,7 +33,7 @@ def test_efficiency():
     plt.figure("Silicon efficiency")
     energy = np.linspace(2000., 15000., 200)
     for thickness in (0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.1):
-        sensor = SiliconSensor(thickness)
+        sensor = Sensor("Si", thickness=thickness)
         efficiency = sensor.photabsorption_efficiency(energy)
         plt.plot(energy, efficiency, label=f"{1.e4 * thickness:.0f} $\\mu$m")
     setup_gca(xlabel="Energy [eV]", ylabel="Photoabsorption efficiency",
@@ -44,7 +44,7 @@ def test_attenuation_length():
     """
     plt.figure("Silicon attenuation length")
     energy = np.linspace(2000., 15000., 200)
-    attenuation_length = Silicon.photoelectric_attenuation_length(energy)
+    attenuation_length = material("Si").photoelectric_attenuation_length(energy)
     plt.plot(energy, attenuation_length)
     setup_gca(xlabel="Energy [eV]", ylabel="Photoelectric attenuation length [cm]",
         grids=True, logy=True, xmax=energy.max())
@@ -53,7 +53,7 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     """Extract random absorption depths.
     """
     plt.figure("Absorption depth")
-    sensor = SiliconSensor(thickness)
+    sensor = Sensor("Si", thickness=thickness)
     _energy = np.full(num_photons, energy)
     d = sensor.rvs_absorption_depth(_energy)
     h = Histogram1d(np.linspace(0., thickness, 100)).fill(d)
@@ -64,14 +64,14 @@ def test_absorption_depth(thickness=0.05, energy=8000., num_photons=100000):
     model.plot(fit_output=True)
     scale = model.scale.value
     sigma_scale = model.scale.error
-    delta = (Silicon.photoelectric_attenuation_length(energy) - scale) / sigma_scale
+    delta = (material("Si").photoelectric_attenuation_length(energy) - scale) / sigma_scale
     assert delta < 5.
 
 def test_absz(thickness=0.05, energy=8000., num_photons=100000):
     """Test the absorption z sampling.
     """
     plt.figure("Absorption z")
-    sensor = SiliconSensor(thickness)
+    sensor = Sensor("Si", thickness=thickness)
     _energy = np.full(num_photons, energy)
     d = sensor.rvs_absz(_energy)
     h = Histogram1d(np.linspace(0., thickness, 100)).fill(d)

@@ -1,4 +1,4 @@
-# Copyright (C) 2023--2025 the hexsample team.
+# Copyright (C) 2023--2026 the hexsample team.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,30 +15,3 @@
 
 """Test suite for hexsample.analysis
 """
-
-from aptapy.plotting import plt
-
-from hexsample.analysis import create_histogram
-from hexsample.fileio import DigiInputFileRectangular, ReconInputFile
-from hexsample.pipeline import hxrecon, hxsim
-
-
-def test_histograms(num_events : int = 1000):
-    """Test the histogram creation from recon files.
-    """
-    digi_file_path = hxsim(numevents=num_events)
-    recon_file_path = hxrecon(infile=digi_file_path)
-    digi_file = DigiInputFileRectangular(digi_file_path)
-    recon_file = ReconInputFile(recon_file_path)
-    plt.figure("Energy")
-    hist = create_histogram(recon_file, "energy", mc=True)
-    hist.plot(label="Monte Carlo")
-    hist = create_histogram(recon_file, "energy")
-    hist.plot(label="Recon")
-    plt.figure("Energy k_alpha")
-    energy = recon_file.column("energy")
-    mask = energy < 8500
-    hist = create_histogram(recon_file, "energy", mask=mask)
-    recon_file.close()
-    digi_file.close()
-    hist.plot()

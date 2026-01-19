@@ -1,4 +1,4 @@
-# Copyright (C) 2023--2025 the hexsample team.
+# Copyright (C) 2023--2026 the hexsample team.
 #
 # For the license terms see the file LICENSE, distributed along with this
 # software.
@@ -17,14 +17,13 @@
 # with this program; if not, write to the Free Software Foundation Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-"""System-wide facilities.
+"""Minimal __init__ file.
 """
 
 import pathlib
 import subprocess
 
 from ._version import __version__ as __base_version__
-from .logging_ import logger
 
 
 def _git_suffix() -> str:
@@ -50,10 +49,3 @@ def _git_suffix() -> str:
 
 
 __version__ = f"{__base_version__}{_git_suffix()}"
-
-
-# Make room for the output data.
-HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"
-if not HEXSAMPLE_DATA.exists():
-    logger.info(f"Creating data folder {HEXSAMPLE_DATA}...")
-    pathlib.Path.mkdir(HEXSAMPLE_DATA)

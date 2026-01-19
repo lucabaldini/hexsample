@@ -6,10 +6,12 @@
 
 """Event file viewer.
 """
+
+import argparse
+
 from aptapy.plotting import plt
 
 from hexsample.analysis import create_histogram
-from hexsample.app import ArgumentParser
 from hexsample.fileio import ReconInputFile
 
 __description__ = \
@@ -23,7 +25,7 @@ __description__ = \
 """
 
 # Parser object.
-ANALYZESIM_ARGPARSER = ArgumentParser(description=__description__)
+ANALYZESIM_ARGPARSER = argparse.ArgumentParser(description=__description__)
 def analyze_sim(thick : int, noise : int) -> None:
     """Creates the energy histogram of all events for a certain thickness and enc
     of detector and readout.

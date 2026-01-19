@@ -30,10 +30,68 @@ from hexsample.source import (
     Line,
     LineForest,
     PointBeam,
+    Source,
     TriangularBeam,
 )
 
 rng.initialize()
+
+
+def test_line():
+    """Test the Line class.
+    """
+    # Test parameters.
+    energy = 5900.
+    num_events = 10000
+
+    # Create the line and sample it.
+    line = Line(energy)
+    rvs = line.rvs(num_events)
+    assert len(rvs) == num_events
+    assert np.allclose(rvs, np.full(num_events, energy))
+    plt.figure("Spectral line")
+    line.plot()
+
+
+def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True):
+    """Generic test for a line forest.
+    """
+    # Create the forest.
+    # pylint: disable=protected-access
+    forest = LineForest(element, initial_level)
+    logger.debug(forest)
+    plt.figure(f"{element} {initial_level} line forest")
+    forest.plot()
+    if chisq_test:
+        # Extract a bunch of random energies...
+        energy = forest.rvs(num_events)
+        # ... and do a chisquare test against the original line probabilities.
+        values, counts = np.unique(energy, return_counts=True)
+        for val, cnts in zip(values, counts):
+            logger.debug(f"{val} eV -> {cnts} counts")
+        p = counts / counts.sum()
+        sigma = np.sqrt(counts) / counts.sum() * (1. - p)
+        logger.debug(f"Forest energies: {forest._energies}")
+        logger.debug(f"Forest probabilities: {forest._probs}")
+        chi2 = (((forest._probs - p) / sigma)**2).sum()
+        ndof = len(values) - 1
+        logger.debug(f"Chisquare / ndof = {chi2} / {ndof}...")
+        assert chi2 - ndof <= 5. * np.sqrt(2. * ndof)
+
+
+def test_cu_k_forest():
+    """Test the Cu K forest.
+    """
+    _test_forest("Cu", chisq_test=False)
+
+
+def test_mn_k_forest():
+    """Test the Mn K forest.
+
+    Note we're not doing the chisquare test, here, as two of the lines have the
+    same energy, and the thing would require extra code to deal with that.
+    """
+    _test_forest("Mn", chisq_test=False)
 
 
 def test_point_beam(x0 : float = 1., y0 : float = -1., num_photons : int = 1000):
@@ -90,15 +148,15 @@ def test_triangular_beam(num_photons: int = 10000):
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
 
-    plt.figure('Triangular beam')
+    plt.figure("Triangular beam")
     Histogram2d(binning_x, binning_y).fill(x, y).plot()
-    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 
-    plt.figure('Triangular beam x projection')
+    plt.figure("Triangular beam x projection")
     hx = Histogram1d(binning_x).fill(x)
     hx.plot()
 
-    plt.figure('Triangular beam y projection')
+    plt.figure("Triangular beam y projection")
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
 
@@ -114,72 +172,29 @@ def test_hexagonal_beam(size: int = 10000):
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
 
-    plt.figure('Hexagonal beam')
+    plt.figure("Hexagonal beam")
     Histogram2d(binning_x, binning_y).fill(x, y).plot()
-    setup_gca(xlabel='x [cm]', ylabel='y [cm]')
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 
-    plt.figure('Hexagonal beam x projection')
+    plt.figure("Hexagonal beam x projection")
     hx = Histogram1d(binning_x).fill(x)
     hx.plot()
 
-    plt.figure('Hexagonal beam y projection')
+    plt.figure("Hexagonal beam y projection")
     hy = Histogram1d(binning_y).fill(y)
     hy.plot()
 
 
-def _test_forest(element, initial_level="K", num_events=100000, chisq_test=True):
-    """Generic test for a line forest.
+def test_source():
+    """Test different ways to create a fully-fledged X-ray source.
     """
-    # Create the forest.
-    # pylint: disable=protected-access
-    forest = LineForest(element, initial_level)
-    logger.debug(forest)
-    plt.figure(f"{element} {initial_level} line forest")
-    forest.plot()
-    if chisq_test:
-        # Extract a bunch of random energies...
-        energy = forest.rvs(num_events)
-        # ... and do a chisquare test against the original line probabilities.
-        values, counts = np.unique(energy, return_counts=True)
-        for val, cnts in zip(values, counts):
-            logger.debug(f"{val} eV -> {cnts} counts")
-        p = counts / counts.sum()
-        sigma = np.sqrt(counts) / counts.sum() * (1. - p)
-        logger.debug(f"Forest energies: {forest._energies}")
-        logger.debug(f"Forest probabilities: {forest._probs}")
-        chi2 = (((forest._probs - p) / sigma)**2).sum()
-        ndof = len(values) - 1
-        logger.debug(f"Chisquare / ndof = {chi2} / {ndof}...")
-        assert chi2 - ndof <= 5. * np.sqrt(2. * ndof)
-
-
-def test_cu_k_forest():
-    """Test the Cu K forest.
-    """
-    _test_forest("Cu", chisq_test=False)
-
-
-def test_mn_k_forest():
-    """Test the Mn K forest.
-
-    Note we're not doing the chisquare test, here, as two of the lines have the
-    same energy, and the thing would require extra code to deal with that.
-    """
-    _test_forest("Mn", chisq_test=False)
-
-
-def test_line(energy: float = 6000, size: int = 10000):
-    """Test for line class
-    """
-    line = Line(energy)
-    logger.debug(line)
-    x = line.rvs(size)
-
-    values, counts = np.unique(x, return_counts=True)
-    logger.debug(f'Beam energy: {energy}')
-    logger.debug(f'Number of events: {size}')
-    for val, cnts in zip(values, counts):
-        logger.debug(f'{val} eV -> {cnts} counts')
-        # Check if all events have the same energy given as input
-        assert val == energy
-        assert cnts == size
+    source = Source(
+        spectrum=Line(energy=8000.),
+        beam=GaussianBeam(sigma=0.1),
+        rate=5000.,
+    )
+    assert source.spectrum.energy == 8000.
+    assert source.beam.x0 == 0.
+    assert source.beam.y0 == 0.
+    assert source.beam.sigma == 0.1
+    assert source.rate == 5000.

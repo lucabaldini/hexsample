@@ -22,8 +22,7 @@
 
 import numpy as np
 
-from hexsample import HEXSAMPLE_DATA
-from hexsample.pipeline import hxrecon, hxsim
+from hexsample import HEXSAMPLE_DATA, pipeline
 
 # Number of events to be generated for each configuration.
 NUM_EVENTS = 100000
@@ -63,8 +62,8 @@ for thickness in THICKNESS:
 # Simulate...
 file_name = 'sim_250um_20enc_60pitch.h5'
 file_path = HEXSAMPLE_DATA / file_name
-kwargs = dict(outfile=file_path, thickness=0.025, noise=20, pitch=0.006)
-file_path = hxsim(numevents=NUM_EVENTS, **kwargs)
+kwargs = dict(output_file=file_path, thickness=0.025, enc=20, pitch=0.006)
+file_path = pipeline.simulate(num_events=NUM_EVENTS, **kwargs)
 
 for thr in THRESHOLD:
     for nn in N_NEIGHBORS:
@@ -72,6 +71,6 @@ for thr in THRESHOLD:
         #threshold = 20 * SIGMA_THRESHOLD
         suffix = f'recon_nn{nn}_thr{thr:.0f}'
         kwargs = dict(zsupthreshold=thr, nneighbors=nn, suffix=suffix)
-        hxrecon(infile=file_path, **kwargs)
+        pipeline.reconstruct(input_file=file_path, **kwargs)
 
 

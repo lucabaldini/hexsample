@@ -4,18 +4,41 @@
    contain the root `toctree` directive.
 
 
-====================================
-hexsample (X-ray hexagonal sampling)
-====================================
+hexsample documentation
+=======================
+
+Solid-state hybrid detectors with hexagonal sampling.
+
+
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    install
-   api
    release_notes
    team
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Modules:
+
+   analysis
+   base
+   cli
+   clustering
+   digi
+   display
+   fileio
+   hexagon
+   mc
+   pretty
+   readout
+   recon
+   rng
+   roi
+   sensor
+   source
 
 
 Indices and tables

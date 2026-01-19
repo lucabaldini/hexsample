@@ -22,6 +22,7 @@ _ROOT_DIR_PATH = pathlib.Path(__file__).parent
 _DOCS_DIR_PATH = _ROOT_DIR_PATH / "docs"
 
 _LINT_DIRS = ("src", "tests", "tools")
+_TEST_DIRS = ("tests", )
 _CACHE_DIRS = (".nox", ".ruff_cache", ".pylint_cache", ".pytest_cache")
 _DOCS_ARTIFACTS_DIRS = ("_build", "auto_examples")
 
@@ -109,4 +110,4 @@ def test(session: nox.Session) -> None:
     """
     session.install("pytest")
     session.install(".[dev]")
-    session.run("pytest", *session.posargs)
+    session.run("pytest", *_TEST_DIRS, *session.posargs)
