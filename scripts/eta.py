@@ -1,6 +1,8 @@
 """Analyze eta function to reconstruct events position.
 """
 
+import argparse
+
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d, Histogram3d
 from aptapy.models import PowerLaw, Probit
@@ -8,9 +10,8 @@ from aptapy.plotting import plt
 from scipy.optimize import curve_fit
 from tqdm import tqdm
 
-from hexsample.app import ArgumentParser, check_required_args
 from hexsample.clustering import ClusteringNN
-from hexsample.fileio import DigiInputFileCircular, peek_readout_type
+from hexsample.fileio import DigiInputFileCircular, digi_input_file_class, peek_readout_type
 from hexsample.hexagon import HexagonalLayout
 from hexsample.logging_ import logger
 from hexsample.readout import HexagonalReadoutCircular, HexagonalReadoutMode
@@ -20,8 +21,8 @@ __description__ = \
 """
 
 # Parser object.
-HXETA_ARGPARSER = ArgumentParser(description=__description__)
-HXETA_ARGPARSER.add_infile()
+HXETA_ARGPARSER = argparse.ArgumentParser(description=__description__)
+HXETA_ARGPARSER.add_argument("input_file", type=str, help="path to the input file")
 
 NUMBINS = 20
 
@@ -48,22 +49,22 @@ def mask_topology(x, y):
 def hxeta(**kwargs):
     """Application to calibrate the eta function.
     """
-    check_required_args(hxeta, "infile", **kwargs)
-    input_file_path = str(kwargs["infile"])
+    input_file_path = str(kwargs["input_file"])
     if not input_file_path.endswith(".h5"):
         raise RuntimeError(f"Input file {input_file_path} does not look like a HDF5 file")
 
     readout_mode = peek_readout_type(input_file_path)
     if readout_mode is not HexagonalReadoutMode.CIRCULAR:
         raise RuntimeError("Only CIRCULAR readout is supported.")
-    input_file = DigiInputFileCircular(input_file_path)
+    file_type = digi_input_file_class(readout_mode)
+    input_file = file_type(input_file_path)
     header = input_file.header
-    args = HexagonalLayout(header["layout"]), header["numcolumns"], header["numrows"],\
-        header["pitch"], header["noise"], header["gain"]
+    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"], header["enc"], header["gain"]
     readout = HexagonalReadoutCircular(*args)
     nneighbors = 6
     logger.info(f"Readout chip: {readout}")
-    clustering = ClusteringNN(readout, header["zsupthreshold"], nneighbors)
+    clustering = ClusteringNN(readout, header["zero_sup_threshold"], nneighbors)
     # Create all the lists we need to fill
     size, x0, y0, absx, absy, eta, n = [[] for _ in range(7)]
     for i, event in tqdm(enumerate(input_file)):
@@ -118,7 +119,10 @@ def hxeta(**kwargs):
     coverage_intervals = []
     for i in range(r_mean.size):
         r_slice = hist.slice1d(i)
-        coverage_intervals.append(r_slice.minimum_coverage_interval(0.68))
+        try:
+            coverage_intervals.append(r_slice.minimum_coverage_interval(0.68))
+        except ValueError:
+            coverage_intervals.append((0., 0.))
     x_r = r_mean_hist.bin_centers()
     lower_limits = np.array([interval[0] for interval in coverage_intervals])
     upper_limits = np.array([interval[1] for interval in coverage_intervals])
