@@ -67,3 +67,10 @@ def quicklook(**kwargs) -> None:
     """
     input_file_path = kwargs["input_file"]
     return tasks.quicklook(input_file_path)
+
+
+def resolution(**kwargs) -> None:
+    """Analyze the resolution from a recon file.
+    """
+    input_file_path = kwargs["input_file"]
+    return tasks.resolution(input_file_path)
