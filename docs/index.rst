@@ -15,6 +15,7 @@ Solid-state hybrid detectors with hexagonal sampling.
    :maxdepth: 1
    :caption: Contents:
 
+   overview
    install
    release_notes
    team
@@ -32,6 +33,7 @@ Solid-state hybrid detectors with hexagonal sampling.
    fileio
    hexagon
    mc
+   pipeline
    pretty
    readout
    recon
@@ -39,6 +41,7 @@ Solid-state hybrid detectors with hexagonal sampling.
    roi
    sensor
    source
+   tasks
 
 
 Indices and tables
