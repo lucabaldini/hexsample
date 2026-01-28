@@ -1,5 +1,5 @@
-:mod:`~hexsample.clustering` --- Clustering facilities
-======================================================
+:mod:`~hexsample.clustering` --- Clustering
+===========================================
 
 
 Module documentation

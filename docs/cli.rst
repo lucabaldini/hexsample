@@ -1,2 +1,2 @@
-:mod:`~hexsample.cli` --- Command-line interface
-================================================
+:mod:`~hexsample.cli` --- Command-line
+======================================
