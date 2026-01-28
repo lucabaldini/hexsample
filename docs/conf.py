@@ -5,7 +5,7 @@
 from hexsample import __name__ as __package_name__, __version__
 
 project = __package_name__
-copyright = f'2023, the {__package_name__} team'
+copyright = f'2023-2026, the {__package_name__} team'
 author = f'The {__package_name__} team'
 release = __version__
 
@@ -56,4 +56,4 @@ html_theme_options = {
 # html_favicon = "_static/favicon.ico"
 html_permalinks_icon = "<span>#</span>"
 html_static_path = ["_static"]
-# html_css_files = ['hexample.css']
+html_css_files = ["custom.css"]

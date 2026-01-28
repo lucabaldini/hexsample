@@ -20,13 +20,16 @@
 """Active sensor medium.
 """
 
+from dataclasses import dataclass
 from enum import Enum
+from typing import Tuple
 
 import numpy as np
 import scipy.stats
 import xraydb
 
 from . import rng
+from .base import TypeProxy
 
 
 class CrossSection(Enum):
@@ -184,7 +187,7 @@ class Material:
         """
         return xraydb.fluor_yield(self.symbol, edge, line, energy)
 
-    def rvs_num_pairs(self, energy : np.ndarray) -> np.ndarray:
+    def rvs_num_pairs(self, energy: np.ndarray) -> np.ndarray:
         """Extract the number of pairs for the primary ionization.
         """
         mean = energy / self.ionization_potential
@@ -197,15 +200,35 @@ class Material:
         return f"{self.symbol}, F = {self.fano_factor}, E_ion = {self.ionization_potential} eV"
 
 
+# Predefined materials.
+_MATERIAL_DICT = {
+    "Si": Material("Si", fano_factor=0.116),
+    "Ge": Material("Ge", fano_factor=0.106),
+    "CdTe": Material("CdTe", fano_factor=0.15, density=5.85, ionization_potential=4.45),
+}
 
-# Definition of the active media of interest.
-# pylint: disable=invalid-name
-Silicon = Material("Si", 0.116)
-Germanium = Material("Ge", 0.106)
-CadmiumTelluride = Material("CdTe", fano_factor=0.15, density=5.85, ionization_potential=4.45)
+
+def material_symbols() -> Tuple[str]:
+    """Return the list of predefined material symbols.
+    """
+    return tuple(_MATERIAL_DICT.keys())
 
 
+def material(symbol: str) -> Material:
+    """Return a predefined material instance for a given symbol.
 
+    Arguments
+    ---------
+    symbol : str
+        The material symbol.
+    """
+    try:
+        return _MATERIAL_DICT[symbol]
+    except KeyError as error:
+        raise ValueError(f"Unknown material symbol: {symbol}") from error
+
+
+@dataclass
 class Sensor:
 
     """Simple class describing a sensor.
@@ -221,26 +244,53 @@ class Sensor:
     thickness : float
         The sensor thickness in cm.
 
-    trans_diffusion_sigma : float
+    diffusion_sigma : float
         The transverse diffusion sigma in um / sqrt(cm).
+
+    fano_factor : float, optional
+        The Fano factor to be used, overriding the tabulated value if specified.
     """
 
-    def __init__(self, material : Material, thickness : float,
-        trans_diffusion_sigma : float) -> None:
-        """Constructor.
-        """
-        self.material = material
-        self.thickness = thickness
-        self.trans_diffusion_sigma = trans_diffusion_sigma
+    material_symbol: str = "Si"
+    thickness: float = 0.03
+    diffusion_sigma: float = 40.0
+    fano_factor: float = None
 
-    def photabsorption_efficiency(self, energy : np.ndarray) -> np.ndarray:
+    def __post_init__(self) -> None:
+        """Post-initialization processing.
+        """
+        self.material = material(self.material_symbol)
+        # Are we overriding the tabulated Fano factor?
+        if self.fano_factor is not None:
+            self.material.fano_factor = self.fano_factor
+
+    @classmethod
+    def from_filtered_kwargs(cls, **kwargs) -> "Sensor":
+        """Alternative constructor to create sensor objects from specifications.
+
+        Arguments
+        ---------
+        kwargs : dict
+            The keyword arguments containing the source specifications.
+
+        Returns
+        -------
+        Sensor
+            The sensor object.
+        """
+        # TODO: this might be implemented in a Kwargable base class from which
+        # Sensor would inherit.
+        kwargs = TypeProxy.filter_dataclass_kwargs(cls, kwargs)
+        return cls(**kwargs)
+
+    def photabsorption_efficiency(self, energy: np.ndarray) -> np.ndarray:
         """Return the photabsorption efficiency for a given array of energy values.
         """
         lambda_ = self.material.photoelectric_attenuation_length(energy)
         return 1. - np.exp(-self.thickness / lambda_)
 
-    def rvs_absorption_depth(self, energy : np.ndarray) -> np.ndarray:
-        """Exract random variates for the absorption depth.
+    def rvs_absorption_depth(self, energy: np.ndarray) -> np.ndarray:
+        """Extract random variates for the absorption depth.
 
         Note this is using a truncated exponential distribution with the maximum
         value corresponding to the thickness of the detector.
@@ -249,7 +299,7 @@ class Sensor:
         dist = scipy.stats.expon(scale=lambda_)
         return dist.ppf(rng.generator.uniform(0., dist.cdf(self.thickness)))
 
-    def rvs_absz(self, energy : np.ndarray) -> np.ndarray:
+    def rvs_absz(self, energy: np.ndarray) -> np.ndarray:
         """Extract random variates for the absorption position along the z axis.
 
         Not that, in our parallel-plane geometry, the z axis runs perpendicularly
@@ -258,15 +308,3 @@ class Sensor:
         to have a momentum parallel to the z axis.
         """
         return self.thickness - self.rvs_absorption_depth(energy)
-
-
-
-class SiliconSensor(Sensor):
-
-    """Specialized class describing a silicon sensor.
-    """
-
-    def __init__(self, thickness : float = 0.03, trans_diffusion_sigma : float = 40.) -> None:
-        """Constructor.
-        """
-        super().__init__(Silicon, thickness, trans_diffusion_sigma)

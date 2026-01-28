@@ -26,6 +26,7 @@ from .roi import Padding
 # Chip size for the two generations.
 XPOL1_SIZE = (300, 352)
 XPOL1_LAYOUT = HexagonalLayout.EVEN_R
+
 XPOL3_SIZE = (304, 352)
 XPOL3_LAYOUT = HexagonalLayout.ODD_R
 
@@ -33,5 +34,5 @@ XPOL3_LAYOUT = HexagonalLayout.ODD_R
 XPOL_PITCH = 0.005
 
 # Convenience constants for the XPOL1 default paddings.
-XPOL1_SMALL_PADDING = Padding(10, 8)
-XPOL1_LARGE_PADDING = Padding(20, 16)
+XPOL1_SMALL_PADDING = Padding(10, 8, 10, 8)
+XPOL1_LARGE_PADDING = Padding(20, 16, 20, 16)

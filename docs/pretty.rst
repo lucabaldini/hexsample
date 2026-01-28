@@ -1,4 +1,4 @@
-:mod:`~hexsample.pprint` --- Pretty printing
+:mod:`~hexsample.pretty` --- Pretty printing
 ============================================
 
 This module provides facilities for pretty printing, including support for
@@ -12,4 +12,4 @@ for ASCII-art like rendering. Most notably, this is useful in
 Module documentation
 --------------------
 
-.. automodule:: hexsample.pprint
+.. automodule:: hexsample.pretty

@@ -26,15 +26,10 @@ from typing import Tuple
 import numpy as np
 
 
-@dataclass
+@dataclass(frozen=True)
 class Padding:
 
     """Padding on the outside of the region of trigger.
-
-    This is setup so that the padding can be initialized with a single argument,
-    assuming that it is the same on all four sides, with two arguments
-    (bottom = top and left = right), or with the padding different on all
-    four sides.
 
     Arguments
     ---------
@@ -52,19 +47,9 @@ class Padding:
     """
 
     top: int
-    right: int = None
-    bottom: int = None
-    left: int = None
-
-    def __post_init__(self) -> None:
-        """Overloaded dataclass method.
-        """
-        if self.right is None:
-            self.right = self.top
-        if self.bottom is None:
-            self.bottom = self.top
-        if self.left is None:
-            self.left = self.right
+    right: int
+    bottom: int
+    left: int
 
     def __eq__(self, other):
         """Overloaded comparison operator.
@@ -104,10 +89,6 @@ class RegionOfInterest:
         self.num_cols = self.max_col - self.min_col + 1
         self.num_rows = self.max_row - self.min_row + 1
         self.size = self.num_cols * self.num_rows
-        # Convenience hack to be able to pass an integer to the constructor, in
-        # case the padding is the same on all four sides.
-        if isinstance(self.padding, int):
-            self.padding = Padding(self.padding)
 
     def __eq__(self, other):
         """Overloaded comparison operator.
