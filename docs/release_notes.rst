@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.13.0 (2026-01-28)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * New command-line interface---this adds the new cli and tasks modules, and removes
   the old app module, as well as all the application scripts in the bin folder.
   This is the biggest single change in this release, and has a number of
