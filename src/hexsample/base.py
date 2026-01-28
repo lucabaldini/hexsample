@@ -95,28 +95,6 @@ class AbstractPlottable(ABC):
         return axes
 
 
-# class AbstractKwargable(ABC):
-
-#     """Abstract base class for objects that can be constructed from keyword arguments.
-#     """
-
-#     @classmethod
-#     @abstractmethod
-#     def from_kwargs(cls, **kwargs) -> "AbstractKwargable":
-#         """Create an object from keyword arguments.
-
-#         Arguments
-#         ---------
-#         kwargs : keyword arguments
-#             The keyword arguments to pass to the constructor.
-
-#         Returns
-#         -------
-#         AbstractKwargable
-#             The created object.
-#         """
-
-
 class TypeProxy:
 
     """Base class for type proxy classes.
