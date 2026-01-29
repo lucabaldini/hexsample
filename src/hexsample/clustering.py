@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from aptapy.models import Probit, Exponential
+from aptapy.models import Exponential, Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
@@ -92,16 +92,23 @@ class Cluster:
         return n
 
     def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
-            eta_3pix_theta0, eta_3pix_theta1, eta_3pix_theta2, pitch: float
-            ) -> Tuple[float, float]:
+            eta_3pix_theta0: float, eta_3pix_theta1: float, pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters.
 
         Arguments
         ---------
-        gamma : Tuple[float, float, float]
-            The parameters to use for the eta function reconstruction, the first for 2-pixel
-            events (dr), the other two for 3-pixel events (dr, theta).
+        eta_2pix_rad : float
+            Probit function sigma parameter for two pixel events.
+        eta_3pix_rad0 : float
+            probit function offset parameter for three pixel events radial position component.
+        eta_3pix_rad1 : float
+            probit function sigma parameter for three pixel events radial position component.
+        eta_3pix_theta0 : float
+            Exponential function prefactor parameter for three pixel events angular position
+            component.
+        eta_3pix_theta1 : float
+            Exponential function scale parameter for three pixel events angular position component.
         pitch : float
             The pitch of the pixels.
         """
@@ -120,7 +127,7 @@ class Cluster:
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
             dr = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1) * pitch
-            theta = Exponential().evaluate(eta_diff, eta_3pix_theta0, eta_3pix_theta1) + eta_3pix_theta2
+            theta = Exponential().evaluate(eta_diff, eta_3pix_theta0, eta_3pix_theta1)
             # We need to determine the sign of theta depending on the cluster orientation.
             theta = theta * np.sign(np.cross(n, np.array([self.x[1] - self.x[0],
                                                           self.y[1] - self.y[0]])))

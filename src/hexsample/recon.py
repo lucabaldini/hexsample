@@ -106,6 +106,7 @@ class ReconEvent:
     eta_3pix_rad0: float
     eta_3pix_rad1: float
     eta_3pix_theta0: float
+    eta_3pix_theta1: float
 
 
     def energy(self, ionization_potential: float = DEFAULT_IONIZATION_POTENTIAL) -> float:
@@ -128,7 +129,8 @@ class ReconEvent:
                      "eta_2pix_rad": self.eta_2pix_rad,
                      "eta_3pix_rad0": self.eta_3pix_rad0,
                      "eta_3pix_rad1": self.eta_3pix_rad1,
-                     "eta_3pix_theta0": self.eta_3pix_theta0
+                     "eta_3pix_theta0": self.eta_3pix_theta0,
+                     "eta_3pix_theta1": self.eta_3pix_theta1
                      }
         args = [available[_par] for _par in signature.parameters]
 
