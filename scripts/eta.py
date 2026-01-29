@@ -1,7 +1,7 @@
 """Analyze eta function to reconstruct events position.
 """
 
-import argparse
+from hexsample.cli import argparse
 
 import arviz as az
 import numpy as np
@@ -115,6 +115,8 @@ def calibrate_2pix(eta, photon_pos, versor, statistic):
     plt.ylabel("dr / p")
     plt.legend()
 
+    return model
+
 
 def calibrate_dr_3pix(eta, photon_pos, statistic: str):
     # Calculate dr, which is the distance of the photon from the center of the
@@ -141,6 +143,8 @@ def calibrate_dr_3pix(eta, photon_pos, statistic: str):
     plt.xlabel("eta1 + eta2")
     plt.ylabel("dr / p")
     plt.legend()
+
+    return model
 
 
 def calibrate_theta_3pix(eta, photon_pos, versor, statistic: str):
@@ -172,6 +176,7 @@ def calibrate_theta_3pix(eta, photon_pos, versor, statistic: str):
     plt.ylabel("theta [rad]")
     plt.legend()
 
+    return model
 
 
 def hxeta(**kwargs):
@@ -227,16 +232,17 @@ def hxeta(**kwargs):
     eta_2pix = eta[mask_2pix].flatten()
     photon_pos_2pix = photon_pos[mask_2pix]
     n_2pix = n[mask_2pix]
-    calibrate_2pix(eta_2pix, photon_pos_2pix, n_2pix, statistic=STATISTIC)
+    model_2pix = calibrate_2pix(eta_2pix, photon_pos_2pix, n_2pix, statistic=STATISTIC)
 
     # Select three pixel events and calibrate
     mask_3pix = size == 3
     eta_3pix = np.stack(eta[mask_3pix])
     photon_pos_3pix = photon_pos[mask_3pix]
     n_3pix = n[mask_3pix]
-    calibrate_dr_3pix(eta_3pix, photon_pos_3pix, statistic=STATISTIC)
-    calibrate_theta_3pix(eta_3pix, photon_pos_3pix, n_3pix, statistic=STATISTIC)
-    plt.show()
+    model_3pix_r = calibrate_dr_3pix(eta_3pix, photon_pos_3pix, statistic=STATISTIC)
+    model_3pix_theta = calibrate_theta_3pix(eta_3pix, photon_pos_3pix, n_3pix, statistic=STATISTIC)
+    
+    return model_2pix, model_3pix_r, model_3pix_theta
 
 if __name__ == "__main__":
     hxeta(**vars(HXETA_ARGPARSER.parse_args()))
