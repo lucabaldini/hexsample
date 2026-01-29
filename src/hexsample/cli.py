@@ -32,7 +32,7 @@ def start_message() -> None:
     msg = f"""
     This is {__package_name__} version {__version__}.
 
-    Copyright (C) 2023--2025, the {__package_name__} team.
+    Copyright (C) 2023--2026, the {__package_name__} team.
 
     {__package_name__} comes with ABSOLUTELY NO WARRANTY.
     This is free software, and you are welcome to redistribute it under certain

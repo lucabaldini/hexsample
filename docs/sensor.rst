@@ -1,5 +1,5 @@
-:mod:`~hexsample.sensor` --- Sensor active media
-================================================
+:mod:`~hexsample.sensor` --- Sensor media
+=========================================
 
 
 Module documentation
