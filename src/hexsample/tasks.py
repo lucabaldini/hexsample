@@ -163,7 +163,10 @@ class ReconstructionDefaults:
     zero_sup_threshold: int = 0
     num_neighbors: int = 2
     pos_recon_algorithm: str = "centroid"
-    eta_index: float = 0.27
+    eta_2pix_rad: float = 0.127
+    eta_3pix_rad0: float = 0.513
+    eta_3pix_rad1: float = 0.141
+    eta_3pix_theta0: float = 2.0
 
 
 def reconstruct(
@@ -172,8 +175,10 @@ def reconstruct(
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
-        eta_index: float = ReconstructionDefaults.eta_index,
-        # This will go away.
+        eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
+        eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
+        eta_3pix_rad1: float = ReconstructionDefaults.eta_3pix_rad1,
+        eta_3pix_theta0: float = ReconstructionDefaults.eta_3pix_theta0,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -241,7 +246,8 @@ def reconstruct(
         if num_neighbors == 0 or cluster.size() == num_neighbors:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
-            recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch, eta_index)
+            recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
+                                     eta_2pix_rad, eta_3pix_rad0, eta_3pix_rad1, eta_3pix_theta0)
             mc_event = input_file.mc_event(i)
             output_file.add_row(recon_event, mc_event)
     output_file.flush()
@@ -315,7 +321,7 @@ def quicklook(input_file_path: str) -> None:
 
     # Plotting the reconstructed x and y position and the true position.
     plt.figure("Reconstructed photons position")
-    binning = np.linspace(-5. * 0.1, 5. * 0.1, 100)
+    binning = np.linspace(-5. * 0.2, 5. * 0.2, 100)
     x = input_file.column("posx")
     y = input_file.column("posy")
     histo = Histogram2d(binning, binning).fill(x, y)

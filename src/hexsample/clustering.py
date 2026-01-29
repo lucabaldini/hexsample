@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from aptapy.models import PowerLaw, Probit
+from aptapy.models import Probit, Exponential
 
 from .digi import DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
@@ -91,7 +91,9 @@ class Cluster:
                 n = np.array([0., 0.])
         return n
 
-    def eta(self, gamma: Tuple[float, float, float], pitch: float) -> Tuple[float, float]:
+    def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
+            eta_3pix_theta0, eta_3pix_theta1, eta_3pix_theta2, pitch: float
+            ) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters.
 
@@ -109,16 +111,16 @@ class Cluster:
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the eta function calibration.
-            dr = Probit().evaluate(_eta[0], 0.5, gamma[0]) * pitch
+            dr = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad) * pitch
             x_recon = self.x[0] + dr * n[0]
             y_recon = self.y[0] + dr * n[1]
         elif self.size() == 3:
+            # For 3-pixel events we estimate both dr and theta using the eta function
+            # calibrations.
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
-            # When we will decide to use the probit model for three pixel events, we will need to
-            # change this line.
-            dr = PowerLaw().evaluate(eta_sum / (2/3), 1/np.sqrt(3), gamma[1]) * pitch
-            theta = (np.pi/6) * (np.exp(eta_diff * gamma[2]) - 1) / (np.exp(gamma[2]) - 1)
+            dr = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1) * pitch
+            theta = Exponential().evaluate(eta_diff, eta_3pix_theta0, eta_3pix_theta1) + eta_3pix_theta2
             # We need to determine the sign of theta depending on the cluster orientation.
             theta = theta * np.sign(np.cross(n, np.array([self.x[1] - self.x[0],
                                                           self.y[1] - self.y[0]])))

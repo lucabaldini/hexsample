@@ -303,7 +303,7 @@ class HexagonalBeam(AbstractBeam):
     """
 
     v0: Tuple[float, float] = (1., 0.)
-    v1: Tuple[float, float] = (0., 1.)
+    v1: Tuple[float, float] = (.5, np.sqrt(3)/2)
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.

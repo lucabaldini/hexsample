@@ -102,7 +102,10 @@ class ReconEvent:
     cluster: Cluster
     method: str
     pitch: float
-    gamma: float
+    eta_2pix_rad: float
+    eta_3pix_rad0: float
+    eta_3pix_rad1: float
+    eta_3pix_theta0: float
 
 
     def energy(self, ionization_potential: float = DEFAULT_IONIZATION_POTENTIAL) -> float:
@@ -121,7 +124,12 @@ class ReconEvent:
         recon_method = getattr(self.cluster, self.method)
 
         signature = inspect.signature(recon_method)
-        available = {'pitch': self.pitch, 'gamma': self.gamma}
+        available = {"pitch": self.pitch,
+                     "eta_2pix_rad": self.eta_2pix_rad,
+                     "eta_3pix_rad0": self.eta_3pix_rad0,
+                     "eta_3pix_rad1": self.eta_3pix_rad1,
+                     "eta_3pix_theta0": self.eta_3pix_theta0
+                     }
         args = [available[_par] for _par in signature.parameters]
 
         return recon_method(*args)
