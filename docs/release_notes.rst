@@ -3,6 +3,22 @@
 Release notes
 =============
 
+
+Version 0.13.1 (2026-01-30)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Added scripts to calibrate the eta function.
+* Added more command-line options to the cli interface to control the reconstruction
+  with the eta function.
+* Bug fix in the hexagonal beam implementation.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/82
+
+
+Version 0.13.0 (2026-01-28)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * New command-line interface---this adds the new cli and tasks modules, and removes
   the old app module, as well as all the application scripts in the bin folder.
   This is the biggest single change in this release, and has a number of
@@ -56,7 +72,7 @@ Version 0.11.0 (2025-11-19)
 * Introduced nox for task automation (testing, linting, documentation building).
 * Rewrote release tooling in tools/release.py with improved version management.
 * Added pytest fixtures in tests/conftest.py for test data handling and matplotlib figure management.
-* Consolidated logging configuration into src/hexsample/logging_.py module.
+* Consolidated logging configuration into `src/hexsample/logging_.py` module.
 * Old setup files removed in favor of an editable install via pip.
 * Old Makefile removed.
 * Documentation sphinx theme changed.
@@ -95,8 +111,8 @@ Version 0.9.0 (2025-04-30)
   - https://github.com/lucabaldini/hexsample/pull/46
 
 
-* Version 0.8.1 (2023-12-12)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Version 0.8.1 (2023-12-12)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Better parameter initialization for the DoubleGaussian model.
 * Pull requests merged and issues closed:
@@ -105,8 +121,8 @@ Version 0.9.0 (2025-04-30)
   - https://github.com/lucabaldini/hexsample/issues/44
 
 
-* Version 0.8.0 (2023-12-07)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Version 0.8.0 (2023-12-07)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * New functions in the analysis module.
 * New ``scripts`` folder, and first script to analyze the output of a
@@ -116,8 +132,8 @@ Version 0.9.0 (2025-04-30)
   - https://github.com/lucabaldini/hexsample/pull/42
 
 
-* Version 0.7.0 (2023-10-25)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Version 0.7.0 (2023-10-25)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Major refactoring of the modeling framework, with no (intentional) modification
   to the public API.
@@ -143,8 +159,8 @@ Version 0.6.0 (2023-10-19)
   - https://github.com/lucabaldini/hexsample/issues/24
 
 
-* Version 0.5.2 (2023-10-18)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Version 0.5.2 (2023-10-18)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * New attempt at compiling the docs on github pages.
 
@@ -158,8 +174,8 @@ Version 0.5.1 (2023-10-18)
   - https://github.com/lucabaldini/hexsample/pull/3
 
 
-* Version 0.5.0 (2023-10-17)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Version 0.5.0 (2023-10-17)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Readout chip geometry exposed in the simulation via command-line arguments, and
   automatically picked up in the reconstruction and the event display.
@@ -177,8 +193,8 @@ Version 0.5.1 (2023-10-18)
   - https://github.com/lucabaldini/hexsample/issues/21
 
 
-* Version 0.4.0 (2023-10-16)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Version 0.4.0 (2023-10-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * This is a major rework of the sampling, trigger and digitization facilities
   allowing for a simulation speedup of almost an order of magnitude, without loss
