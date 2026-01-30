@@ -261,19 +261,29 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of neighbors to be considered (0--6)")
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "dnn", "gnn"],
                            type=str, default="centroid", help="How to reconstruct position")
-        group.add_argument("--eta_2pix_rad", default=0.132, type=float,
-                           help="probit function sigma parameter for two pixel events eta" \
-                           " reconstruction")
-        group.add_argument("--eta_3pix_rad0", default=0.513, type=float,
-                           help="probit function offset parameter for three pixel events radial" \
-                           " component eta reconstruction")
-        group.add_argument("--eta_3pix_rad1", default=0.143, type=float,
-                           help="probit function sigma parameter for three pixel events radial" \
-                           " component eta reconstruction")
-        group.add_argument("--eta_3pix_theta0", default=0.07, type=float,
+        group.add_argument("--eta_2pix_rad",
+                           default=tasks.ReconstructionDefaults.eta_2pix_rad,
+                           type=float,
+                           help="probit function sigma parameter for two pixel" \
+                           "events eta reconstruction")
+        group.add_argument("--eta_3pix_rad0",
+                           default=tasks.ReconstructionDefaults.eta_3pix_rad0,
+                           type=float,
+                           help="probit function offset parameter for three pixel" \
+                           "events radial component eta reconstruction")
+        group.add_argument("--eta_3pix_rad1",
+                           default=tasks.ReconstructionDefaults.eta_3pix_rad1,
+                           type=float,
+                           help="probit function sigma parameter for three pixel" \
+                           "events radial component eta reconstruction")
+        group.add_argument("--eta_3pix_theta0",
+                           default=tasks.ReconstructionDefaults.eta_3pix_theta0,
+                           type=float,
                            help="exponential function prefactor for three pixel events angular" \
                            " eta reconstruction")
-        group.add_argument("--eta_3pix_theta1", default=-0.5, type=float,
+        group.add_argument("--eta_3pix_theta1",
+                           default=tasks.ReconstructionDefaults.eta_3pix_theta1,
+                           type=float,
                            help="exponential function scale for three pixel events angular" \
                            " component eta reconstruction")
         group.add_argument("--nnmodel", type=str, default="pretrained",

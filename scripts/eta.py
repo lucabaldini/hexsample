@@ -214,6 +214,8 @@ def calibrate_theta_3pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.nda
     # Calculate theta
     r = np.sqrt(np.sum(photon_pos**2, axis=1))
     cos_theta = np.sum(photon_pos * versor, axis=1) / r
+    # Avoid numerical issues with arccos by clipping the values
+    cos_theta = np.clip(cos_theta, -1., 1.)
     theta = np.arccos(cos_theta)
     theta_binning = np.linspace(0., max(theta), 100)
     # Calculate eta- and define the binning

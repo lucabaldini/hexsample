@@ -101,9 +101,9 @@ class Cluster:
         eta_2pix_rad : float
             Probit function sigma parameter for two pixel events.
         eta_3pix_rad0 : float
-            probit function offset parameter for three pixel events radial position component.
+            Probit function offset parameter for three pixel events radial position component.
         eta_3pix_rad1 : float
-            probit function sigma parameter for three pixel events radial position component.
+            Probit function sigma parameter for three pixel events radial position component.
         eta_3pix_theta0 : float
             Exponential function prefactor parameter for three pixel events angular position
             component.

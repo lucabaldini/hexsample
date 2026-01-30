@@ -64,7 +64,7 @@ def eta_grid():
     plt.ylabel("3-pixel theta eta parameters")
     plt.legend()
     plt.show()
-             
+
 
 if __name__ == "__main__":
     eta_grid()
