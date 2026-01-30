@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.13.1 (2026-01-30)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Added scripts to calibrate the eta function.
 * Added more command-line options to the cli interface to control the reconstruction
   with the eta function.
