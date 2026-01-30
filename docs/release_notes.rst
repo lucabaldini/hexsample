@@ -3,6 +3,14 @@
 Release notes
 =============
 
+* Added scripts to calibrate the eta function.
+* Added more command-line options to the cli interface to control the reconstruction
+  with the eta function.
+* Bug fix in the hexagonal beam implementation.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/82
+
 
 Version 0.13.0 (2026-01-28)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

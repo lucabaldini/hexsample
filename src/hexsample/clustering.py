@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from aptapy.models import PowerLaw
+from aptapy.models import Exponential, Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
@@ -64,30 +64,79 @@ class Cluster:
         """
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
 
-    def eta(self, gamma: float, pitch: float) -> Tuple[float, float]:
-        """Return the cluster reconstructed position using the eta function.
+    def calculate_eta(self) -> np.ndarray:
+        """Return the eta values of the pixels in the cluster.
+        """
+        eta = np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
+        return eta
+
+    def n_versor(self) -> np.ndarray:
+        """Return the versor n for the cluster. Its definition depends on the cluster size.
+        For 2-pixel clusters it is the versor that points from the center of the pixel with the
+        highest pha to the center of the other one. For 3-pixel clusters it points from the center
+        of the pixel with the highest pha to the midpoint of the line that connects the centers of
+        the other two pixels."""
+        if self.x.shape[0] == 2:
+            n = np.array([self.x[1] - self.x[0], self.y[1] - self.y[0]])
+        elif self.x.shape[0] == 3:
+            n = np.array([self.x[1] + self.x[2] - 2 * self.x[0],
+                          self.y[1] + self.y[2] - 2 * self.y[0]])
+        else:
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to calculate n versor")
+        # It can happen that the versor is [0, 0] for events with strange geometries.
+        # In that case we avoid NaN by setting the versor to [0, 0].
+        with np.errstate(invalid="ignore"):
+            n = n / np.sqrt(np.sum(n**2))
+            if np.any(np.isnan(n)):
+                n = np.array([0., 0.])
+        return n
+
+    def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
+            eta_3pix_theta0: float, eta_3pix_theta1: float, pitch: float) -> Tuple[float, float]:
+        """Return the cluster reconstructed position using the eta function calibrated for 2
+        and 3 pixel clusters.
 
         Arguments
         ---------
-        gamma : float
-            The index of the power law of the eta function.
+        eta_2pix_rad : float
+            Probit function sigma parameter for two pixel events.
+        eta_3pix_rad0 : float
+            Probit function offset parameter for three pixel events radial position component.
+        eta_3pix_rad1 : float
+            Probit function sigma parameter for three pixel events radial position component.
+        eta_3pix_theta0 : float
+            Exponential function prefactor parameter for three pixel events angular position
+            component.
+        eta_3pix_theta1 : float
+            Exponential function scale parameter for three pixel events angular position component.
         pitch : float
             The pitch of the pixels.
         """
-        # We want to extend this method to events with multiple pixels
-        if self.size() != 2:
-            raise RuntimeError('Cluster must contain only 2 pixels to use the eta function')
+        n = self.n_versor()
+        _eta = self.calculate_eta()
 
-        diff = np.array([np.diff(self.x)[0], np.diff(self.y)[0]])
-        n = diff / pitch
-
-        # Consider to create a separate method for this
-        eta = self.pha[1] / self.pulse_height()
-        r_fit = PowerLaw().evaluate(eta / 0.5, 0.5, gamma)*pitch
-        x_fit = self.x[0] + r_fit * n[0]
-        y_fit = self.y[0] + r_fit * n[1]
-
-        return x_fit, y_fit
+        if self.size() == 2:
+            # For 2-pixel events we estimate the position along the line that connects the
+            # two pixels using the eta function calibration.
+            dr = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad) * pitch
+            x_recon = self.x[0] + dr * n[0]
+            y_recon = self.y[0] + dr * n[1]
+        elif self.size() == 3:
+            # For 3-pixel events we estimate both dr and theta using the eta function
+            # calibrations.
+            eta_sum = _eta[0] + _eta[1]
+            eta_diff = (_eta[0] - _eta[1]) / eta_sum
+            dr = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1) * pitch
+            theta = Exponential().evaluate(eta_diff, eta_3pix_theta0, eta_3pix_theta1)
+            # We need to determine the sign of theta depending on the cluster orientation.
+            theta = theta * np.sign(np.cross(n, np.array([self.x[1] - self.x[0],
+                                                          self.y[1] - self.y[0]])))
+            x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
+            y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
+        else:
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position using "
+                               "eta function")
+        return x_recon, y_recon
 
 
 @dataclass
