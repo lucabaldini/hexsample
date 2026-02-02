@@ -230,8 +230,8 @@ def calibrate_theta_3pix(eta: np.ndarray, photon_pos: np.ndarray, versors: np.nd
     u = versors[:, 0]
     v = versors[:, 1]
     # Calculate the projections onto the versors
-    u_proj = np.sum(photon_pos * u, axis=1, dtype=float)
-    v_proj = np.sum(photon_pos * v, axis=1, dtype=float)
+    u_proj = np.sum(photon_pos * u, axis=1)
+    v_proj = np.sum(photon_pos * v, axis=1)
     # Calculate theta as arctan(v_proj / u_proj)
     theta = np.arctan2(v_proj, u_proj)
     # Calculate the transverse component (for small angle approximation)
@@ -312,8 +312,9 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     y0 = np.array(y0)
     absx = np.array(absx)
     absy = np.array(absy)
+    # Eta must be an array of objects because clusters can have different sizes
     eta = np.array(eta, dtype=object)
-    versors = np.array(versors, dtype=object)
+    versors = np.array(versors)
     # Calculate the photon position with respect to the central pixel
     photon_pos = np.array([absx - x0, absy - y0]).T / header["pitch"]
 

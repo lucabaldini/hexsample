@@ -70,7 +70,7 @@ class Cluster:
         eta = np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
         return eta
 
-    def versors(self) -> np.ndarray:
+    def versors(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return the versors u and v for the cluster. Their definitions depend on the cluster size.
         For 2-pixel clusters u is the versor that points from the center of the pixel with the
         highest pha to the center of the other one, while v is the versor perpendicular to u in
@@ -96,7 +96,7 @@ class Cluster:
             if (self.x[1] - self.x[0]) * v[0] + (self.y[1] - self.y[0]) * v[1] < 0:
                 v = -v
         else:
-            raise RuntimeError("Cluster must contain 2 or 3 pixels to calculate n versor")
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to calculate versors")
         # It can happen that the versor is [0, 0] for events with strange geometries.
         # In that case we avoid NaN by setting the versor to [0, 0].
         with np.errstate(invalid="ignore"):
@@ -123,8 +123,7 @@ class Cluster:
         eta_3pix_rad1 : float
             Probit function sigma parameter for three pixel events radial position component.
         eta_3pix_theta0 : float
-            Exponential function prefactor parameter for three pixel events angular position
-            component.
+            Probit function sigma parameter for three pixel events angular position component.
         pitch : float
             The pitch of the pixels.
         """

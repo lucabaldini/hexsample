@@ -274,13 +274,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_rad1",
                            default=tasks.ReconstructionDefaults.eta_3pix_rad1,
                            type=float,
-                           help="probit function sigma parameter for three pixel" \
+                           help="probit function sigma parameter for three pixel " \
                            "events radial component eta reconstruction")
         group.add_argument("--eta_3pix_theta0",
                            default=tasks.ReconstructionDefaults.eta_3pix_theta0,
                            type=float,
-                           help="probit function sigma parameter for three pixel" \
-                           "events radial component eta reconstruction")
+                           help="probit function sigma parameter for three pixel " \
+                           "events angular component eta reconstruction")
         group.add_argument("--nnmodel", type=str, default="pretrained",
                            choices=["pretrained", "custom"],
                            help="model to use for neural network reconstruction")
