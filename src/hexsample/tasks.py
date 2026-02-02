@@ -162,7 +162,7 @@ class ReconstructionDefaults:
     suffix: str = "recon"
     zero_sup_threshold: int = 0
     num_neighbors: int = 2
-    max_neighbors: int = 0
+    max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
     eta_2pix_rad: float = 0.127
     eta_3pix_rad0: float = 0.513
@@ -245,13 +245,13 @@ def reconstruct(
     if header_kwargs is not None:
         output_file.update_header(**header_kwargs)
     output_file.update_digi_header(**input_file.header)
+    # Create a list of acceptable cluster sizes. If max_neighbors is -1, take num_neighbors
+    # only. Otherwise take all sizes from 1 to max_neighbors + 1. When specified, max_neighbors
+    # gets priority over num_neighbors.
+    size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
-        # Create a list of acceptable cluster sizes. If max_neighbors is 0, take num_neighbors
-        # only. Otherwise take all sizes from 1 to max_neighbors.
-        # I'd like to use cluster size instead of number of neighbors
-        neighbors = list(range(1, max_neighbors + 2)) if max_neighbors > 0 else [num_neighbors + 1]
-        if cluster.size() in neighbors:
+        if cluster.size() in size:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
@@ -328,6 +328,13 @@ def quicklook(input_file_path: str) -> None:
     plt.xlabel("Energy [eV]")
     plt.legend()
 
+    size_hist = create_histogram(input_file, "cluster_size", mc=False)
+    plt.figure("Cluster size distribution")
+    size_hist.plot()
+    plt.xlabel("Cluster size")
+    plt.ylabel("Counts")
+
+
     # Plotting the reconstructed x and y position and the true position.
     plt.figure("Reconstructed photons position")
     binning = np.linspace(-5. * 0.2, 5. * 0.2, 100)
@@ -351,6 +358,11 @@ def quicklook(input_file_path: str) -> None:
     binning = np.linspace((y-y_mc).min(), (y-y_mc).max(), 100)
     histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y-y_mc)
     histy.plot()
+    plt.figure("distance resolution")
+    dr = np.sqrt((x - x_mc)**2 + (y - y_mc)**2)
+    binning = np.linspace(dr.min(), dr.max(), 100)
+    histdr = Histogram1d(binning, xlabel=r"$\sqrt{(x - x_{MC})^2 + (y - y_{MC})^2}$ [cm]").fill(dr)
+    histdr.plot()
 
     input_file.close()
     plt.show()

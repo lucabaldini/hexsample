@@ -48,13 +48,14 @@ def reconstruct(**kwargs) -> str:
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
+    max_neighbors = kwargs.get("max_neighbors", defaults.max_neighbors)
     pos_recon_algorithm = kwargs.get("pos_recon_algorithm", defaults.pos_recon_algorithm)
     eta_2pix_rad = kwargs.get("eta_2pix_rad", defaults.eta_2pix_rad)
     eta_3pix_rad0 = kwargs.get("eta_3pix_rad0", defaults.eta_3pix_rad0)
     eta_3pix_rad1 = kwargs.get("eta_3pix_rad1", defaults.eta_3pix_rad1)
     eta_3pix_theta0 = kwargs.get("eta_3pix_theta0", defaults.eta_3pix_theta0)
     eta_3pix_theta1 = kwargs.get("eta_3pix_theta1", defaults.eta_3pix_theta1)
-    args = input_file_path, suffix, zero_sup_threshold, num_neighbors, \
+    args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
            pos_recon_algorithm, eta_2pix_rad, eta_3pix_rad0, eta_3pix_rad1, eta_3pix_theta0, \
            eta_3pix_theta1
     return tasks.reconstruct(*args, kwargs)

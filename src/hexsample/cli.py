@@ -259,7 +259,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="zero-suppression threshold in ADC counts")
         group.add_argument("--num_neighbors", type=int, default=2,
                            help="number of neighbors to be considered (0--6)")
-        group.add_argument("--max_neighbors", type=int, default=0,
+        group.add_argument("--max_neighbors", type=int, default=-1,
                            help="maximum number of neighbors to be considered")
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "dnn", "gnn"],
                            type=str, default="centroid", help="How to reconstruct position")

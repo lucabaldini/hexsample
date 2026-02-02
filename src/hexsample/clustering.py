@@ -94,7 +94,7 @@ class Cluster:
     def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
             eta_3pix_theta0: float, eta_3pix_theta1: float, pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
-        and 3 pixel clusters.
+        and 3 pixel clusters. If cluster size is 1, return centroid.
 
         Arguments
         ---------
@@ -112,31 +112,31 @@ class Cluster:
         pitch : float
             The pitch of the pixels.
         """
-        n = self.n_versor()
-        _eta = self.calculate_eta()
-
-        if self.size() == 2:
-            # For 2-pixel events we estimate the position along the line that connects the
-            # two pixels using the eta function calibration.
-            dr = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad) * pitch
-            x_recon = self.x[0] + dr * n[0]
-            y_recon = self.y[0] + dr * n[1]
-        elif self.size() == 3:
-            # For 3-pixel events we estimate both dr and theta using the eta function
-            # calibrations.
-            eta_sum = _eta[0] + _eta[1]
-            eta_diff = (_eta[0] - _eta[1]) / eta_sum
-            dr = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1) * pitch
-            theta = Exponential().evaluate(eta_diff, eta_3pix_theta0, eta_3pix_theta1)
-            # We need to determine the sign of theta depending on the cluster orientation.
-            theta = theta * np.sign(np.cross(n, np.array([self.x[1] - self.x[0],
-                                                          self.y[1] - self.y[0]])))
-            x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
-            y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
+        if self.size() not in [2, 3]:
+            return self.centroid()
         else:
-            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position using "
-                               "eta function")
-        return x_recon, y_recon
+            n = self.n_versor()
+            _eta = self.calculate_eta()
+
+            if self.size() == 2:
+                # For 2-pixel events we estimate the position along the line that connects the
+                # two pixels using the eta function calibration.
+                dr = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad) * pitch
+                x_recon = self.x[0] + dr * n[0]
+                y_recon = self.y[0] + dr * n[1]
+            elif self.size() == 3:
+                # For 3-pixel events we estimate both dr and theta using the eta function
+                # calibrations.
+                eta_sum = _eta[0] + _eta[1]
+                eta_diff = (_eta[0] - _eta[1]) / eta_sum
+                dr = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1) * pitch
+                theta = Exponential().evaluate(eta_diff, eta_3pix_theta0, eta_3pix_theta1)
+                # We need to determine the sign of theta depending on the cluster orientation.
+                theta = theta * np.sign(np.cross(n, np.array([self.x[1] - self.x[0],
+                                                            self.y[1] - self.y[0]])))
+                x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
+                y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
+            return x_recon, y_recon
 
 
 @dataclass
