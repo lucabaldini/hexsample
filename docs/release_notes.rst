@@ -7,7 +7,7 @@ Release notes
 * Modified the model to fit the angular coordinate for three-pixel events eta reconstruction.
 * Pull requests merged and issues closed:
 
-  - https://github.com/lucabaldini/hexsample/pull/82
+  - https://github.com/lucabaldini/hexsample/pull/91
 
 
 
