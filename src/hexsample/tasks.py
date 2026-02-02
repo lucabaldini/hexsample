@@ -166,8 +166,7 @@ class ReconstructionDefaults:
     eta_2pix_rad: float = 0.127
     eta_3pix_rad0: float = 0.513
     eta_3pix_rad1: float = 0.141
-    eta_3pix_theta0: float = 0.074
-    eta_3pix_theta1: float = -0.5
+    eta_3pix_theta0: float = 0.147
 
 
 def reconstruct(
@@ -180,7 +179,6 @@ def reconstruct(
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
         eta_3pix_rad1: float = ReconstructionDefaults.eta_3pix_rad1,
         eta_3pix_theta0: float = ReconstructionDefaults.eta_3pix_theta0,
-        eta_3pix_theta1: float = ReconstructionDefaults.eta_3pix_theta1,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -250,7 +248,7 @@ def reconstruct(
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
                                      eta_2pix_rad, eta_3pix_rad0, eta_3pix_rad1,
-                                     eta_3pix_theta0, eta_3pix_theta1)
+                                     eta_3pix_theta0)
             mc_event = input_file.mc_event(i)
             output_file.add_row(recon_event, mc_event)
     output_file.flush()

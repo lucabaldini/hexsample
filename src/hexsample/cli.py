@@ -279,13 +279,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_theta0",
                            default=tasks.ReconstructionDefaults.eta_3pix_theta0,
                            type=float,
-                           help="exponential function prefactor for three pixel events angular" \
-                           " eta reconstruction")
-        group.add_argument("--eta_3pix_theta1",
-                           default=tasks.ReconstructionDefaults.eta_3pix_theta1,
-                           type=float,
-                           help="exponential function scale for three pixel events angular" \
-                           " component eta reconstruction")
+                           help="inverse error function prefactor parameter for three pixel" \
+                           "events angular component eta reconstruction")
         group.add_argument("--nnmodel", type=str, default="pretrained",
                            choices=["pretrained", "custom"],
                            help="model to use for neural network reconstruction")
