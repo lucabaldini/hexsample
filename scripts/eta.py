@@ -3,12 +3,12 @@
 
 from pathlib import Path
 
+import aptapy.models
 import numpy as np
 from aptapy.hist import Histogram2d
 from aptapy.modeling import AbstractFitModel
-import aptapy.models
 from aptapy.models import Probit
-from aptapy.plotting import plt, last_line_color
+from aptapy.plotting import last_line_color, plt
 from tqdm import tqdm
 
 from hexsample.cli import argparse
@@ -150,7 +150,7 @@ def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versors: np.ndarray,
     model.fit(eta_centers, dr_loc, sigma=dr_err, absolute_sigma=True)
     fig = plt.figure("dr_vs_eta_2pix_calibration")
     plt.errorbar(eta_centers, dr_loc, yerr=dr_err, fmt=".k", label="Monte Carlo simulation")
-    fit_label = f"2-pixel events calibration\n" + fr"$\sigma$ = {model.sigma.ufloat()}"
+    fit_label = "2-pixel events calibration\n" + fr"$\sigma$ = {model.sigma.ufloat()}"
     model.plot(label=fit_label, color=last_line_color())
     plt.xlabel(r"$\eta$")
     plt.ylabel(r"r / p")
@@ -196,7 +196,7 @@ def calibrate_dr_3pix(eta: np.ndarray, photon_pos: np.ndarray, **kwargs) -> Abst
     fig = plt.figure("dr_vs_eta_sum_3pix_calibration")
     plt.errorbar(eta_centers, dr_loc, yerr=dr_err, fmt=".k", label="Monte Carlo simulation")
     model.set_plotting_range(0, model.plotting_range()[1])
-    fit_label = f"3-pixel events radial calibration\n" + fr"$\sigma$ = {model.sigma.ufloat()}"
+    fit_label = "3-pixel events radial calibration\n" + fr"$\sigma$ = {model.sigma.ufloat()}"
     fit_label += "\n" + fr"$\mu$ = {model.offset.ufloat()}"
     model.plot(label=fit_label, color=last_line_color())
     plt.xlabel(r"$\eta^+$")
@@ -257,7 +257,8 @@ def calibrate_theta_3pix(eta: np.ndarray, photon_pos: np.ndarray, versors: np.nd
     fig = plt.figure("theta_vs_eta_diff_3pix_calibration")
     plt.errorbar(eta_centers, theta_loc, yerr=theta_err, fmt=".k", label="Monte Carlo simulation")
     model.set_plotting_range(0, model.plotting_range()[1])
-    fit_label = f"3-pixel events angular calibration\n" +fr"$\sqrt{{2}}\sigma$ = {model.sigma.ufloat()}"
+    fit_label = "3-pixel events angular calibration\n"
+    fit_label += fr"$\sqrt{{2}}\sigma$ = {model.sigma.ufloat()}"
     model.plot(label=fit_label, color=last_line_color())
     plt.xlabel(r"$\eta^-$")
     plt.ylabel(r"r$\theta$ / p")

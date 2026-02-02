@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from aptapy.models import Probit, ErfInverse
+from aptapy.models import ErfInverse, Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
