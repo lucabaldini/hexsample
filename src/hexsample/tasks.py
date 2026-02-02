@@ -162,6 +162,7 @@ class ReconstructionDefaults:
     suffix: str = "recon"
     zero_sup_threshold: int = 0
     num_neighbors: int = 2
+    max_neighbors: int = 0
     pos_recon_algorithm: str = "centroid"
     eta_2pix_rad: float = 0.127
     eta_3pix_rad0: float = 0.513
@@ -175,6 +176,7 @@ def reconstruct(
         suffix: str = ReconstructionDefaults.suffix,
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
+        max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
         eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
@@ -245,7 +247,11 @@ def reconstruct(
     output_file.update_digi_header(**input_file.header)
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
-        if num_neighbors == 0 or cluster.size() == num_neighbors:
+        # Create a list of acceptable cluster sizes. If max_neighbors is 0, take num_neighbors
+        # only. Otherwise take all sizes from 1 to max_neighbors.
+        # I'd like to use cluster size instead of number of neighbors
+        neighbors = list(range(1, max_neighbors + 2)) if max_neighbors > 0 else [num_neighbors + 1]
+        if cluster.size() in neighbors:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
