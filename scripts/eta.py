@@ -282,7 +282,6 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     file_type = digi_input_file_class(readout_mode)
     input_file = file_type(input_file_path)
     header = input_file.header
-    header["zero_sup_threshold"] = 0
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], header["gain"], header["zero_sup_threshold"]
     readout = HexagonalReadoutCircular(*args)
