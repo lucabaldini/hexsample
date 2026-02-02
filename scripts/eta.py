@@ -183,7 +183,7 @@ def calibrate_dr_3pix(eta: np.ndarray, photon_pos: np.ndarray, **kwargs) -> Abst
     eta_binning = np.linspace(0., 2/3, NUMBINS + 1)
     dr_binning = np.linspace(0., 1 / np.sqrt(3), 101)
     # Create the histogram of dr vs eta+ and fill it
-    plt.figure("dr_vs_eta_sum_3pix") 
+    plt.figure("dr_vs_eta_sum_3pix")
     hist = Histogram2d(eta_binning, dr_binning, xlabel=r"$\eta^+$", ylabel=r"r / p")
     hist.fill(eta_sum, dr)
     hist.plot()
@@ -243,20 +243,19 @@ def calibrate_theta_3pix(eta: np.ndarray, photon_pos: np.ndarray, versors: np.nd
     eta_diff = (eta[:, 0] - eta[:, 1]) / eta_sum
     eta_binning = np.linspace(0., 1., NUMBINS + 1)
     # Create the histogram of theta vs eta- and fill it
-    plt.figure("theta_vs_eta_diff_3pix") 
+    plt.figure("theta_vs_eta_diff_3pix")
     hist = Histogram2d(eta_binning, y_binning, xlabel=r"$\eta^-$",
                        ylabel=r"r$\theta$ / p")
     hist.fill(eta_diff, y)
     hist.plot()
     # Now the calibration.
-    eta_centers, theta_loc, theta_err = _estimate_loc(hist, debug=False)
-    # Fit with an exponential model and plot the results
+    eta_centers, y_loc, y_err = _estimate_loc(hist, debug=False)
+    # Fit with the Probit and plot the results
     model = Probit()
     model.offset.freeze(0.)
-    model.fit((1 + eta_centers)/2, theta_loc, sigma=theta_err, absolute_sigma=True)
+    model.fit((1 + eta_centers)/2, y_loc, sigma=y_err, absolute_sigma=True)
     fig = plt.figure("theta_vs_eta_diff_3pix_calibration")
-    plt.errorbar(eta_centers, theta_loc, yerr=theta_err, fmt=".k", label="Monte Carlo simulation")
-    # model.set_plotting_range(0, model.plotting_range()[1])
+    plt.errorbar(eta_centers, y_loc, yerr=y_err, fmt=".k", label="Monte Carlo simulation")
     fit_label = "3-pixel events angular calibration\n"
     fit_label += fr"$\sigma$ = {model.sigma.ufloat()}"
     xx = np.linspace(0.5, max((eta_centers + 1)/2), 100)
@@ -332,7 +331,7 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     versors_3pix = versors[mask_3pix]
     model_3pix_r = calibrate_dr_3pix(eta_3pix, photon_pos_3pix, **kwargs)
     model_3pix_theta = calibrate_theta_3pix(eta_3pix, photon_pos_3pix, versors_3pix, **kwargs)
-    
+
     return model_2pix, model_3pix_r, model_3pix_theta
 
 if __name__ == "__main__":
