@@ -3,7 +3,6 @@
 
 from pathlib import Path
 
-import aptapy.models
 import numpy as np
 from aptapy.hist import Histogram2d
 from aptapy.modeling import AbstractFitModel
@@ -252,14 +251,16 @@ def calibrate_theta_3pix(eta: np.ndarray, photon_pos: np.ndarray, versors: np.nd
     # Now the calibration.
     eta_centers, theta_loc, theta_err = _estimate_loc(hist, debug=False)
     # Fit with an exponential model and plot the results
-    model = aptapy.models.ErfInverse()
-    model.fit(eta_centers, theta_loc, sigma=theta_err, absolute_sigma=True)
+    model = Probit()
+    model.offset.freeze(0.)
+    model.fit((1 + eta_centers)/2, theta_loc, sigma=theta_err, absolute_sigma=True)
     fig = plt.figure("theta_vs_eta_diff_3pix_calibration")
     plt.errorbar(eta_centers, theta_loc, yerr=theta_err, fmt=".k", label="Monte Carlo simulation")
-    model.set_plotting_range(0, model.plotting_range()[1])
+    # model.set_plotting_range(0, model.plotting_range()[1])
     fit_label = "3-pixel events angular calibration\n"
-    fit_label += fr"$\sqrt{{2}}\sigma$ = {model.sigma.ufloat()}"
-    model.plot(label=fit_label, color=last_line_color())
+    fit_label += fr"$\sigma$ = {model.sigma.ufloat()}"
+    xx = np.linspace(0.5, max((eta_centers + 1)/2), 100)
+    plt.plot(2*xx - 1, model(xx), label=fit_label, color=last_line_color())
     plt.xlabel(r"$\eta^-$")
     plt.ylabel(r"r$\theta$ / p")
     plt.legend()

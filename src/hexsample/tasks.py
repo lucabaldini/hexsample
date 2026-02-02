@@ -166,7 +166,7 @@ class ReconstructionDefaults:
     eta_2pix_rad: float = 0.127
     eta_3pix_rad0: float = 0.513
     eta_3pix_rad1: float = 0.141
-    eta_3pix_theta0: float = 0.147
+    eta_3pix_theta0: float = 0.104
 
 
 def reconstruct(

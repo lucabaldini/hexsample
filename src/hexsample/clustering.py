@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from aptapy.models import ErfInverse, Probit
+from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
@@ -143,7 +143,7 @@ class Cluster:
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
             r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
-            theta = ErfInverse().evaluate(eta_diff, eta_3pix_theta0) / r
+            theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
             # Reconstructing the position using dr and theta
             x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
             y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
