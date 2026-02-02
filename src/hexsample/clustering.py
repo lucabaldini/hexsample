@@ -94,7 +94,8 @@ class Cluster:
     def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
             eta_3pix_theta0: float, eta_3pix_theta1: float, pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
-        and 3 pixel clusters. If cluster size is 1, return centroid.
+        and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
+        centroid.
 
         Arguments
         ---------

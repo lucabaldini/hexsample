@@ -2,7 +2,7 @@
 """
 
 import numpy as np
-from aptapy.hist import Histogram2d
+from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.modeling import AbstractFitModel
 from aptapy.models import Exponential, Probit
 from aptapy.plotting import plt
@@ -146,6 +146,20 @@ def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.ndarray
     plt.ylabel("dr / p")
     plt.legend()
 
+    eta_min = min(eta)[0]
+    print(eta_min)
+    eta_hist_binning = np.linspace(eta_min, 0.5, 101)
+    eta_hist = Histogram1d(eta_hist_binning, xlabel="eta", ylabel="Counts")
+    eta_hist.fill(eta)
+    plt.figure("eta_2pix_distribution")
+    eta_hist.plot()
+
+    from scipy.special import ndtri
+
+    sigma_x = model.sigma.value * np.sqrt(2 / np.pi) * np.exp(0.5 * abs(ndtri(eta_binning))**2)
+    plt.figure("dr_vs_eta_2pix_derivative")
+    plt.plot(eta_binning, sigma_x, label="d(dr/p)/d(eta)")
+
     return model
 
 
@@ -257,7 +271,6 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     file_type = digi_input_file_class(readout_mode)
     input_file = file_type(input_file_path)
     header = input_file.header
-    header["zero_sup_threshold"] = 0
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], header["gain"], header["zero_sup_threshold"]
     readout = HexagonalReadoutCircular(*args)

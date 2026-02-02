@@ -328,11 +328,11 @@ def quicklook(input_file_path: str) -> None:
     plt.xlabel("Energy [eV]")
     plt.legend()
 
-    size_hist = create_histogram(input_file, "cluster_size", mc=False)
-    plt.figure("Cluster size distribution")
-    size_hist.plot()
-    plt.xlabel("Cluster size")
-    plt.ylabel("Counts")
+    # size_hist = create_histogram(input_file, "cluster_size", mc=False)
+    # plt.figure("Cluster size distribution")
+    # size_hist.plot()
+    # plt.xlabel("Cluster size")
+    # plt.ylabel("Counts")
 
 
     # Plotting the reconstructed x and y position and the true position.
@@ -364,6 +364,17 @@ def quicklook(input_file_path: str) -> None:
     histdr = Histogram1d(binning, xlabel=r"$\sqrt{(x - x_{MC})^2 + (y - y_{MC})^2}$ [cm]").fill(dr)
     histdr.plot()
 
+    from .hexagon import HexagonalGrid
+    grid = HexagonalGrid()
+    x0, y0 = grid.pixel_to_world(*grid.world_to_pixel(x_mc, y_mc))
+    dr_abs = np.sqrt((x - x0)**2 + (y - y0)**2) / grid.pitch
+    bins = np.linspace(0, 1, 100)
+    hist = Histogram2d(bins, bins)
+    # I need the recon distance from the hit pixel center
+    hist.fill(dr_abs, dr / grid.pitch)
+    hist_mean, hist_sigma = hist.project_statistics()
+    plt.figure("Reconstructed vs true distance from pixel center")
+    plt.plot(hist_mean.bin_centers(), hist_mean.content.flatten(), 'o', label='Mean')
     input_file.close()
     plt.show()
 
