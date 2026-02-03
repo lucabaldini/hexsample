@@ -147,7 +147,6 @@ def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.ndarray
     plt.legend()
 
     eta_min = min(eta)[0]
-    print(eta_min)
     eta_hist_binning = np.linspace(eta_min, 0.5, 101)
     eta_hist = Histogram1d(eta_hist_binning, xlabel="eta", ylabel="Counts")
     eta_hist.fill(eta)
@@ -156,9 +155,13 @@ def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.ndarray
 
     from scipy.special import ndtri
 
-    sigma_x = model.sigma.value * np.sqrt(2 / np.pi) * np.exp(0.5 * abs(ndtri(eta_binning))**2)
+    sigma_x = model.sigma.value * np.sqrt(2 * np.pi) * np.exp(0.5 * abs(ndtri(eta_binning))**2) * np.sqrt(eta_binning**2  + (1 - eta_binning)**2) * 30 / 1600
     plt.figure("dr_vs_eta_2pix_derivative")
-    plt.plot(eta_binning, sigma_x, label="d(dr/p)/d(eta)")
+    plt.plot(model(eta_binning), sigma_x, label="d(dr/p)/d(eta)")
+
+    plt.figure("dr_distr")
+    plt.hist(model(eta.astype(float)), bins=100, label="dr / p")
+    plt.legend()
 
     return model
 
