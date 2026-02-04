@@ -103,6 +103,7 @@ class CliArgumentParser(argparse.ArgumentParser):
             formatter_class=self._FORMATTER_CLASS)
         self.add_input_file(display)
         self.add_logging_level(display)
+        self.add_zero_sup_threshold(display, default=tasks.DisplayDefaults.zero_sup_threshold)
         display.set_defaults(runner=pipeline.display)
 
         # Run the quicklook?
@@ -161,6 +162,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--suffix", type=str, default=default,
                             help="suffix for the output file")
+
+    @staticmethod
+    def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
+        """Add an option for the zero-suppression threshold.
+        """
+        parser.add_argument("--zero_sup_threshold", type=int, default=default,
+                            help="zero-suppression threshold in ADC counts")
 
     @staticmethod
     def add_source_options(parser: argparse.ArgumentParser) -> None:
@@ -246,10 +254,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--trg_threshold", type=float,
                            default=readout.HexagonalReadoutBase.trg_threshold,
                            help="trigger threshold in electron equivalent")
-        group.add_argument("--zero_sup_threshold", type=int,
-                           default=readout.HexagonalReadoutBase.zero_sup_threshold,
-                           help="zero suppression threshold in ADC counts")
-
+        CliArgumentParser.add_zero_sup_threshold(group,
+                           default=readout.HexagonalReadoutBase.zero_sup_threshold)
 
     def add_recon_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the reconstruction properties.

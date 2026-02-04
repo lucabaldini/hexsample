@@ -238,6 +238,7 @@ class DigiEventCircular(DigiEventBase):
 
     def ascii(self, pha_width: int = 5) -> str:
         """Ascii representation.
+
         In the specific case of this class, the ascii representation is simply a px
         (that is the highest PHA pixel), because the neighbor position is not accessible
         by the DigiEvent.

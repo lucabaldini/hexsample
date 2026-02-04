@@ -28,7 +28,7 @@ from aptapy.plotting import plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import RegularPolygon
 
-from .digi import DigiEventRectangular
+from .digi import DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .roi import RegionOfInterest
 
@@ -169,7 +169,8 @@ class HexagonalGridDisplay:
                 plt.text(x + dx - self._grid.pitch, y + dy, f"{row}", **fmt)
         return collection
 
-    def draw_digi_event(self, event: DigiEventRectangular, offset: Tuple[float, float] = (0., 0.),
+    def draw_digi_event_rectangular(self, event: DigiEventRectangular,
+        offset: Tuple[float, float] = (0., 0.),
         indices: bool = True, padding: bool = True, zero_sup_threshold: float = 0,
         values: bool = True, **kwargs) -> HexagonCollection:
         """Draw an actual event int the parent hexagonal grid.
@@ -194,3 +195,59 @@ class HexagonalGridDisplay:
                 if value > zero_sup_threshold:
                     plt.text(x, y, f"{value}", color=color, **fmt)
         return collection
+
+    def draw_digi_event_circular(self, event: DigiEventCircular,
+        offset: Tuple[float, float] = (0., 0.), zero_sup_threshold: float = 0,
+        values: bool = True, **kwargs) -> HexagonCollection:
+        """Display a digi event with circular readout.
+        """
+        dx, dy = offset
+        # This is shamelessly copied from clustering.py, and we should really
+        # have a function in event that is returning the physical coordinates
+        # and the pha values of all the pixels involved in the event.
+        col = [event.column]
+        row = [event.row]
+        adc_channel_order = [self._grid.adc_channel(event.column, event.row)]
+        # Taking the NN in logical coordinates ...
+        for _col, _row in self._grid.neighbors(event.column, event.row):
+            col.append(_col)
+            row.append(_row)
+            # ... transforming the coordinates of the NN in its corresponding ADC channel ...
+            adc_channel_order.append(self. _grid.adc_channel(_col, _row))
+        # ... reordering the pha array for the correspondence (col[i], row[i]) with pha[i].
+        pha = event.pha[adc_channel_order]
+        # Converting lists into numpy arrays
+        cols = np.array(col)
+        rows = np.array(row)
+        pha = np.array(pha)
+        x, y = self._grid.pixel_to_world(cols, rows)
+        args = x + dx, y + dy, 0.5 * self._grid.pitch, self._grid.hexagon_orientation()
+        collection = HexagonCollection(*args, **kwargs)
+        face_color = self.pha_to_colors(pha, zero_sup_threshold)
+        collection.set_facecolor(face_color)
+        if values:
+            # Draw the pixel values---note that we use black or white for the text
+            # color depending on the brightness of the pixel.
+            black = np.array([0., 0., 0., 1.])
+            white = np.array([1., 1., 1., 1.])
+            text_color = np.tile(black, len(face_color)).reshape(face_color.shape)
+            text_color[self.brightness(face_color) < 0.5] = white
+            fmt = dict(ha="center", va="center", fontsize="xx-small")
+            for x, y, value, color in zip(collection.x, collection.y,\
+                pha.flatten(), text_color):
+                if value > zero_sup_threshold:
+                    plt.text(x, y, f"{value}", color=color, **fmt)
+        plt.gca().add_collection(collection)
+        return collection
+
+    def draw_digi_event(self, event, zero_sup_threshold) -> HexagonCollection:
+        """Draw a digi event.
+
+        This is just dispatching the call to the proper method depending
+        on the event type.
+        """
+        if isinstance(event, DigiEventRectangular):
+            return self.draw_digi_event_rectangular(event, zero_sup_threshold=zero_sup_threshold)
+        if isinstance(event, DigiEventCircular):
+            return self.draw_digi_event_circular(event, zero_sup_threshold=zero_sup_threshold)
+        raise NotImplementedError(f"Cannot draw event of type {type(event)}.")
