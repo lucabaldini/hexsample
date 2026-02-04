@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from aptapy.models import Exponential, Probit
+from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
@@ -70,29 +70,47 @@ class Cluster:
         eta = np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
         return eta
 
-    def n_versor(self) -> np.ndarray:
-        """Return the versor n for the cluster. Its definition depends on the cluster size.
-        For 2-pixel clusters it is the versor that points from the center of the pixel with the
-        highest pha to the center of the other one. For 3-pixel clusters it points from the center
+    def versors(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return the versors u and v for the cluster. Their definitions depend on the cluster size.
+        For 2-pixel clusters u is the versor that points from the center of the pixel with the
+        highest pha to the center of the other one, while v is the versor perpendicular to u in
+        counterclockwise direction. For 3-pixel clusters u points from the center
         of the pixel with the highest pha to the midpoint of the line that connects the centers of
-        the other two pixels."""
+        the other two pixels, and v is perpendicular to u and points towards the second most
+        charged pixel.
+
+        Returns
+        -------
+        u : np.ndarray
+            The u versor.
+        v : np.ndarray
+            The v versor.
+        """
         if self.x.shape[0] == 2:
-            n = np.array([self.x[1] - self.x[0], self.y[1] - self.y[0]])
+            u = np.array([self.x[1] - self.x[0], self.y[1] - self.y[0]])
+            v = np.array([-u[1], u[0]])
         elif self.x.shape[0] == 3:
-            n = np.array([self.x[1] + self.x[2] - 2 * self.x[0],
+            u = np.array([self.x[1] + self.x[2] - 2 * self.x[0],
                           self.y[1] + self.y[2] - 2 * self.y[0]])
+            v = np.array([-u[1], u[0]])
+            if (self.x[1] - self.x[0]) * v[0] + (self.y[1] - self.y[0]) * v[1] < 0:
+                v = -v
         else:
-            raise RuntimeError("Cluster must contain 2 or 3 pixels to calculate n versor")
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to calculate versors")
         # It can happen that the versor is [0, 0] for events with strange geometries.
         # In that case we avoid NaN by setting the versor to [0, 0].
         with np.errstate(invalid="ignore"):
-            n = n / np.sqrt(np.sum(n**2))
-            if np.any(np.isnan(n)):
-                n = np.array([0., 0.])
-        return n
+            norm = np.sqrt(np.sum(u**2))
+            if norm > 0:
+                u = u / norm
+                v = v / norm
+            else:
+                u = np.zeros(2)
+                v = np.zeros(2)
+        return u, v
 
     def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
-            eta_3pix_theta0: float, eta_3pix_theta1: float, pitch: float) -> Tuple[float, float]:
+            eta_3pix_theta0: float, pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
         centroid.
@@ -106,37 +124,32 @@ class Cluster:
         eta_3pix_rad1 : float
             Probit function sigma parameter for three pixel events radial position component.
         eta_3pix_theta0 : float
-            Exponential function prefactor parameter for three pixel events angular position
-            component.
-        eta_3pix_theta1 : float
-            Exponential function scale parameter for three pixel events angular position component.
+            Probit function sigma parameter for three pixel events angular position component.
         pitch : float
             The pitch of the pixels.
         """
-        if self.size() not in [2, 3]:
+        if self.size() not in (2, 3):
             return self.centroid()
         else:
-            n = self.n_versor()
+            u, v = self.versors()
             _eta = self.calculate_eta()
 
             if self.size() == 2:
                 # For 2-pixel events we estimate the position along the line that connects the
                 # two pixels using the eta function calibration.
-                dr = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad) * pitch
-                x_recon = self.x[0] + dr * n[0]
-                y_recon = self.y[0] + dr * n[1]
+                r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
+                x_recon = self.x[0] + r * pitch * u[0]
+                y_recon = self.y[0] + r * pitch * u[1]
             elif self.size() == 3:
-                # For 3-pixel events we estimate both dr and theta using the eta function
+                # For 3-pixel events we estimate both r and theta using the eta function
                 # calibrations.
                 eta_sum = _eta[0] + _eta[1]
                 eta_diff = (_eta[0] - _eta[1]) / eta_sum
-                dr = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1) * pitch
-                theta = Exponential().evaluate(eta_diff, eta_3pix_theta0, eta_3pix_theta1)
-                # We need to determine the sign of theta depending on the cluster orientation.
-                theta = theta * np.sign(np.cross(n, np.array([self.x[1] - self.x[0],
-                                                            self.y[1] - self.y[0]])))
-                x_recon = self.x[0] + dr * (np.cos(theta) * n[0] - np.sin(theta) * n[1])
-                y_recon = self.y[0] + dr * (np.sin(theta) * n[0] + np.cos(theta) * n[1])
+                r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
+                theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
+                # Reconstructing the position using r and theta
+                x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
+                y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
             return x_recon, y_recon
 
 

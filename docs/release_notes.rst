@@ -4,6 +4,17 @@ Release notes
 =============
 
 
+Version 0.13.2 (2026-02-04)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+* Modified the model to fit the angular coordinate for three-pixel events eta reconstruction.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/91
+
+
+
 Version 0.13.1 (2026-01-30)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
