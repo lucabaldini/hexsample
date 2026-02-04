@@ -1,11 +1,13 @@
 """Analyze eta function to reconstruct events position.
 """
 
+from pathlib import Path
+
 import numpy as np
 from aptapy.hist import Histogram2d
 from aptapy.modeling import AbstractFitModel
-from aptapy.models import Exponential, Probit
-from aptapy.plotting import plt
+from aptapy.models import Probit
+from aptapy.plotting import last_line_color, plt
 from tqdm import tqdm
 
 from hexsample.cli import argparse
@@ -22,8 +24,14 @@ __description__ = \
 # Parser object.
 HXETA_ARGPARSER = argparse.ArgumentParser(description=__description__)
 HXETA_ARGPARSER.add_argument("input_file", type=str, help="path to the input file")
+HXETA_ARGPARSER.add_argument("--save", action="store_true",
+                            help="save the calibration plots to the results directory")
+
 
 NUMBINS = 20
+RESULTS_DIR = Path.home() / "hexsample_figures"
+if not RESULTS_DIR.exists():
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def mask_topology(x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -104,8 +112,8 @@ def _estimate_loc(hist: Histogram2d, debug: bool = False
     return centers, loc, err
 
 
-def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.ndarray
-                   ) -> AbstractFitModel:
+def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versors: np.ndarray,
+                   **kwargs) -> AbstractFitModel:
     """Calibrate the 2-pixel eta function.
     
     Arguments
@@ -114,8 +122,8 @@ def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.ndarray
         The eta values for the 2-pixel clusters.
     photon_pos : np.ndarray
         The photon positions with respect to the central pixel, in units of pitch.
-    versor : np.ndarray
-        The versor pointing from the most charged pixel to the second most charged pixel.
+    versors : np.ndarray
+        The versors defined for the 2-pixel clusters.
     
     Returns
     -------
@@ -126,10 +134,10 @@ def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.ndarray
     # most charged pixel, projected onto the line connecting the two pixels
     eta_binning = np.linspace(0., 0.5, NUMBINS + 1)
     dr_binning = np.linspace(0., 0.6, 101)
-    dr = abs(np.sum(photon_pos * versor, axis=1))
+    dr = abs(np.sum(photon_pos * versors[:, 0], axis=1))
     # Create the histogram of dr vs eta and fill it
     plt.figure("dr_vs_eta_2pix")
-    hist = Histogram2d(eta_binning, dr_binning, xlabel="eta", ylabel="dr / p")
+    hist = Histogram2d(eta_binning, dr_binning, xlabel=r"$\eta$", ylabel=r"r / p")
     hist.fill(eta, dr)
     hist.plot()
     # Now the calibration. We analyze each column of the histogram and calculate a statistic
@@ -139,17 +147,20 @@ def calibrate_2pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.ndarray
     model = Probit()
     model.offset.freeze(0.5)
     model.fit(eta_centers, dr_loc, sigma=dr_err, absolute_sigma=True)
-    plt.figure("dr_vs_eta_2pix_calibration")
-    plt.errorbar(eta_centers, dr_loc, yerr=dr_err, fmt=".k", label="Data")
-    model.plot(fit_output=True)
-    plt.xlabel("eta")
-    plt.ylabel("dr / p")
+    fig = plt.figure("dr_vs_eta_2pix_calibration")
+    plt.errorbar(eta_centers, dr_loc, yerr=dr_err, fmt=".k", label="Monte Carlo simulation")
+    fit_label = "2-pixel events calibration\n" + fr"$\sigma$ = {model.sigma.ufloat()}"
+    model.plot(label=fit_label, color=last_line_color())
+    plt.xlabel(r"$\eta$")
+    plt.ylabel(r"r / p")
     plt.legend()
+    if kwargs.get("save", False):
+        fig.savefig(RESULTS_DIR / "2pix_cal.pdf", format="pdf")
 
     return model
 
 
-def calibrate_dr_3pix(eta: np.ndarray, photon_pos: np.ndarray) -> AbstractFitModel:
+def calibrate_dr_3pix(eta: np.ndarray, photon_pos: np.ndarray, **kwargs) -> AbstractFitModel:
     """Calibrate the dr component of the 3-pixel eta function.
     
     Arguments
@@ -172,8 +183,8 @@ def calibrate_dr_3pix(eta: np.ndarray, photon_pos: np.ndarray) -> AbstractFitMod
     eta_binning = np.linspace(0., 2/3, NUMBINS + 1)
     dr_binning = np.linspace(0., 1 / np.sqrt(3), 101)
     # Create the histogram of dr vs eta+ and fill it
-    plt.figure("dr_vs_eta_sum_3pix") 
-    hist = Histogram2d(eta_binning, dr_binning, xlabel="eta1 + eta2", ylabel="dr / p")
+    plt.figure("dr_vs_eta_sum_3pix")
+    hist = Histogram2d(eta_binning, dr_binning, xlabel=r"$\eta^+$", ylabel=r"r / p")
     hist.fill(eta_sum, dr)
     hist.plot()
     # Now the calibration.
@@ -181,19 +192,23 @@ def calibrate_dr_3pix(eta: np.ndarray, photon_pos: np.ndarray) -> AbstractFitMod
     # Fit with a probit model and plot the results
     model = Probit()
     model.fit(eta_centers, dr_loc, sigma=dr_err, absolute_sigma=True)
-    plt.figure("dr_vs_eta_sum_3pix_calibration")
-    plt.errorbar(eta_centers, dr_loc, yerr=dr_err, fmt=".k", label="Data")
+    fig = plt.figure("dr_vs_eta_sum_3pix_calibration")
+    plt.errorbar(eta_centers, dr_loc, yerr=dr_err, fmt=".k", label="Monte Carlo simulation")
     model.set_plotting_range(0, model.plotting_range()[1])
-    model.plot(fit_output=True)
-    plt.xlabel("eta1 + eta2")
-    plt.ylabel("dr / p")
+    fit_label = "3-pixel events radial calibration\n" + fr"$\sigma$ = {model.sigma.ufloat()}"
+    fit_label += "\n" + fr"$\mu$ = {model.offset.ufloat()}"
+    model.plot(label=fit_label, color=last_line_color())
+    plt.xlabel(r"$\eta^+$")
+    plt.ylabel(r"r / p")
     plt.legend()
+    if kwargs.get("save", False):
+        fig.savefig(RESULTS_DIR / "3pix_cal_radial.pdf", format="pdf")
 
     return model
 
 
-def calibrate_theta_3pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.ndarray
-                         ) -> AbstractFitModel:
+def calibrate_theta_3pix(eta: np.ndarray, photon_pos: np.ndarray, versors: np.ndarray,
+                         **kwargs) -> AbstractFitModel:
     """Calibrate the theta component of the 3-pixel eta function.
 
     Arguments
@@ -202,44 +217,54 @@ def calibrate_theta_3pix(eta: np.ndarray, photon_pos: np.ndarray, versor: np.nda
         The eta values for the 3-pixel clusters.
     photon_pos : np.ndarray
         The photon positions with respect to the central pixel, in units of pitch.
-    versor : np.ndarray
-        The versor pointing from the most charged pixel to the midpoint of the two less charged
-        pixels.
-    
+    versors : np.ndarray
+        The versors defined for the 3-pixel clusters.
+
     Returns
     -------
     model : AbstractFitModel
         The calibrated exponential model.
     """
+    dr = np.sqrt(np.sum(photon_pos**2, axis=1))
     # Calculate theta
-    r = np.sqrt(np.sum(photon_pos**2, axis=1))
-    cos_theta = np.sum(photon_pos * versor, axis=1) / r
-    # Avoid numerical issues with arccos by clipping the values
-    cos_theta = np.clip(cos_theta, -1., 1.)
-    theta = np.arccos(cos_theta)
-    theta_binning = np.linspace(0., max(theta), 100)
+    u = versors[:, 0]
+    v = versors[:, 1]
+    # Calculate the projections onto the versors
+    u_proj = np.sum(photon_pos * u, axis=1)
+    v_proj = np.sum(photon_pos * v, axis=1)
+    # Calculate theta as arctan(v_proj / u_proj)
+    theta = np.arctan2(v_proj, u_proj)
+    # Calculate the transverse component (for small angle approximation)
+    y = dr * theta
+
+    y_binning = np.linspace(min(y), max(y), 1000)
     # Calculate eta- and define the binning
     eta_sum = np.sum(eta, axis=1)
     eta_diff = (eta[:, 0] - eta[:, 1]) / eta_sum
     eta_binning = np.linspace(0., 1., NUMBINS + 1)
     # Create the histogram of theta vs eta- and fill it
-    plt.figure("theta_vs_eta_diff_3pix") 
-    hist = Histogram2d(eta_binning, theta_binning, xlabel="(eta1 - eta2) / (eta1 + eta2)",
-                       ylabel="theta [rad]")
-    hist.fill(eta_diff, theta)
+    plt.figure("theta_vs_eta_diff_3pix")
+    hist = Histogram2d(eta_binning, y_binning, xlabel=r"$\eta^-$",
+                       ylabel=r"r$\theta$ / p")
+    hist.fill(eta_diff, y)
     hist.plot()
     # Now the calibration.
-    eta_centers, theta_loc, theta_err = _estimate_loc(hist, debug=False)
-    # Fit with an exponential model and plot the results
-    model = Exponential() 
-    model.fit(eta_centers, theta_loc, sigma=theta_err, absolute_sigma=True)
-    plt.figure("theta_vs_eta_diff_3pix_calibration")
-    plt.errorbar(eta_centers, theta_loc, yerr=theta_err, fmt=".k", label="Data")
-    model.set_plotting_range(0, model.plotting_range()[1])
-    model.plot(fit_output=True)
-    plt.xlabel("(eta1 - eta2) / (eta1 + eta2)")
-    plt.ylabel("theta [rad]")
+    eta_centers, y_loc, y_err = _estimate_loc(hist, debug=False)
+    # Fit with the Probit and plot the results
+    model = Probit()
+    model.offset.freeze(0.)
+    model.fit((1 + eta_centers)/2, y_loc, sigma=y_err, absolute_sigma=True)
+    fig = plt.figure("theta_vs_eta_diff_3pix_calibration")
+    plt.errorbar(eta_centers, y_loc, yerr=y_err, fmt=".k", label="Monte Carlo simulation")
+    fit_label = "3-pixel events angular calibration\n"
+    fit_label += fr"$\sigma$ = {model.sigma.ufloat()}"
+    xx = np.linspace(0.5, max((eta_centers + 1)/2), 100)
+    plt.plot(2*xx - 1, model(xx), label=fit_label, color=last_line_color())
+    plt.xlabel(r"$\eta^-$")
+    plt.ylabel(r"r$\theta$ / p")
     plt.legend()
+    if kwargs.get("save", False):
+        fig.savefig(RESULTS_DIR / "3pix_cal_angular.pdf", format="pdf")
 
     return model
 
@@ -257,7 +282,6 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     file_type = digi_input_file_class(readout_mode)
     input_file = file_type(input_file_path)
     header = input_file.header
-    header["zero_sup_threshold"] = 0
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], header["gain"], header["zero_sup_threshold"]
     readout = HexagonalReadoutCircular(*args)
@@ -265,7 +289,7 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     logger.info(f"Readout chip: {readout}")
     clustering = ClusteringNN(readout, header["zero_sup_threshold"], nneighbors)
     # Create all the lists we need to fill
-    size, x0, y0, absx, absy, eta, n = [[] for _ in range(7)]
+    size, x0, y0, absx, absy, eta, versors = [[] for _ in range(7)]
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         # This cut will be made at the zero suppression level
@@ -276,7 +300,7 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
             x0.append(cluster.x[0])
             y0.append(cluster.y[0])
             eta.append(cluster.calculate_eta())
-            n.append(cluster.n_versor())
+            versors.append(cluster.versors())
             mc_event = input_file.mc_event(i)
             absx.append(mc_event.absx)
             absy.append(mc_event.absy)
@@ -287,8 +311,9 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     y0 = np.array(y0)
     absx = np.array(absx)
     absy = np.array(absy)
+    # Eta must be an array of objects because clusters can have different sizes
     eta = np.array(eta, dtype=object)
-    n = np.array(n)
+    versors = np.array(versors)
     # Calculate the photon position with respect to the central pixel
     photon_pos = np.array([absx - x0, absy - y0]).T / header["pitch"]
 
@@ -296,17 +321,17 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     mask_2pix = size == 2
     eta_2pix = eta[mask_2pix].flatten()
     photon_pos_2pix = photon_pos[mask_2pix]
-    n_2pix = n[mask_2pix]
-    model_2pix = calibrate_2pix(eta_2pix, photon_pos_2pix, n_2pix)
+    versors_2pix = versors[mask_2pix]
+    model_2pix = calibrate_2pix(eta_2pix, photon_pos_2pix, versors_2pix, **kwargs)
 
     # Select three pixel events and calibrate
     mask_3pix = size == 3
     eta_3pix = np.stack(eta[mask_3pix])
     photon_pos_3pix = photon_pos[mask_3pix]
-    n_3pix = n[mask_3pix]
-    model_3pix_r = calibrate_dr_3pix(eta_3pix, photon_pos_3pix)
-    model_3pix_theta = calibrate_theta_3pix(eta_3pix, photon_pos_3pix, n_3pix)
-    
+    versors_3pix = versors[mask_3pix]
+    model_3pix_r = calibrate_dr_3pix(eta_3pix, photon_pos_3pix, **kwargs)
+    model_3pix_theta = calibrate_theta_3pix(eta_3pix, photon_pos_3pix, versors_3pix, **kwargs)
+
     return model_2pix, model_3pix_r, model_3pix_theta
 
 if __name__ == "__main__":
