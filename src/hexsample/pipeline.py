@@ -62,7 +62,9 @@ def display(**kwargs) -> None:
     """Display events from a digi or recon file.
     """
     input_file_path = kwargs["input_file"]
-    return tasks.display(input_file_path)
+    num_neighbors = kwargs.get("num_neighbors", tasks.DisplayDefaults.num_neighbors)
+    args = input_file_path, num_neighbors
+    return tasks.display(*args, kwargs)
 
 
 def quicklook(**kwargs) -> None:
