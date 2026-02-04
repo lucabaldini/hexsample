@@ -293,7 +293,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="model to use for neural network reconstruction")
         group.add_argument("--model_path", type=str,
                            help="path of the model to use, in case of custom model")
-    
+
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display properties.
         """

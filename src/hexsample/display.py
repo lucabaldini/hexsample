@@ -28,9 +28,8 @@ from aptapy.plotting import plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import RegularPolygon
 
-
 from .clustering import ClusteringNN
-from .digi import DigiEventCircular, DigiEventRectangular, DigiEventBase
+from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .mc import MonteCarloEvent
 from .readout import HexagonalReadoutBase
@@ -257,7 +256,7 @@ class HexagonalGridDisplay:
         raise NotImplementedError(f"Cannot draw event of type {type(event)}.")
 
     def draw_positions(self, mc_event: MonteCarloEvent, digi_event: DigiEventBase,
-                       readout: HexagonalReadoutBase, recon_defaults: "ReconstructionDefaults",
+                       readout: HexagonalReadoutBase, recon_defaults: object,
                        zero_sup_threshold: int, num_neighbors: int) -> None:
         """Draw the Monte Carlo truth position and the reconstructed positions on top of the digi
         event.
@@ -268,8 +267,9 @@ class HexagonalGridDisplay:
         # Plot the Monte Carlo truth position.
         plt.scatter(mc_event.absx, mc_event.absy,
                     **marker, color="green", label="Monte Carlo")
-        # Calculate the cluster from the digi event. 
-        cluster = ClusteringNN(readout, zero_sup_threshold, num_neighbors=num_neighbors).run(digi_event)
+        # Calculate the cluster from the digi event.
+        cluster = ClusteringNN(readout, zero_sup_threshold,
+                               num_neighbors=num_neighbors).run(digi_event)
         # Calculate and plot centroid position.
         centroid_position = cluster.centroid()
         plt.scatter(*centroid_position,
