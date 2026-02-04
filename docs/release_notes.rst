@@ -15,7 +15,6 @@ Version 0.13.2 (2026-02-04)
   - https://github.com/lucabaldini/hexsample/pull/91
 
 
-
 Version 0.13.1 (2026-01-30)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
