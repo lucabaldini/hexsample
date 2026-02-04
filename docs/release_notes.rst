@@ -4,6 +4,10 @@ Release notes
 =============
 
 
+Version 0.13.2 (2026-02-04)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 * Modified the model to fit the angular coordinate for three-pixel events eta reconstruction.
 * Pull requests merged and issues closed:
 
