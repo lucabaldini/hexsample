@@ -274,11 +274,15 @@ class HexagonalGridDisplay:
                     **marker, color="yellow",
                     label="Centroid")
         # Calculate and plot eta reconstructed position.
-        eta_position = cluster.eta(pitch=readout.pitch, recon_pars=None)
-        # If cluster size is not 2 or 3, eta returns the centroid position, so we only
-        # plot it if it's different from the centroid.
-        if not np.array_equal(eta_position, centroid_position):
-            plt.scatter(*eta_position,
-                        **marker, color="blue",
-                        label=r"$\eta$")
+        try:
+            eta_position = cluster.eta(pitch=readout.pitch, recon_pars=recon_pars)
+            # If cluster size is not 2 or 3, eta returns the centroid position, so we only
+            # plot it if it's different from the centroid.
+            if not np.array_equal(eta_position, centroid_position):
+                plt.scatter(*eta_position,
+                            **marker, color="blue",
+                            label=r"$\eta$")
+        except RuntimeError:
+            # Eta reconstruction failed (e.g., cluster size not 2 or 3).
+            pass   
         plt.legend()

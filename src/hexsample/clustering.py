@@ -132,7 +132,6 @@ class Cluster:
         # Think if it is better to call recon_pars from self.recon_pars or pass it as argument
         # Check that the reconstruction parameters are correct
         if recon_pars is None or len(recon_pars) != 4:
-            print("HELP")
             raise RuntimeError("Reconstruction parameters not provided or incorrect size.")
         
         u, v = self.versors()
