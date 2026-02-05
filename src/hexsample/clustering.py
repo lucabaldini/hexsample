@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Sequence, Tuple
 
 import numpy as np
 from aptapy.models import Probit
@@ -41,6 +41,9 @@ class Cluster:
     x: np.ndarray
     y: np.ndarray
     pha: np.ndarray
+    pitch: float
+    pos_recon_algorithm: str
+    recon_pars: Sequence[float] | None
 
     def __post_init__(self) -> None:
         """Small cross check on the dimensions of the arrays passed in the constructor.
@@ -109,31 +112,36 @@ class Cluster:
                 v = np.zeros(2)
         return u, v
 
-    def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
-            eta_3pix_theta0: float, pitch: float) -> Tuple[float, float]:
+    def eta(self, pitch: float, recon_pars: Sequence[float]) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters.
 
         Arguments
         ---------
-        eta_2pix_rad : float
-            Probit function sigma parameter for two pixel events.
-        eta_3pix_rad0 : float
-            Probit function offset parameter for three pixel events radial position component.
-        eta_3pix_rad1 : float
-            Probit function sigma parameter for three pixel events radial position component.
-        eta_3pix_theta0 : float
-            Probit function sigma parameter for three pixel events angular position component.
         pitch : float
             The pitch of the pixels.
+        recon_pars : Sequence[float]
+            The reconstruction parameters for the eta functions. The order to follow is as
+            follows:
+
+            * 1st: probit sigma parameter for 2-pixel reconstruction
+            * 2nd: probit mu parameter for r in 3-pixel reconstruction
+            * 3rd: probit sigma parameter for r in 3-pixel reconstruction
+            * 4th: probit sigma parameter for theta in 3-pixel reconstruction
         """
+        # Think if it is better to call recon_pars from self.recon_pars or pass it as argument
+        # Check that the reconstruction parameters are correct
+        if recon_pars is None or len(recon_pars) != 4:
+            print("HELP")
+            raise RuntimeError("Reconstruction parameters not provided or incorrect size.")
+        
         u, v = self.versors()
         _eta = self.calculate_eta()
 
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the eta function calibration.
-            r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
+            r = Probit().evaluate(_eta[0], 0.5, recon_pars[0])
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:
@@ -141,8 +149,8 @@ class Cluster:
             # calibrations.
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
-            r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
-            theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
+            r = Probit().evaluate(eta_sum, recon_pars[1], recon_pars[2])
+            theta = Probit().evaluate((eta_diff + 1)/2, 0, recon_pars[3]) / r
             # Reconstructing the position using r and theta
             x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
             y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
@@ -151,6 +159,15 @@ class Cluster:
                                "eta function")
         return x_recon, y_recon
 
+    def position(self) -> Tuple[float, float]:
+        """Return the cluster reconstructed position with the specified algorithm.
+        """
+        # Setting None as default algorithm means centroid
+        if self.pos_recon_algorithm == "centroid":
+            return self.centroid()
+        if self.pos_recon_algorithm == "eta":
+            return self.eta(self.pitch, self.recon_pars)
+        raise RuntimeError(f"Unknown clustering algorithm: {self.pos_recon_algorithm}")
 
 @dataclass
 class ClusteringBase:
@@ -192,7 +209,8 @@ class ClusteringNN(ClusteringBase):
 
     num_neighbors: int
 
-    def run(self, event) -> Cluster:
+    def run(self, event, pos_recon_algorithm: str = "centroid",
+            recon_pars: Sequence[float] | None = None) -> Cluster:
         """Overladed method.
 
         .. warning::
@@ -245,4 +263,4 @@ class ClusteringNN(ClusteringBase):
         row = row[mask]
         pha = pha[mask]
         x, y = self.grid.pixel_to_world(col, row)
-        return Cluster(x, y, pha)
+        return Cluster(x, y, pha, self.grid.pitch, pos_recon_algorithm, recon_pars)

@@ -20,7 +20,7 @@
 """Display facilities.
 """
 
-from typing import Tuple
+from typing import Sequence, Tuple
 
 import matplotlib
 import numpy as np
@@ -256,13 +256,11 @@ class HexagonalGridDisplay:
         raise NotImplementedError(f"Cannot draw event of type {type(event)}.")
 
     def draw_positions(self, mc_event: MonteCarloEvent, digi_event: DigiEventBase,
-                       readout: HexagonalReadoutBase, recon_defaults: object,
-                       zero_sup_threshold: int, num_neighbors: int) -> None:
+                       readout: HexagonalReadoutBase, zero_sup_threshold: int,
+                       num_neighbors: int, recon_pars: Sequence[float]) -> None:
         """Draw the Monte Carlo truth position and the reconstructed positions on top of the digi
         event.
         """
-        # WARNING: currently it crashes if the cluster has size != 2 or 3, because of how eta is
-        # implemented in this branch, but in the very near future this will be fixed.
         marker = dict(marker="x", s=100)
         # Plot the Monte Carlo truth position.
         plt.scatter(mc_event.absx, mc_event.absy,
@@ -276,16 +274,11 @@ class HexagonalGridDisplay:
                     **marker, color="yellow",
                     label="Centroid")
         # Calculate and plot eta reconstructed position.
-        eta_recon_args = (recon_defaults.eta_2pix_rad, recon_defaults.eta_3pix_rad0,
-                          recon_defaults.eta_3pix_rad1, recon_defaults.eta_3pix_theta0)
-        try:
-            eta_position = cluster.eta(*eta_recon_args, pitch=readout.pitch)
-            # If cluster size is not 2 or 3, eta returns the centroid position, so we only
-            # plot it if it's different from the centroid.
-            if not np.array_equal(eta_position, centroid_position):
-                plt.scatter(*eta_position,
-                            **marker, color="blue",
-                            label=r"$\eta$")
-        except RuntimeError:
-            pass
+        eta_position = cluster.eta(pitch=readout.pitch, recon_pars=None)
+        # If cluster size is not 2 or 3, eta returns the centroid position, so we only
+        # plot it if it's different from the centroid.
+        if not np.array_equal(eta_position, centroid_position):
+            plt.scatter(*eta_position,
+                        **marker, color="blue",
+                        label=r"$\eta$")
         plt.legend()

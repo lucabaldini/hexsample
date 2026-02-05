@@ -242,14 +242,14 @@ def reconstruct(
     if header_kwargs is not None:
         output_file.update_header(**header_kwargs)
     output_file.update_digi_header(**input_file.header)
+    # Create the sequence with the reconstruction parameters.
+    recon_pars = [eta_2pix_rad, eta_3pix_rad0, eta_3pix_rad1, eta_3pix_theta0]
     for i, event in tqdm(enumerate(input_file)):
-        cluster = clustering.run(event)
+        cluster = clustering.run(event, pos_recon_algorithm, recon_pars)
         if num_neighbors == 0 or cluster.size() == num_neighbors:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
-            recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
-                                     eta_2pix_rad, eta_3pix_rad0, eta_3pix_rad1,
-                                     eta_3pix_theta0)
+            recon_event = ReconEvent(*args)
             mc_event = input_file.mc_event(i)
             output_file.add_row(recon_event, mc_event)
     output_file.flush()
@@ -309,15 +309,15 @@ def display(
     logger.info(f"Readout chip: {readout}")
     grid_display = HexagonalGridDisplay(readout)
     for i, event in enumerate(input_file):
-        # We cannot import this in display.py due to circular imports, so we are passing
-        # the default parameters for the reconstruction as arguments to the recon display function.
-        # We should decide if we want to add the options in the CLI to tweak the parameters on
-        # the fly.
+        # We should decide if we want to add the options for recon pars in the CLI to tweak the
+        # parameters on the fly.
         recon_defaults = ReconstructionDefaults
+        recon_pars = [recon_defaults.eta_2pix_rad, recon_defaults.eta_3pix_rad0,
+                      recon_defaults.eta_3pix_rad1, recon_defaults.eta_3pix_theta0]
         mc_event = input_file.mc_event(i)
         grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)
-        grid_display.draw_positions(mc_event, event, readout, recon_defaults, zero_sup_threshold,
-                                    num_neighbors=num_neighbors)
+        grid_display.draw_positions(mc_event, event, readout, zero_sup_threshold,
+                                    num_neighbors=num_neighbors, recon_pars=recon_pars)
         grid_display.show()
     input_file.close()
 
