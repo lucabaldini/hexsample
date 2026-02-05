@@ -8,7 +8,7 @@ from aptapy.plotting import plt
 from hexsample.fileio import ReconInputFile
 from hexsample.hexagon import HexagonalLayout
 from hexsample.pipeline import reconstruct, simulate
-from hexsample.resolution import eef_size_scan
+from hexsample.resolution import eef_size_scan, resolution_spatial_dependence
 
 __description__ = ""
 
@@ -74,7 +74,7 @@ def resolution(**kwargs):
     # Run simulation if the output file does not already exist
     if not simulation_path.exists():
         simulate(
-                num_events=10000,
+                num_events=100000,
                 output_file=str(simulation_path),
                 beam="hexagonal",
                 enc=enc,
@@ -112,82 +112,25 @@ def resolution(**kwargs):
     best_fig = plt.figure(f"best_eef_{enc}enc_{zero_sup_threshold}zsup")
     eef_size_scan(x, best_recon_file)
 
+    # Plot the spatial dependence of the resolution for both algorithms (all events)
+    spatial_dependence_fig = plt.figure("resolution_spatial_dependence")
+    plt.plot(*resolution_spatial_dependence(best_recon_file, max_neighbors=6),
+             ".k", label=r"$\eta$ + centroid")
+    plt.plot(*resolution_spatial_dependence(centroid_recon_file, max_neighbors=6),
+             "vk", label="centroid", markersize=4.)
+    plt.xlabel(r"$r_0 / p$")
+    plt.ylabel("Half Energy Width")
+    plt.legend()
 
-
-
-
+    # Close the recon files
     centroid_recon_file.close()
     best_recon_file.close()
-
-    # Now we study the dependence of the resolution on the recon distance from the pixel center
-    # For two pixel events eta and centroid
-    # hist_2d_2pix_eta = Histogram2d(
-    #     dr_binning, dr_binning,
-    #     xlabel="Reconstructed distance from pixel center [pitch normalized]",
-    #     ylabel="Distance residual [pitch normalized]")
-    # hist_2d_2pix_eta.fill(dr0_2pix_eta, dr_2pix_eta)
-    # plt.figure("2pix_eta_residuals_vs_dr0")
-    # hist_2d_2pix_eta.plot()
-    # hist_2d_2pix_centroid = Histogram2d(
-    #     dr_binning, dr_binning,
-    #     xlabel="Reconstructed distance from pixel center [pitch normalized]",
-    #     ylabel="Distance residual [pitch normalized]")
-    # hist_2d_2pix_centroid.fill(dr0_2pix_centroid, dr_2pix_centroid)
-    # plt.figure("2pix_centroid_residuals_vs_dr0")
-    # hist_2d_2pix_centroid.plot()
-    # # Take the slices and calculate the mean and stddev
-    # centers_2pix_eta, loc_2pix_eta, err_2pix_eta = _estimate_loc(hist_2d_2pix_eta)
-    # centers_2pix_centroid, loc_2pix_centroid, err_2pix_centroid = _estimate_loc(hist_2d_2pix_centroid)
-    # plt.figure("2pix_resolution_distance_dependency")
-    # plt.errorbar(
-    #     centers_2pix_eta, loc_2pix_eta, yerr=err_2pix_eta,
-    #     fmt=".r", label="2pix ETA")
-    # plt.errorbar(
-    #     centers_2pix_centroid, loc_2pix_centroid, yerr=err_2pix_centroid,
-    #     fmt=".b", label="2pix CENTROID")
-    # plt.xlabel("Reconstructed distance from pixel center [pitch normalized]")
-    # plt.ylabel("Mean distance residual [pitch normalized]")
-    # plt.legend()
-    
-    # # For three pixel events eta and centroid
-    # hist_2d_3pix_eta = Histogram2d(
-    #     dr_binning, dr_binning,
-    #     xlabel="Reconstructed distance from pixel center [pitch normalized]",
-    #     ylabel="Distance residual [pitch normalized]")
-    # hist_2d_3pix_eta.fill(dr0_3pix_eta, dr_3pix_eta)
-    # plt.figure("3pix_eta_residuals_vs_dr0")
-    # hist_2d_3pix_eta.plot()
-    # hist_2d_3pix_centroid = Histogram2d(
-    #     dr_binning, dr_binning,
-    #     xlabel="Reconstructed distance from pixel center [pitch normalized]",
-    #     ylabel="Distance residual [pitch normalized]")
-    # hist_2d_3pix_centroid.fill(dr0_3pix_centroid, dr_3pix_centroid)
-    # plt.figure("3pix_centroid_residuals_vs_dr0")
-    # hist_2d_3pix_centroid.plot()
-    # # Take the slices and calculate the mean and stddev
-    # centers_3pix_eta, loc_3pix_eta, err_3pix_eta = _estimate_loc(hist_2d_3pix_eta)
-    # centers_3pix_centroid, loc_3pix_centroid, err_3pix_centroid = _estimate_loc(hist_2d_3pix_centroid)
-    # plt.figure("3pix_resolution_distance_dependency")
-    # plt.errorbar(
-    #     centers_3pix_eta, loc_3pix_eta, yerr=err_3pix_eta,
-    #     fmt=".r", label="3pix ETA")
-    # plt.errorbar(
-    #     centers_3pix_centroid, loc_3pix_centroid, yerr=err_3pix_centroid,
-    #     fmt=".b", label="3pix CENTROID")
-    # plt.xlabel("Reconstructed distance from pixel center [pitch normalized]")
-    # plt.ylabel("Mean distance residual [pitch normalized]")
-    # plt.legend()
 
     if kwargs["save"]:
         fig_format = "png"
         centroid_fig.savefig(FIGURES_DIR / f"centroid_eef_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
         best_fig.savefig(FIGURES_DIR / f"best_eef_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
-    #     # fig
-    #     fig_1pix.savefig(FIGURES_DIR / f"1pix_resolution_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
-    #     fig_2pix.savefig(FIGURES_DIR / f"2pix_resolution_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
-    #     fig_3pix.savefig(FIGURES_DIR / f"3pix_resolution_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
-    #     fig_allpix.savefig(FIGURES_DIR / f"allpix_resolution_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
-
+        spatial_dependence_fig.savefig(FIGURES_DIR / f"resolution_spatial_dependence_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
 
 if __name__ == "__main__":
     resolution(**vars(HXETA_ARGPARSER.parse_args()))
