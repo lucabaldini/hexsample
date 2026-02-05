@@ -22,6 +22,7 @@
 
 import numpy as np
 from aptapy.hist import Histogram1d
+from aptapy.plotting import plt
 
 from .fileio import ReconInputFile
 from .hexagon import HexagonalGrid
@@ -82,7 +83,7 @@ def dist_from_pixel_center(input_file: ReconInputFile) -> np.ndarray:
     return dr0
 
 
-def hist_distance_res(input_file: ReconInputFile, num_neighbors: int = 0, 
+def hist_distance_res(input_file: ReconInputFile, num_neighbors: int = 0,
                       max_neighbors: int = -1) -> Histogram1d:
     """Create the histogram of distance residuals for the given numqber of neighbors.
 
@@ -103,10 +104,7 @@ def hist_distance_res(input_file: ReconInputFile, num_neighbors: int = 0,
     """
     # Select the cluster sizes we want and create the mask
     size = input_file.column("cluster_size")
-    if max_neighbors >= 0:
-        mask = size <= max_neighbors + 1
-    else:
-        mask = size == num_neighbors + 1
+    mask = size <= max_neighbors + 1 if max_neighbors >= 0 else size == num_neighbors + 1
     pitch = input_file.digi_header["pitch"]
     # Calculate the distance residuals normalized to pitch
     dr = dist_residual(input_file) / pitch
@@ -164,3 +162,37 @@ def hew(input_file: ReconInputFile, num_neighbors: int = 0,
     """
     hist = hist_distance_res(input_file, num_neighbors, max_neighbors)
     return hist.ppf(0.5)
+
+
+def eef_size_scan(x: np.ndarray, input_file: ReconInputFile) -> None:
+    """Plot the EEF for one, two, three pixel events and for all the reconstructed events on
+    the same figure.
+    
+    Arguments
+    ---------
+    x : np.ndarray
+        The pitch normalized distance values where the EEF will be evaluated.
+    input_file : ReconInputFile
+        The input file to analyze.
+    """
+    xlabel = "r/p"
+    ylabel = "Encircled Energy Fraction"
+    # Plot the EEFs for the different cluster sizes
+    plt.plot(x, eef(x, input_file, 0),
+             label=f"1 pix (HEW={hew(input_file, 0):.2f})",
+             linestyle=":", color="black")
+    plt.plot(x, eef(x, input_file, 1),
+             label=f"2 pix (HEW={hew(input_file, 1):.2f})",
+             linestyle="-", color="black")
+    plt.plot(x, eef(x, input_file, 2),
+             label=f"3 pix (HEW={hew(input_file, 2):.2f})",
+             linestyle="--", color="black")
+    plt.plot(x, eef(x, input_file, max_neighbors=6),
+             label=f"All pix (HEW={hew(input_file, max_neighbors=6):.2f})",
+             linestyle="-.", color="black")
+    # Finalize the plot
+    plt.xlim(x[0], x[-1])
+    plt.ylim(0, 1)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend()

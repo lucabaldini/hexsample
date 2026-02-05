@@ -2,13 +2,13 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-from aptapy.hist import Histogram1d, Histogram2d
+from aptapy.hist import Histogram2d
 from aptapy.plotting import plt
 
 from hexsample.fileio import ReconInputFile
-from hexsample.hexagon import HexagonalGrid, HexagonalLayout
+from hexsample.hexagon import HexagonalLayout
 from hexsample.pipeline import reconstruct, simulate
-from hexsample.resolution import eef, hew
+from hexsample.resolution import eef_size_scan
 
 __description__ = ""
 
@@ -86,72 +86,36 @@ def resolution(**kwargs):
                 num_rows=352,
                 gain=1.,
         )
-    # Reconstruct the simulated file with different algorithms
+    recon_kwargs = dict(input_file=str(simulation_path),
+                        zero_sup_threshold=zero_sup_threshold,
+                        max_neighbors=6)
+    # Reconstruct the simulated file with different algorithms, first with centroid
     centroid_prefix = f"recon_zsuprec{zero_sup_threshold}_centroid"
     centroid_path = RESOLUTION_DIR / f"{file_prefix}_{centroid_prefix}.h5"
     if not centroid_path.exists():
-        reconstruct(
-            input_file=str(simulation_path),
-            suffix=centroid_prefix,
-            zero_sup_threshold=zero_sup_threshold,
-            max_neighbors=6,
-            pos_recon_algorithm="centroid"
-        )
-    # All pixels reconstructed with the best algorithm (eta for 2 and 3, centroid otherwise)
+        reconstruct(suffix=centroid_prefix, pos_recon_algorithm="centroid", **recon_kwargs)
+    # Reconstruct with the best algorithm (eta for 2 and 3, centroid otherwise)
     best_prefix = f"recon_zsuprec{zero_sup_threshold}_best"
     best_path = RESOLUTION_DIR / f"{file_prefix}_{best_prefix}.h5"
     if not best_path.exists():
-        reconstruct(
-            input_file=str(simulation_path),
-            suffix=best_prefix,
-            zero_sup_threshold=zero_sup_threshold,
-            max_neighbors=6,
-            pos_recon_algorithm="eta"
-        )
-    # Study the EEF
-    x = np.linspace(0, 0.6, 101)
-    xlabel = "Distance residual [pitch normalized]"
-    ylabel = "Encircled Energy Fraction"
-    # Plot the centroid eef for all cluster sizes
+        reconstruct(suffix=best_prefix, pos_recon_algorithm="eta",**recon_kwargs)
+
+    # Open the recon files
     centroid_recon_file = ReconInputFile(str(centroid_path))
-    plt.figure(f"centroid_eef_{enc}enc_{zero_sup_threshold}zsup")
-    plt.plot(x, eef(x, centroid_recon_file, 0),
-             label=f"1 pix (HEW={hew(centroid_recon_file, 0):.2f})",
-             linestyle="-", color="black")
-    plt.plot(x, eef(x, centroid_recon_file, 1),
-             label=f"2 pix (HEW={hew(centroid_recon_file, 1):.2f})",
-             linestyle="--", color="black")
-    plt.plot(x, eef(x, centroid_recon_file, 2),
-             label=f"3 pix (HEW={hew(centroid_recon_file, 2):.2f})",
-             linestyle=":", color="black")
-    plt.plot(x, eef(x, centroid_recon_file, max_neighbors=6),
-             label=f"All pix (HEW={hew(centroid_recon_file, max_neighbors=6):.2f})",
-             linestyle="-.", color="black")
-    plt.xlim(x[0], x[-1])
-    plt.ylim(0, 1)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.legend()
-    # Plot the eta + centroid eef for all cluster sizes
     best_recon_file = ReconInputFile(str(best_path))
-    plt.figure(f"best_eef_{enc}enc_{zero_sup_threshold}zsup")
-    plt.plot(x, eef(x, best_recon_file, 0),
-             label=f"1 pix (HEW={hew(best_recon_file, 0):.2f})",
-             linestyle="-", color="black")
-    plt.plot(x, eef(x, best_recon_file, 1),
-             label=f"2 pix (HEW={hew(best_recon_file, 1):.2f})",
-             linestyle="--", color="black")
-    plt.plot(x, eef(x, best_recon_file, 2),
-             label=f"3 pix (HEW={hew(best_recon_file, 2):.2f})",
-             linestyle=":", color="black")
-    plt.plot(x, eef(x, best_recon_file, max_neighbors=6),
-             label=f"All pix (HEW={hew(best_recon_file, max_neighbors=6):.2f})",
-             linestyle="-.", color="black")
-    plt.xlim(x[0], x[-1])
-    plt.ylim(0, 1)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.legend()
+    # Define the plotting range
+    x = np.linspace(0, 0.6, 101)
+    # Plot the centroid eef for all cluster sizes
+    centroid_fig = plt.figure(f"centroid_eef_{enc}enc_{zero_sup_threshold}zsup")
+    eef_size_scan(x, centroid_recon_file)
+    # Plot the eta + centroid eef for all cluster sizes
+    best_fig = plt.figure(f"best_eef_{enc}enc_{zero_sup_threshold}zsup")
+    eef_size_scan(x, best_recon_file)
+
+
+
+
+
     centroid_recon_file.close()
     best_recon_file.close()
 
@@ -214,8 +178,11 @@ def resolution(**kwargs):
     # plt.ylabel("Mean distance residual [pitch normalized]")
     # plt.legend()
 
-    # if kwargs["save"]:
-    #     fig_format = "png"
+    if kwargs["save"]:
+        fig_format = "png"
+        centroid_fig.savefig(FIGURES_DIR / f"centroid_eef_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
+        best_fig.savefig(FIGURES_DIR / f"best_eef_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
+    #     # fig
     #     fig_1pix.savefig(FIGURES_DIR / f"1pix_resolution_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
     #     fig_2pix.savefig(FIGURES_DIR / f"2pix_resolution_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
     #     fig_3pix.savefig(FIGURES_DIR / f"3pix_resolution_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
