@@ -101,29 +101,6 @@ class HexagonalGridDisplay:
         HexagonalGridDisplay.setup_gca()
         plt.show()
 
-    def pha_to_colors(self, pha: np.array, zero_sup_threshold: float = None) -> np.array:
-        """Convert the pha values to colors for display purposes.
-        """
-        values = pha.flatten()
-        values += self.color_map_offset
-        if zero_sup_threshold is not None:
-            values[values <= zero_sup_threshold + self.color_map_offset] = -1.
-        values = values / float(values.max())
-        return self.color_map(values)
-
-    @staticmethod
-    def brightness(color: np.array) -> np.array:
-        """Quick and dirty proxy for the brighness of a given array of colors.
-
-        See https://stackoverflow.com/questions/9733288
-        and also
-        https://stackoverflow.com/questions/30820962
-        for how to split in columns the array of colors.
-        """
-        # pylint: disable = invalid-name
-        r, g, b, _ = color.T
-        return (299 * r + 587 * g + 114 * b) / 1000
-
     def draw(self, offset: Tuple[float, float] = (0., 0.), pixel_labels: bool = False,
         **kwargs) -> HexagonCollection:
         """Draw the full grid display.
@@ -183,20 +160,12 @@ class HexagonalGridDisplay:
         """
         # pylint: disable = invalid-name, too-many-arguments, too-many-locals
         collection = self.draw_roi(event.roi, offset, indices, padding, **kwargs)
-        face_color = self.pha_to_colors(event.pha, zero_sup_threshold)
-        collection.set_facecolor(face_color)
         if values:
-            # Draw the pixel values---note that we use black or white for the text
-            # color depending on the brightness of the pixel.
-            black = np.array([0., 0., 0., 1.])
-            white = np.array([1., 1., 1., 1.])
-            text_color = np.tile(black, len(face_color)).reshape(face_color.shape)
-            text_color[self.brightness(face_color) < 0.5] = white
-            fmt = dict(ha="center", va="center", fontsize="xx-small")
-            for x, y, value, color in zip(collection.x, collection.y,\
-                event.pha.flatten(), text_color):
+            # Draw the pixel values
+            fmt = dict(ha="center", va="center", fontsize="small")
+            for x, y, value in zip(collection.x, collection.y, event.pha.flatten()):
                 if value > zero_sup_threshold:
-                    plt.text(x, y, f"{value}", color=color, **fmt)
+                    plt.text(x, y, f"{value}", color="black", **fmt)
         return collection
 
     def draw_digi_event_circular(self, event: DigiEventCircular,
@@ -226,20 +195,12 @@ class HexagonalGridDisplay:
         x, y = self._grid.pixel_to_world(cols, rows)
         args = x + dx, y + dy, 0.5 * self._grid.pitch, self._grid.hexagon_orientation()
         collection = HexagonCollection(*args, **kwargs)
-        face_color = self.pha_to_colors(pha, zero_sup_threshold)
-        collection.set_facecolor(face_color)
         if values:
-            # Draw the pixel values---note that we use black or white for the text
-            # color depending on the brightness of the pixel.
-            black = np.array([0., 0., 0., 1.])
-            white = np.array([1., 1., 1., 1.])
-            text_color = np.tile(black, len(face_color)).reshape(face_color.shape)
-            text_color[self.brightness(face_color) < 0.5] = white
-            fmt = dict(ha="center", va="center", fontsize="xx-small")
-            for x, y, value, color in zip(collection.x, collection.y,\
-                pha.flatten(), text_color):
+            # Draw the pixel values
+            fmt = dict(ha="center", va="center", fontsize="small")
+            for x, y, value in zip(collection.x, collection.y, pha.flatten()):
                 if value > zero_sup_threshold:
-                    plt.text(x, y, f"{value}", color=color, **fmt)
+                    plt.text(x, y, f"{value}", color="black", **fmt)
         plt.gca().add_collection(collection)
         return collection
 
@@ -261,18 +222,14 @@ class HexagonalGridDisplay:
         """Draw the Monte Carlo truth position and the reconstructed positions on top of the digi
         event.
         """
-        marker = dict(marker="x", s=100)
         # Plot the Monte Carlo truth position.
-        plt.scatter(mc_event.absx, mc_event.absy,
-                    **marker, color="green", label="Monte Carlo")
+        plt.scatter(mc_event.absx, mc_event.absy, marker=".", s=100, label="Monte Carlo")
         # Calculate the cluster from the digi event.
         cluster = ClusteringNN(readout, zero_sup_threshold,
                                num_neighbors=6).run(digi_event)
         # Calculate and plot centroid position.
         centroid_position = cluster.centroid()
-        plt.scatter(*centroid_position,
-                    **marker, color="yellow",
-                    label="Centroid")
+        plt.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         # Calculate and plot eta reconstructed position.
         eta_recon_args = (recon_defaults.eta_2pix_rad, recon_defaults.eta_3pix_rad0,
                           recon_defaults.eta_3pix_rad1, recon_defaults.eta_3pix_theta0)
@@ -280,10 +237,7 @@ class HexagonalGridDisplay:
             eta_position = cluster.eta(*eta_recon_args, pitch=readout.pitch)
             # If cluster size is not 2 or 3, eta returns the centroid position, so we only
             # plot it if it's different from the centroid.
-            if not np.array_equal(eta_position, centroid_position):
-                plt.scatter(*eta_position,
-                            **marker, color="blue",
-                            label=r"$\eta$")
+            plt.scatter(*eta_position, marker="+", s=100, label=r"$\eta$")
         except RuntimeError:
             pass
         plt.legend()
