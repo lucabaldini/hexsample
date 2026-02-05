@@ -273,7 +273,6 @@ class DisplayDefaults:
 def display(
         input_file_path: str,
         zero_sup_threshold: int = DisplayDefaults.zero_sup_threshold,
-        num_neighbors: int = DisplayDefaults.num_neighbors,
         ) -> None:
     """Display events from a digi file.
 
@@ -309,15 +308,10 @@ def display(
     logger.info(f"Readout chip: {readout}")
     grid_display = HexagonalGridDisplay(readout)
     for i, event in enumerate(input_file):
-        # We cannot import this in display.py due to circular imports, so we are passing
-        # the default parameters for the reconstruction as arguments to the recon display function.
-        # We should decide if we want to add the options in the CLI to tweak the parameters on
-        # the fly.
         recon_defaults = ReconstructionDefaults
         mc_event = input_file.mc_event(i)
         grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)
-        grid_display.draw_positions(mc_event, event, readout, recon_defaults, zero_sup_threshold,
-                                    num_neighbors=num_neighbors)
+        grid_display.draw_positions(mc_event, event, readout, recon_defaults, zero_sup_threshold)
         grid_display.show()
     input_file.close()
 

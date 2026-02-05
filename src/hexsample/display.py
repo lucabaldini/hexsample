@@ -257,19 +257,17 @@ class HexagonalGridDisplay:
 
     def draw_positions(self, mc_event: MonteCarloEvent, digi_event: DigiEventBase,
                        readout: HexagonalReadoutBase, recon_defaults: object,
-                       zero_sup_threshold: int, num_neighbors: int) -> None:
+                       zero_sup_threshold: int) -> None:
         """Draw the Monte Carlo truth position and the reconstructed positions on top of the digi
         event.
         """
-        # WARNING: currently it crashes if the cluster has size != 2 or 3, because of how eta is
-        # implemented in this branch, but in the very near future this will be fixed.
         marker = dict(marker="x", s=100)
         # Plot the Monte Carlo truth position.
         plt.scatter(mc_event.absx, mc_event.absy,
                     **marker, color="green", label="Monte Carlo")
         # Calculate the cluster from the digi event.
         cluster = ClusteringNN(readout, zero_sup_threshold,
-                               num_neighbors=num_neighbors).run(digi_event)
+                               num_neighbors=6).run(digi_event)
         # Calculate and plot centroid position.
         centroid_position = cluster.centroid()
         plt.scatter(*centroid_position,
