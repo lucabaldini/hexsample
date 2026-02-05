@@ -24,6 +24,8 @@ __description__ = \
 # Parser object.
 HXETA_ARGPARSER = argparse.ArgumentParser(description=__description__)
 HXETA_ARGPARSER.add_argument("input_file", type=str, help="path to the input file")
+HXETA_ARGPARSER.add_argument("--zero_sup_threshold", type=int,
+                             help="zero suppression threshold in electrons")
 HXETA_ARGPARSER.add_argument("--save", action="store_true",
                             help="save the calibration plots to the results directory")
 
@@ -299,12 +301,13 @@ def hxeta(**kwargs) -> tuple[AbstractFitModel, AbstractFitModel, AbstractFitMode
     file_type = digi_input_file_class(readout_mode)
     input_file = file_type(input_file_path)
     header = input_file.header
+    zero_sup_threshold = kwargs["zero_sup_threshold"]
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"], header["zero_sup_threshold"]
+        header["pitch"], header["enc"], header["gain"], zero_sup_threshold
     readout = HexagonalReadoutCircular(*args)
     nneighbors = 6
     logger.info(f"Readout chip: {readout}")
-    clustering = ClusteringNN(readout, header["zero_sup_threshold"], nneighbors)
+    clustering = ClusteringNN(readout, zero_sup_threshold, nneighbors)
     # Create all the lists we need to fill
     size, x0, y0, absx, absy, eta, versors = [[] for _ in range(7)]
     for i, event in tqdm(enumerate(input_file)):
