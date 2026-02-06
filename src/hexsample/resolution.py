@@ -166,8 +166,8 @@ def hew(input_file: ReconInputFile, num_neighbors: int = 0,
 
 
 def eef_size_scan(x: np.ndarray, input_file: ReconInputFile) -> None:
-    """Plot the EEF for one, two, three pixel events and for all the reconstructed events on
-    the same figure.
+    """Plot the Encircled Energy Function for one, two, three pixel events and for all the
+    reconstructed events on the same figure.
     
     Arguments
     ---------
