@@ -24,7 +24,7 @@ __description__ = \
 # Parser object.
 HXETA_ARGPARSER = argparse.ArgumentParser(description=__description__)
 HXETA_ARGPARSER.add_argument("input_file", type=str, help="path to the input file")
-HXETA_ARGPARSER.add_argument("--zero_sup_threshold", type=int,
+HXETA_ARGPARSER.add_argument("zero_sup_threshold", type=int,
                              help="zero suppression threshold in electrons")
 HXETA_ARGPARSER.add_argument("--save", action="store_true",
                             help="save the calibration plots to the results directory")

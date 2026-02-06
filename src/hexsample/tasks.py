@@ -204,6 +204,10 @@ def reconstruct(
 
     num_neighbors : int
         The number of neighbor pixels to be used for the clustering.
+    
+    max_neighbors : int
+        The maximum number of neighbor pixels to be used for the clustering. If max_neighbors is
+        specified (i.e. different from -1), it has priority over num_neighbors.
 
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
@@ -236,16 +240,19 @@ def reconstruct(
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
 
+    # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
+    # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
+    # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
+    # to the circular.
+    effective_neighbors = max_neighbors if max_neighbors >= 0 else num_neighbors
     # Run the actual reconstruction.
-    clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors)
+    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors)
     output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
     output_file = ReconOutputFile(output_file_path)
     if header_kwargs is not None:
         output_file.update_header(**header_kwargs)
     output_file.update_digi_header(**input_file.header)
-    # Create a list of acceptable cluster sizes. If max_neighbors is -1, take num_neighbors
-    # only. Otherwise take all sizes from 1 to max_neighbors + 1. When specified, max_neighbors
-    # gets priority over num_neighbors.
+    # Create a list of acceptable cluster sizes.
     size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)

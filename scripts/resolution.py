@@ -33,8 +33,8 @@ def resolution(**kwargs):
     """Run the resolution analysis. This analysis consists of multiple steps to study different
     aspects of the resolution.
     
-    First the Encircled Energy Function (EEF) is created for diffrent
-    cluster sizes and reconstruction algorithm for a given ENC and zero suppression threshold.
+    First the Encircled Energy Function (EEF) is created for different cluster sizes and
+    reconstruction algorithms for a given ENC and zero suppression threshold.
 
     Then the spatial dependence of the resolution is studied by plotting the HEW as a function of
     the reconstructed distance from the true pixel center.

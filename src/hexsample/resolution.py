@@ -80,14 +80,14 @@ def dist_from_pixel_center(input_file: ReconInputFile) -> np.ndarray:
     # Access the reconstructed positions
     x = input_file.column("posx")
     y = input_file.column("posy")
-    # Calulate the reconstructed distance from the pixel center
+    # Calculate the reconstructed distance from the pixel center
     dr0 = np.sqrt((x - x0) ** 2 + (y - y0) ** 2)
     return dr0
 
 
 def hist_distance_residuals(input_file: ReconInputFile, num_neighbors: int = 0,
                             max_neighbors: int = -1) -> Histogram1d:
-    """Create the histogram of distance residuals for the given numqber of neighbors.
+    """Create the histogram of distance residuals for the given number of neighbors.
 
     Arguments
     ---------
@@ -111,7 +111,7 @@ def hist_distance_residuals(input_file: ReconInputFile, num_neighbors: int = 0,
     # Calculate the distance residuals normalized to pitch
     dr = dist_residual(input_file) / pitch
     # Create the histogram to calculate the EEF. The binning is taken in a way that
-    # it covers the full range of dr.
+    # spans all the pitch.
     dr_binning = np.linspace(0., 1., 101)
     hist = Histogram1d(dr_binning)
     hist.fill(dr[mask])
@@ -234,6 +234,9 @@ def resolution_spatial_dependence(input_file: ReconInputFile, num_neighbors: int
     dr = dist_residual(input_file)[mask] / pitch
     # Create the 2D histogram
     xedges = np.linspace(0., 1., 101)
+    if dr.size == 0:
+        # If there are no events, raise an error
+        raise ValueError("No events found for the given cluster size.")
     yedges = np.linspace(min(dr), max(dr), 101)
     hist = Histogram2d(xedges, yedges)
     hist.fill(dr0, dr)
