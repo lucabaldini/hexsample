@@ -190,9 +190,9 @@ class ClusteringBase:
             ind.append(3)
 
 
-        if self.are_neighbors(pix[2], pix[4]) or self.are_neighbors(pix[3], pix[4]):
+        if self.are_neighbors(pix[ind[-1]], pix[4]) or (self.are_neighbors(pix[ind[-2]], pix[4]) and len(ind) > 2):
             ind.append(4)
-        if self.are_neighbors(pix[2], pix[5]) or self.are_neighbors(pix[3], pix[5]):
+        if self.are_neighbors(pix[ind[-1]], pix[5]) or (self.are_neighbors(pix[ind[-2]], pix[5]) and len(ind) > 2):
             ind.append(5)
         diff = np.setdiff1d(np.arange(0, len(pha)), ind)
         out = pha.copy()
