@@ -128,29 +128,34 @@ class Cluster:
         pitch : float
             The pitch of the pixels.
         """
+        # Return the centroid position if it's not possible to use the eta function
         if self.size() not in (2, 3):
             return self.centroid()
-        else:
-            u, v = self.versors()
-            _eta = self.calculate_eta()
+        # Calculate versors and eta.
+        u, v = self.versors()
+        _eta = self.calculate_eta()
 
-            if self.size() == 2:
-                # For 2-pixel events we estimate the position along the line that connects the
-                # two pixels using the eta function calibration.
-                r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
-                x_recon = self.x[0] + r * pitch * u[0]
-                y_recon = self.y[0] + r * pitch * u[1]
-            elif self.size() == 3:
-                # For 3-pixel events we estimate both r and theta using the eta function
-                # calibrations.
-                eta_sum = _eta[0] + _eta[1]
-                eta_diff = (_eta[0] - _eta[1]) / eta_sum
-                r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
-                theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
-                # Reconstructing the position using r and theta
-                x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
-                y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
-            return x_recon, y_recon
+        if self.size() == 2:
+            # For 2-pixel events we estimate the position along the line that connects the
+            # two pixels using the probit function.
+            r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
+            x_recon = self.x[0] + r * pitch * u[0]
+            y_recon = self.y[0] + r * pitch * u[1]
+        elif self.size() == 3:
+            # For 3-pixel events we estimate both r and theta using the probit function.
+            eta_sum = _eta[0] + _eta[1]
+            eta_diff = (_eta[0] - _eta[1]) / eta_sum
+            r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
+            theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
+            # Reconstructing the position using r and theta
+            x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
+            y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
+        else:
+            # This condition should never be reached because of the check at the beginning of the
+            # method, but it's here for safety.
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position with" \
+                               " eta function")
+        return x_recon, y_recon
 
 
 @dataclass

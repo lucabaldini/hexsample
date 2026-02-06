@@ -21,6 +21,7 @@
 """
 
 from typing import Tuple
+
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.plotting import plt

@@ -13,9 +13,12 @@ __description__ = ""
 
 # Parser object.
 HXETA_ARGPARSER = argparse.ArgumentParser(description=__description__)
-HXETA_ARGPARSER.add_argument("enc", type=int, help="equivalent noise charge in electrons")
-HXETA_ARGPARSER.add_argument("zero_sup_threshold", type=int, help="zero suppression threshold in electrons")
-HXETA_ARGPARSER.add_argument("--save", action="store_true", help="save the figures")
+HXETA_ARGPARSER.add_argument("enc", type=int,
+                             help="equivalent noise charge in electrons")
+HXETA_ARGPARSER.add_argument("zero_sup_threshold", type=int,
+                             help="zero suppression threshold in electrons")
+HXETA_ARGPARSER.add_argument("--save", action="store_true",
+                             help="save the figures")
 
 RESOLUTION_DIR = Path.home() / "hexsampledata" / "resolution"
 if not RESOLUTION_DIR.exists():
@@ -85,7 +88,7 @@ def resolution(**kwargs):
     eef_size_scan(x, best_recon_file)
 
     # Plot the spatial dependence of the resolution for both algorithms (all events)
-    spatial_dependence_fig = plt.figure("resolution_spatial_dependence")
+    sp_dep_fig = plt.figure("resolution_spatial_dependence")
     plt.plot(*resolution_spatial_dependence(best_recon_file, max_neighbors=6),
              ".k", label=r"$\eta$ + centroid")
     plt.plot(*resolution_spatial_dependence(centroid_recon_file, max_neighbors=6),
@@ -104,7 +107,7 @@ def resolution(**kwargs):
                         max_neighbors=6)
     eef_zsup_centroid_fig = plt.figure(f"eef_vs_zsup_centroid_enc{enc}")
     print("Reconstructing files for centroid algorithm...")
-    for i, zero_sup_ratio in enumerate(zero_sup_ratios):
+    for zero_sup_ratio in zero_sup_ratios:
         zsup = int(zero_sup_ratio * enc)
         suffix = f"recon_zsuprec{zsup}_centroid"
         file_path = RESOLUTION_DIR / f"{file_prefix}_{suffix}.h5"
@@ -123,7 +126,7 @@ def resolution(**kwargs):
 
     eef_zsup_best_fig = plt.figure(f"eef_vs_zsup_best_enc{enc}")
     print("Reconstructing files for eta algorithm...")
-    for i, zero_sup_ratio in enumerate(zero_sup_ratios):
+    for zero_sup_ratio in zero_sup_ratios:
         zsup = int(zero_sup_ratio * enc)
         suffix = f"recon_zsuprec{zsup}_best"
         file_path = RESOLUTION_DIR / f"{file_prefix}_{suffix}.h5"
@@ -141,13 +144,20 @@ def resolution(**kwargs):
     plt.ylim(0, 1)
     plt.legend()
 
+    # Save figures, if requested
     if kwargs["save"]:
         fig_format = "png"
-        centroid_fig.savefig(FIGURES_DIR / f"centroid_eef_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
-        best_fig.savefig(FIGURES_DIR / f"best_eef_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
-        spatial_dependence_fig.savefig(FIGURES_DIR / f"resolution_spatial_dependence_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
-        eef_zsup_centroid_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_centroid_{enc}enc.{fig_format}", format=fig_format)
-        eef_zsup_best_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_best_{enc}enc.{fig_format}", format=fig_format)
+        zsup_th = zero_sup_threshold
+        centroid_fig.savefig(FIGURES_DIR / f"centroid_eef_{enc}enc_{zsup_th}zsup.{fig_format}",
+                             format=fig_format)
+        best_fig.savefig(FIGURES_DIR / f"best_eef_{enc}enc_{zsup_th}zsup.{fig_format}",
+                         format=fig_format)
+        sp_dep_fig.savefig(FIGURES_DIR / f"res_spatial_depend_{enc}enc_{zsup_th}zsup.{fig_format}",
+                           format=fig_format)
+        eef_zsup_centroid_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_centroid_{enc}enc.{fig_format}",
+                                      format=fig_format)
+        eef_zsup_best_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_best_{enc}enc.{fig_format}",
+                                  format=fig_format)
 
 
 
