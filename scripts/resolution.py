@@ -8,7 +8,7 @@ from aptapy.plotting import plt
 from hexsample.fileio import ReconInputFile
 from hexsample.hexagon import HexagonalLayout
 from hexsample.pipeline import reconstruct, simulate
-from hexsample.resolution import eef_size_scan, resolution_spatial_dependence
+from hexsample.resolution import eef, eef_size_scan, resolution_spatial_dependence
 
 __description__ = ""
 
@@ -126,11 +126,53 @@ def resolution(**kwargs):
     centroid_recon_file.close()
     best_recon_file.close()
 
+    # Study the resolution as a function of zero sup threshold for both algorithms
+    zero_sup_ratios = np.linspace(0, 3, 4)
+    recon_kwargs = dict(input_file=str(simulation_path),
+                        max_neighbors=6)
+    eef_zsup_centroid_fig = plt.figure(f"eef_vs_zsup_centroid_enc{enc}")
+    print("Reconstructing files for centroid algorithm...")
+    for i, zero_sup_ratio in enumerate(zero_sup_ratios):
+        zsup = int(zero_sup_ratio * enc)
+        suffix = f"recon_zsuprec{zsup}_centroid"
+        file_path = RESOLUTION_DIR / f"{file_prefix}_{suffix}.h5"
+        if not file_path.exists():
+            reconstruct(suffix=suffix, pos_recon_algorithm="centroid", zero_sup_threshold=zsup,
+                        **recon_kwargs)
+        # Open file and plot EEF
+        recon_file = ReconInputFile(str(file_path))
+        plt.plot(x, eef(x, recon_file, max_neighbors=6), label=f"zsup/enc {zero_sup_ratio}")
+        recon_file.close()
+
+    eef_zsup_best_fig = plt.figure(f"eef_vs_zsup_best_enc{enc}")
+    print("Reconstructing files for eta algorithm...")
+    for i, zero_sup_ratio in enumerate(zero_sup_ratios):
+        zsup = int(zero_sup_ratio * enc)
+        suffix = f"recon_zsuprec{zsup}_best"
+        file_path = RESOLUTION_DIR / f"{file_prefix}_{suffix}.h5"
+        if not file_path.exists():
+            reconstruct(suffix=suffix, pos_recon_algorithm="eta", zero_sup_threshold=zsup,
+                        **recon_kwargs)
+        # Open file and plot EEF
+        recon_file = ReconInputFile(str(file_path))
+        plt.plot(x, eef(x, recon_file, max_neighbors=6), label=f"zsup/enc {zero_sup_ratio}")
+        recon_file.close()
+
+    plt.xlabel(xlabel = r"$r/p$")
+    plt.ylabel("Encircled Energy Fraction")
+    plt.xlim(x[0], x[-1])
+    plt.ylim(0, 1)
+    plt.legend()
+
     if kwargs["save"]:
         fig_format = "png"
         centroid_fig.savefig(FIGURES_DIR / f"centroid_eef_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
         best_fig.savefig(FIGURES_DIR / f"best_eef_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
         spatial_dependence_fig.savefig(FIGURES_DIR / f"resolution_spatial_dependence_{enc}enc_{zero_sup_threshold}zsup.{fig_format}", format=fig_format)
+        eef_zsup_centroid_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_centroid_{enc}enc.{fig_format}", format=fig_format)
+        eef_zsup_best_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_best_{enc}enc.{fig_format}", format=fig_format)
+
+
 
 if __name__ == "__main__":
     resolution(**vars(HXETA_ARGPARSER.parse_args()))
