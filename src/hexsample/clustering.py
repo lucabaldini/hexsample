@@ -168,6 +168,22 @@ class ClusteringBase:
         out[out <= self.zero_sup_threshold] = 0
         return out
 
+    def topology_suppress(self, pha, col, row):
+        # Check if third pixel is neighbor of the second
+        out = pha.copy()
+        if (col[2], row[2]) not in self.grid.neighbors(col[1], row[1]):
+            out[2] = 0
+        # The same for the fourth pixel
+        if (col[3], row[3]) not in self.grid.neighbors(col[1], row[1]):
+            out[3] = 0
+        # Not sure if we want to do this check for 5th and 6th pixels
+        if (col[4], row[4]) not in self.grid.neighbors(col[2], row[2]):
+            if (col[4], row[4]) not in self.grid.neighbors(col[3], row[3]):
+                out[4] = 0
+        
+        return out
+
+
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
