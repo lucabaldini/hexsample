@@ -173,31 +173,33 @@ class ClusteringBase:
         """
         return pix1 in self.grid.neighbors(*pix0)
 
-
-
     def topology_suppress(self, pha, col, row):
-        # Check if third pixel is neighbor of the second
+        print()
+        print(pha)
+        n = np.count_nonzero(pha)
+        if n <= 2:
+            print("<= 2 PIXEL")
+            return pha
         ind = [0, 1]
         pix = list(zip(col, row))
         # Check whether the third pixel is neighbor of the second pixel
-        if self.are_neighbors(pix[ind[1]], pix[2]):
+        if self.are_neighbors(pix[1], pix[2]):
             ind.append(2)
         # Check whether the fourth pixel is neighbor of the second pixel
-        if self.are_neighbors(pix[ind[1]], pix[3]):
+        if self.are_neighbors(pix[1], pix[3]):
             ind.append(3)
-        
+
+
         if self.are_neighbors(pix[2], pix[4]) or self.are_neighbors(pix[3], pix[4]):
             ind.append(4)
         if self.are_neighbors(pix[2], pix[5]) or self.are_neighbors(pix[3], pix[5]):
             ind.append(5)
-        ind = np.concatenate(ind, np.setdiff1d(np.arange(7), ind))
-
-
-
-        
-
-
-
+        diff = np.setdiff1d(np.arange(0, len(pha)), ind)
+        out = pha.copy()
+        out[diff] = 0
+        if not np.array_equal(out, pha):
+            print("OUT: ", out)
+        return out
 
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
@@ -269,6 +271,11 @@ class ClusteringNN(ClusteringBase):
         # This is useless for the circular readout because in that case all
         # neighbors are used for track reconstruction.
         mask = idx[:self.num_neighbors + 1]
+
+
+        pha = self.topology_suppress(pha[mask], col[mask], row[mask])
+
+
         # If there's any zero left in the target pixels, get rid of it.
         mask = mask[pha[mask] > 0]
         # Trim the relevant arrays.
