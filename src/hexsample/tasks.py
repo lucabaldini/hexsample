@@ -268,11 +268,13 @@ class DisplayDefaults:
 
     zero_sup_threshold: int = 30
     num_neighbors: int = 6
+    event_id: int = None
 
 
 def display(
         input_file_path: str,
         zero_sup_threshold: int = DisplayDefaults.zero_sup_threshold,
+        event_id: int = DisplayDefaults.event_id
         ) -> None:
     """Display events from a digi file.
 
@@ -280,6 +282,10 @@ def display(
     ---------
     file_path : str
         The path to the digi file.
+    zero_sup_threshold : int
+        The zero-suppression threshold to use when displaying the digi event.
+    event_id : int
+        The ID of the event to display. If None, display all events.
     """
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
@@ -308,6 +314,8 @@ def display(
     logger.info(f"Readout chip: {readout}")
     grid_display = HexagonalGridDisplay(readout)
     for i, event in enumerate(input_file):
+        if event_id is not None and i != event_id:
+            continue
         recon_defaults = ReconstructionDefaults
         mc_event = input_file.mc_event(i)
         grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)

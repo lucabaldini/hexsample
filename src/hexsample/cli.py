@@ -103,7 +103,7 @@ class CliArgumentParser(argparse.ArgumentParser):
             formatter_class=self._FORMATTER_CLASS)
         self.add_input_file(display)
         self.add_logging_level(display)
-        self.add_zero_sup_threshold(display, default=tasks.DisplayDefaults.zero_sup_threshold)
+        self.add_display_options(display)
         display.set_defaults(runner=pipeline.display)
 
         # Run the quicklook?
@@ -292,6 +292,16 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="model to use for neural network reconstruction")
         group.add_argument("--model_path", type=str,
                            help="path of the model to use, in case of custom model")
+
+    def add_display_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the event display.
+        """
+        group = parser.add_argument_group("display", "Event display configuration")
+        CliArgumentParser.add_zero_sup_threshold(group,
+                           default=tasks.DisplayDefaults.zero_sup_threshold)
+        group.add_argument("--event_id", type=int,
+                           default=tasks.DisplayDefaults.event_id,
+                           help="ID of the event to display")
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
