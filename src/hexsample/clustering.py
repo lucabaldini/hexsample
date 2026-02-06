@@ -168,20 +168,35 @@ class ClusteringBase:
         out[out <= self.zero_sup_threshold] = 0
         return out
 
+    def are_neighbors(self, pix0, pix1) -> bool:
+        """Check if two pixels are neighbors.
+        """
+        return pix1 in self.grid.neighbors(*pix0)
+
+
+
     def topology_suppress(self, pha, col, row):
         # Check if third pixel is neighbor of the second
-        out = pha.copy()
-        if (col[2], row[2]) not in self.grid.neighbors(col[1], row[1]):
-            out[2] = 0
-        # The same for the fourth pixel
-        if (col[3], row[3]) not in self.grid.neighbors(col[1], row[1]):
-            out[3] = 0
-        # Not sure if we want to do this check for 5th and 6th pixels
-        if (col[4], row[4]) not in self.grid.neighbors(col[2], row[2]):
-            if (col[4], row[4]) not in self.grid.neighbors(col[3], row[3]):
-                out[4] = 0
+        ind = [0, 1]
+        pix = list(zip(col, row))
+        # Check whether the third pixel is neighbor of the second pixel
+        if self.are_neighbors(pix[ind[1]], pix[2]):
+            ind.append(2)
+        # Check whether the fourth pixel is neighbor of the second pixel
+        if self.are_neighbors(pix[ind[1]], pix[3]):
+            ind.append(3)
         
-        return out
+        if self.are_neighbors(pix[2], pix[4]) or self.are_neighbors(pix[3], pix[4]):
+            ind.append(4)
+        if self.are_neighbors(pix[2], pix[5]) or self.are_neighbors(pix[3], pix[5]):
+            ind.append(5)
+        ind = np.concatenate(ind, np.setdiff1d(np.arange(7), ind))
+
+
+
+        
+
+
 
 
     def run(self, event: DigiEventRectangular) -> Cluster:
