@@ -85,7 +85,7 @@ def dist_from_pixel_center(input_file: ReconInputFile) -> np.ndarray:
 
 
 def hist_distance_residuals(input_file: ReconInputFile, num_neighbors: int = 0,
-                      max_neighbors: int = -1) -> Histogram1d:
+                            max_neighbors: int = -1) -> Histogram1d:
     """Create the histogram of distance residuals for the given numqber of neighbors.
 
     Arguments

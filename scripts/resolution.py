@@ -2,7 +2,6 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-from aptapy.hist import Histogram2d
 from aptapy.plotting import plt
 
 from hexsample.fileio import ReconInputFile
@@ -27,46 +26,19 @@ if not FIGURES_DIR.exists():
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _estimate_loc(hist: Histogram2d) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Estimate the location of the distribution in each slice of the histogram.
-
-    Arguments
-    ---------
-    hist : Histogram2d
-        The 2D histogram to analyze.
-    
-    Returns
-    -------
-    centers : np.ndarray
-        The bin centers of the first axis.
-    loc : np.ndarray
-        The estimated location of the distribution in each slice.
-    err : np.ndarray
-        The estimated uncertainty on the location in each slice.
-    """
-    centers = hist.bin_centers(axis=0)
-    loc = np.zeros(centers.shape)
-    err = np.zeros(centers.shape)
-    for i in range(len(centers)):
-        slice_ = hist.slice1d(i)
-        n = slice_.content.sum()
-        if n == 0:
-            loc[i] = np.nan
-            err[i] = np.nan
-            continue
-        # Estimate the location as the median of the distribution and its error
-        x = np.repeat(slice_.bin_centers(), slice_.content.astype(int))
-        loc[i] = np.mean(x)
-        err[i] = np.std(x) / np.sqrt(n)  # Approximate std error of median
-    # Remove NaN entries
-    mask = ~np.isnan(loc)
-    centers = centers[mask]
-    loc = loc[mask]
-    err = err[mask]
-    return centers, loc, err
-
-
 def resolution(**kwargs):
+    """Run the resolution analysis. This analysis consists of multiple steps to study different
+    aspects of the resolution.
+    
+    First the Encircled Energy Function (EEF) is created for diffrent
+    cluster sizes and reconstruction algorithm for a given ENC and zero suppression threshold.
+
+    Then the spatial dependence of the resolution is studied by plotting the HEW as a function of
+    the reconstructed distance from the true pixel center.
+    
+    Finally, for the given ENC, the EEF is plotted for different zero suppression thresholds and
+    for both the centroid and eta algorithms.
+    """
     enc = kwargs["enc"]
     zero_sup_threshold = kwargs["zero_sup_threshold"]
     file_prefix = f"simulation_resolution_{enc}enc_hexagonal"
@@ -143,6 +115,11 @@ def resolution(**kwargs):
         recon_file = ReconInputFile(str(file_path))
         plt.plot(x, eef(x, recon_file, max_neighbors=6), label=f"zsup/enc {zero_sup_ratio}")
         recon_file.close()
+    plt.xlabel(xlabel = r"$r/p$")
+    plt.ylabel("Encircled Energy Fraction")
+    plt.xlim(x[0], x[-1])
+    plt.ylim(0, 1)
+    plt.legend()
 
     eef_zsup_best_fig = plt.figure(f"eef_vs_zsup_best_enc{enc}")
     print("Reconstructing files for eta algorithm...")
