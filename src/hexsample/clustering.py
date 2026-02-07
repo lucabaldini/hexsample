@@ -168,16 +168,7 @@ class ClusteringBase:
         out[out <= self.zero_sup_threshold] = 0
         return out
 
-    def are_neighbors(self, pix0, pix1) -> bool:
-        """Check if two pixels are neighbors.
-        """
-        # Eliminala non serve, non abbrevia
-        return pix1 in self.grid.neighbors(*pix0)
-
-
     def topology_suppress(self, pha, col, row):
-        print()
-        print(pha)
         # If the cluster size is 1 or 2, we don't need to check the topology
         if np.count_nonzero(pha) <= 2:
             return pha
@@ -216,45 +207,17 @@ class ClusteringBase:
         diff = np.setdiff1d(np.arange(0, len(pha)), ind)
         out = pha.copy()
         out[diff] = 0
-        if not np.array_equal(out, pha):
-            print("OUT: ", out)
-        return out
-                    
-
-    def old_topology_suppress(self, pha, col, row):
-        print()
-        print(pha)
-        n = np.count_nonzero(pha)
-        if n <= 2:
-            print("<= 2 PIXEL")
-            return pha
-        ind = [0, 1]
-        pix = list(zip(col, row))
-        # Check whether the third pixel is neighbor of the second pixel
-        # if pix[0] in grid.neighbors(*pix[1]):
-        if self.are_neighbors(pix[1], pix[2]):
-            ind.append(2)
-        # Check whether the fourth pixel is neighbor of the second pixel
-        if self.are_neighbors(pix[1], pix[3]):
-            ind.append(3)
-
-
-        if self.are_neighbors(pix[ind[-1]], pix[4]) or (self.are_neighbors(pix[ind[-2]], pix[4]) and len(ind) > 2):
-            ind.append(4)
-        if self.are_neighbors(pix[ind[-2]], pix[5]) or (self.are_neighbors(pix[ind[-1]], pix[5]) and len(ind) > 2):
-            ind.append(5)
-        diff = np.setdiff1d(np.arange(0, len(pha)), ind)
-        out = pha.copy()
-        out[diff] = 0
-        if not np.array_equal(out, pha):
-            print("OUT: ", out)
-        return out
+        # Sort the pha array in decreasing order and reorder the col and row arrays
+        idx = np.argsort(-out)
+        out = out[idx]
+        col = col[idx]
+        row = row[idx]
+        return out, col, row
 
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
         raise NotImplementedError
-
 
 
 @dataclass
@@ -320,13 +283,12 @@ class ClusteringNN(ClusteringBase):
         # This is useless for the circular readout because in that case all
         # neighbors are used for track reconstruction.
         mask = idx[:self.num_neighbors + 1]
-
-
-        pha = self.topology_suppress(pha[mask], col[mask], row[mask])
-
-
+        # Sort the arrays in decreasing order before applying the topology suppression.
+        pha, col, row = self.topology_suppress(pha[mask], col[mask], row[mask])
+        # The returned arrays have alredy been re-sorted in decreasing order, so we just need
+        # to remove the pixels with zero pha. 
         # If there's any zero left in the target pixels, get rid of it.
-        mask = mask[pha[mask] > 0]
+        mask = mask[pha > 0]
         # Trim the relevant arrays.
         col = col[mask]
         row = row[mask]
