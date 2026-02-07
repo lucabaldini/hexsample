@@ -168,51 +168,87 @@ class ClusteringBase:
         out[out <= self.zero_sup_threshold] = 0
         return out
 
-    def topology_suppress(self, pha, col, row):
-        # If the cluster size is 1 or 2, we don't need to check the topology
-        if np.count_nonzero(pha) <= 2:
-            return pha
+    def topology_suppress(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray
+                          ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Suppress pixels that do not have the right topology.
+
+        In a well-formed topology, the highest pixel is located at the center of the cluster.
+        For clusters larger than two pixels, the charge distribution should be symmetric with
+        respect to the axis connecting the two highest pixels. Furthermore, the charge must
+        decrease monotonically as the distance from the second-highest pixel increases.
+
+        Arguments
+        ---------
+        pha : np.ndarray
+            The array of pulse heights of the pixels in the cluster, ordered in decreasing order.
+        col : np.ndarray
+            The array of column indexes of the pixels in the cluster.
+        row : np.ndarray
+            The array of row indexes of the pixels in the cluster.
+        
+        Returns
+        -------
+        pha : np.ndarray
+            The array of pulse heights of the pixels in the cluster after topology suppression,
+            ordered in decreasing order.
+        col : np.ndarray
+            The array of column indexes of the pixels in the cluster after topology suppression,
+            ordered in decreasing order of pulse height.
+        row : np.ndarray
+            The array of row indexes of the pixels in the cluster after topology suppression,
+            ordered in decreasing order of pulse height.
+        """
+        # If the number of pixels above the zero suppression threshold or the cluster size is less
+        # than or equal to 2, we don't need to check the topology. We need to check the cluster
+        # size because with rectangular readout we might have clusters with less than 7 pixels.
+        if np.count_nonzero(pha) <= 2 or pha.size <= 2:
+            return pha, col, row
         ind = [0, 1]
         pix = list(zip(col, row))
-        # Otherwise, we start checking if pixel 3 and 4 are neighbors of pixel 2
-        for i in range(2, 4):
-            if pix[i] in self.grid.neighbors(*pix[1]):
-                ind.append(i)
+        # Otherwise, we start checking if pixel 3 and 4 are neighbors of pixel 2. We also need to
+        # check the cluster dimension
+        ind.extend([
+            i for i in range(2, 4)
+            if pha.size > i and pix[i] in self.grid.neighbors(*pix[1])
+            ])
         # If both pixel 3 and 4 are neighbors of pixel 2, we check if pixel 5 and 6 are neighbors
         # of pixel 3 or 4.
         if len(ind) == 4:
-            for i in range(4, 6):
-                if pix[i] in self.grid.neighbors(*pix[2]) or pix[i] in self.grid.neighbors(*pix[3]):
-                    ind.append(i)
+            ind.extend([
+                i for i in range(4, 6)
+                if pha.size > i and (
+                    pix[i] in self.grid.neighbors(*pix[2]) or
+                    pix[i] in self.grid.neighbors(*pix[3]))
+            ])
         # If only one between pixel 3 and 4 is a neighbor of pixel 2, we should check if pixel 5
         # is a neighbor of pixel 2.
         elif len(ind) == 3:
-            if pix[4] in self.grid.neighbors(*pix[1]):
+            if pha.size > 4 and pix[4] in self.grid.neighbors(*pix[1]):
                 ind.append(4)
                 # If this condition is true, then we have to check if pixel 6 is a neighbor of the
                 # third good pixel (3 or 4) and pixel 5 (the fourth good pixel).
-                if pix[5] in self.grid.neighbors(*pix[ind[-1]]) or pix[5] in self.grid.neighbors(*pix[ind[-2]]):
+                if pha.size > 5 and ((pix[5] in self.grid.neighbors(*pix[ind[-1]])) or
+                   (pix[5] in self.grid.neighbors(*pix[ind[-2]]))):
                     ind.append(5)
             else:
-                # If pixel 5 is not a neighbor of pixel 2, we check if pixel 6 is a neighbor of pixel 2.
-                if pix[5] in self.grid.neighbors(*pix[1]):
+                # If pixel 5 is not a neighbor of pixel 2, we check if pixel 6 is a neighbor of
+                # pixel 2.
+                if pha.size > 5 and pix[5] in self.grid.neighbors(*pix[1]):
                     ind.append(5)
         # If none of pixel 3 and 4 is a neighbor of pixel 2, we have to check if pixel 5 and 6 are
         # neighbors of pixel 2.
         elif len(ind) == 2:
-            for i in range(4, 6):
-                if pix[i] in self.grid.neighbors(*pix[1]):
-                    ind.append(i)
+            ind.extend([
+                i for i in range(4, 6)
+                if pha.size > i and pix[i] in self.grid.neighbors(*pix[1])
+            ])
         # Finally, we set to zero the pixels that are not in the good topology.
-        diff = np.setdiff1d(np.arange(0, len(pha)), ind)
         out = pha.copy()
+        diff = np.setdiff1d(np.arange(0, len(out)), ind)
         out[diff] = 0
         # Sort the pha array in decreasing order and reorder the col and row arrays
         idx = np.argsort(-out)
-        out = out[idx]
-        col = col[idx]
-        row = row[idx]
-        return out, col, row
+        return out[idx], col[idx], row[idx]
 
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
@@ -286,7 +322,7 @@ class ClusteringNN(ClusteringBase):
         # Sort the arrays in decreasing order before applying the topology suppression.
         pha, col, row = self.topology_suppress(pha[mask], col[mask], row[mask])
         # The returned arrays have alredy been re-sorted in decreasing order, so we just need
-        # to remove the pixels with zero pha. 
+        # to remove the pixels with zero pha.
         # If there's any zero left in the target pixels, get rid of it.
         mask = mask[pha > 0]
         # Trim the relevant arrays.
