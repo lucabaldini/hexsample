@@ -321,7 +321,7 @@ class ClusteringNN(ClusteringBase):
         mask = idx[:self.num_neighbors + 1]
         # Sort the arrays in decreasing order before applying the topology suppression.
         pha, col, row = self.topology_suppress(pha[mask], col[mask], row[mask])
-        # The returned arrays have alredy been re-sorted in decreasing order, so we just need
+        # The returned arrays have already been re-sorted in decreasing order, so we just need
         # to remove the pixels with zero pha.
         # If there's any zero left in the target pixels, get rid of it.
         mask = mask[pha > 0]
