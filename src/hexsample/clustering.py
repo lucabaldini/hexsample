@@ -171,9 +171,57 @@ class ClusteringBase:
     def are_neighbors(self, pix0, pix1) -> bool:
         """Check if two pixels are neighbors.
         """
+        # Eliminala non serve, non abbrevia
         return pix1 in self.grid.neighbors(*pix0)
 
+
     def topology_suppress(self, pha, col, row):
+        print()
+        print(pha)
+        # If the cluster size is 1 or 2, we don't need to check the topology
+        if np.count_nonzero(pha) <= 2:
+            return pha
+        ind = [0, 1]
+        pix = list(zip(col, row))
+        # Otherwise, we start checking if pixel 3 and 4 are neighbors of pixel 2
+        for i in range(2, 4):
+            if pix[i] in self.grid.neighbors(*pix[1]):
+                ind.append(i)
+        # If both pixel 3 and 4 are neighbors of pixel 2, we check if pixel 5 and 6 are neighbors
+        # of pixel 3 or 4.
+        if len(ind) == 4:
+            for i in range(4, 6):
+                if pix[i] in self.grid.neighbors(*pix[2]) or pix[i] in self.grid.neighbors(*pix[3]):
+                    ind.append(i)
+        # If only one between pixel 3 and 4 is a neighbor of pixel 2, we should check if pixel 5
+        # is a neighbor of pixel 2.
+        elif len(ind) == 3:
+            if pix[4] in self.grid.neighbors(*pix[1]):
+                ind.append(4)
+                # If this condition is true, then we have to check if pixel 6 is a neighbor of the
+                # third good pixel (3 or 4) and pixel 5 (the fourth good pixel).
+                if pix[5] in self.grid.neighbors(*pix[ind[-1]]) or pix[5] in self.grid.neighbors(*pix[ind[-2]]):
+                    ind.append(5)
+            else:
+                # If pixel 5 is not a neighbor of pixel 2, we check if pixel 6 is a neighbor of pixel 2.
+                if pix[5] in self.grid.neighbors(*pix[1]):
+                    ind.append(5)
+        # If none of pixel 3 and 4 is a neighbor of pixel 2, we have to check if pixel 5 and 6 are
+        # neighbors of pixel 2.
+        elif len(ind) == 2:
+            for i in range(4, 6):
+                if pix[i] in self.grid.neighbors(*pix[1]):
+                    ind.append(i)
+        # Finally, we set to zero the pixels that are not in the good topology.
+        diff = np.setdiff1d(np.arange(0, len(pha)), ind)
+        out = pha.copy()
+        out[diff] = 0
+        if not np.array_equal(out, pha):
+            print("OUT: ", out)
+        return out
+                    
+
+    def old_topology_suppress(self, pha, col, row):
         print()
         print(pha)
         n = np.count_nonzero(pha)
@@ -183,6 +231,7 @@ class ClusteringBase:
         ind = [0, 1]
         pix = list(zip(col, row))
         # Check whether the third pixel is neighbor of the second pixel
+        # if pix[0] in grid.neighbors(*pix[1]):
         if self.are_neighbors(pix[1], pix[2]):
             ind.append(2)
         # Check whether the fourth pixel is neighbor of the second pixel
@@ -192,7 +241,7 @@ class ClusteringBase:
 
         if self.are_neighbors(pix[ind[-1]], pix[4]) or (self.are_neighbors(pix[ind[-2]], pix[4]) and len(ind) > 2):
             ind.append(4)
-        if self.are_neighbors(pix[ind[-1]], pix[5]) or (self.are_neighbors(pix[ind[-2]], pix[5]) and len(ind) > 2):
+        if self.are_neighbors(pix[ind[-2]], pix[5]) or (self.are_neighbors(pix[ind[-1]], pix[5]) and len(ind) > 2):
             ind.append(5)
         diff = np.setdiff1d(np.arange(0, len(pha)), ind)
         out = pha.copy()
