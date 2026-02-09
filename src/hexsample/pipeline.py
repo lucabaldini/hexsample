@@ -63,7 +63,9 @@ def display(**kwargs) -> None:
     """Display events from a digi or recon file.
     """
     input_file_path = kwargs["input_file"]
-    return tasks.display(input_file_path)
+    zero_sup_threshold = kwargs.get("zero_sup_threshold", tasks.DisplayDefaults.zero_sup_threshold)
+    event_id = kwargs.get("event_id", tasks.DisplayDefaults.event_id)
+    return tasks.display(input_file_path, zero_sup_threshold, event_id)
 
 
 def quicklook(**kwargs) -> None:
