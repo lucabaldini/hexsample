@@ -143,6 +143,32 @@ def eef(x: np.ndarray, input_file: ReconInputFile, num_neighbors: int = 0,
     return hist.cdf(x)
 
 
+def eew(input_file: ReconInputFile, quantile: float, num_neighbors: int = 0,
+        max_neighbors: int = -1) -> float:
+    """Calculate the Encircled Energy Width (EEW) for a given quantile and cluster size.
+
+    Arguments
+    ---------
+    input_file : ReconInputFile
+        The input file to analyze.
+    quantile : float
+        The quantile to be used for the EEW calculation.
+    num_neighbors : int, optional
+        The number of neighbors to be considered. Default is 0.
+    max_neighbors : int, optional
+        The maximum number of neighbors to be considered. If max_neighbors is specified, it has
+        priority over num_neighbors. Default is -1 (not used).
+
+    Returns
+    -------
+    eew : float
+        The Encircled Energy Width (EEW) evaluated at a given quantile, expressed in pitch
+        normalized units.
+    """
+    hist = hist_distance_residuals(input_file, num_neighbors, max_neighbors)
+    return hist.ppf(quantile)
+
+
 def hew(input_file: ReconInputFile, num_neighbors: int = 0,
         max_neighbors: int = -1) -> float:
     """Calculate the Half Energy Width (HEW) for a given cluster size.
@@ -162,8 +188,9 @@ def hew(input_file: ReconInputFile, num_neighbors: int = 0,
     hew : float
         The Half Energy Width (HEW) in pitch normalized units.
     """
-    hist = hist_distance_residuals(input_file, num_neighbors, max_neighbors)
-    return hist.ppf(0.5)
+    return eew(input_file, quantile=0.5,
+               num_neighbors=num_neighbors,
+               max_neighbors=max_neighbors)
 
 
 def eef_size_scan(x: np.ndarray, input_file: ReconInputFile) -> None:
