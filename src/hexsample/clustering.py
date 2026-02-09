@@ -112,7 +112,8 @@ class Cluster:
     def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
             eta_3pix_theta0: float, pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
-        and 3 pixel clusters.
+        and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
+        centroid.
 
         Arguments
         ---------
@@ -127,18 +128,21 @@ class Cluster:
         pitch : float
             The pitch of the pixels.
         """
+        # Return the centroid position if it's not possible to use the eta function
+        if self.size() not in (2, 3):
+            return self.centroid()
+        # Calculate versors and eta.
         u, v = self.versors()
         _eta = self.calculate_eta()
 
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
-            # two pixels using the eta function calibration.
+            # two pixels using the probit function.
             r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:
-            # For 3-pixel events we estimate both r and theta using the eta function
-            # calibrations.
+            # For 3-pixel events we estimate both r and theta using the probit function.
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
             r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
@@ -147,8 +151,10 @@ class Cluster:
             x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
             y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
         else:
-            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position using "
-                               "eta function")
+            # This condition should never be reached because of the check at the beginning of the
+            # method, but it's here for safety.
+            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position with" \
+                               " eta function")
         return x_recon, y_recon
 
 

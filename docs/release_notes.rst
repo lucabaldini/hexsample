@@ -4,6 +4,17 @@ Release notes
 =============
 
 * Added rough support for DigiEventCircular objects in the event display.
+* New `resolution.py` module incorporating some common functions that were
+  previously living in the script area.
+* New script to calculate the EEF for events reconstructed with the
+  different algorithms, disaggregated by cluster size.
+* `--max-neighbors` option added to the cli interface.
+* eta reconstructions modified to use the centroid for events with more than
+  three pixels.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/94
+  - https://github.com/lucabaldini/hexsample/pull/92
 
 
 Version 0.13.2 (2026-02-04)
