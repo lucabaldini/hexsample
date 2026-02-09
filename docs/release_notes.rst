@@ -14,9 +14,10 @@ Release notes
 * New suppression step added to accept at most three pixels in a cluster, with the condition
   that all the pixels are neighbors.
 * Pull requests merged and issues closed:
-
+  - https://github.com/lucabaldini/hexsample/pull/9
   - https://github.com/lucabaldini/hexsample/pull/94
   - https://github.com/lucabaldini/hexsample/pull/92
+
 
 
 Version 0.13.2 (2026-02-04)
