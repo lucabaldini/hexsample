@@ -35,7 +35,6 @@ from .analysis import create_histogram
 from .clustering import ClusteringNN
 from .display import HexagonalGridDisplay
 from .fileio import (
-    DigiInputFileRectangular,
     ReconInputFile,
     ReconOutputFile,
     digi_input_file_class,
@@ -154,11 +153,13 @@ def simulate(
 
 @dataclass(frozen=True)
 class ReconstructionDefaults:
+
     """Default parameters for the reconstruction task.
 
     This is a small helper dataclass to help ensure consistency between the main task
     definition in this Python module and the command-line interface.
     """
+
     suffix: str = "recon"
     zero_sup_threshold: int = 0
     num_neighbors: int = 2
@@ -258,33 +259,67 @@ def reconstruct(
 
 
 class DisplayDefaults:
+
     """Default parameters for the display task.
 
     This is a small helper dataclass to help ensure consistency between the main task
     definition in this Python module and the command-line interface.
     """
 
+    zero_sup_threshold: int = 30
+    num_neighbors: int = 6
+    event_id: int = None
 
-def display(input_file_path: str) -> None:
+
+def display(
+        input_file_path: str,
+        zero_sup_threshold: int = DisplayDefaults.zero_sup_threshold,
+        event_id: int = DisplayDefaults.event_id
+        ) -> None:
     """Display events from a digi file.
 
     Arguments
     ---------
     file_path : str
         The path to the digi file.
+    zero_sup_threshold : int
+        The zero-suppression threshold to use when displaying the digi event.
+    event_id : int
+        The ID of the event to display. If None, display all events.
     """
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
-    input_file = DigiInputFileRectangular(input_file_path)
+
+    # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
+    input_file_path = str(input_file_path)
+    if not input_file_path.endswith(".h5"):
+        raise RuntimeError("Input file {input_file_path} does not look like a HDF5 file")
+
+    # It is necessary to extract the reaodut type because every readout type
+    # corresponds to a different DigiEvent type.
+    readout_mode = peek_readout_type(input_file_path)
+    # And we should get rid of all this crap when we store the readout type and all the
+    # relevant metadata in the hdf5 file in a sensible way.
+    file_type = digi_input_file_class(readout_mode)
+    input_file = file_type(input_file_path)
     header = input_file.header
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], header["gain"]
-    readout = HexagonalReadoutRectangular(*args)
+    if readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
+    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+        readout = HexagonalReadoutCircular(*args)
+    else:
+        raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
     grid_display = HexagonalGridDisplay(readout)
-    for event in input_file:
-        print(event.ascii())
-        grid_display.draw_digi_event(event, zero_sup_threshold=0)
+    for i, event in enumerate(input_file):
+        if event_id is not None and i != event_id:
+            continue
+        recon_defaults = ReconstructionDefaults
+        mc_event = input_file.mc_event(i)
+        grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)
+        grid_display.draw_positions(mc_event, event, readout, recon_defaults, zero_sup_threshold)
         grid_display.show()
     input_file.close()
 
