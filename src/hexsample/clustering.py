@@ -174,14 +174,13 @@ class ClusteringBase:
         out[out <= self.zero_sup_threshold] = 0
         return out
 
-    def topology_suppress(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray
+    def position_suppress(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray
                           ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Suppress pixels that do not have the right topology.
+        """Suppress pixels in the cluster that do not satisfy the position requirements.
 
-        In a well-formed topology, the highest pixel is located at the center of the cluster.
-        For clusters larger than two pixels, the charge distribution should be symmetric with
-        respect to the axis connecting the two highest pixels. Furthermore, the charge must
-        decrease monotonically as the distance from the second-highest pixel increases.
+        If a cluster has 2 or less pixels above threshold, don't do anything. If it has more than
+        2 pixels, only keep the highest neighbor of the second pixel apart from the first two
+        pixels.
 
         Arguments
         ---------
@@ -195,66 +194,35 @@ class ClusteringBase:
         Returns
         -------
         pha : np.ndarray
-            The array of pulse heights of the pixels in the cluster after topology suppression,
+            The array of pulse heights of the pixels in the cluster after position suppression,
             ordered in decreasing order.
         col : np.ndarray
-            The array of column indexes of the pixels in the cluster after topology suppression,
+            The array of column indexes of the pixels in the cluster after position suppression,
             ordered in decreasing order of pulse height.
         row : np.ndarray
-            The array of row indexes of the pixels in the cluster after topology suppression,
+            The array of row indexes of the pixels in the cluster after position suppression,
             ordered in decreasing order of pulse height.
         """
-        # If the number of pixels above the zero suppression threshold or the cluster size is less
-        # than or equal to 2, we don't need to check the topology. We need to check the cluster
-        # size because with rectangular readout we might have clusters with less than 7 pixels.
+        # If we have 2 or less pixels above threshold, we can't do anything, just remove the zeros.
         if np.count_nonzero(pha) <= 2 or pha.size <= 2:
-            return pha, col, row
-        ind = [0, 1]
+            mask = pha > 0
+            return pha[mask], col[mask], row[mask]
+        # For events with more than 2 pixels above threshold, we keep only the highest neighbor of
+        # the second pixel.
         pix = list(zip(col, row))
-        # Otherwise, we start checking if pixel 3 and 4 are neighbors of pixel 2. We also need to
-        # check the cluster dimension
-        ind.extend([
-            i for i in range(2, 4)
-            if pha.size > i and pix[i] in self.grid.neighbors(*pix[1])
-            ])
-        # If both pixel 3 and 4 are neighbors of pixel 2, we check if pixel 5 and 6 are neighbors
-        # of pixel 3 or 4.
-        if len(ind) == 4:
-            ind.extend([
-                i for i in range(4, 6)
-                if pha.size > i and (
-                    pix[i] in self.grid.neighbors(*pix[2]) or
-                    pix[i] in self.grid.neighbors(*pix[3]))
-            ])
-        # If only one between pixel 3 and 4 is a neighbor of pixel 2, we should check if pixel 5
-        # is a neighbor of pixel 2.
-        elif len(ind) == 3:
-            if pha.size > 4 and pix[4] in self.grid.neighbors(*pix[1]):
-                ind.append(4)
-                # If this condition is true, then we have to check if pixel 6 is a neighbor of the
-                # third good pixel (3 or 4) and pixel 5 (the fourth good pixel).
-                if pha.size > 5 and ((pix[5] in self.grid.neighbors(*pix[ind[-1]])) or
-                   (pix[5] in self.grid.neighbors(*pix[ind[-2]]))):
-                    ind.append(5)
-            else:
-                # If pixel 5 is not a neighbor of pixel 2, we check if pixel 6 is a neighbor of
-                # pixel 2.
-                if pha.size > 5 and pix[5] in self.grid.neighbors(*pix[1]):
-                    ind.append(5)
-        # If none of pixel 3 and 4 is a neighbor of pixel 2, we have to check if pixel 5 and 6 are
-        # neighbors of pixel 2.
-        elif len(ind) == 2:
-            ind.extend([
-                i for i in range(4, 6)
-                if pha.size > i and pix[i] in self.grid.neighbors(*pix[1])
-            ])
-        # Finally, we set to zero the pixels that are not in the good topology.
-        out = pha.copy()
-        diff = np.setdiff1d(np.arange(0, len(out)), ind)
-        out[diff] = 0
-        # Sort the pha array in decreasing order and reorder the col and row arrays
-        idx = np.argsort(-out)
-        return out[idx], col[idx], row[idx]
+        # We find the neighbors of the second pixel.
+        neighbors = set(self.grid.neighbors(col[1], row[1]))
+        # We always keep the first two pixels, plus the two neighbors of the second pixel.
+        mask = [True, True] + [p in neighbors for p in pix[2:]]
+        mask = mask & (pha > 0)
+        # Throw away the pixels that are not neighbors of the second pixel and that are zero.
+        out_pha = pha[mask]
+        out_col = col[mask]
+        out_row = row[mask]
+        # Sort the arrays in decreasing order of pulse height.
+        idx = np.argsort(-out_pha)[:3]
+        return out_pha[idx], out_col[idx], out_row[idx]
+
 
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
@@ -325,15 +293,7 @@ class ClusteringNN(ClusteringBase):
         # This is useless for the circular readout because in that case all
         # neighbors are used for track reconstruction.
         mask = idx[:self.num_neighbors + 1]
-        # Sort the arrays in decreasing order before applying the topology suppression.
-        pha, col, row = self.topology_suppress(pha[mask], col[mask], row[mask])
-        # The returned arrays have already been re-sorted in decreasing order, so we just need
-        # to remove the pixels with zero pha.
-        # If there's any zero left in the target pixels, get rid of it.
-        mask = mask[pha > 0]
-        # Trim the relevant arrays.
-        col = col[mask]
-        row = row[mask]
-        pha = pha[mask]
+        # Sort the arrays in decreasing order before applying the position suppression.
+        pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
         x, y = self.grid.pixel_to_world(col, row)
         return Cluster(x, y, pha)
