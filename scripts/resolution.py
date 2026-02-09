@@ -7,7 +7,7 @@ from aptapy.plotting import plt
 from hexsample.fileio import ReconInputFile
 from hexsample.hexagon import HexagonalLayout
 from hexsample.pipeline import reconstruct, simulate
-from hexsample.resolution import eef, eef_size_scan, resolution_spatial_dependence
+from hexsample.resolution import eef, eef_size_scan, eew, resolution_spatial_dependence
 
 __description__ = ""
 
@@ -102,7 +102,7 @@ def resolution(**kwargs):
     best_recon_file.close()
 
     # Study the resolution as a function of zero sup threshold for both algorithms
-    zero_sup_ratios = np.linspace(0, 3, 4)
+    zero_sup_ratios = np.linspace(0, 3, 13)
     recon_kwargs = dict(input_file=str(simulation_path),
                         max_neighbors=6)
     eef_zsup_centroid_fig = plt.figure(f"eef_vs_zsup_centroid_enc{enc}")
@@ -126,6 +126,7 @@ def resolution(**kwargs):
 
     eef_zsup_best_fig = plt.figure(f"eef_vs_zsup_best_enc{enc}")
     print("Reconstructing files for eta algorithm...")
+    eew_list = []
     for zero_sup_ratio in zero_sup_ratios:
         zsup = int(zero_sup_ratio * enc)
         suffix = f"recon_zsuprec{zsup}_best"
@@ -136,13 +137,18 @@ def resolution(**kwargs):
         # Open file and plot EEF
         recon_file = ReconInputFile(str(file_path))
         plt.plot(x, eef(x, recon_file, max_neighbors=6), label=f"zsup/enc {zero_sup_ratio}")
+        eew_list.append(eew(recon_file, quantile=0.9, max_neighbors=6))
         recon_file.close()
-
     plt.xlabel(xlabel = r"$r/p$")
     plt.ylabel("Encircled Energy Fraction")
     plt.xlim(x[0], x[-1])
     plt.ylim(0, 1)
     plt.legend()
+
+    plt.figure("encircled_energy_width_@0.9vs_zsup")
+    plt.plot(zero_sup_ratios, eew_list, ".k")
+    plt.xlabel("Zero suppression threshold / ENC")
+    plt.ylabel("Encircled Energy Width @ 0.9")
 
     # Save figures, if requested
     if kwargs["save"]:
