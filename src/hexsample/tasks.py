@@ -163,6 +163,7 @@ class ReconstructionDefaults:
     suffix: str = "recon"
     zero_sup_threshold: int = 0
     num_neighbors: int = 2
+    max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
     eta_2pix_rad: float = 0.127
     eta_3pix_rad0: float = 0.513
@@ -175,6 +176,7 @@ def reconstruct(
         suffix: str = ReconstructionDefaults.suffix,
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
+        max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
         eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
@@ -203,6 +205,10 @@ def reconstruct(
 
     num_neighbors : int
         The number of neighbor pixels to be used for the clustering.
+    
+    max_neighbors : int
+        The maximum number of neighbor pixels to be used for the clustering. If max_neighbors is
+        specified (i.e. different from -1), it has priority over num_neighbors.
 
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
@@ -235,16 +241,23 @@ def reconstruct(
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
 
+    # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
+    # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
+    # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
+    # to the circular.
+    effective_neighbors = max_neighbors if max_neighbors >= 0 else num_neighbors
     # Run the actual reconstruction.
-    clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors)
+    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors)
     output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
     output_file = ReconOutputFile(output_file_path)
     if header_kwargs is not None:
         output_file.update_header(**header_kwargs)
     output_file.update_digi_header(**input_file.header)
+    # Create a list of acceptable cluster sizes.
+    size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
-        if num_neighbors == 0 or cluster.size() == num_neighbors:
+        if cluster.size() in size:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
@@ -378,6 +391,5 @@ def quicklook(input_file_path: str) -> None:
     binning = np.linspace((y-y_mc).min(), (y-y_mc).max(), 100)
     histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y-y_mc)
     histy.plot()
-
     input_file.close()
     plt.show()
