@@ -138,7 +138,10 @@ class Cluster:
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the probit function.
-            r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
+            probit = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
+            eta_max = 0.0423
+            linear = Probit().evaluate(eta_max, 0.5, eta_2pix_rad) / eta_max * _eta[0]
+            r = np.where(_eta[0] < eta_max, linear, probit)
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:
