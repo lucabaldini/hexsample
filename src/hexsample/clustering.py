@@ -174,11 +174,61 @@ class ClusteringBase:
         out[out <= self.zero_sup_threshold] = 0
         return out
 
+    def position_suppress(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray
+                          ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Suppress pixels in the cluster that do not satisfy the position requirements.
+
+        If the cluster contains 2 or fewer pixels, no action is taken. For clusters with 
+        more than 2 pixels, the algorithm retains the two most charged pixels and 
+        only one additional neighbor (the one with the highest charge) of the second 
+        pixel, discarding all others.
+
+        Arguments
+        ---------
+        pha : np.ndarray
+            The array of pulse heights of the pixels in the cluster, ordered in decreasing order.
+        col : np.ndarray
+            The array of column indexes of the pixels in the cluster.
+        row : np.ndarray
+            The array of row indexes of the pixels in the cluster.
+        
+        Returns
+        -------
+        pha : np.ndarray
+            The array of pulse heights of the pixels in the cluster after position suppression,
+            ordered in decreasing order.
+        col : np.ndarray
+            The array of column indexes of the pixels in the cluster after position suppression,
+            ordered in decreasing order of pulse height.
+        row : np.ndarray
+            The array of row indexes of the pixels in the cluster after position suppression,
+            ordered in decreasing order of pulse height.
+        """
+        # If we have 2 or less pixels above threshold, we can't do anything, just remove the zeros.
+        if np.count_nonzero(pha) <= 2 or pha.size <= 2:
+            mask = pha > 0
+            return pha[mask], col[mask], row[mask]
+        # For events with more than 2 pixels above threshold, we keep only the highest neighbor of
+        # the second pixel.
+        pix = list(zip(col, row))
+        # We find the neighbors of the second pixel.
+        neighbors = set(self.grid.neighbors(col[1], row[1]))
+        # We always keep the first two pixels, plus the two neighbors of the second pixel.
+        mask = [True, True] + [p in neighbors for p in pix[2:]]
+        mask = mask & (pha > 0)
+        # Throw away the pixels that are not neighbors of the second pixel and that are zero.
+        out_pha = pha[mask]
+        out_col = col[mask]
+        out_row = row[mask]
+        # Sort the arrays in decreasing order of pulse height.
+        idx = np.argsort(-out_pha)[:3]
+        return out_pha[idx], out_col[idx], out_row[idx]
+
+
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
         raise NotImplementedError
-
 
 
 @dataclass
@@ -244,11 +294,7 @@ class ClusteringNN(ClusteringBase):
         # This is useless for the circular readout because in that case all
         # neighbors are used for track reconstruction.
         mask = idx[:self.num_neighbors + 1]
-        # If there's any zero left in the target pixels, get rid of it.
-        mask = mask[pha[mask] > 0]
-        # Trim the relevant arrays.
-        col = col[mask]
-        row = row[mask]
-        pha = pha[mask]
+        # Sort the arrays in decreasing order before applying the position suppression.
+        pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
         x, y = self.grid.pixel_to_world(col, row)
         return Cluster(x, y, pha)

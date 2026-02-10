@@ -11,8 +11,11 @@ Release notes
 * `--max-neighbors` option added to the cli interface.
 * eta reconstructions modified to use the centroid for events with more than
   three pixels.
+* New suppression step added to accept at most three pixels in a cluster, with the condition
+  that all the pixels are neighbors.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/9
   - https://github.com/lucabaldini/hexsample/pull/94
   - https://github.com/lucabaldini/hexsample/pull/92
 
