@@ -192,9 +192,10 @@ class ClusteringBase:
                           ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Suppress pixels in the cluster that do not satisfy the position requirements.
 
-        If a cluster has 2 or less pixels above threshold, don't do anything. If it has more than
-        2 pixels, only keep the highest neighbor of the second pixel apart from the first two
-        pixels.
+        If the cluster contains 2 or fewer pixels, no action is taken. For clusters with 
+        more than 2 pixels, the algorithm retains the two most charged pixels and 
+        only one additional neighbor (the one with the highest charge) of the second 
+        pixel, discarding all others.
 
         Arguments
         ---------
