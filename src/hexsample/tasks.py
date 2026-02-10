@@ -265,7 +265,7 @@ def reconstruct(
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
-                                     eta_2pix_rad, eta_2pix_pivot,eta_3pix_rad0, eta_3pix_rad1,
+                                     eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1,
                                      eta_3pix_rad_pivot, eta_3pix_theta0)
             mc_event = input_file.mc_event(i)
             output_file.add_row(recon_event, mc_event)

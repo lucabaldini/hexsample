@@ -144,19 +144,23 @@ class Cluster:
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the probit function.
-            probit = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
-            linear = Probit().evaluate(eta_2pix_pivot, 0.5, eta_2pix_rad) / eta_2pix_pivot * _eta[0]
-            r = np.where(_eta[0] < eta_2pix_pivot, linear, probit)
+            if _eta[0] > eta_2pix_pivot or eta_2pix_pivot <= 0.:
+                r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
+            else:
+                y_pivot = Probit().evaluate(eta_2pix_pivot, 0.5, eta_2pix_rad)
+                r = y_pivot / eta_2pix_pivot * _eta[0]
+                print("USING LINEAR")
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:
             # For 3-pixel events we estimate both r and theta using the probit function.
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
-            probit = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
-            y_pivot = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad0, eta_3pix_rad1)
-            linear = y_pivot / eta_3pix_rad_pivot * eta_sum
-            r = np.where(eta_sum < eta_3pix_rad_pivot, linear, probit)
+            if eta_sum > eta_3pix_rad_pivot or eta_3pix_rad_pivot <= 0.:
+                r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
+            else:
+                y_pivot = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad0, eta_3pix_rad1)
+                r = y_pivot / eta_3pix_rad_pivot * eta_sum
             theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
             # Reconstructing the position using r and theta
             x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
@@ -224,7 +228,7 @@ class ClusteringBase:
         # We find the neighbors of the second pixel.
         neighbors = set(self.grid.neighbors(col[1], row[1]))
         # We always keep the first two pixels, plus the two neighbors of the second pixel.
-        mask = [True, True] + [p in neighbors for p in pix[2:]]
+        mask = np.array([True, True] + [p in neighbors for p in pix[2:]], dtype=bool)
         mask = mask & (pha > 0)
         # Throw away the pixels that are not neighbors of the second pixel and that are zero.
         out_pha = pha[mask]

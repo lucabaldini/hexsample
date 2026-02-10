@@ -165,6 +165,8 @@ def eew(input_file: ReconInputFile, quantile: float, num_neighbors: int = 0,
         The Encircled Energy Width (EEW) evaluated at a given quantile, expressed in pitch
         normalized units.
     """
+    if not (0 <= quantile <= 1):
+        raise ValueError(f"Quantile must be between 0 and 1, got {quantile}.")
     hist = hist_distance_residuals(input_file, num_neighbors, max_neighbors)
     return hist.ppf(quantile)
 

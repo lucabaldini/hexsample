@@ -277,7 +277,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_2pix_pivot",
                            default=tasks.ReconstructionDefaults.eta_2pix_pivot,
                            type=float,
-                           help="transition value from linear (0 to pivot) to probit (> pivot)" \
+                           help="transition value from linear (0 to pivot) to probit (> pivot) " \
                            "for two pixel events eta reconstruction")
         group.add_argument("--eta_3pix_rad0",
                            default=tasks.ReconstructionDefaults.eta_3pix_rad0,
@@ -292,7 +292,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_rad_pivot",
                            default=tasks.ReconstructionDefaults.eta_3pix_rad_pivot,
                            type=float,
-                           help="transition value from linear (0 to pivot) to probit (> pivot)" \
+                           help="transition value from linear (0 to pivot) to probit (> pivot) " \
                            "for three pixel events radial component eta reconstruction")
         group.add_argument("--eta_3pix_theta0",
                            default=tasks.ReconstructionDefaults.eta_3pix_theta0,

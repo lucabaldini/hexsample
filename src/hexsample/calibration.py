@@ -26,8 +26,7 @@ from aptapy.models import Probit
 from aptapy.plotting import last_line_color, plt
 from tqdm import tqdm
 
-from hexsample.clustering import ClusteringNN
-
+from .clustering import ClusteringNN
 from .fileio import DigiInputFileBase
 
 
@@ -160,30 +159,27 @@ def calibration_data(input_file: DigiInputFileBase, clustering: ClusteringNN, pi
     eta : np.ndarray
         Array containing the eta values for each event.
     """
-    # Create the arrays to store the data. These arrays are bigger than needed, but we don't know
-    # how many 2 and 3 pixel events we have.
-    n_max = len(list(input_file))
-    size = np.zeros(n_max, dtype=int)
-    photon_pos = np.zeros((n_max, 2))
-    versors = np.zeros((n_max, 2, 2))
-    eta = np.zeros(n_max, dtype=object)
-    count = 0
+    # Create the lists to store the data. 
+    size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
     # Loop over the events and calculate the interesting quantities.
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         # Analyze only 2-pixel and 3-pixel events.
         if cluster.size() == 2 or cluster.size() == 3:
             mc_event = input_file.mc_event(i)
-            size[count] = cluster.size()
+            size_list.append(cluster.size())
             # Calculate the photon position with respect to the most charged pixel
             ph_pos = np.array([mc_event.absx - cluster.x[0],
                                mc_event.absy - cluster.y[0]]) / pitch
-            photon_pos[count] = ph_pos
-            eta[count] = cluster.calculate_eta()
-            versors[count] = cluster.versors()
-            count += 1
-    # Slice the arrays to remove the empty entries
-    return size[:count], photon_pos[:count], versors[:count], eta[:count]
+            photon_pos_list.append(ph_pos)
+            eta_list.append(cluster.calculate_eta())
+            versors_list.append(cluster.versors())
+    # Convert the lists to numpy arrays
+    size = np.asarray(size_list, dtype=int)
+    photon_pos = np.asarray(photon_pos_list, dtype=float)
+    versors = np.asarray(versors_list, dtype=float)
+    eta = np.asarray(eta_list, dtype=object)
+    return size, photon_pos, versors, eta
 
 
 def calibrate_dr_2pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> float:
