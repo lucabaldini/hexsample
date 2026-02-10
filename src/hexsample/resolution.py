@@ -143,6 +143,34 @@ def eef(x: np.ndarray, input_file: ReconInputFile, num_neighbors: int = 0,
     return hist.cdf(x)
 
 
+def eew(input_file: ReconInputFile, quantile: float, num_neighbors: int = 0,
+        max_neighbors: int = -1) -> float:
+    """Calculate the Encircled Energy Width (EEW) for a given quantile and cluster size.
+
+    Arguments
+    ---------
+    input_file : ReconInputFile
+        The input file to analyze.
+    quantile : float
+        The quantile to be used for the EEW calculation.
+    num_neighbors : int, optional
+        The number of neighbors to be considered. Default is 0.
+    max_neighbors : int, optional
+        The maximum number of neighbors to be considered. If max_neighbors is specified, it has
+        priority over num_neighbors. Default is -1 (not used).
+
+    Returns
+    -------
+    eew : float
+        The Encircled Energy Width (EEW) evaluated at a given quantile, expressed in pitch
+        normalized units.
+    """
+    if not 0 <= quantile <= 1:
+        raise ValueError(f"Quantile must be between 0 and 1, got {quantile}.")
+    hist = hist_distance_residuals(input_file, num_neighbors, max_neighbors)
+    return hist.ppf(quantile)
+
+
 def hew(input_file: ReconInputFile, num_neighbors: int = 0,
         max_neighbors: int = -1) -> float:
     """Calculate the Half Energy Width (HEW) for a given cluster size.
@@ -162,8 +190,9 @@ def hew(input_file: ReconInputFile, num_neighbors: int = 0,
     hew : float
         The Half Energy Width (HEW) in pitch normalized units.
     """
-    hist = hist_distance_residuals(input_file, num_neighbors, max_neighbors)
-    return hist.ppf(0.5)
+    return eew(input_file, quantile=0.5,
+               num_neighbors=num_neighbors,
+               max_neighbors=max_neighbors)
 
 
 def eef_size_scan(x: np.ndarray, input_file: ReconInputFile) -> None:
@@ -182,16 +211,16 @@ def eef_size_scan(x: np.ndarray, input_file: ReconInputFile) -> None:
     color = "black"
     # Plot the EEFs for the different cluster sizes
     plt.plot(x, eef(x, input_file, 0),
-             label=f"1 pix (HEW={hew(input_file, 0):.2f})",
+             label=f"1 pix (EEF@86.5%={eew(input_file, quantile=0.865, num_neighbors=0):.2f})",
              linestyle=":", color=color)
     plt.plot(x, eef(x, input_file, 1),
-             label=f"2 pix (HEW={hew(input_file, 1):.2f})",
+             label=f"2 pix (EEF@86.5%={eew(input_file, quantile=0.865, num_neighbors=1):.2f})",
              linestyle="-", color=color)
     plt.plot(x, eef(x, input_file, 2),
-             label=f"3 pix (HEW={hew(input_file, 2):.2f})",
+             label=f"3 pix (EEF@86.5%={eew(input_file, quantile=0.865, num_neighbors=2):.2f})",
              linestyle="--", color=color)
     plt.plot(x, eef(x, input_file, max_neighbors=6),
-             label=f"All events (HEW={hew(input_file, max_neighbors=6):.2f})",
+             label=f"All events (EEF@86.5%={eew(input_file, quantile=0.865, max_neighbors=6):.2f})",
              linestyle="-.", color=color)
     # Plot the line corresponding to 50% of the energy
     plt.hlines(0.5, x[0], x[-1], colors="0.4", linestyles="--")
@@ -203,10 +232,12 @@ def eef_size_scan(x: np.ndarray, input_file: ReconInputFile) -> None:
     plt.legend()
 
 
-def resolution_spatial_dependence(input_file: ReconInputFile, num_neighbors: int = 1,
-                                  max_neighbors: int = -1) -> Tuple[np.ndarray, np.ndarray]:
+def resolution_spatial_dependence(input_file: ReconInputFile, quantile: float,
+                                  num_neighbors: int = 1, max_neighbors: int = -1
+                                  ) -> Tuple[np.ndarray, np.ndarray]:
     """Calculate the spatial dependence of the resolution. This is estimated by calculating the
-    Half Energy Width (HEW) as a function of the reconstructed distance from the true pixel center.
+    Encircled Energy Width (EEW) as a function of the reconstructed distance from the true pixel
+    center.
 
     Arguments
     ---------
@@ -222,8 +253,9 @@ def resolution_spatial_dependence(input_file: ReconInputFile, num_neighbors: int
     -------
     bin_centers : np.ndarray
         The bin centers of the reconstructed distance from the pixel center.
-    hews : np.ndarray
-        The HEW calculated for each bin of the reconstructed distance from the pixel center.
+    eews : np.ndarray
+        The Encircled Energy Width (EW) calculated for each bin of the reconstructed distance from
+        the pixel center.
     """
     # Select the cluster sizes we want and create the mask
     size = input_file.column("cluster_size")
@@ -240,13 +272,13 @@ def resolution_spatial_dependence(input_file: ReconInputFile, num_neighbors: int
     yedges = np.linspace(min(dr), max(dr), 101)
     hist = Histogram2d(xedges, yedges)
     hist.fill(dr0, dr)
-    # Calculate the hew for each slice of the histogram
+    # Calculate the Encircled Energy Width (EW) for each slice of the histogram
     bin_centers = hist.bin_centers()
-    hews = np.zeros(len(bin_centers))
+    eews = np.zeros(len(bin_centers))
     for i in range(len(bin_centers)):
         xslice = hist.slice1d(i)
         if xslice.content.sum() == 0:
-            hews[i] = np.nan
+            eews[i] = np.nan
         else:
-            hews[i] = xslice.ppf(0.5)
-    return bin_centers, hews
+            eews[i] = xslice.ppf(quantile)
+    return bin_centers, eews

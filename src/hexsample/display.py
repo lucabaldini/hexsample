@@ -231,8 +231,9 @@ class HexagonalGridDisplay:
         centroid_position = cluster.centroid()
         plt.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         # Calculate and plot eta reconstructed position.
-        eta_recon_args = (recon_defaults.eta_2pix_rad, recon_defaults.eta_3pix_rad0,
-                          recon_defaults.eta_3pix_rad1, recon_defaults.eta_3pix_theta0)
+        eta_recon_args = (recon_defaults.eta_2pix_rad, recon_defaults.eta_2pix_pivot,
+                          recon_defaults.eta_3pix_rad0, recon_defaults.eta_3pix_rad1,
+                          recon_defaults.eta_3pix_rad_pivot, recon_defaults.eta_3pix_theta0)
         try:
             eta_position = cluster.eta(*eta_recon_args, pitch=readout.pitch)
             # If cluster size is not 2 or 3, eta returns the centroid position, so we only
