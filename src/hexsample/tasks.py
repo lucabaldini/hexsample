@@ -166,10 +166,10 @@ class ReconstructionDefaults:
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
     eta_2pix_rad: float = 0.127
-    eta_2pix_pivot: float = 0.0423
+    eta_2pix_pivot: float = 0.04
     eta_3pix_rad0: float = 0.513
     eta_3pix_rad1: float = 0.141
-    eta_3pix_rad_pivot: float = 0.054
+    eta_3pix_rad_pivot: float = 0.05
     eta_3pix_theta0: float = 0.104
 
 
