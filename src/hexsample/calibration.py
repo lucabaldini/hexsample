@@ -226,7 +226,7 @@ def calibrate_dr_2pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
     eta_pivot = 0.0423
     xx = np.linspace(0, max(x), 100)
     yy = np.where(xx < eta_pivot, model(eta_pivot) / eta_pivot * xx, model(xx))
-    fig = plt.figure("test fit_2pix")
+    plt.figure("test fit_2pix")
     plt.plot(xx, yy, label="Fitted model", color=last_line_color())
     plt.errorbar(x, y, yerr=yerr, fmt=".k", label="Monte Carlo simulation")
     return model.sigma.value
@@ -275,7 +275,7 @@ def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
     eta_pivot = 0.054
     xx = np.linspace(0, max(x), 100)
     yy = np.where(xx < eta_pivot, model(eta_pivot) / eta_pivot * xx, model(xx))
-    fig = plt.figure("test fit_3pix")
+    plt.figure("test fit_3pix")
     plt.plot(xx, yy, label="Fitted model", color=last_line_color())
     plt.errorbar(x, y, yerr=yerr, fmt=".k", label="Monte Carlo simulation")
     return model.offset.value, model.sigma.value
