@@ -4,13 +4,15 @@ Release notes
 =============
 
 * Added rough support for DigiEventCircular objects in the event display.
-* New `resolution.py` module incorporating some common functions that were
+* New `resolution.py` and `calibration.py` modules incorporating some common functions that were
   previously living in the script area.
 * New script to calculate the EEF for events reconstructed with the
   different algorithms, disaggregated by cluster size.
-* `--max-neighbors` option added to the cli interface.
+* `--max_neighbors` option added to the cli interface.
 * eta reconstructions modified to use the centroid for events with more than
   three pixels.
+* Two parameters added to the eta reconstruction to control the transition from linear to probit
+  reconstruction for two and three pixel events.
 * New suppression step added to accept at most three pixels in a cluster, with the condition
   that all the pixels are neighbors.
 * Pull requests merged and issues closed:
