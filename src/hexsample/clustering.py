@@ -149,7 +149,6 @@ class Cluster:
             else:
                 y_pivot = Probit().evaluate(eta_2pix_pivot, 0.5, eta_2pix_rad)
                 r = y_pivot / eta_2pix_pivot * _eta[0]
-                print("USING LINEAR")
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:

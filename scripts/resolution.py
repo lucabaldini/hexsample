@@ -124,24 +124,24 @@ def resolution(**kwargs):
     zero_sup_ratios = np.linspace(0, 3, 13)
     recon_kwargs = dict(input_file=str(simulation_path),
                         max_neighbors=6)
-    eef_zsup_centroid_fig = plt.figure(f"eef_vs_zsup_centroid_enc{enc}")
-    print("Reconstructing files for centroid algorithm...")
-    for zero_sup_ratio in zero_sup_ratios:
-        zsup = int(zero_sup_ratio * enc)
-        suffix = f"recon_zsuprec{zsup}_centroid"
-        file_path = RESOLUTION_DIR / f"{file_prefix}_{suffix}.h5"
-        if not file_path.exists():
-            reconstruct(suffix=suffix, pos_recon_algorithm="centroid", zero_sup_threshold=zsup,
-                        **recon_kwargs)
-        # Open file and plot EEF
-        recon_file = ReconInputFile(str(file_path))
-        plt.plot(x, eef(x, recon_file, max_neighbors=6), label=f"zsup/enc {zero_sup_ratio}")
-        recon_file.close()
-    plt.xlabel(xlabel = r"$r/p$")
-    plt.ylabel("Encircled Energy Fraction")
-    plt.xlim(x[0], x[-1])
-    plt.ylim(0, 1)
-    plt.legend()
+    # eef_zsup_centroid_fig = plt.figure(f"eef_vs_zsup_centroid_enc{enc}")
+    # print("Reconstructing files for centroid algorithm...")
+    # for zero_sup_ratio in zero_sup_ratios:
+    #     zsup = int(zero_sup_ratio * enc)
+    #     suffix = f"recon_zsuprec{zsup}_centroid"
+    #     file_path = RESOLUTION_DIR / f"{file_prefix}_{suffix}.h5"
+    #     if not file_path.exists():
+    #         reconstruct(suffix=suffix, pos_recon_algorithm="centroid", zero_sup_threshold=zsup,
+    #                     **recon_kwargs)
+    #     # Open file and plot EEF
+    #     recon_file = ReconInputFile(str(file_path))
+    #     plt.plot(x, eef(x, recon_file, max_neighbors=6), label=f"zsup/enc {zero_sup_ratio}")
+    #     recon_file.close()
+    # plt.xlabel(xlabel = r"$r/p$")
+    # plt.ylabel("Encircled Energy Fraction")
+    # plt.xlim(x[0], x[-1])
+    # plt.ylim(0, 1)
+    # plt.legend()
 
     eef_zsup_best_fig = plt.figure(f"eef_vs_zsup_best_enc{enc}")
     print("Reconstructing files for eta algorithm...")
@@ -179,8 +179,8 @@ def resolution(**kwargs):
                          format=fig_format)
         sp_dep_fig.savefig(FIGURES_DIR / f"res_spatial_depend_{enc}enc_{zsup_th}zsup.{fig_format}",
                            format=fig_format)
-        eef_zsup_centroid_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_centroid_{enc}enc.{fig_format}",
-                                      format=fig_format)
+        # eef_zsup_centroid_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_centroid_{enc}enc.{fig_format}",
+        #                               format=fig_format)
         eef_zsup_best_fig.savefig(FIGURES_DIR / f"eef_vs_zsup_best_{enc}enc.{fig_format}",
                                   format=fig_format)
 
