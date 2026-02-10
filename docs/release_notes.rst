@@ -20,7 +20,6 @@ Release notes
   - https://github.com/lucabaldini/hexsample/pull/92
 
 
-
 Version 0.13.2 (2026-02-04)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
