@@ -103,8 +103,10 @@ class ReconEvent:
     method: str
     pitch: float
     eta_2pix_rad: float
+    eta_2pix_pivot: float
     eta_3pix_rad0: float
     eta_3pix_rad1: float
+    eta_3pix_rad_pivot: float
     eta_3pix_theta0: float
 
 
@@ -126,8 +128,10 @@ class ReconEvent:
         signature = inspect.signature(recon_method)
         available = {"pitch": self.pitch,
                      "eta_2pix_rad": self.eta_2pix_rad,
+                     "eta_2pix_pivot": self.eta_2pix_pivot,
                      "eta_3pix_rad0": self.eta_3pix_rad0,
                      "eta_3pix_rad1": self.eta_3pix_rad1,
+                     "eta_3pix_rad_pivot": self.eta_3pix_rad_pivot,
                      "eta_3pix_theta0": self.eta_3pix_theta0,
                      }
         args = [available[_par] for _par in signature.parameters]

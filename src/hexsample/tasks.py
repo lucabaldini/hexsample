@@ -166,8 +166,10 @@ class ReconstructionDefaults:
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
     eta_2pix_rad: float = 0.127
+    eta_2pix_pivot: float = 0.0423
     eta_3pix_rad0: float = 0.513
     eta_3pix_rad1: float = 0.141
+    eta_3pix_rad_pivot: float = 0.054
     eta_3pix_theta0: float = 0.104
 
 
@@ -179,8 +181,10 @@ def reconstruct(
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
         eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
+        eta_2pix_pivot: float = ReconstructionDefaults.eta_2pix_pivot,
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
         eta_3pix_rad1: float = ReconstructionDefaults.eta_3pix_rad1,
+        eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
         eta_3pix_theta0: float = ReconstructionDefaults.eta_3pix_theta0,
         header_kwargs: dict = None,
         ) -> str:
@@ -261,8 +265,8 @@ def reconstruct(
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
-                                     eta_2pix_rad, eta_3pix_rad0, eta_3pix_rad1,
-                                     eta_3pix_theta0)
+                                     eta_2pix_rad, eta_2pix_pivot,eta_3pix_rad0, eta_3pix_rad1,
+                                     eta_3pix_rad_pivot, eta_3pix_theta0)
             mc_event = input_file.mc_event(i)
             output_file.add_row(recon_event, mc_event)
     output_file.flush()

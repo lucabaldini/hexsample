@@ -223,7 +223,7 @@ def calibrate_dr_2pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
         fig_path = kwargs.get("path")
         fig.savefig(fig_path / "2pix_cal.pdf", format="pdf")
     # Test with a pivot
-    eta_pivot = 0.04
+    eta_pivot = 0.0423
     xx = np.linspace(0, max(x), 100)
     yy = np.where(xx < eta_pivot, model(eta_pivot) / eta_pivot * xx, model(xx))
     fig = plt.figure("test fit_2pix")

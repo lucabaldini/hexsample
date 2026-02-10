@@ -109,8 +109,8 @@ class Cluster:
                 v = np.zeros(2)
         return u, v
 
-    def eta(self, eta_2pix_rad: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
-            eta_3pix_theta0: float, pitch: float) -> Tuple[float, float]:
+    def eta(self, eta_2pix_rad: float, eta_2pix_pivot: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
+            eta_3pix_rad_pivot: float, eta_3pix_theta0: float, pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
         centroid.
@@ -119,10 +119,15 @@ class Cluster:
         ---------
         eta_2pix_rad : float
             Probit function sigma parameter for two pixel events.
+        eta_2pix_pivot : float
+            Transition value from linear (0 to pivot) to probit (> pivot) for two pixel events.
         eta_3pix_rad0 : float
             Probit function offset parameter for three pixel events radial position component.
         eta_3pix_rad1 : float
             Probit function sigma parameter for three pixel events radial position component.
+        eta_3pix_rad_pivot : float
+            Transition value from linear (0 to pivot) to probit (> pivot) for three pixel events
+            radial position component.
         eta_3pix_theta0 : float
             Probit function sigma parameter for three pixel events angular position component.
         pitch : float
@@ -139,16 +144,17 @@ class Cluster:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the probit function.
             probit = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
-            eta_max = 0.0423
-            linear = Probit().evaluate(eta_max, 0.5, eta_2pix_rad) / eta_max * _eta[0]
-            r = np.where(_eta[0] < eta_max, linear, probit)
+            linear = Probit().evaluate(eta_2pix_pivot, 0.5, eta_2pix_rad) / eta_2pix_pivot * _eta[0]
+            r = np.where(_eta[0] < eta_2pix_pivot, linear, probit)
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:
             # For 3-pixel events we estimate both r and theta using the probit function.
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
-            r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
+            probit = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
+            linear = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad0, eta_3pix_rad1) / eta_3pix_rad_pivot * eta_sum
+            r = np.where(eta_sum < eta_3pix_rad_pivot, linear, probit)
             theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
             # Reconstructing the position using r and theta
             x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
