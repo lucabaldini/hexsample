@@ -156,7 +156,7 @@ def resolution(**kwargs):
         # Open file and plot EEF
         recon_file = ReconInputFile(str(file_path))
         plt.plot(x, eef(x, recon_file, max_neighbors=6), label=f"zsup/enc {zero_sup_ratio}")
-        eew_list.append(eew(recon_file, quantile=0.9, max_neighbors=6))
+        eew_list.append(eew(recon_file, quantile=0.865, max_neighbors=6))
         recon_file.close()
     plt.xlabel(xlabel = r"$r/p$")
     plt.ylabel("Encircled Energy Fraction")
@@ -164,10 +164,10 @@ def resolution(**kwargs):
     plt.ylim(0, 1)
     plt.legend()
 
-    plt.figure("encircled_energy_width_@0.9vs_zsup")
+    plt.figure("encircled_energy_width_@0.865vs_zsup")
     plt.plot(zero_sup_ratios, eew_list, ".k")
     plt.xlabel("Zero suppression threshold / ENC")
-    plt.ylabel("Encircled Energy Width @ 0.9")
+    plt.ylabel(r"Encircled Energy Width @ 0.865 (2$\sigma$)")
 
     # Save figures, if requested
     if kwargs["save"]:
