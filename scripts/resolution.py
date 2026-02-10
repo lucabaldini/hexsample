@@ -113,7 +113,7 @@ def resolution(**kwargs):
     plt.plot(*resolution_spatial_dependence(centroid_recon_file, 0.865, max_neighbors=6),
              "vk", label="centroid", markersize=4.)
     plt.xlabel(r"$r_0 / p$")
-    plt.ylabel("Half Energy Width")
+    plt.ylabel(r"EEF @ 0.865 (2$\sigma$)")
     plt.legend()
 
     # Close the recon files
