@@ -159,7 +159,7 @@ def calibration_data(input_file: DigiInputFileBase, clustering: ClusteringNN, pi
     eta : np.ndarray
         Array containing the eta values for each event.
     """
-    # Create the lists to store the data. 
+    # Create the lists to store the data.
     size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
     # Loop over the events and calculate the interesting quantities.
     for i, event in tqdm(enumerate(input_file)):
