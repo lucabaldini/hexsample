@@ -109,8 +109,9 @@ class Cluster:
                 v = np.zeros(2)
         return u, v
 
-    def eta(self, eta_2pix_rad: float, eta_2pix_pivot: float, eta_3pix_rad0: float, eta_3pix_rad1: float,
-            eta_3pix_rad_pivot: float, eta_3pix_theta0: float, pitch: float) -> Tuple[float, float]:
+    def eta(self, eta_2pix_rad: float, eta_2pix_pivot: float, eta_3pix_rad0: float,
+            eta_3pix_rad1: float, eta_3pix_rad_pivot: float, eta_3pix_theta0: float,
+            pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
         centroid.
@@ -153,7 +154,8 @@ class Cluster:
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
             probit = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
-            linear = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad0, eta_3pix_rad1) / eta_3pix_rad_pivot * eta_sum
+            y_pivot = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad0, eta_3pix_rad1)
+            linear = y_pivot / eta_3pix_rad_pivot * eta_sum
             r = np.where(eta_sum < eta_3pix_rad_pivot, linear, probit)
             theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
             # Reconstructing the position using r and theta
