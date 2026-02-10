@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.13.3 (2026-02-10)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Added rough support for DigiEventCircular objects in the event display.
 * New `resolution.py` and `calibration.py` modules incorporating some common functions that were
   previously living in the script area.
