@@ -23,7 +23,8 @@
 import argparse
 
 from hexsample import __name__ as __package_name__
-from hexsample import __version__, hexagon, logging_, pipeline, readout, roi, sensor, source, tasks
+from hexsample import __version__, hexagon, logging_, pipeline, readout, \
+    roi, sensor, source, tasks
 
 
 def start_message() -> None:
@@ -113,6 +114,15 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_input_file(quicklook)
         self.add_logging_level(quicklook)
         quicklook.set_defaults(runner=pipeline.quicklook)
+
+        # Convert a .mdat3 file to a HDF5 digi file?
+        convert = subparsers.add_parser("convert",
+            help="convert a .mdat3 file to a HDF5 digi file",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_input_file(convert)
+        self.add_num_events(convert, default=None, intent="converted")
+        self.add_logging_level(convert)
+        convert.set_defaults(runner=pipeline.mdat3_to_digi)
 
     @staticmethod
     def add_input_file(parser: argparse.ArgumentParser) -> None:
