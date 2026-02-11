@@ -24,10 +24,13 @@ import struct
 
 import numpy as np
 
+import hexsample.xpol as xpol
 from hexsample.digi import DigiEventRectangular
 from hexsample.fileio import DigiOutputFileRectangular
 from hexsample.logging_ import logger
 from hexsample.roi import Padding, RegionOfInterest
+from hexsample.readout import ReadoutProxy
+
 
 
 class MDAT3File:
@@ -48,6 +51,7 @@ class MDAT3File:
     """
 
     EVENT_MARKER = b"\xff\xff"
+    DEFAULT_PADDING = Padding(7, 4, 4, 4)
 
     def __init__(self, file_path: str) -> None:
         """
@@ -55,8 +59,8 @@ class MDAT3File:
         self.file_path = file_path
         # We don't seem to keep track of the padding in the header, and I am
         # making up what I thing I understand from the data.
-        self._padding = Padding(6, 4, 5, 4)
         self._file_handle = None
+        self._padding = self.DEFAULT_PADDING
         self._eof = False
         self.header = None
 
@@ -141,8 +145,18 @@ def mdat3_to_digi(file_path: str, num_events: int = None) -> None:
     """
     if not file_path.endswith(".mdat3"):
         raise ValueError("input file must have .mdat3 extension")
-    output_file_path = file_path.replace(".mdat3", ".hdf5")
+    output_file_path = file_path.replace(".mdat3", ".h5")
     output_file = DigiOutputFileRectangular(output_file_path)
+    # We are hardcoding the readout layout here
+    readout_dict = dict(readout_mode="rectangular",
+                        layout=xpol.XPOL3_LAYOUT,
+                        num_cols=xpol.XPOL3_SIZE[0],
+                        num_rows=xpol.XPOL3_SIZE[1],
+                        pitch=xpol.XPOL_PITCH,
+                        enc=None,
+                        gain=None,
+                        padding=MDAT3File.DEFAULT_PADDING)
+    output_file.update_header(**readout_dict)
     with MDAT3File(file_path) as input_file:
         for i, event in enumerate(input_file):
             if i == num_events:
