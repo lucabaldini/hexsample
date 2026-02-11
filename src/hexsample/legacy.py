@@ -23,13 +23,14 @@
 import struct
 
 import numpy as np
+from tqdm import tqdm
 
-import hexsample.xpol as xpol
-from hexsample.digi import DigiEventRectangular
-from hexsample.fileio import DigiOutputFileRectangular
-from hexsample.logging_ import logger
-from hexsample.roi import Padding, RegionOfInterest
-from hexsample.readout import ReadoutProxy
+from . import xpol
+from .digi import DigiEventRectangular
+from .fileio import DigiOutputFileRectangular
+from .logging_ import logger
+from .roi import Padding, RegionOfInterest
+from .readout import ReadoutProxy
 
 
 
@@ -108,7 +109,10 @@ class MDAT3File:
     def _read_event(self) -> None:
         """Read an event from the .mdat3 file.
         """
-        if self._file_handle.read(2) != self.EVENT_MARKER:
+        marker = self._file_handle.read(2)
+        if marker == b"":
+            raise ValueError("end of file reached")
+        if marker != self.EVENT_MARKER:
             logger.error(f"Invalid event marker at position {self._file_handle.tell() - 2}")
             while True:
                 byte = self._file_handle.read(2)
@@ -173,7 +177,7 @@ def mdat3_to_digi(file_path: str, num_events: int = None) -> None:
                         padding=MDAT3File.DEFAULT_PADDING)
     output_file.update_header(**readout_dict)
     with MDAT3File(file_path) as input_file:
-        for i, event in enumerate(input_file):
+        for i, event in tqdm(enumerate(input_file)):
             if i == num_events:
                 #output_file.flush()
                 output_file.close()
