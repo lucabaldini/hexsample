@@ -109,10 +109,22 @@ class MDAT3File:
         """Read an event from the .mdat3 file.
         """
         if self._file_handle.read(2) != self.EVENT_MARKER:
-            raise ValueError("event header not found")
+            logger.error(f"Invalid event marker at position {self._file_handle.tell() - 2}")
+            while True:
+                byte = self._file_handle.read(2)
+                if byte == self.EVENT_MARKER:
+                    self._file_handle.seek(-2, 1)
+                    return None
         xmin, xmax, ymin, ymax = self._read16(), self._read16(), self._read16(), self._read16()
         roi = RegionOfInterest(xmin, xmax, ymin, ymax, self._padding)
         trigger_id = self._read32()
+        if roi.size <= 0:
+            logger.error(f"invalid ROI: {roi} at trigger ID {trigger_id}")
+            while True:
+                byte = self._file_handle.read(2)
+                if byte == self.EVENT_MARKER:
+                    self._file_handle.seek(-2, 1)
+                    return None
         livetime, microseconds, seconds = self._read32(), self._read32(), self._read32()
         # We are not using the status word and error summary, but we need to read
         # them to move the file pointer to the right position for the PHA values.
@@ -131,7 +143,10 @@ class MDAT3File:
         if self._eof:
             raise StopIteration
         try:
-            return self._read_event()
+            event = None
+            while event is None:
+                event = self._read_event()
+            return event
         except ValueError:
             self._eof = True
             raise StopIteration
