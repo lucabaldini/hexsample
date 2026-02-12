@@ -186,3 +186,6 @@ class RegionOfInterest:
             row >= self.min_row + self.padding.top,
             row <= self.max_row - self.padding.bottom
         ))
+
+    def readout_slice(self) -> Tuple[slice, slice]:
+        return slice(self.min_row, self.max_row + 1), slice(self.min_col, self.max_col + 1)
