@@ -612,20 +612,6 @@ class DigiInputFileRectangular(DigiInputFileBase):
         pha = self.pha_array[row_index]
         return DigiEventRectangular.from_digi(row, pha)
 
-    def __iter__(self):
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index = -1
-        return self
-
-    def __next__(self) -> DigiEventRectangular:
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index += 1
-        if self.__index == len(self.digi_table):
-            raise StopIteration
-        return self.digi_event(self.__index)
-
 
 class DigiInputFileCircular(DigiInputFileBase):
 
@@ -654,19 +640,6 @@ class DigiInputFileCircular(DigiInputFileBase):
         row = self.digi_table[row_index]
         return DigiEventCircular.from_digi(row)
 
-    def __iter__(self):
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index = -1
-        return self
-
-    def __next__(self) -> DigiEventCircular:
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index += 1
-        if self.__index == len(self.digi_table):
-            raise StopIteration
-        return self.digi_event(self.__index)
 
 
 class ReconInputFile(InputFileBase):
