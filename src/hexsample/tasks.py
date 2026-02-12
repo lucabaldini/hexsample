@@ -260,15 +260,22 @@ def reconstruct(
     # Create a list of acceptable cluster sizes.
     size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]
     for i, event in tqdm(enumerate(input_file)):
-        cluster = clustering.run(event)
+        try:
+            cluster = clustering.run(event)
+        except IndexError as e:
+            logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
         if cluster.size() in size:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
-                                     eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1,
-                                     eta_3pix_rad_pivot, eta_3pix_theta0)
-            mc_event = input_file.mc_event(i)
+                                    eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1,
+                                    eta_3pix_rad_pivot, eta_3pix_theta0)
+            try:
+                mc_event = input_file.mc_event(i)
+            except IndexError:
+                mc_event = None
             output_file.add_row(recon_event, mc_event)
+            
     output_file.flush()
     input_file.close()
     output_file.close()
@@ -331,7 +338,7 @@ def display(
     logger.info(f"Readout chip: {readout}")
     grid_display = HexagonalGridDisplay(readout)
     for i, event in enumerate(input_file):
-        if event_id is not None and i != event_id:
+        if event_id is not None and event.trigger_id != event_id:
             continue
         recon_defaults = ReconstructionDefaults
         grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)

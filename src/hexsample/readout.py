@@ -366,7 +366,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         pha = np.full(roi.shape(), 0.)
         # ...and then we patch the original signal array into the proper submask.
         num_rows, num_cols = signal.shape
-        start_row = self.padding.bottom - trg_rows.min()
+        start_row = self.padding.top - trg_rows.min()
         start_col = self.padding.left - trg_cols.min()
         pha[start_row:start_row + num_rows, start_col:start_col + num_cols] = signal
         # And do not forget to increment the trigger identifier!

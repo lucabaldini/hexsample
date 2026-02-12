@@ -494,7 +494,8 @@ class ReconOutputFile(OutputFileBase):
         """
         # pylint: disable=arguments-differ
         _fill_recon_row(self.recon_table.row, recon_event)
-        _fill_mc_row(self.mc_table.row, mc_event)
+        if mc_event:
+            _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.
