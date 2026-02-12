@@ -21,13 +21,127 @@
 """
 
 import numpy as np
+import tables
 from aptapy.hist import Histogram2d
 from aptapy.models import Probit
 from aptapy.plotting import last_line_color, plt
 from tqdm import tqdm
 
-from .clustering import ClusteringNN
+from hexsample.hexagon import HexagonalLayout, HexagonalGrid
+
+from .clustering import ClusteringNN, Cluster
+from .digi import DigiEventRectangular
 from .fileio import DigiInputFileBase
+
+
+
+class CalibrationMatrixBase:
+
+    # not sure if i want to pass a digiinputfile or the file path and
+    # handle the opening of the file here
+    def __init__(self, num_cols, num_rows):
+        self._shape = (num_rows, num_cols)
+        self.value = np.zeros(self._shape)
+        self.num_events = np.zeros(self._shape, dtype=int)
+        # self.std = np.zeros(self._shape)
+    
+    @staticmethod
+    def bad_event(event: DigiEventRectangular) -> bool:
+        # This cut removes ~5% of events.
+        roi_shape = event.roi.shape()
+        return roi_shape[0] * roi_shape[1] > 200
+
+    def normalize(self):
+        with np.errstate(divide='ignore', invalid='ignore'):
+            return np.where(self.num_events > 0, self.value / self.num_events, 0.)
+
+
+    def _update_header(self, attrs):
+        pass
+
+    def to_hdf5(self, path):
+        with tables.File(path, "w") as out_file:
+            root = out_file.root
+            out_file.create_array(root, "value", self.normalize())
+            out_file.create_array(root, "num_events", self.num_events)
+
+            self._update_header(root._v_attrs)
+
+    @classmethod
+    def from_hdf5(cls, path):
+        with tables.File(path, "r") as h5file:
+            value = h5file.root.value[:]
+            num_events = h5file.root.num_events[:]
+
+            attrs = h5file.root._v_attrs
+            if hasattr(attrs, "energy") and hasattr(attrs, "zero_sup_threshold"):
+                obj = cls(value.shape[1], value.shape[0], energy=attrs.energy,
+                        zero_sup_threshold=attrs.zero_sup_threshold)
+                obj._energy = attrs.energy
+                obj._zero_sup_threshold = attrs.zero_sup_threshold
+            else:
+                obj = cls(value.shape[1], value.shape[0])
+            obj.value = value
+            obj.num_events = num_events
+
+        return obj
+
+
+class CalibrationMatrixNoise(CalibrationMatrixBase):
+    def __init__(self, num_cols, num_rows, default: float = 0.):
+        super().__init__(num_cols, num_rows)
+        self._default = default
+    
+    def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
+        seed_col, seed_row = event.highest_pixel(absolute=False)
+        pha = event.pha.copy()
+        pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
+        return pha
+
+
+    def __iadd__(self, event: DigiEventRectangular):
+        if self.bad_event(event):
+            return self
+        row_slice, col_slice = event.roi.readout_slice()
+        noise_pha = self._remove_signal(event)
+        self.value[row_slice, col_slice] += noise_pha
+        self.num_events[row_slice, col_slice][noise_pha > 0] += 1
+
+        return self
+
+
+
+
+
+class CalibrationMatrixGain(CalibrationMatrixBase):
+
+    def __init__(self, num_cols, num_rows, energy, zero_sup_threshold):
+        super().__init__(num_cols, num_rows)
+        self._energy = energy
+        self._zero_sup_threshold = zero_sup_threshold
+
+    
+    def event_size(self, event) -> int:
+        # This is not accurate, but we have to use clustering otherwise
+        seed_col, seed_row = event.highest_pixel(absolute=False)
+        pha = event.pha.copy()
+        pha[pha < self._zero_sup_threshold] = 0
+        size = np.count_nonzero(pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2])
+        return size
+
+    def __iadd__(self, event: DigiEventRectangular):
+        if self.event_size(event) != 1 or self.bad_event(event):
+            return self
+        col, row = event.highest_pixel(absolute=True)
+        seed_col, seed_row = event.highest_pixel(absolute=False)
+        self.value[row, col] += event.pha[seed_row, seed_col] / (self._energy / 3.6)
+        self.num_events[row, col] += 1
+        return self
+
+    def _update_header(self, attrs):
+        attrs.energy = self._energy
+        attrs.zero_sup_threshold = self._zero_sup_threshold
+
 
 
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
