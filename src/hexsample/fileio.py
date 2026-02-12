@@ -556,7 +556,17 @@ class DigiInputFileBase(InputFileBase):
         """Return a given column in the Monte Carlo table.
         """
         return self.mc_table.col(name)
+    
+    def digi_event(self, row_index: int) -> DigiEventBase:
+        """Random access to the DigiEvent part of the event contribution.
 
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        raise NotImplementedError
+    
     def mc_event(self, row_index: int) -> MonteCarloEvent:
         """Random access to the MonteCarloEvent part of the event contribution.
 
