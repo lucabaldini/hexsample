@@ -105,6 +105,11 @@ class CalibrationMatrixBase(ABC):
         """
         pass
 
+    def _save_other_data(self, h5file: tables.File) -> None:
+        """Save any other data that is specific to the derived class in the HDF5 file.
+        """
+        pass
+
     def to_hdf5(self, file_path: str) -> str:
         """Save the calibration matrix to an HDF5 file at the given path.
 
@@ -118,6 +123,8 @@ class CalibrationMatrixBase(ABC):
             # Save the value and the number of events matrices as arrays in the HDF5 file.
             h5file.create_array(root, "value", self.value)
             h5file.create_array(root, "num_events", self.num_events)
+            # Save any other data that is specific to the derived class.
+            self._save_other_data(h5file)
             # Update the header with the relevant information.
             self._update_header(root._v_attrs)
         return file_path
@@ -181,6 +188,12 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         is estimated as the mean of the noise distribution for each pixel.
     """
 
+    def __init__(self, num_cols: int, num_rows: int, default: float | None = None) -> None:
+        """Class constructor.
+        """
+        super().__init__(num_cols, num_rows, default)
+        self.noise_counts = np.zeros(50, dtype=int)
+
     @property
     def default(self) -> float:
         """Calculate the default value of the noise level for pixels with no events. If a default
@@ -224,6 +237,11 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
             The AttributeSet object to be updated with the relevant information for the noise
         """
         attrs.default = self.default
+    
+    def _save_other_data(self, h5file: tables.File) -> None:
+        """Save the noise counts histogram in the HDF5 file.
+        """
+        h5file.create_array(h5file.root, "noise_counts", self.noise_counts)
 
     def __iadd__(self, event: DigiEventRectangular):
         """Overloaded method.
@@ -236,6 +254,10 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         row_slice, col_slice = event.roi.readout_slice()
         self._sum[row_slice, col_slice] += noise_pha
         self.num_events[row_slice, col_slice][noise_pha > 0] += 1
+        # Update the noise counts histogram to determine the noise distribution
+        for count in noise_pha[noise_pha > 0]:
+            if count < len(self.noise_counts):
+                self.noise_counts[count] += 1
         return self
 
 
@@ -262,8 +284,8 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         The zero suppression threshold used in the clustering of the events, in ADC counts.
     """
 
-    def __init__(self, num_cols: int, num_rows: int, default: float | None, energy: float,
-                 zero_sup_threshold: float) -> None:
+    def __init__(self, num_cols: int, num_rows: int, energy: float, zero_sup_threshold: float,
+                 default: float | None = None) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
