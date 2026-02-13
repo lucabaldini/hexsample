@@ -577,6 +577,13 @@ class DigiInputFileBase(InputFileBase):
         """
         row =  self.mc_table[row_index]
         return MonteCarloEvent(*row)
+    
+    def current_mc_event(self) -> MonteCarloEvent:
+        """Return the MonteCarloEvent corresponding to the current event index.
+        """
+        if self.__index == -1:
+            raise IndexError("No event has been picked yet.")
+        return self.mc_event(self.__index)
 
     def __iter__(self):
         """Overloaded method for the implementation of the iterator protocol.
