@@ -366,6 +366,14 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         self.num_events[row, col] += 1
         return self
 
+    def flat_field(self) -> np.ndarray:
+        """Create a flat field image for the gain calibration matrix by sampling the gain
+        distribution for pixels with events.
+        """
+        counts, bins = np.histogram(self.value[self.num_events > 0], bins=100)
+        bin_centers = (bins[:-1] + bins[1:]) / 2
+        return np.random.choice(bin_centers, size=self._shape, p=counts/np.sum(counts))
+
 
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
             ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
