@@ -60,10 +60,10 @@ class CalibrationMatrixBase(ABC):
         """Class constructor.
         """
         self._shape = (num_rows, num_cols)
+        self._default = default
         # Create the arrays to store the calibration data and the number of events for each pixel.
         self._sum = np.zeros(self._shape)
         self.num_events = np.zeros(self._shape, dtype=int)
-        self._default = default
 
     @property
     @abstractmethod
@@ -146,11 +146,11 @@ class CalibrationMatrixBase(ABC):
             if hasattr(attrs, "energy") and hasattr(attrs, "zero_sup_threshold"):
                 obj = cls(value.shape[1], value.shape[0],
                           energy=attrs.energy,
-                          zero_sup_threshold=attrs.zero_sup_threshold)
+                          zero_sup_threshold=attrs.zero_sup_threshold,
+                          default=attrs.default)
             else:
-                obj = cls(value.shape[1], value.shape[0])
-            # With this logic we can update the instance with new events, as it has all the info
-            # to reconstruct the calibration matrix (_sum and num_events).
+                obj = cls(value.shape[1], value.shape[0], default=attrs.default)
+                obj.histogram = h5file.root.histogram[:]
             obj._sum = value * num_events
             obj.num_events = num_events
         return obj
@@ -190,14 +190,13 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
-        self.noise_counts = np.zeros(50, dtype=int)
+        self.histogram = np.zeros(50, dtype=int)
 
     @property
     def default(self) -> float:
         """Calculate the default value of the noise level for pixels with no events. If a default
         value is provided in the constructor, set that value as the default. Otherwise, its value
-        is estimated using the relation between the mean and the sigma of half of a normal
-        distribution with mean 0 and sigma equal to the noise level.
+        is estimated using the mean of pixel noise distribution.
         """
         # If the default value is provided, return it.
         if self._default is not None:
@@ -209,7 +208,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         with np.errstate(divide='ignore', invalid='ignore'):
             tmp_value = self._sum[self.num_events > 0] / self.num_events[self.num_events > 0]
             mean_noise = np.mean(tmp_value)
-            return mean_noise / (2 / np.pi) ** 0.5
+            return mean_noise
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
         """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3
@@ -239,7 +238,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
     def _save_other_data(self, h5file: tables.File) -> None:
         """Save the noise counts histogram in the HDF5 file.
         """
-        h5file.create_array(h5file.root, "noise_counts", self.noise_counts)
+        h5file.create_array(h5file.root, "histogram", self.histogram)
 
     def __iadd__(self, event: DigiEventRectangular):
         """Overloaded method.
@@ -252,10 +251,9 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         row_slice, col_slice = event.roi.readout_slice()
         self._sum[row_slice, col_slice] += noise_pha
         self.num_events[row_slice, col_slice][noise_pha > 0] += 1
-        # Update the noise counts histogram to determine the noise distribution
-        for count in noise_pha[noise_pha > 0]:
-            if count < len(self.noise_counts):
-                self.noise_counts[count] += 1
+        # Update the noise histogram
+        counts = np.bincount(noise_pha[noise_pha > 0], minlength=len(self.histogram))
+        self.histogram += counts[:len(self.histogram)]
         return self
 
 
