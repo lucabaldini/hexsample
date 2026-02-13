@@ -591,6 +591,34 @@ class DigiInputFileBase(InputFileBase):
         if self.__index == len(self.digi_table):
             raise StopIteration
         return self.digi_event(self.__index)
+    
+    def prev(self) -> DigiEventBase:
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        if self.__index == 0:
+            raise IndexError("Already at the beginning of the file.")
+        self.__index -= 1
+        return self.digi_event(self.__index)
+    
+    def pick_event(self, input_index) -> DigiEventBase:
+        """Pick a specific event from the file, given its index.
+
+        Arguments
+        ---------
+        input_index : int
+            The index of the target event in the file.
+        """
+        input_index = int(input_index)
+        if input_index < 0 or input_index >= len(self.digi_table):
+            raise IndexError(f"Invalid event index {input_index}.")
+        if input_index == -1:
+            input_index = len(self.digi_table) - 1
+        try:
+            self.__index = int(input_index)
+        except ValueError:
+            self.__index = 0
+        
+        return self.digi_event(self.__index)
 
 
 class DigiInputFileRectangular(DigiInputFileBase):
