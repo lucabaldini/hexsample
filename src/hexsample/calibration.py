@@ -24,16 +24,15 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import tables
-from tables.attributeset import AttributeSet
 from aptapy.hist import Histogram2d
 from aptapy.models import Probit
 from aptapy.plotting import last_line_color, plt
+from tables.attributeset import AttributeSet
 from tqdm import tqdm
 
 from .clustering import ClusteringNN
 from .digi import DigiEventRectangular
 from .fileio import DigiInputFileBase
-
 
 
 class CalibrationMatrixBase(ABC):
@@ -73,7 +72,6 @@ class CalibrationMatrixBase(ABC):
         The logic to estimate the default value is implemented in the derived classes, as it
         depends on the particular quantity to calibrate.
         """
-        pass
 
     @property
     def value(self) -> np.ndarray:
@@ -103,12 +101,11 @@ class CalibrationMatrixBase(ABC):
         """Update the header of the HDF5 file with the relevant information for the calibration
         matrix.
         """
-        pass
 
+    @abstractmethod
     def _save_other_data(self, h5file: tables.File) -> None:
         """Save any other data that is specific to the derived class in the HDF5 file.
         """
-        pass
 
     def to_hdf5(self, file_path: str) -> str:
         """Save the calibration matrix to an HDF5 file at the given path.
@@ -118,6 +115,7 @@ class CalibrationMatrixBase(ABC):
         file_path : str
             The path of the file on the disk.
         """
+        # pylint: disable=protected-access
         with tables.File(file_path, "w") as h5file:
             root = h5file.root
             # Save the value and the number of events matrices as arrays in the HDF5 file.
@@ -138,6 +136,7 @@ class CalibrationMatrixBase(ABC):
         file_path : str
             The path of the file on the disk.
         """
+        # pylint: disable=protected-access
         with tables.File(file_path, "r") as h5file:
             # Load the matrices from the HDF5 file.
             value = h5file.root.value[:]
@@ -167,7 +166,6 @@ class CalibrationMatrixBase(ABC):
         event : DigiEventRectangular
             The event to be analyzed.
         """
-        pass
 
 
 class CalibrationMatrixNoise(CalibrationMatrixBase):
@@ -226,7 +224,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         pha = event.pha.copy()
         pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
         return pha
-    
+
     def _update_header(self, attrs: AttributeSet) -> None:
         """Update the header of the HDF5 file with the relevant information for the noise
         calibration matrix.
@@ -237,7 +235,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
             The AttributeSet object to be updated with the relevant information for the noise
         """
         attrs.default = self.default
-    
+
     def _save_other_data(self, h5file: tables.File) -> None:
         """Save the noise counts histogram in the HDF5 file.
         """
@@ -262,7 +260,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
 
 
 class CalibrationMatrixGain(CalibrationMatrixBase):
-    
+
     """Gain calibration matrix for the detector.
 
     This class implements the logic to update the calibration matrix with signal events to
@@ -343,6 +341,16 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         attrs.default = self.default
         attrs.energy = self._energy
         attrs.zero_sup_threshold = self._zero_sup_threshold
+
+    def _save_other_data(self, h5file: tables.File) -> None:
+        """Save any other data that is specific to the gain calibration matrix in the HDF5 file.
+        
+        In this case we don't have any other data to save.
+        Arguments
+        ---------
+        h5file : tables.File
+            The HDF5 file to save the data in.
+        """
 
     def __iadd__(self, event: DigiEventRectangular):
         """Overloaded method.
