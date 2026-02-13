@@ -225,7 +225,7 @@ def reconstruct(
     # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
     input_file_path = str(input_file_path)
     if not input_file_path.endswith(".h5"):
-        raise RuntimeError("Input file {input_file_path} does not look like a HDF5 file")
+        raise RuntimeError(f"Input file {input_file_path} does not look like a HDF5 file")
 
     # It is necessary to extract the reaodut type because every readout type
     # corresponds to a different DigiEvent type.
