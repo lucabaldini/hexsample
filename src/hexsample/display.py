@@ -35,6 +35,8 @@ from .mc import MonteCarloEvent
 from .readout import HexagonalReadoutBase
 from .roi import RegionOfInterest
 
+from matplotlib.widgets import TextBox, Button
+from .fileio import DigiDescriptionBase
 
 class HexagonCollection(PatchCollection):
 
@@ -78,27 +80,99 @@ class HexagonalGridDisplay:
     """Display for an HexagonalGrid object.
     """
 
-    def __init__(self, grid: HexagonalGrid, **kwargs) -> None:
+    def __init__(self, grid: HexagonalGrid, input_file, zero_sup_threshold: int = 0, **kwargs) -> None:
         """Constructor.
         """
         self._grid = grid
+        self._input_file = input_file
+        self.zero_sup_threshold = 0
         self.color_map = matplotlib.colormaps[kwargs.get("cmap_name", "Reds")].copy()
         self.color_map_offset = kwargs.get("cmap_offset", 0)
         self.color_map.set_under("white")
+        self.recon_defaults = kwargs.get("recon_defaults", None)
+        self.show()
+        self.next(None)
 
-    @staticmethod
-    def setup_gca():
-        """Setup the current axes object to make the display work.
+    def next(self, _) -> DigiEventBase:
+        """Convenience method to get the next event from the input file.
         """
-        plt.gca().set_aspect("equal")
-        plt.gca().autoscale()
-        plt.axis("off")
+        event = next(self._input_file)
+        self.axes.clear()
+        self.draw_digi_event(event, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid, self.zero_sup_threshold)
+        self.axes.autoscale()
+        self.axes.axis("off")
+        self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
+        #self.axes.annotate(f"Current ID: {event.trigger_id}", xy=[0.2, 0.075], xycoords='figure fraction', fontsize=14, ha='center')
+        self.figure.canvas.draw_idle()
+        #print(f"Next event ID: {event.trigger_id}")
 
-    @staticmethod
-    def show():
+    def prev(self, _) -> DigiEventBase:
+        """Convenience method to get the previous event from the input file.
+        """
+        event = self._input_file.prev()
+        self.axes.clear()
+        self.draw_digi_event(event, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid, self.zero_sup_threshold)
+        self.axes.autoscale()
+        self.axes.axis("off")
+        self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
+        #self.axes.annotate(f"Current ID: {event.trigger_id}", xy=[0.2, 0.075], xycoords='figure fraction', fontsize=14, ha='center')
+        self.figure.canvas.draw_idle()
+        #print(f"Previous event ID: {event.trigger_id}")
+    
+    def pick_event(self, _) -> DigiEventBase:
+        """Convenience method to get a specific event from the input file.
+        """
+        event = self._input_file.pick_event(int(self.text_box.text))
+        self.axes.clear()
+        self.draw_digi_event(event, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid, self.zero_sup_threshold)
+        self.axes.autoscale()
+        self.axes.axis("off")
+        self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
+        #self.axes.annotate(f"Current ID: {event.trigger_id}", xy=[0.2, 0.075], xycoords='figure fraction', fontsize=14, ha='center')
+        self.figure.canvas.draw_idle()
+        #print(f"Picked event ID: {event.trigger_id}")
+    
+    def setup_gca(self):
+        """Setup the current axes object to make the display work.
+        Includes a modified axes adding a text box for event ID input.
+        """
+        ### Assign the first event in the file as the first displayed event
+        initial_event= self._input_file.pick_event(int(0))
+        
+        self.figure, self.axes = plt.subplots()
+        self.figure.subplots_adjust(bottom=0.2)
+        self.axes.set_aspect("equal")
+        self.draw_digi_event(initial_event, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), initial_event, self._grid, self.zero_sup_threshold)
+        self.axes.autoscale()
+        self.axes.axis("off")
+        
+        ##Draw the previous and next buttons for event navigation
+        axprev = self.figure.add_axes([0.7, 0.05, 0.12, 0.075])
+        self.bprev = Button(axprev, 'Previous')
+        self.bprev.on_clicked(self.prev)
+
+        axnext = self.figure.add_axes([0.83, 0.05, 0.12, 0.075])
+        self.bnext = Button(axnext, 'Next')
+        self.bnext.on_clicked(self.next)
+        
+        ##Draw the textbox for event ID input
+        axbox = self.figure.add_axes([0.5, 0.05, 0.1, 0.075])
+        self.text_box = TextBox(axbox, "Event ID: ", textalignment="center")
+        self.text_box.on_submit(self.pick_event)
+        self.text_box.set_val(initial_event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
+        
+        ### Annotate the current event ID on the display
+        #self.axes.annotate(f"Current ID: {initial_event.trigger_id}", xy=[0.2, 0.075], xycoords='figure fraction', fontsize=14, ha='center')
+
+    
+    def show(self):
         """Convenience function to setup the matplotlib canvas for an event display.
         """
-        HexagonalGridDisplay.setup_gca()
+        self.setup_gca()
         plt.show()
 
     def draw(self, offset: Tuple[float, float] = (0., 0.), pixel_labels: bool = False,
@@ -110,11 +184,11 @@ class HexagonalGridDisplay:
         dx, dy = offset
         collection = HexagonCollection(x + dx, y + dy, 0.5 * self._grid.pitch,
             self._grid.hexagon_orientation(), **kwargs)
-        plt.gca().add_collection(collection)
+        self.axes.add_collection(collection)
         if pixel_labels:
             fmt = dict(ha="center", va="center", size="xx-small")
             for (_x, _y, _col, _row) in zip(x, y, col, row):
-                plt.text(_x + dx, _y + dy, f"({_col}, {_row})", **fmt)
+                self.axes.text(_x + dx, _y + dy, f"({_col}, {_row})", **fmt)
         return collection
 
     def draw_roi(self, roi: RegionOfInterest, offset: Tuple[float, float] = (0., 0.),
@@ -134,7 +208,7 @@ class HexagonalGridDisplay:
             color = np.full(col.shape, "#555")
             color[~roi.in_rot(col, row)] = "#CCC"
             collection.set_edgecolor(color)
-        plt.gca().add_collection(collection)
+        self.axes.add_collection(collection)
         # And if we want the indices, we add appropriate text patches.
         if indices:
             font_size = "x-small"
@@ -143,10 +217,10 @@ class HexagonalGridDisplay:
             first_col = np.full(rows.shape, roi.min_col)
             fmt = dict(fontsize=font_size, ha="center", va="bottom", rotation=60.)
             for x, y, col in zip(*self._grid.pixel_to_world(cols, first_row), cols):
-                plt.text(x + dx, y + dy + self._grid.secondary_pitch, f"{col}", **fmt)
+                self.axes.text(x + dx, y + dy + self._grid.secondary_pitch, f"{col}", **fmt)
             fmt = dict(fontsize=font_size, ha="right", va="center", rotation=0.)
             for x, y, row in zip(*self._grid.pixel_to_world(first_col, rows), rows):
-                plt.text(x + dx - self._grid.pitch, y + dy, f"{row}", **fmt)
+                self.axes.text(x + dx - self._grid.pitch, y + dy, f"{row}", **fmt)
         return collection
 
     def draw_digi_event_rectangular(self, event: DigiEventRectangular,
@@ -165,7 +239,7 @@ class HexagonalGridDisplay:
             fmt = dict(ha="center", va="center", fontsize="small")
             for x, y, value in zip(collection.x, collection.y, event.pha.flatten()):
                 if value > zero_sup_threshold:
-                    plt.text(x, y, f"{value}", color="black", **fmt)
+                    self.axes.text(x, y, f"{value}", color="black", **fmt)
         return collection
 
     def draw_digi_event_circular(self, event: DigiEventCircular,
@@ -200,8 +274,8 @@ class HexagonalGridDisplay:
             fmt = dict(ha="center", va="center", fontsize="small")
             for x, y, value in zip(collection.x, collection.y, pha.flatten()):
                 if value > zero_sup_threshold:
-                    plt.text(x, y, f"{value}", color="black", **fmt)
-        plt.gca().add_collection(collection)
+                    self.axes.text(x, y, f"{value}", color="black", **fmt)
+        self.axes.add_collection(collection)
         return collection
 
     def draw_digi_event(self, event, zero_sup_threshold) -> HexagonCollection:
@@ -217,28 +291,28 @@ class HexagonalGridDisplay:
         raise NotImplementedError(f"Cannot draw event of type {type(event)}.")
 
     def draw_positions(self, mc_event: MonteCarloEvent, digi_event: DigiEventBase,
-                       readout: HexagonalReadoutBase, recon_defaults: object,
+                       readout: HexagonalReadoutBase, 
                        zero_sup_threshold: int) -> None:
         """Draw the Monte Carlo truth position and the reconstructed positions on top of the digi
         event.
         """
         # Plot the Monte Carlo truth position.
-        plt.scatter(mc_event.absx, mc_event.absy, marker=".", s=100, label="Monte Carlo")
+        self.axes.scatter(mc_event.absx, mc_event.absy, marker=".", s=100, label="Monte Carlo")
         # Calculate the cluster from the digi event.
         cluster = ClusteringNN(readout, zero_sup_threshold,
                                num_neighbors=6).run(digi_event)
         # Calculate and plot centroid position.
         centroid_position = cluster.centroid()
-        plt.scatter(*centroid_position, marker="x", s=100, label="Centroid")
+        self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         # Calculate and plot eta reconstructed position.
-        eta_recon_args = (recon_defaults.eta_2pix_rad, recon_defaults.eta_2pix_pivot,
-                          recon_defaults.eta_3pix_rad0, recon_defaults.eta_3pix_rad1,
-                          recon_defaults.eta_3pix_rad_pivot, recon_defaults.eta_3pix_theta0)
+        eta_recon_args = (self.recon_defaults.eta_2pix_rad, self.recon_defaults.eta_2pix_pivot,
+                          self.recon_defaults.eta_3pix_rad0, self.recon_defaults.eta_3pix_rad1,
+                          self.recon_defaults.eta_3pix_rad_pivot, self.recon_defaults.eta_3pix_theta0)
         try:
             eta_position = cluster.eta(*eta_recon_args, pitch=readout.pitch)
             # If cluster size is not 2 or 3, eta returns the centroid position, so we only
             # plot it if it's different from the centroid.
-            plt.scatter(*eta_position, marker="+", s=100, label=r"$\eta$")
+            self.axes.scatter(*eta_position, marker="+", s=100, label=r"$\eta$")
         except RuntimeError:
             pass
-        plt.legend()
+        self.axes.legend()
