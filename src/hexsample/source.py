@@ -242,6 +242,46 @@ class GaussianBeam(AbstractBeam):
 
 
 @dataclass
+class SlitBeam(AbstractBeam):
+
+    """Slit-shaped X-ray beam.
+
+    Arguments
+    ---------
+    x0 : float
+        The x-coordinate of the beam centroid in cm.
+
+    y0 : float
+        The y-coordinate of the beam centroid in cm.
+
+    height : float
+        The slit height in cm.
+
+    width : float
+        The slit width in cm.
+
+    theta : float
+        The slit rotation angle in degrees, counterclockwise from the x-axis.
+    """
+    height: float = 0.02
+    width: float = 1.
+    theta: float = 0.
+    
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+        """Overloaded method.
+        """
+        x = rng.generator.uniform(-self.width/2., self.width/2., size=size)
+        y = rng.generator.uniform(-self.height/2., self.height/2., size=size)
+        # Rotate the points by theta
+        cos_theta = np.cos(np.deg2rad(self.theta))
+        sin_theta = np.sin(np.deg2rad(self.theta))
+        x_rot = cos_theta * x - sin_theta * y
+        y_rot = sin_theta * x + cos_theta * y
+        # Translate the points to the center of the slit
+        return x_rot + self.x0, y_rot + self.y0
+
+
+@dataclass
 class TriangularBeam(AbstractBeam):
 
     """Triangular uniform X-ray beam.
