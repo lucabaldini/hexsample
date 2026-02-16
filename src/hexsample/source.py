@@ -263,9 +263,10 @@ class SlitBeam(AbstractBeam):
     theta : float
         The slit rotation angle in degrees, counterclockwise from the x-axis.
     """
-    height: float = 0.02
+
+    height: float = 0.01
     width: float = 1.
-    theta: float = 0.
+    theta: float = 1.
     
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
@@ -379,6 +380,7 @@ BeamProxy = TypeProxy("beam") # pylint: disable=invalid-name
 BeamProxy.register("point", PointBeam)
 BeamProxy.register("disk", DiskBeam)
 BeamProxy.register("gaussian", GaussianBeam, default=True)
+BeamProxy.register("slit", SlitBeam)
 BeamProxy.register("triangular", TriangularBeam)
 BeamProxy.register("hexagonal", HexagonalBeam)
 
