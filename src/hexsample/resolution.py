@@ -23,12 +23,10 @@
 from dataclasses import dataclass
 from typing import Tuple
 
-from matplotlib.pyplot import hist
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.plotting import plt
 from scipy.ndimage import gaussian_filter1d
-from scipy.signal.windows import tukey
 from skimage import feature, transform
 
 from .fileio import ReconInputFile
