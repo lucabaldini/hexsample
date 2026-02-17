@@ -36,7 +36,7 @@ def simulate(**kwargs) -> str:
 
     if kwargs.get("gain_matrix_file") is not None:
         gain_file = CalibrationMatrixGain.from_hdf5(kwargs.get("gain_matrix_file"))
-        gain_matrix = gain_file.value
+        gain_matrix = gain_file.matrix
     else:
         gain_matrix = None
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
