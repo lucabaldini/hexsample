@@ -206,7 +206,6 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         # Add the noise.
         if self.enc > 0:
             pha = pha + rng.generator.normal(0., self.enc, size=pha.shape)
-
         # ... apply the conversion between electrons and ADC counts, using the gain matrix if
         # provied, otherwise using the same gain parameter for all the pixels...
         if self.gain_matrix is None:
