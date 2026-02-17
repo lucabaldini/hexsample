@@ -26,14 +26,14 @@ import tables
 from aptapy.hist import Histogram2d
 from aptapy.models import Probit
 from aptapy.plotting import last_line_color, plt
+from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import lsmr
 from tables.attributeset import AttributeSet
 from tqdm import tqdm
-from scipy.sparse import csr_matrix, diags
-from scipy.sparse.linalg import lsmr
 
 from hexsample.hexagon import HexagonalGrid
 
-from .clustering import ClusteringNN, Cluster
+from .clustering import Cluster, ClusteringNN
 from .digi import DigiEventRectangular
 from .fileio import DigiInputFileBase
 
@@ -43,38 +43,39 @@ class CalibrationMatrixBase:
     """Base class for calibration analysis.
 
     This includes the common structure of the detector calibration matrices, which are used to
-    calibrate each pixel of the detector independently, and the facilities to save and load
-    calibration data from HDF5 files.
+    calibrate each pixel of the detector, and the facilities to save and load calibration data
+    from HDF5 files.
+
     The derived classes need to implement the logic to update the calibration matrix with info
-    from the digitized events or the clusters. They also need to implement the logic to determine
-    how to estimate the default value of the matrix for pixels with no events, if case no default
-    value is provided.
+    from the digitized events or the clusters.
 
     Arguments
     ---------
     num_cols : int
-        The number of columns in the readout chip.
+        The number of columns of the readout chip.
     num_rows : int
-        The number of rows in the readout chip.
+        The number of rows of the readout chip.
     default : float | None
         The default value to set for pixels in the calibration matrix.
     """
 
-    def __init__(self, num_cols: int, num_rows: int, default: float | None = None) -> None:
+    def __init__(self, num_cols: int, num_rows: int, default: float | None = None,
+                 **kwargs) -> None:
         """Class constructor.
         """
+        # pylint: disable=unused-argument
         self._shape = (num_rows, num_cols)
         self._default = default
         # Create the arrays to store the calibration data and the number of events for each pixel.
-        self._sum = np.zeros(self._shape)
-        self._hits = np.zeros(self._shape, dtype=int)
         self._matrix = np.zeros(self._shape)
+        self._hits = np.zeros(self._shape, dtype=int)
+        self._sum = np.zeros(self._shape)
 
     @property
     def default(self) -> float:
-        """Calculate the default value of the calibration matrix for pixels with no events.
-        The logic to estimate the default value is implemented in the derived classes, as it
-        depends on the particular quantity to calibrate.
+        """Calculate the default value of the calibration matrix for pixels with no events. It is
+        estimated as the mean of the values in the calibration matrix for pixels with events, in
+        case no default value is provided.
         """
         # If the default value is provided, return it.
         if self._default is not None:
@@ -88,23 +89,33 @@ class CalibrationMatrixBase:
 
     @property
     def matrix(self) -> np.ndarray:
-        """Calculate the mean value of the calibration matrix for each pixel, by dividing the sum
-        of the values by the number of events for each pixel.
+        """Return the calibration matrix.
+
+        The way the calibration matrix is calculated from the data depends on the type of
+        calibration and on the analysis method used.
         """
+        # If the analysis updates the _sum and _hits arrays, calculate the value of eacg pixel
+        # as the mean of the values for all the events for that pixel. For pixels with no events,
+        # the default value is used.
         if not np.array_equal(self._sum, np.zeros(self._shape)):
             with np.errstate(divide='ignore', invalid='ignore'):
                 return np.where(self._hits > 0, self._sum / self._hits, self.default)
+        # If no events have been used to update the calibration matrix, return the default value
+        # for all the pixels.
         if not np.any(self._hits > 0):
             return np.full(self._shape, self.default)
-        else:
-            return np.where(self._hits > 0, self._matrix, self.default)
-    
+        # Otherwise, if the calibration matrix is updated directly during the analysis, return the
+        # value of the matrix for pixels with events, and the default value for pixels with no
+        # events.
+        return np.where(self._hits > 0, self._matrix, self.default)
+
     @matrix.setter
     def matrix(self, new_matrix: np.ndarray) -> None:
         """Set the value of the calibration matrix to a new value.
         """
         if new_matrix.shape != self._shape:
-            raise ValueError(f"Input matrix has shape {new_matrix.shape}, but expected shape is {self._shape}.")
+            raise ValueError(f"Input matrix has shape {new_matrix.shape}, but expected shape is "
+                             f"{self._shape}.")
         self._matrix = new_matrix
         # Setting the hits to one to avoid that the default value is estimated from the data.
         self._hits = np.ones(self._shape, dtype=int)
@@ -119,12 +130,10 @@ class CalibrationMatrixBase:
         """Update the header of the HDF5 file with the relevant information for the calibration
         matrix.
         """
-        pass
 
     def _save_other_data(self, h5file: tables.File) -> None:
         """Save any other data that is specific to the derived class in the HDF5 file.
         """
-        pass
 
     def to_hdf5(self, file_path: str) -> str:
         """Save the calibration matrix to an HDF5 file at the given path.
@@ -182,8 +191,10 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
     """Gain calibration matrix for the detector.
 
     This class implements the logic to update the calibration matrix with signal events to
-    determine the gain of each pixel. The gain matrix is calculated using only 1-pixel events and
-    the energy of the photons in the events.
+    determine the gain of each pixel. The way the gain is calculated from the data depends on the
+    analysis method used. If the method is "single", only 1-pixel events are used, and the gain
+    is estimated as the mean of the gain values for each pixel. If the method is "lsm", all the
+    events are used, and a least squares fit is performed to determine the gain of each pixel.
 
     Arguments
     ---------
@@ -197,9 +208,8 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         The default value to set for pixels in the calibration matrix. If None, the default value
         is estimated from the data.
     method : str
-        The method to use for the gain calibration. Choices are "single", which uses only 1-pixel events,
-        and "lsm", which uses all the events and performs a least squares fit to determine the gain of
-        each pixel. Default is "lsm".
+        The method to use for the gain calibration. Choices are "single", which uses only 1-pixel,
+        and "lsm", which uses all the events and performs a least squares fit. Default is "lsm".
     """
 
     def __init__(self, num_cols: int, num_rows: int, energy: float = None,
@@ -217,14 +227,24 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
 
     @property
     def matrix(self) -> np.ndarray:
+        """Return the calibration matrix.
+
+        If the analysis method is "lsm", the calibration matrix is calculated from the data by
+        performing a least squares fit to determine the gain of each pixel. Otherwise, the
+        calibration matrix is calculated as the mean of the gain values for each pixel.
+        """
         if self._method == "lsm":
+            # Run the least squares fit, which updates the value of the calibration matrix.
             self._lsm_fit()
+        # Call the base class method to update the calibration matrix with the default value
+        # for pixels with no events, and return the matrix.
         return super().matrix
-    
+
     @matrix.setter
     def matrix(self, new_value: np.ndarray) -> None:
         if new_value.shape != self._shape:
-            raise ValueError(f"Input matrix has shape {new_value.shape}, but expected shape is {self._shape}.")
+            raise ValueError(f"Input matrix has shape {new_value.shape}, but expected shape is "
+                             f"{self._shape}.")
         self._matrix = new_value
         # Setting the hits to one to avoid that the default value is estimated from the data.
         self._hits = np.ones(self._shape, dtype=int)
@@ -253,15 +273,15 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         self._matrix[mask] = 1 / weight[mask]
 
     def analyze_cluster(self, cluster: Cluster, grid: HexagonalGrid):
-        """Update the calibration matrix with the information from a cluster.
+        """Analyze the event cluster to update the calibration matrix.
         """
         # If the analysis method is single, only 1-pixel events are used for the gain calibration.
         if self._method == "single":
             if cluster.size() == 1:
                 # Get the coordinate of the only pixel of the cluster
                 col, row = grid.world_to_pixel(cluster.x[0], cluster.y[0])
-                # The gain is estimated as the ADC counts of the pixel divided by the expected number of
-                # electrons for the given energy.
+                # The gain is estimated as the ADC counts of the pixel divided by the expected
+                # number of electrons for the given energy.
                 self._sum[row, col] += cluster.pha[0] / (self._energy / 3.6)
                 self._hits[row, col] += 1
         # If the analysis method is lsm, all the events (which are 1, 2 and 3-pixel events) are
@@ -306,6 +326,8 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
+        # Create the array to store the histogram of the noise values. These data are useful
+        # to estimate the width of the noise distribution.
         self.histogram = np.zeros(50, dtype=int)
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
