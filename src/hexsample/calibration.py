@@ -274,10 +274,14 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         # Calculate the uncertainty of the gain best-fit values.
         sigma_w = np.sqrt(mse / (signal_power + 1e-15))
         with np.errstate(divide='ignore', invalid='ignore'):
-            sigma_g = sigma_w * (1 / weight)**2
+            sigma_g_rel = sigma_w / np.abs(weight)
         # Mask for the pixels that have a weight value close to zero (no events) and for the pixels
-        # with a large uncertainty
-        mask = (np.abs(weight) > 1e-10) & (sigma_g < 4.0)   # This threshold is arbitrary
+        # with a large uncertainty. We are cutting out pixels with a relative uncertainty larger
+        # than 200%. This value is high because the statistical fluctuations of the number of
+        # electrons for each event affect the gain estimation, and even if the final gain
+        # distribution is peaked around the true gain value, the uncertainty of the single pixel
+        # can be large, even 100%.
+        mask = (np.abs(weight) > 1e-10) & (sigma_g_rel < 2.0)
         # Set the gain value for the pixels that pass the quality cut.
         self._matrix[mask] = 1 / weight[mask]
         # Set the hits to zero for the pixels that don't pass the quality cut.
