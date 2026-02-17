@@ -32,6 +32,7 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
+from .calibration import CalibrationMatrixGain, CalibrationMatrixNoise
 from .clustering import ClusteringNN
 from .display import HexagonalGridDisplay
 from .fileio import (
@@ -41,7 +42,7 @@ from .fileio import (
     digi_output_file_class,
     peek_readout_type,
 )
-from .hexagon import HexagonalLayout
+from .hexagon import HexagonalLayout, HexagonalGrid
 from .logging_ import logger
 from .mc import PhotonList
 from .readout import (
@@ -280,6 +281,94 @@ def reconstruct(
     input_file.close()
     output_file.close()
     return output_file_path
+
+
+@dataclass(frozen=True)
+class CalibrationDefaults:
+    """Default parameters for the calibrate task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    suffix: str = "calibration_matrix"
+    energy: float = 6000.
+    zero_sup_threshold: float = 20.
+    default_gain: float | None = None
+    default_noise: float | None = None
+    gain_calibration_method: str = "lsm"
+
+
+def calibrate(input_file_path: str,
+              suffix: str = CalibrationDefaults.suffix,
+              energy: float = CalibrationDefaults.energy,
+              zero_sup_threshold: float = CalibrationDefaults.zero_sup_threshold,
+              default_gain: float | None = CalibrationDefaults.default_gain,
+              default_noise: float | None = CalibrationDefaults.default_noise,
+              gain_calibration_method: str = CalibrationDefaults.gain_calibration_method) -> None:
+    """Calibrate the gain and noise response of the readout chip using the events from a digi file.
+    The results are stored as a matrix in two separate HDF5 files, one for the gain and one for
+    the noise.
+
+    Arguments
+    ---------
+    input_file_path : str
+        The path to the input file.
+    
+    suffix : str
+        The suffix to append to the output file name.
+    
+    energy : float
+        The energy of the X-ray photons in eV. This is used to convert the charge collected in
+        each pixel to the number of electron, which is necessary for the gain calibration.
+    
+    zero_sup_threshold : float
+        The zero-suppression threshold to use for the clustering in the gain calibration.
+    
+    default_gain : float
+        The default gain value to use for the gain calibration. If None, it will be set to the
+        mean value of the gain matrix after processing all the events.
+    
+    default_noise : float
+        The default noise value to use for the noise calibration. If None, it will be set to the
+        mean value of the noise matrix after processing all the events.
+
+    gain_calibration_method : str
+        The method to use for the gain calibration. It can be either "single" or "lsm". 
+    """
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    # Open the input file and extract the readout information
+    input_file_path = str(input_file_path)
+    if not input_file_path.endswith(".h5"):
+        raise RuntimeError(f"Input file {input_file_path} does not look like a HDF5 file")
+    readout_mode = peek_readout_type(input_file_path)
+    file_type = digi_input_file_class(readout_mode)
+    input_file = file_type(input_file_path)
+    header = input_file.header
+    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"], header["pitch"]
+    # Create the grid object and the clustering
+    grid = HexagonalGrid(*args)
+    clustering = ClusteringNN(grid, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
+    # Initialize the gain and noise matrices.
+    gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy,
+                                        default_gain, gain_calibration_method)
+    noise = CalibrationMatrixNoise(header["num_cols"], header["num_rows"], default_noise)
+    # Loop over the events and update the gain and noise matrices.
+    for _, event in tqdm(enumerate(input_file)):
+        try:
+            cluster = clustering.run(event)
+        except IndexError as e:
+            continue
+        gain.analyze_cluster(cluster, grid)
+        noise.analyze_event(event)
+    # Close the input file.
+    input_file.close()
+    # Save the gain and noise matrices to separate HDF5 files.
+    noise_output_file_path = input_file_path.replace(".h5", f"_{suffix}_noise.h5")
+    gain_output_file_path = input_file_path.replace(".h5", f"_{suffix}_gain.h5")
+    noise.to_hdf5(noise_output_file_path)
+    gain.to_hdf5(gain_output_file_path)
 
 
 class DisplayDefaults:
