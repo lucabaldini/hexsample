@@ -213,7 +213,7 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
     """
 
     def __init__(self, num_cols: int, num_rows: int, energy: float = None,
-                 default: float | None = None, method: str = "lsm") -> None:
+                 default: float | None = None, method: str = None) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
@@ -264,13 +264,24 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         # Create the vector of the expected number of electrons.
         b = np.full(self._event_count, self._energy / 3.6)
         # Perform the fit
-        results = lsmr(a, b, damp=1e-5)
+        results = lsmr(a, b)
         # Get the best-fit weight vector and reshape it to the shape of the calibration matrix.
-        weight = results[0]
-        weight = weight.reshape(self._shape)
-        # Create the mask to remove the pixels with zero weight (no events)
-        mask = np.abs(weight) > 1e-10
+        weight = results[0].reshape(self._shape)
+        signal_power = np.array(a.multiply(a).sum(axis=0)).reshape(self._shape)
+        # Calculate the number of degrees of freedom and the mean squared error.
+        dof = self._event_count - (self._shape[0] * self._shape[1])
+        mse = results[3]**2 / max(dof, 1)
+        # Calculate the uncertainty of the gain best-fit values.
+        sigma_w = np.sqrt(mse / (signal_power + 1e-15))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            sigma_g = sigma_w * (1 / weight)**2
+        # Mask for the pixels that have a weight value close to zero (no events) and for the pixels
+        # with a large uncertainty
+        mask = (np.abs(weight) > 1e-10) & (sigma_g < 4.0)   # This threshold is arbitrary
+        # Set the gain value for the pixels that pass the quality cut.
         self._matrix[mask] = 1 / weight[mask]
+        # Set the hits to zero for the pixels that don't pass the quality cut.
+        self._hits[~mask] = 0
 
     def analyze_cluster(self, cluster: Cluster, grid: HexagonalGrid):
         """Analyze the event cluster to update the calibration matrix.
