@@ -98,12 +98,17 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
     gain: float = 1.
     trg_threshold: float = 500.
     zero_sup_threshold: int = 0
+    gain_matrix: np.ndarray | None = None
 
     def __post_init__(self):
         """Post-initialization.
         """
         HexagonalGrid.__post_init__(self)
         self.trigger_id = -1
+        # If the gain calibration matrix is not provided, we create a matrix with the same gain
+        # for all the pixels, with the value of the gain parameter.
+        if self.gain_matrix is None:
+            self.gain_matrix = np.full((self.num_rows, self.num_cols), self.gain)
 
     @staticmethod
     def is_odd(value: int) -> bool:
@@ -373,6 +378,45 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         self.trigger_id += 1
         return roi, pha
 
+    def digitize(self, pha: np.ndarray, roi: RegionOfInterest, offset: int = 0) -> np.ndarray:
+        """Digitize the actual signal.
+
+        Arguments
+        ---------
+        pha : array_like
+            The input array of pixel signals to be digitized.
+
+        offset : int
+            Optional offset in ADC counts to be applied before the zero suppression.
+        """
+        # Note that the array type of the input pha argument is not guaranteed, here.
+        # Over the course of the calculation the pha is bound to be a float (the noise
+        # and the gain are floating-point numbere) before it is rounded to the nearest
+        # integer. In order to take advantage of the automatic type casting that
+        # numpy implements in multiplication and addition, we use the pha = pha +/*
+        # over the pha +/*= form.
+        # See https://stackoverflow.com/questions/38673531
+        #
+        # Add the noise.
+        if self.enc > 0:
+            pha = pha + rng.generator.normal(0., self.enc, size=pha.shape)
+        # ... apply the conversion between electrons and ADC counts...
+        row_slice, col_slice = roi.readout_slice()
+        cut_gain = self.gain_matrix[row_slice, col_slice]
+        try:
+            pha = pha * cut_gain
+        except ValueError:
+            pass
+        # ... round to the neirest integer...
+        pha = np.round(pha).astype(int)
+        # ... if necessary, add the offset for diagnostic events...
+        pha += offset
+        # ... zero suppress the thing...
+        self.zero_suppress(pha, self.zero_sup_threshold)
+        # ... flatten the array to simulate the serial readout and return the
+        # array as the BEE would have.
+        return pha.flatten()
+
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
              offset: int = 0) -> DigiEventRectangular:
         """Overloaded method.
@@ -380,7 +424,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
         roi, pha = self.trigger(signal, min_col, min_row)
-        pha = self.digitize(pha, offset)
+        pha = self.digitize(pha, roi, offset)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 
