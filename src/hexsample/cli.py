@@ -98,6 +98,16 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_recon_options(recon)
         recon.set_defaults(runner=pipeline.reconstruct)
 
+        calibrate = subparsers.add_parser("calibrate",
+            help="calibrate the gain and noise of the chip",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_input_file(calibrate)
+        self.add_suffix(calibrate, default=tasks.CalibrationDefaults.suffix)
+        self.add_logging_level(calibrate)
+        self.add_calibration_options(calibrate)
+
+        calibrate.set_defaults(runner=pipeline.calibrate)
+
         # Run the single-event display?
         display = subparsers.add_parser("display",
             help="run the single-event display",
@@ -266,6 +276,9 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="trigger threshold in electron equivalent")
         CliArgumentParser.add_zero_sup_threshold(group,
                            default=readout.HexagonalReadoutBase.zero_sup_threshold)
+    
+        group.add_argument("--gain_matrix_file", type=str, default=None,
+                           help="path to a file containing the gain matrix, in case of non-uniform gain")
 
     def add_recon_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the reconstruction properties.
@@ -314,6 +327,20 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="model to use for neural network reconstruction")
         group.add_argument("--model_path", type=str,
                            help="path of the model to use, in case of custom model")
+
+    def add_calibration_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the calibration properties.
+        """
+        group = parser.add_argument_group("calibration", "Calibration configuration")
+        CliArgumentParser.add_zero_sup_threshold(group,
+                           default=tasks.CalibrationDefaults.zero_sup_threshold)
+        group.add_argument("--default_gain", type=float, default=None,
+                           help="default gain value to be used for the calibration")
+        group.add_argument("--default_noise", type=float, default=None,
+                           help="default noise value to be used for the calibration")
+        group.add_argument("--gain_calibration_method", type=str,
+                           choices=["single", "lsm"], default="lsm",
+                           help="method to be used for the gain calibration.")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display.

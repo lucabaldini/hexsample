@@ -25,6 +25,7 @@ from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
 
+from .calibration import CalibrationMatrixGain
 
 def simulate(**kwargs) -> str:
     """Run a simulation.
@@ -32,7 +33,15 @@ def simulate(**kwargs) -> str:
     defaults = tasks.SimulationDefaults
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
+
+    if kwargs.get("gain_matrix_file") is not None:
+        gain_file = CalibrationMatrixGain.from_hdf5(kwargs.get("gain_matrix_file"))
+        gain_matrix = gain_file.value
+    else:
+        gain_matrix = None
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
+    if gain_matrix is not None:
+        readout.gain_matrix = gain_matrix
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
@@ -60,6 +69,22 @@ def reconstruct(**kwargs) -> str:
            pos_recon_algorithm, eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1, \
            eta_3pix_rad_pivot, eta_3pix_theta0
     return tasks.reconstruct(*args, kwargs)
+
+
+def calibrate(**kwargs) -> None:
+    """Calibrate the gain and noise of the chip.
+    """
+    input_file_path = kwargs["input_file"]
+    suffix = kwargs.get("suffix", tasks.CalibrationDefaults.suffix)
+    energy = kwargs.get("energy", tasks.CalibrationDefaults.energy)
+    zero_sup_threshold = kwargs.get("zero_sup_threshold",
+                                    tasks.CalibrationDefaults.zero_sup_threshold)
+    default_gain = kwargs.get("default_gain", tasks.CalibrationDefaults.default_gain)
+    default_noise = kwargs.get("default_noise", tasks.CalibrationDefaults.default_noise)
+    gain_calibration_method = kwargs.get("gain_calibration_method",
+                                         tasks.CalibrationDefaults.gain_calibration_method)
+    return tasks.calibrate(input_file_path, suffix, energy, zero_sup_threshold, default_gain,
+                           default_noise, gain_calibration_method)
 
 
 def display(**kwargs) -> None:
