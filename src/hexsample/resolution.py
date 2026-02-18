@@ -166,9 +166,10 @@ class SlantedEdgeResolution:
         """Calculate the edge spread function (ESF) of the slanted edge. A padding is added to the
         left and right of the histogram range to avoid problems at the edges of the domain. The
         data are binned and then smoothed with a Gaussian filter to reduce the noise and geometric
-        effects on the plateu.
+        effects on the plateau.
         
-        Note that the reconstructed positions are expected to be aligned to the axes of the detector.
+        Note that the reconstructed positions are expected to be aligned to the axes of the
+        detector.
 
         Returns
         -------
@@ -178,7 +179,7 @@ class SlantedEdgeResolution:
             The edges of the bins used for the ESF calculation.
         """
         # Add some padding to the histogram range to avoid problems at the edges of the histogram
-        # when smoothing the ESF with a Gaussian filter. 
+        # when smoothing the ESF with a Gaussian filter.
         padding = self.bin_size * 50
         x_min, x_max = self.x.min() - padding, self.x.max() + padding
         # When using a large slit to calculate the ESF, we cut the histogram at the center of the
@@ -189,7 +190,7 @@ class SlantedEdgeResolution:
         counts, _ = np.histogram(self.x[self.x < x_center], bins=edges)
         smoothet_esf = gaussian_filter1d(counts, sigma=self.sigma)
         return smoothet_esf, edges
-    
+
     @property
     def esf(self) -> Histogram1d:
         """Calculate the edge spread function (ESF) of the slanted edge as a Histogram1d object.
@@ -199,7 +200,7 @@ class SlantedEdgeResolution:
         esf : Histogram1d
             The edge spread function (ESF) of the slanted edge.
         """
-        # Calculate the smoothed ESF from the reconstructed positions. 
+        # Calculate the smoothed ESF from the reconstructed positions.
         esf_values, edges = self._esf()
         # Create the histogram and set the content to the ESF values.
         hist = Histogram1d(edges)
@@ -221,7 +222,7 @@ class SlantedEdgeResolution:
         # Calculate the derivative of the ESF and the corresponding bin edges.
         lsf = np.diff(esf) / self.bin_size
         edges = esf_edges[1:]
-        # Cut the data after the LSF reaches zero to avoid the noise from the plateu. We should
+        # Cut the data after the LSF reaches zero to avoid the noise from the plateau. We should
         # think of a more robust way dto do this, such as a windowing function.
         centers = (edges[:-1] + edges[1:]) / 2
         zero_crossing = centers[lsf < 0][0]
@@ -245,7 +246,7 @@ class SlantedEdgeResolution:
         hist = Histogram1d(edges)
         hist.set_content(lsf_values)
         return hist
-    
+
     def mtf(self) -> Tuple[np.ndarray, np.ndarray]:
         """Calculate the modulation transfer function (MTF) of the slanted edge by calculating the
         Fourier transform of the LSF.

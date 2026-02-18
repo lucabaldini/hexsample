@@ -38,6 +38,7 @@ __all__ = [
     "PointBeam",
     "DiskBeam",
     "GaussianBeam",
+    "SlitBeam",
     "TriangularBeam",
     "HexagonalBeam",
     "SpectrumProxy",
@@ -267,7 +268,7 @@ class SlitBeam(AbstractBeam):
     height: float = 0.01
     width: float = 1.
     theta: float = 1.
-    
+
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
         """

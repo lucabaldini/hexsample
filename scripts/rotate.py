@@ -1,16 +1,9 @@
 
-from asyncio.log import logger
-from tqdm import tqdm
-from pathlib import Path
-import numpy as np
-from aptapy.hist import Histogram1d, Histogram2d
-from aptapy.models import Gaussian
 from aptapy.plotting import plt
-import xraydb
 
 from hexsample.fileio import ReconInputFile
+from hexsample.resolution import SlantedEdgeResolution, SlitsAligner
 
-from hexsample.resolution import SlitsAligner, SlantedEdgeResolution
 
 def rotate():
     # file_path_eta = "/home/augusto/asix/hdf/020_0006531_data_all_recon_zsup16_eta.h5"
