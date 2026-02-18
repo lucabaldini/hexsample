@@ -31,8 +31,6 @@ from scipy.sparse.linalg import lsmr
 from tables.attributeset import AttributeSet
 from tqdm import tqdm
 
-from hexsample.hexagon import HexagonalGrid
-
 from .clustering import Cluster, ClusteringNN
 from .digi import DigiEventRectangular
 from .fileio import DigiInputFileBase
@@ -136,6 +134,18 @@ class CalibrationMatrixBase:
         matrix.
         """
 
+    @staticmethod
+    def _load_header_dict(attrs: AttributeSet) -> dict:
+        """Load the header of the HDF5 file and return a dictionary with the relevant attributes
+        for the calibration matrix.
+        """
+        # pylint: disable=protected-access
+        # Load all the attributes from the header.
+        header_dict = {name: getattr(attrs, name) for name in attrs._v_attrnames}
+        # We need to filter out the attributes that are not relevant for the calibration matrix.
+        return {key: val for key, val in header_dict.items()
+                if key.isupper() or not key.startswith("PYTABLES_")}
+
     def _save_other_data(self, h5file: tables.File) -> None:
         """Save any other data that is specific to the derived class in the HDF5 file.
         """
@@ -158,7 +168,8 @@ class CalibrationMatrixBase:
             self._save_other_data(h5file)
             # Update the header with the relevant information.
             attrs = root._v_attrs
-            attrs.shape = self._shape
+            attrs.num_rows = self._shape[0]
+            attrs.num_cols = self._shape[1]
             attrs.default = self.default
             self._update_header(attrs)
         return file_path
@@ -174,20 +185,17 @@ class CalibrationMatrixBase:
         """
         # pylint: disable=protected-access
         with tables.File(file_path, "r") as h5file:
-            # Load the matrices from the HDF5 file.
-            matrix = h5file.root.matrix[:]
-            hits = h5file.root.hits[:]
-            # Load the attributes from the header and return the calibration matrix object.
-            attrs = h5file.root._v_attrs
-            shape = attrs.shape
-            num_cols, num_rows = shape[1], shape[0]
-            if hasattr(attrs, "energy"):
-                obj = cls(num_cols, num_rows, energy=attrs.energy, default=attrs.default)
-            else:
-                obj = cls(num_cols, num_rows, default=attrs.default)
-                obj.histogram = h5file.root.histogram[:]
-            obj._matrix = matrix
-            obj._hits = hits
+            # Load the attributes from the header.
+            attrs = cls._load_header_dict(h5file.root._v_attrs)
+            # Instantiate the object with the attributes loaded from the header.
+            obj = cls(**attrs)
+            # Loop over the nodes in the HDF5 file and set the corresponding attributes with the
+            # data.
+            for node in h5file.iter_nodes(h5file.root):
+                node_name = node._v_name
+                data = node[:]
+                target_attr = f"_{node_name}"
+                setattr(obj, target_attr, data)
         return obj
 
 
@@ -350,7 +358,13 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         super().__init__(num_cols, num_rows, default)
         # Create the array to store the histogram of the noise values. These data are useful
         # to estimate the width of the noise distribution.
-        self.histogram = np.zeros(50, dtype=int)
+        self._histogram = np.zeros(50, dtype=int)
+
+    @property
+    def histogram(self) -> np.ndarray:
+        """Return the histogram of the noise values.
+        """
+        return self._histogram
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
         """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3
@@ -393,8 +407,8 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         self._sum[row_slice, col_slice] += noise_pha
         self._hits[row_slice, col_slice][noise_pha > 0] += 1
         # Update the noise histogram
-        counts = np.bincount(noise_pha[noise_pha > 0], minlength=len(self.histogram))
-        self.histogram += counts[:len(self.histogram)]
+        counts = np.bincount(noise_pha[noise_pha > 0], minlength=len(self._histogram))
+        self._histogram += counts[:len(self._histogram)]
         return self
 
     def _save_other_data(self, h5file: tables.File) -> None:
