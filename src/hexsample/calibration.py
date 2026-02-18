@@ -22,6 +22,7 @@
 
 
 from typing import Union
+
 import numpy as np
 import tables
 from aptapy.hist import Histogram2d

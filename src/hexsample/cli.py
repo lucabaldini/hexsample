@@ -104,7 +104,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_suffix(calibrate, default=tasks.CalibrationDefaults.suffix)
         self.add_logging_level(calibrate)
         self.add_calibration_options(calibrate)
-
         calibrate.set_defaults(runner=pipeline.calibrate)
 
         # Run the single-event display?
@@ -261,6 +260,9 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="equivalent noise charge in electrons")
         group.add_argument("--gain", type=float, default=readout.HexagonalReadoutBase.gain,
                            help="conversion factor between electron equivalent and ADC counts")
+        group.add_argument("--map_gain_file", type=str, default=None,
+                           help="path to a file containing the gain map. If not specified, the" \
+                           " gain value of the --gain argument is used for all the pixels.")
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
                            choices=readout.ReadoutProxy.choices(),
                            default=readout.ReadoutProxy.default(),
@@ -275,8 +277,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="trigger threshold in electron equivalent")
         CliArgumentParser.add_zero_sup_threshold(group,
                            default=readout.HexagonalReadoutBase.zero_sup_threshold)
-        group.add_argument("--map_gain_file", type=str, default=None,
-                           help="path to a file containing the gain map")
 
     def add_recon_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the reconstruction properties.
@@ -291,7 +291,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "dnn", "gnn"],
                            type=str, default="centroid", help="How to reconstruct position")
         group.add_argument("--map_gain_file", type=str, default=None,
-                           help="path to a file containing the gain map")
+                           help="path to a file containing the gain map. If not specified, the" \
+                           " gain value stored in the DigiFile header will be used for all" \
+                           " the pixels.")
         group.add_argument("--eta_2pix_rad",
                            default=tasks.ReconstructionDefaults.eta_2pix_rad,
                            type=float,
@@ -335,12 +337,16 @@ class CliArgumentParser(argparse.ArgumentParser):
         CliArgumentParser.add_zero_sup_threshold(group,
                            default=tasks.CalibrationDefaults.zero_sup_threshold)
         group.add_argument("--default_gain", type=float, default=None,
-                           help="default gain value to be used for the calibration")
+                           help="the value to use for pixels in the gain map that cannot be" \
+                           " calibrated, e.g., because they have no events detected. If not" \
+                           " specified, these pixels wil be set to the mean gain value.")
         group.add_argument("--default_noise", type=float, default=None,
-                           help="default noise value to be used for the calibration")
+                           help="the value to use for pixels in the noise map that cannot be" \
+                           " calibrated, e.g., because they have no events detected. If not" \
+                           " specified, these pixels wil be set to the mean noise value.")
         group.add_argument("--gain_calibration_method", type=str,
-                           choices=["single", "lsm"], default="lsm",
-                           help="method to be used for the gain calibration.")
+                           choices=["lsm", "single"], default="lsm",
+                           help="method to use for the gain calibration.")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display.
