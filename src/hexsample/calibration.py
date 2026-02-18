@@ -55,7 +55,7 @@ class CalibrationMatrixBase:
         The number of columns of the readout chip.
     num_rows : int
         The number of rows of the readout chip.
-    default : float | None
+    default : Union[float, None]
         The default value to set for pixels in the calibration matrix.
     """
 
@@ -146,7 +146,7 @@ class CalibrationMatrixBase:
         header_dict = {name: getattr(attrs, name) for name in attrs._v_attrnames}
         # We need to filter out the attributes that are not relevant for the calibration matrix.
         return {key: val for key, val in header_dict.items()
-                if key.isupper() or not key.startswith("PYTABLES_")}
+                if not key.isupper() and not key.startswith("PYTABLES_")}
 
     def _save_other_data(self, h5file: tables.File) -> None:
         """Save any other data that is specific to the derived class in the HDF5 file.
@@ -228,7 +228,7 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
     """
 
     def __init__(self, num_cols: int, num_rows: int, energy: float = None,
-                 default: float | None = None, method: str = None) -> None:
+                 default: Union[float, None] = None, method: str = None) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
@@ -261,6 +261,7 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
             raise ValueError(f"Input matrix has shape {new_value.shape}, but expected shape is "
                              f"{self._shape}.")
         self._matrix = new_value
+        self._method = None
         # Setting the hits to one to avoid that the default value is estimated from the data.
         self._hits = np.ones(self._shape, dtype=int)
 
@@ -349,12 +350,12 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         The number of columns in the readout chip.
     num_rows : int
         The number of rows in the readout chip.
-    default : float | None
+    default : Union[float, None]
         The default value to set for pixels in the calibration matrix. If None, the default value
         is estimated as the mean of the noise distribution for each pixel.
     """
 
-    def __init__(self, num_cols: int, num_rows: int, default: float | None = None) -> None:
+    def __init__(self, num_cols: int, num_rows: int, default: Union[float, None] = None) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
@@ -496,7 +497,7 @@ def angle(pos: np.ndarray, versors: np.ndarray) -> np.ndarray:
     return np.arctan2(y_proj, x_proj)
 
 
-def distance(pos: np.ndarray, projection_axis: np.ndarray | None = None) -> np.ndarray:
+def distance(pos: np.ndarray, projection_axis: Union[np.ndarray, None] = None) -> np.ndarray:
     """Calculate the distance of the photon from the center of the most charged pixel. If
     specified, project the distance on the given projection axis, given as a unit vector.
 
@@ -504,7 +505,7 @@ def distance(pos: np.ndarray, projection_axis: np.ndarray | None = None) -> np.n
     ---------
     pos : np.ndarray
         The position of the photon with respect to the most charged pixel, in units of pitch.
-    projection_axis : np.ndarray | None
+    projection_axis : Union[np.ndarray, None]
         The axis on which to project the distance, given as a unit vector. If None,
         the distance is not projected. Default is None.
     
