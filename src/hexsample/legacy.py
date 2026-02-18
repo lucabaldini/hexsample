@@ -30,8 +30,6 @@ from .digi import DigiEventRectangular
 from .fileio import DigiOutputFileRectangular
 from .logging_ import logger
 from .roi import Padding, RegionOfInterest
-from .readout import ReadoutProxy
-
 
 
 class MDAT3File:
@@ -63,7 +61,7 @@ class MDAT3File:
         self._file_handle = None
         self._padding = self.DEFAULT_PADDING
         self._eof = False
-        self.header = None
+        self._header = None
 
     def __enter__(self) -> "MDAT3File":
         """Context manager entry point.
@@ -151,9 +149,9 @@ class MDAT3File:
             while event is None:
                 event = self._read_event()
             return event
-        except ValueError:
+        except ValueError as e:
             self._eof = True
-            raise StopIteration
+            raise StopIteration from e
 
 
 def mdat3_to_digi(file_path: str, num_events: int = None) -> None:

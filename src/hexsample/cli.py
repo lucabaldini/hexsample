@@ -23,8 +23,7 @@
 import argparse
 
 from hexsample import __name__ as __package_name__
-from hexsample import __version__, hexagon, logging_, pipeline, readout, \
-    roi, sensor, source, tasks
+from hexsample import __version__, hexagon, logging_, pipeline, readout, roi, sensor, source, tasks
 
 
 def start_message() -> None:
