@@ -42,7 +42,7 @@ from .fileio import (
     digi_output_file_class,
     peek_readout_type,
 )
-from .hexagon import HexagonalLayout, HexagonalGrid
+from .hexagon import HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
 from .readout import (
