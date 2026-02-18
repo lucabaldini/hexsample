@@ -276,8 +276,8 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="trigger threshold in electron equivalent")
         CliArgumentParser.add_zero_sup_threshold(group,
                            default=readout.HexagonalReadoutBase.zero_sup_threshold)
-        group.add_argument("--gain_matrix_file", type=str, default=None,
-                           help="path to a file containing the gain matrix, in case of non-uniform gain")
+        group.add_argument("--map_gain_file", type=str, default=None,
+                           help="path to a file containing the gain map")
 
     def add_recon_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the reconstruction properties.
@@ -291,8 +291,8 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="maximum number of neighbors to be considered")
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "dnn", "gnn"],
                            type=str, default="centroid", help="How to reconstruct position")
-        group.add_argument("--gain_matrix_file_path", type=str, default=None,
-                           help="path to a file containing the gain matrix, in case of non-uniform gain")
+        group.add_argument("--map_gain_file", type=str, default=None,
+                           help="path to a file containing the gain map")
         group.add_argument("--eta_2pix_rad",
                            default=tasks.ReconstructionDefaults.eta_2pix_rad,
                            type=float,

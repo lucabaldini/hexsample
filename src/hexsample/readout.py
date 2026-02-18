@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, Sequence, Optional
+from typing import Tuple, Sequence, Optional, Union
 
 import numpy as np
 
@@ -95,20 +95,15 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
     """
 
     enc: float = 30.
-    gain: float = 1.
+    gain: Union[float, np.ndarray] = 1.
     trg_threshold: float = 500.
     zero_sup_threshold: int = 0
-    gain_matrix: np.ndarray | None = None
 
     def __post_init__(self):
         """Post-initialization.
         """
         HexagonalGrid.__post_init__(self)
         self.trigger_id = -1
-        # If the gain calibration matrix is not provided, we create a matrix with the same gain
-        # for all the pixels, with the value of the gain parameter.
-        # if self.gain_matrix is None:
-        #     self.gain_matrix = np.full((self.num_rows, self.num_cols), self.gain)
 
     @staticmethod
     def is_odd(value: int) -> bool:
@@ -208,7 +203,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
             pha = pha + rng.generator.normal(0., self.enc, size=pha.shape)
         # ... apply the conversion between electrons and ADC counts, using the gain matrix if
         # provied, otherwise using the same gain parameter for all the pixels...
-        if self.gain_matrix is None:
+        if isinstance(self.gain, float):
             pha = pha * self.gain
         else:
             # If we are digitizing circular readout events, create the gain array to apply to
@@ -217,13 +212,13 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
                 gain_array = np.empty_like(pha, dtype=float)
                 for i, coord in enumerate(coords):
                     col, row = coord
-                    gain_array[i] = self.gain_matrix[row, col]
-                    pha = pha * gain_array
+                    gain_array[i] = self.gain[row, col]
+                pha = pha * gain_array
             # If we are digitizing rectangular readout events, use the roi slices to access the
             # gain matrix and create the gain array to apply to the pha.
             elif roi is not None:
                 row_slice, col_slice = roi.readout_slice()
-                gain_array = self.gain_matrix[row_slice, col_slice]
+                gain_array = self.gain[row_slice, col_slice]
                 pha = pha * gain_array
         # ... round to the nearest integer...
         pha = np.round(pha).astype(int)

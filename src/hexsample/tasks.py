@@ -166,7 +166,7 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
-    gain_matrix_file_path: str = None
+    map_gain_file: str = None
     eta_2pix_rad: float = 0.127
     eta_2pix_pivot: float = 0.04
     eta_3pix_rad0: float = 0.513
@@ -182,7 +182,7 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
-        gain_matrix_file_path: str = ReconstructionDefaults.gain_matrix_file_path,
+        map_gain_file: str = ReconstructionDefaults.map_gain_file,
         eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
         eta_2pix_pivot: float = ReconstructionDefaults.eta_2pix_pivot,
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
@@ -252,8 +252,8 @@ def reconstruct(
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
     # Open the gain calibration file.
-    if gain_matrix_file_path is not None:
-        gain_matrix = CalibrationMatrixGain.from_hdf5(gain_matrix_file_path).matrix
+    if map_gain_file is not None:
+        gain_matrix = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
     else:
         gain_matrix = np.full((header["num_rows"], header["num_cols"]), header["gain"])
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
@@ -371,7 +371,9 @@ def calibrate(input_file_path: str,
         except IndexError as e:
             continue
         gain.analyze_cluster(cluster, grid)
-        noise.analyze_event(event)
+        # We can run noise analysis only with rectangular readout
+        if readout_mode is HexagonalReadoutMode.RECTANGULAR:
+            noise.analyze_event(event)
     # Close the input file.
     input_file.close()
     # Save the gain and noise matrices to separate HDF5 files.

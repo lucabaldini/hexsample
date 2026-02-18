@@ -83,8 +83,13 @@ class CalibrationMatrixBase:
         # If the default value is not provided, but the calibration matrix has no events, return 0.
         if not np.any(self._hits > 0):
             return 0.
-        # Otherwise, the default value is estimated from the data, by calculating the mean of the
-        # calibration matrix.
+        # If the _sum array has been updated with data, calculate the default value as the mean of
+        # the values for pixels with events.
+        if not np.array_equal(self._sum, np.zeros(self._shape)):
+            with np.errstate(divide='ignore', invalid='ignore'):
+                return np.mean(self._sum[self._hits > 0] / self._hits[self._hits > 0])
+        # Otherwise, if the _matrix array has been updated directly, the default value is estimated
+        # as the mean of the values for pixels with events in the _matrix array.
         return np.mean(self._matrix[self._hits > 0])
 
     @property

@@ -319,6 +319,9 @@ class OutputFileBase(tables.File):
         # pylint: disable=protected-access
         logger.info(f"Updating {group._v_pathname} group user attributes...")
         for name, value in kwargs.items():
+            if isinstance(value, np.ndarray) and value.size > 100:
+                logger.debug(f"Saving average of {name} array to header because array is large...")
+                value = np.average(value)
             if isinstance(value, (tuple, list)):
                 logger.debug(f"Converting {name} ({value}) to a native numpy array...")
                 value = np.array(value)
