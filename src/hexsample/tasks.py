@@ -287,7 +287,7 @@ def reconstruct(
             except IndexError:
                 mc_event = None
             output_file.add_row(recon_event, mc_event)
-            
+
     output_file.flush()
     input_file.close()
     output_file.close()

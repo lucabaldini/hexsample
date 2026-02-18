@@ -187,18 +187,17 @@ class ClusteringBase:
         """Check if the readout gain is a scalar or an array.
         """
         self._scalar_gain = isinstance(self.readout.gain, (int, float))
-    
+
     def _gain(self, row: np.ndarray, col: np.ndarray) -> np.ndarray:
         """Return the correct gain value for the given row and column indexes.
 
-        This method is necessary to handle both the case of a scalar gain and the case of a gain map.
-        It would be a mess to handle the two cases in the run method, so we check the type in the
-        constructor and then we return the gain value in a unified way here.
+        This method is necessary to handle both the case of a scalar gain and the case of a gain
+        map. It would be a mess to handle the two cases in the run method, so we check the type
+        in the constructor and then we return the gain value in a unified way here.
         """
         if self._scalar_gain:
             return self.readout.gain
-        else:
-            return self.readout.gain[row, col]
+        return self.readout.gain[row, col]
 
     def zero_suppress(self, array: np.ndarray) -> np.ndarray:
         """Zero suppress a generic array.
@@ -319,7 +318,8 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([event(_col, _row)/self._gain(_row, _col) for _col, _row in zip(col, row)])
+            pha = np.array([event(_col, _row)/self._gain(_row, _col)
+                            for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to

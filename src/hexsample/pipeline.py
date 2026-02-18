@@ -21,11 +21,11 @@
 """
 
 from . import legacy, tasks
+from .calibration import CalibrationMatrixGain
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
 
-from .calibration import CalibrationMatrixGain
 
 def simulate(**kwargs) -> str:
     """Run a simulation.

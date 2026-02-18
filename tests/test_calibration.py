@@ -20,6 +20,7 @@ import numpy as np
 
 from hexsample.calibration import CalibrationMatrixGain, CalibrationMatrixNoise
 
+
 def test_matrices():
     """Test the setter of the calibration matrix.
     """
@@ -49,5 +50,3 @@ def test_matrices():
     noise.matrix = new_matrix
     assert np.all(noise.matrix == 0.5)
     assert noise.default == 1.
-
-
