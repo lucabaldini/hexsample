@@ -21,6 +21,7 @@
 """
 
 
+from typing import Union
 import numpy as np
 import tables
 from aptapy.hist import Histogram2d
@@ -57,7 +58,7 @@ class CalibrationMatrixBase:
         The default value to set for pixels in the calibration matrix.
     """
 
-    def __init__(self, num_cols: int, num_rows: int, default: float | None = None,
+    def __init__(self, num_cols: int, num_rows: int, default: Union[float, None] = None,
                  **kwargs) -> None:
         """Class constructor.
         """
