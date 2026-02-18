@@ -166,6 +166,7 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
+    gain_matrix_file_path: str = None
     eta_2pix_rad: float = 0.127
     eta_2pix_pivot: float = 0.04
     eta_3pix_rad0: float = 0.513
@@ -181,6 +182,7 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
+        gain_matrix_file_path: str = ReconstructionDefaults.gain_matrix_file_path,
         eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
         eta_2pix_pivot: float = ReconstructionDefaults.eta_2pix_pivot,
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
@@ -218,6 +220,10 @@ def reconstruct(
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
 
+    gain_matrix_file_path : str
+        The path to the gain matrix file to use for the reconstruction. If None, no gain correction
+        is applied.
+
     eta_index : float
         The eta index to use.
     """
@@ -245,14 +251,18 @@ def reconstruct(
     else:
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
-
+    # Open the gain calibration file.
+    if gain_matrix_file_path is not None:
+        gain_matrix = CalibrationMatrixGain.from_hdf5(gain_matrix_file_path).matrix
+    else:
+        gain_matrix = np.full((header["num_rows"], header["num_cols"]), header["gain"])
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
     # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
     # to the circular.
     effective_neighbors = max_neighbors if max_neighbors >= 0 else num_neighbors
     # Run the actual reconstruction.
-    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors)
+    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors, gain_matrix)
     output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
     output_file = ReconOutputFile(output_file_path)
     if header_kwargs is not None:

@@ -59,6 +59,7 @@ def reconstruct(**kwargs) -> str:
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
     max_neighbors = kwargs.get("max_neighbors", defaults.max_neighbors)
     pos_recon_algorithm = kwargs.get("pos_recon_algorithm", defaults.pos_recon_algorithm)
+    gain_matrix_file_path = kwargs.get("gain_matrix_file_path", defaults.gain_matrix_file_path)
     eta_2pix_rad = kwargs.get("eta_2pix_rad", defaults.eta_2pix_rad)
     eta_2pix_pivot = kwargs.get("eta_2pix_pivot", defaults.eta_2pix_pivot)
     eta_3pix_rad0 = kwargs.get("eta_3pix_rad0", defaults.eta_3pix_rad0)
@@ -66,8 +67,8 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
     eta_3pix_theta0 = kwargs.get("eta_3pix_theta0", defaults.eta_3pix_theta0)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1, \
-           eta_3pix_rad_pivot, eta_3pix_theta0
+           pos_recon_algorithm, gain_matrix_file_path, eta_2pix_rad, eta_2pix_pivot, \
+           eta_3pix_rad0, eta_3pix_rad1, eta_3pix_rad_pivot, eta_3pix_theta0
     return tasks.reconstruct(*args, kwargs)
 
 

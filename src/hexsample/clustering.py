@@ -261,6 +261,11 @@ class ClusteringNN(ClusteringBase):
     """
 
     num_neighbors: int
+    gain_matrix: np.ndarray = None
+
+    def __post_init__(self) -> None:
+        if self.gain_matrix is None:
+            self.gain_matrix = np.full((self.grid.num_rows, self.grid.num_cols), 1.)
 
     def run(self, event) -> Cluster:
         """Overladed method.
@@ -277,13 +282,15 @@ class ClusteringNN(ClusteringBase):
             row = [event.row]
             adc_channel_order = [self.grid.adc_channel(event.column, event.row)]
             # Taking the NN in logical coordinates ...
+            gain_array = [self.gain_matrix[event.row, event.column]]
             for _col, _row in self.grid.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
                 adc_channel_order.append(self.grid.adc_channel(_col, _row))
+                gain_array.append(self.gain_matrix[_row, _col])
             # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i].
-            pha = event.pha[adc_channel_order]
+            pha = event.pha[adc_channel_order] / np.array(gain_array)
             # Converting lists into numpy arrays
             col = np.array(col)
             row = np.array(row)
@@ -298,7 +305,7 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([event(_col, _row) for _col, _row in zip(col, row)])
+            pha = np.array([event(_col, _row)/self.gain_matrix[_row, _col] for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to
