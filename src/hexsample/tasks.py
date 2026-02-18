@@ -344,7 +344,8 @@ def display(
         grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)
         try:
             mc_event = input_file.mc_event(i)
-            grid_display.draw_positions(mc_event, event, readout, recon_defaults, zero_sup_threshold)
+            grid_display.draw_positions(mc_event, event, readout, recon_defaults,
+                                        zero_sup_threshold)
         except IndexError:
             pass
         grid_display.show()
