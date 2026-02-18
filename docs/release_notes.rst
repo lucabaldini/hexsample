@@ -3,6 +3,12 @@
 Release notes
 =============
 
+* New `legacy.py` module containing the code to convert .mdat3 files to .h5 files.
+* New command `convert` to convert .mdat3 files to .h5 files using the CLI.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/100
+
 
 Version 0.13.3 (2026-02-10)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
