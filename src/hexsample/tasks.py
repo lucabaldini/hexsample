@@ -23,10 +23,11 @@
 import inspect
 import pathlib
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
+from aptapy.models import Gaussian
 from aptapy.plotting import plt, setup_gca
 from tqdm import tqdm
 
@@ -51,7 +52,7 @@ from .readout import (
     HexagonalReadoutMode,
     HexagonalReadoutRectangular,
 )
-from .recon import ReconEvent
+from .recon import ReconEvent, DEFAULT_IONIZATION_POTENTIAL
 from .sensor import Sensor
 from .source import Source
 
@@ -166,7 +167,7 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
-    map_gain_file: str = None
+    gain_map: Union[np.ndarray, None] = None
     eta_2pix_rad: float = 0.127
     eta_2pix_pivot: float = 0.04
     eta_3pix_rad0: float = 0.513
@@ -182,7 +183,7 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
-        map_gain_file: str = ReconstructionDefaults.map_gain_file,
+        gain_map: Union[np.ndarray, None] = ReconstructionDefaults.gain_map,
         eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
         eta_2pix_pivot: float = ReconstructionDefaults.eta_2pix_pivot,
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
@@ -220,9 +221,8 @@ def reconstruct(
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
 
-    gain_matrix_file_path : str
-        The path to the gain matrix file to use for the reconstruction. If None, no gain correction
-        is applied.
+    gain_map : np.ndarray or None
+        The gain map to use for the reconstruction. If None, no gain correction is applied.
 
     eta_index : float
         The eta index to use.
@@ -245,8 +245,8 @@ def reconstruct(
     # Open the gain calibration file to update the readout gain argument. If no gain file is
     # provided, use the scalar value in the header.
     gain = header["gain"]
-    if map_gain_file is not None:
-        gain = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
+    if gain_map is not None:
+        gain = gain_map
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], gain
@@ -332,7 +332,7 @@ def calibrate(input_file_path: str,
     energy : float
         The energy of the X-ray photons in eV. This is used to convert the charge collected in
         each pixel to the number of electron, which is necessary for the gain calibration.
-    
+
     zero_sup_threshold : float
         The zero-suppression threshold to use for the clustering in the gain calibration.
     
@@ -382,13 +382,35 @@ def calibrate(input_file_path: str,
         # We can run noise analysis only with rectangular readout
         if readout_mode is HexagonalReadoutMode.RECTANGULAR:
             noise.analyze_event(event)
-    # Close the input file.
-    input_file.close()
-    # Save the gain and noise matrices to separate HDF5 files.
+    # Save the noise matricx to a HDF5 files.
     noise_output_file_path = input_file_path.replace(".h5", f"_{suffix}_noise.h5")
-    gain_output_file_path = input_file_path.replace(".h5", f"_{suffix}_gain.h5")
     noise.to_hdf5(noise_output_file_path)
+    logger.info(f"Saving noise calibration map to {noise_output_file_path}...")
+    # Reconstruct the energy spectrum of the events using the gain matrix to correct the bias.
+    readout.gain = gain.matrix
+    reconstruction_clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
+    recon_energy = []
+    logger.info("Reconstructing energy and estimate gain bias...")
+    for _, event in tqdm(enumerate(input_file)):
+        try:
+            cluster = reconstruction_clustering.run(event)
+            recon_energy.append(cluster.pulse_height() * DEFAULT_IONIZATION_POTENTIAL)
+        except IndexError:
+            continue
+    input_file.close()
+    # Fit the energy spectrum with a Gaussian to extract the mean value.
+    model = Gaussian()
+    xedges = np.linspace(min(recon_energy), max(recon_energy), 100)
+    histo = Histogram1d(xedges).fill(recon_energy)
+    model.fit_iterative(histo, num_sigma_left=1.5, num_sigma_right=1.5)
+    # Estimate the bias and update the gain matrix
+    bias = (model.mu.value - energy) / energy
+    logger.info(f"Updating gain matrix with bias correction factor {bias:.3f}...")
+    gain.matrix *= 1. + bias
+    # Save the gain matrix to a HDF5 file.
+    gain_output_file_path = input_file_path.replace(".h5", f"_{suffix}_gain.h5")
     gain.to_hdf5(gain_output_file_path)
+    logger.info(f"Saving gain calibration map to {gain_output_file_path}...")
 
 
 class DisplayDefaults:
