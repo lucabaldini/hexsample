@@ -292,14 +292,15 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         # Set the hits to zero for the pixels that don't pass the quality cut.
         self._hits[~mask] = 0
 
-    def analyze_cluster(self, cluster: Cluster, grid: HexagonalGrid):
+    def analyze_cluster(self, cluster: Cluster):
         """Analyze the event cluster to update the calibration matrix.
         """
         # If the analysis method is single, only 1-pixel events are used for the gain calibration.
         if self._method == "single":
             if cluster.size() == 1:
                 # Get the coordinate of the only pixel of the cluster
-                col, row = grid.world_to_pixel(cluster.x[0], cluster.y[0])
+                col = cluster.col[0]
+                row = cluster.row[0]
                 # The gain is estimated as the ADC counts of the pixel divided by the expected
                 # number of electrons for the given energy.
                 self._sum[row, col] += cluster.pha[0] / (self._energy / 3.6)
@@ -308,12 +309,13 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         # used for the calibration.
         elif self._method == "lsm":
             # Get the coordinates of the cluster pixels
-            cols, rows = grid.world_to_pixel(cluster.x, cluster.y)
+            cols = cluster.col
+            rows = cluster.row
             # Update the arrays for the least squares fit.
             self._pha.extend(cluster.pha)
             for col, row in zip(cols, rows):
                 # Calculate the index of the pixel in the flattened array
-                i = row * grid.num_cols + col
+                i = row * self._shape[1] + col
                 self._coords.append(i)
                 self._event_rows.append(self._event_count)
                 # Update the matrix with the number of events for each pixel

@@ -242,8 +242,14 @@ def reconstruct(
     file_type = digi_input_file_class(readout_mode)
     input_file = file_type(input_file_path)
     header = input_file.header
+    # Open the gain calibration file to update the readout gain argument. If no gain file is
+    # provided, use the scalar value in the header.
+    gain = header["gain"]
+    if map_gain_file is not None:
+        gain = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
+    # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"]
+        header["pitch"], header["enc"], gain
     if readout_mode is HexagonalReadoutMode.RECTANGULAR:
         readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
@@ -251,18 +257,13 @@ def reconstruct(
     else:
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
-    # Open the gain calibration file.
-    if map_gain_file is not None:
-        gain_matrix = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
-    else:
-        gain_matrix = np.full((header["num_rows"], header["num_cols"]), header["gain"])
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
     # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
     # to the circular.
     effective_neighbors = max_neighbors if max_neighbors >= 0 else num_neighbors
     # Run the actual reconstruction.
-    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors, gain_matrix)
+    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors)
     output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
     output_file = ReconOutputFile(output_file_path)
     if header_kwargs is not None:
@@ -356,21 +357,28 @@ def calibrate(input_file_path: str,
     file_type = digi_input_file_class(readout_mode)
     input_file = file_type(input_file_path)
     header = input_file.header
-    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"], header["pitch"]
-    # Create the grid object and the clustering
-    grid = HexagonalGrid(*args)
-    clustering = ClusteringNN(grid, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
+    # Manually setting the gain argument to 1. for the calibration.
+    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"], header["enc"], 1.
+    if readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
+    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+        readout = HexagonalReadoutCircular(*args)
+    else:
+        raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
+    logger.info(f"Readout chip: {readout}")
     # Initialize the gain and noise matrices.
     gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy,
                                         default_gain, gain_calibration_method)
     noise = CalibrationMatrixNoise(header["num_cols"], header["num_rows"], default_noise)
-    # Loop over the events and update the gain and noise matrices.
+    # Run the calibration.
+    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
     for _, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
-        except IndexError as e:
+        except IndexError:
             continue
-        gain.analyze_cluster(cluster, grid)
+        gain.analyze_cluster(cluster)
         # We can run noise analysis only with rectangular readout
         if readout_mode is HexagonalReadoutMode.RECTANGULAR:
             noise.analyze_event(event)
