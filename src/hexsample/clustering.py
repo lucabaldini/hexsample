@@ -27,7 +27,7 @@ import numpy as np
 from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
-from .hexagon import HexagonalGrid
+from .readout import HexagonalReadoutBase
 
 
 @dataclass
@@ -40,6 +40,8 @@ class Cluster:
 
     x: np.ndarray
     y: np.ndarray
+    col: np.ndarray
+    row: np.ndarray
     pha: np.ndarray
 
     def __post_init__(self) -> None:
@@ -178,8 +180,25 @@ class ClusteringBase:
     """Base class for the clustering.
     """
 
-    grid: HexagonalGrid
+    readout: HexagonalReadoutBase
     zero_sup_threshold: float
+
+    def __post_init__(self) -> None:
+        """Check if the readout gain is a scalar or an array.
+        """
+        self._scalar_gain = isinstance(self.readout.gain, (int, float))
+    
+    def _gain(self, row: np.ndarray, col: np.ndarray) -> np.ndarray:
+        """Return the correct gain value for the given row and column indexes.
+
+        This method is necessary to handle both the case of a scalar gain and the case of a gain map.
+        It would be a mess to handle the two cases in the run method, so we check the type in the
+        constructor and then we return the gain value in a unified way here.
+        """
+        if self._scalar_gain:
+            return self.readout.gain
+        else:
+            return self.readout.gain[row, col]
 
     def zero_suppress(self, array: np.ndarray) -> np.ndarray:
         """Zero suppress a generic array.
@@ -226,7 +245,7 @@ class ClusteringBase:
         # the second pixel.
         pix = list(zip(col, row))
         # We find the neighbors of the second pixel.
-        neighbors = set(self.grid.neighbors(col[1], row[1]))
+        neighbors = set(self.readout.neighbors(col[1], row[1]))
         # We always keep the first two pixels, plus the two neighbors of the second pixel.
         mask = np.array([True, True] + [p in neighbors for p in pix[2:]], dtype=bool)
         mask = mask & (pha > 0)
@@ -261,11 +280,6 @@ class ClusteringNN(ClusteringBase):
     """
 
     num_neighbors: int
-    gain_matrix: np.ndarray = None
-
-    def __post_init__(self) -> None:
-        if self.gain_matrix is None:
-            self.gain_matrix = np.full((self.grid.num_rows, self.grid.num_cols), 1.)
 
     def run(self, event) -> Cluster:
         """Overladed method.
@@ -280,15 +294,15 @@ class ClusteringNN(ClusteringBase):
             self.num_neighbors = 6 #HexagonalReadoutCircular.NUM_PIXELS - 1
             col = [event.column]
             row = [event.row]
-            adc_channel_order = [self.grid.adc_channel(event.column, event.row)]
+            adc_channel_order = [self.readout.adc_channel(event.column, event.row)]
             # Taking the NN in logical coordinates ...
-            gain_array = [self.gain_matrix[event.row, event.column]]
-            for _col, _row in self.grid.neighbors(event.column, event.row):
+            gain_array = [self._gain(event.row, event.column)]
+            for _col, _row in self.readout.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
-                adc_channel_order.append(self.grid.adc_channel(_col, _row))
-                gain_array.append(self.gain_matrix[_row, _col])
+                adc_channel_order.append(self.readout.adc_channel(_col, _row))
+                gain_array.append(self._gain(_row, _col))
             # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i].
             pha = event.pha[adc_channel_order] / np.array(gain_array)
             # Converting lists into numpy arrays
@@ -300,12 +314,12 @@ class ClusteringNN(ClusteringBase):
             seed_col, seed_row = event.highest_pixel()
             col = [seed_col]
             row = [seed_row]
-            for _col, _row in self.grid.neighbors(seed_col, seed_row):
+            for _col, _row in self.readout.neighbors(seed_col, seed_row):
                 col.append(_col)
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([event(_col, _row)/self.gain_matrix[_row, _col] for _col, _row in zip(col, row)])
+            pha = np.array([event(_col, _row)/self._gain(_row, _col) for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to
@@ -317,5 +331,5 @@ class ClusteringNN(ClusteringBase):
         mask = idx[:self.num_neighbors + 1]
         # Sort the arrays in decreasing order before applying the position suppression.
         pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
-        x, y = self.grid.pixel_to_world(col, row)
-        return Cluster(x, y, pha)
+        x, y = self.readout.pixel_to_world(col, row)
+        return Cluster(x, y, col, row, pha)
