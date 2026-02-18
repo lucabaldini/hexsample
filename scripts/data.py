@@ -20,6 +20,7 @@ DATA_INPUT_FILE_PATH = Path("/home/augusto/asix/hdf/020_0006531_data_all.h5")
 SIM_FILE_PATH = Path("/home/augusto/asix/simulation/simulation_enc100_gain0p08_10kev_diffsigma60.h5")
 
 
+
 def reconstruct_calibrated_data():
     input_file_path = "/home/augusto/asix/hdf/020_0006531_data.h5"
 
@@ -89,7 +90,7 @@ def compare():
     data_recon_path = f"{DATA_INPUT_FILE_PATH.with_suffix('')}_{suffix}.h5"
     if not Path(data_recon_path).exists():
         reconstruct(str(DATA_INPUT_FILE_PATH), zero_sup_threshold=16,
-                                 max_neighbors=6, suffix=suffix)
+                                 max_neighbors=6, suffix=suffix, pos_recon_algorithm=pos_recon_algorithm)
     sim_recon_path = f"{SIM_FILE_PATH.with_suffix('')}_{suffix}.h5"
     if not Path(sim_recon_path).exists():
         reconstruct(str(SIM_FILE_PATH), zero_sup_threshold=16, max_neighbors=6,
@@ -126,8 +127,8 @@ def compare():
     x = data_recon_file.column("posx")
     y = data_recon_file.column("posy")
     # Try to play with the binning
-    xedges = np.arange(-0.4, 0.5, 0.001)
-    yedges = np.arange(-0.75, 0.1, 0.001)
+    xedges = np.arange(-0.4, 0.5, 0.01)
+    yedges = np.arange(-0.75, 0.1, 0.01)
     pos_hist = Histogram2d(xedges, yedges)
     plt.figure("Events")
     plt.style.use("dark_background")
