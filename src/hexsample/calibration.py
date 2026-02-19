@@ -263,7 +263,8 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         self._matrix = new_value
         self._method = None
         # Setting the hits to one to avoid that the default value is estimated from the data.
-        self._hits = np.ones(self._shape, dtype=int)
+        if not np.any(self._hits > 0):
+            self._hits = np.ones(self._shape, dtype=int)
 
     def _update_header(self, attrs: AttributeSet) -> None:
         """Overloaded method.
