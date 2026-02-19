@@ -15,18 +15,18 @@ from hexsample.fileio import ReconInputFile
 # Create the gain matrix file with gain distributed uniformly between 0.9 and 1.1.
 gain_path = "/home/augusto/hexsampledata/correction/gain_matrix.h5"
 gain = CalibrationMatrixGain(304, 352)
-gain.matrix = np.random.uniform(low=0.9, high=1.1, size=(352, 304))
+gain.matrix = np.random.uniform(low=0.8, high=1.2, size=(352, 304))
 gain.to_hdf5(gain_path)
 
 
 # Now simulate an event file with the gain matrix.
 simulation_path = "/home/augusto/hexsampledata/correction/simulation.h5"
 simulate(
-        num_events=500000,
+        num_events=5000,
         output_file=str(simulation_path),
         beam="disk",
-        radius=0.1,
-        enc=66, # Trying with S/N ~ 25
+        radius=0.01,
+        enc=80, # Trying with S/N ~ 25
         zero_sup_threshold=0,
         readout_mode="rectangular",
         pitch=0.005,
@@ -35,9 +35,10 @@ simulate(
         num_rows=352,
         map_gain_file=gain_path,
         padding=Padding(2, 2, 2, 2),
+        seed=0
 )
 
-zsup = 30
+zsup = 0
 # Now we calibrate the gain and try to reconstruct the energy spectrum
 calibrate(
     input_file=simulation_path,
@@ -56,7 +57,7 @@ calibrate(
 )
 
 
-zero_sup_threshold = 60
+zero_sup_threshold = 80
 
 # Now reconstruct the simulated file with and without gain correction, and compare the results.
 reconstruct(
@@ -104,6 +105,8 @@ gain_calibrated_single = ReconInputFile("/home/augusto/hexsampledata/correction/
 gain_corrected = ReconInputFile("/home/augusto/hexsampledata/correction/simulation_with_gain_correction.h5")
 gain_uncorrected = ReconInputFile("/home/augusto/hexsampledata/correction/simulation_without_gain_correction.h5")
 
+lsm_gain = CalibrationMatrixGain.from_hdf5("/home/augusto/hexsampledata/correction/simulation_lsm_gain.h5")
+print(lsm_gain.hits[lsm_gain.hits > 0].size)
 mc_energy = gain_corrected.mc_column("num_pairs") * xraydb.ionization_potential("Si")
 corrected_energy = gain_corrected.column("energy")
 uncorrected_energy = gain_uncorrected.column("energy")
@@ -126,6 +129,5 @@ corrected_hist.plot(label="with gain correction")
 uncorrected_hist.plot(label="without gain correction")
 calibrated_hist.plot(label="with calibrated gain correction (LSM)")
 calibrated_hist_single.plot(label="with calibrated gain correction (single)")
-mc_hist.plot(label="MC")
 plt.legend()
 plt.show()
