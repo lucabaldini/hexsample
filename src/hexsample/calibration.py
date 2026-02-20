@@ -25,8 +25,8 @@ from typing import Union
 
 import numpy as np
 import tables
-from aptapy.hist import Histogram2d
-from aptapy.models import Probit
+from aptapy.hist import Histogram1d, Histogram2d
+from aptapy.models import Probit, Gaussian
 from aptapy.plotting import last_line_color, plt
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
@@ -369,6 +369,14 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         """Return the histogram of the noise values.
         """
         return self._histogram
+    
+    def enc(self) -> float:
+        edges = np.arange(-0.5, len(self._histogram) + 0.5, 1)
+        hist = Histogram1d(edges)
+        hist.set_content(self._histogram)
+        model = Gaussian()
+        model.fit_iterative(hist)
+        return model.sigma.value
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
         """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3

@@ -386,27 +386,67 @@ def calibrate(input_file_path: str,
     noise_output_file_path = input_file_path.replace(".h5", f"_{suffix}_noise.h5")
     noise.to_hdf5(noise_output_file_path)
     logger.info(f"Saving noise calibration map to {noise_output_file_path}...")
-    # Reconstruct the energy spectrum of the events using the gain matrix to correct the bias.
-    readout.gain = gain.matrix
-    reconstruction_clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
-    recon_energy = []
-    logger.info("Reconstructing energy and estimate gain bias...")
-    for _, event in tqdm(enumerate(input_file)):
-        try:
-            cluster = reconstruction_clustering.run(event)
-            recon_energy.append(cluster.pulse_height() * DEFAULT_IONIZATION_POTENTIAL)
-        except IndexError:
-            continue
-    input_file.close()
-    # Fit the energy spectrum with a Gaussian to extract the mean value.
-    model = Gaussian()
-    xedges = np.linspace(min(recon_energy), max(recon_energy), 100)
-    histo = Histogram1d(xedges).fill(recon_energy)
-    model.fit_iterative(histo, num_sigma_left=1.5, num_sigma_right=1.5)
-    # Estimate the bias and update the gain matrix
-    bias = (model.mu.value - energy) / energy
-    logger.info(f"Updating gain matrix with bias correction factor {bias:.3f}...")
-    gain.matrix *= 1. + bias
+    # Simulate a dataset with uniform gain set at the mean value of the gain matrix. Use the ENC
+    # given by the noise calibration histogram to set the same S/N ratio.
+    enc = noise.enc()
+    uniform_gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"],
+                                         default=gain.matrix.mean())
+    # # I can decide the beam
+    from .source import DiskBeam, Line
+    spectrum = Line(energy)
+    source = Source(spectrum, DiskBeam(radius=0.05))
+    sensor = Sensor()
+    # # Updating the readout
+    readout.enc = enc
+    readout.gain = uniform_gain.matrix
+
+    # simulation_path = input_file_path.replace(".h5", f"_tmp_cal_simulation.h5")
+    # simulate(source, sensor, readout, num_events=10000, output_file_path=simulation_path)
+    # simulation_file = file_type(simulation_path)
+    # unbiased_gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, method=gain_calibration_method)
+    # readout.gain = 1.
+    # clustering_unbiased = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
+    # for _, event in tqdm(enumerate(simulation_file)):
+    #     try:
+    #         cluster = clustering_unbiased.run(event)
+    #     except IndexError:
+    #         continue
+    #     unbiased_gain.analyze_cluster(cluster)
+    # residuals = (unbiased_gain.matrix[unbiased_gain.hits > 0] - uniform_gain.matrix[unbiased_gain.hits > 0]) / uniform_gain.matrix[unbiased_gain.hits > 0]
+    # residuals_hist = Histogram1d(np.linspace(-0.1, 0.1, 200))
+    # residuals_hist.fill(residuals)
+    # model = Gaussian()
+    # model.fit_iterative(residuals_hist, num_sigma_left=1.5, num_sigma_right=1.5)
+    # bias = model.mu.value
+    # # gain.matrix /= (1. + bias)
+
+
+
+
+
+
+
+    # # Reconstruct the energy spectrum of the events using the gain matrix to correct the bias.
+    # readout.gain = gain.matrix
+    # reconstruction_clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
+    # recon_energy = []
+    # logger.info("Reconstructing energy and estimate gain bias...")
+    # for _, event in tqdm(enumerate(input_file)):
+    #     try:
+    #         cluster = reconstruction_clustering.run(event)
+    #         recon_energy.append(cluster.pulse_height() * DEFAULT_IONIZATION_POTENTIAL)
+    #     except IndexError:
+    #         continue
+    # input_file.close()
+    # # Fit the energy spectrum with a Gaussian to extract the mean value.
+    # model = Gaussian()
+    # xedges = np.linspace(min(recon_energy), max(recon_energy), 100)
+    # histo = Histogram1d(xedges).fill(recon_energy)
+    # model.fit_iterative(histo, num_sigma_left=1.5, num_sigma_right=1.5)
+    # # Estimate the bias and update the gain matrix
+    # bias = (model.mu.value - energy) / energy
+    # logger.info(f"Updating gain matrix with bias correction factor {bias:.3f}...")
+    # gain.matrix *= 1. + bias
     # Save the gain matrix to a HDF5 file.
     gain_output_file_path = input_file_path.replace(".h5", f"_{suffix}_gain.h5")
     gain.to_hdf5(gain_output_file_path)
