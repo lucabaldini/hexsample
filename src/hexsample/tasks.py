@@ -332,17 +332,6 @@ def display(
     recon_defaults = ReconstructionDefaults
     grid_display = HexagonalGridDisplay(readout, input_file, recon_defaults=recon_defaults, zero_sup_threshold=zero_sup_threshold)
     input_file.close()
-    '''    
-    for i, event in enumerate(input_file):
-        if event_id is not None and i != event_id:
-            continue
-        recon_defaults = ReconstructionDefaults
-        mc_event = input_file.mc_event(i)
-        grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)
-        grid_display.draw_positions(mc_event, event, readout, recon_defaults, zero_sup_threshold)
-        grid_display.show()
-    input_file.close()
-    '''
 
 
 class QuickLookDefaults:
