@@ -85,11 +85,12 @@ class HexagonalGridDisplay:
         """
         self._grid = grid
         self._input_file = input_file
-        self.zero_sup_threshold = 0
+        self.zero_sup_threshold = zero_sup_threshold
         self.color_map = matplotlib.colormaps[kwargs.get("cmap_name", "Reds")].copy()
         self.color_map_offset = kwargs.get("cmap_offset", 0)
         self.color_map.set_under("white")
         self.recon_defaults = kwargs.get("recon_defaults", None)
+        self.event_id = kwargs.get("event_id", 0)
         self.show()
         self.next(None)
 
@@ -103,9 +104,7 @@ class HexagonalGridDisplay:
         self.axes.autoscale()
         self.axes.axis("off")
         self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
-        #self.axes.annotate(f"Current ID: {event.trigger_id}", xy=[0.2, 0.075], xycoords='figure fraction', fontsize=14, ha='center')
         self.figure.canvas.draw_idle()
-        #print(f"Next event ID: {event.trigger_id}")
 
     def prev(self, _) -> DigiEventBase:
         """Convenience method to get the previous event from the input file.
@@ -117,9 +116,7 @@ class HexagonalGridDisplay:
         self.axes.autoscale()
         self.axes.axis("off")
         self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
-        #self.axes.annotate(f"Current ID: {event.trigger_id}", xy=[0.2, 0.075], xycoords='figure fraction', fontsize=14, ha='center')
         self.figure.canvas.draw_idle()
-        #print(f"Previous event ID: {event.trigger_id}")
     
     def pick_event(self, _) -> DigiEventBase:
         """Convenience method to get a specific event from the input file.
@@ -131,17 +128,27 @@ class HexagonalGridDisplay:
         self.axes.autoscale()
         self.axes.axis("off")
         self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
-        #self.axes.annotate(f"Current ID: {event.trigger_id}", xy=[0.2, 0.075], xycoords='figure fraction', fontsize=14, ha='center')
         self.figure.canvas.draw_idle()
-        #print(f"Picked event ID: {event.trigger_id}")
     
+    def update_zero_sup(self, _) -> DigiEventBase:
+        """Convenience method to update the zero suppression threshold and re-plot the event.
+        """
+        self.zero_sup_threshold = int(self.text_box2.text)
+        event = self._input_file.pick_event(int(self.text_box.text)) ##Shows current event ID. 
+        self.axes.clear()
+        self.draw_digi_event(event, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid, self.zero_sup_threshold)
+        self.axes.autoscale()
+        self.axes.axis("off")
+        self.text_box.set_val(event.trigger_id)
+        self.figure.canvas.draw_idle()
+        
     def setup_gca(self):
         """Setup the current axes object to make the display work.
         Includes a modified axes adding a text box for event ID input.
         """
         ### Assign the first event in the file as the first displayed event
-        initial_event= self._input_file.pick_event(int(0))
-        
+        initial_event = self._input_file.pick_event(int(self.event_id))
         self.figure, self.axes = plt.subplots()
         self.figure.subplots_adjust(bottom=0.2)
         self.axes.set_aspect("equal")
@@ -163,11 +170,13 @@ class HexagonalGridDisplay:
         axbox = self.figure.add_axes([0.5, 0.05, 0.1, 0.075])
         self.text_box = TextBox(axbox, "Event ID: ", textalignment="center")
         self.text_box.on_submit(self.pick_event)
-        self.text_box.set_val(initial_event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
+        self.text_box.set_val(initial_event.trigger_id) ##Show current event ID in the text box after picking the event.
         
-        ### Annotate the current event ID on the display
-        #self.axes.annotate(f"Current ID: {initial_event.trigger_id}", xy=[0.2, 0.075], xycoords='figure fraction', fontsize=14, ha='center')
-
+        ### Textbox for zero suppression threshold input. With this we redraw the event with the newly picked threshold value.
+        axzerosup = self.figure.add_axes([0.25, 0.05, 0.1, 0.075])
+        self.text_box2 = TextBox(axzerosup, "Zero Sup. Thresh.: ", textalignment="center")
+        self.text_box2.on_submit(self.update_zero_sup)
+        self.text_box2.set_val(int(self.zero_sup_threshold)) ##Show current zero suppression threshold in the text box.        
     
     def show(self):
         """Convenience function to setup the matplotlib canvas for an event display.
@@ -215,7 +224,7 @@ class HexagonalGridDisplay:
             cols, rows = roi.col_indexes(), roi.row_indexes()
             first_row = np.full(cols.shape, roi.min_row)
             first_col = np.full(rows.shape, roi.min_col)
-            fmt = dict(fontsize=font_size, ha="center", va="bottom", rotation=60.)
+            fmt = dict(fontsize=font_size, ha="center", va="bottom", rotation=0.)
             for x, y, col in zip(*self._grid.pixel_to_world(cols, first_row), cols):
                 self.axes.text(x + dx, y + dy + self._grid.secondary_pitch, f"{col}", **fmt)
             fmt = dict(fontsize=font_size, ha="right", va="center", rotation=0.)
