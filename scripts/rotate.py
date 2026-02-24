@@ -1,4 +1,4 @@
-
+import numpy as np
 from aptapy.plotting import plt
 
 from hexsample.fileio import ReconInputFile
@@ -6,10 +6,10 @@ from hexsample.resolution import SlantedEdgeResolution, SlitsAligner
 
 
 def rotate():
-    # file_path_eta = "/home/augusto/asix/hdf/020_0006531_data_all_recon_zsup16_eta.h5"
-    # file_path_centroid = "/home/augusto/asix/hdf/020_0006531_data_all_recon_zsup16_centroid.h5"
-    file_path_eta = "/home/augusto/hexsampledata/edge_simulation_recon_eta.h5"
-    file_path_centroid = "/home/augusto/hexsampledata/edge_simulation_recon_centroid.h5"
+    file_path_eta = "/home/augusto/asix/hdf/020_0006531_data_all_recon_zsup16_eta.h5"
+    file_path_centroid = "/home/augusto/asix/hdf/020_0006531_data_all_recon_zsup16_centroid.h5"
+    # file_path_eta = "/home/augusto/hexsampledata/edge_simulation_recon_eta.h5"
+    # file_path_centroid = "/home/augusto/hexsampledata/edge_simulation_recon_centroid.h5"
     
     recon_file_eta = ReconInputFile(file_path_eta)
     x_eta = recon_file_eta.column("posx")
@@ -27,14 +27,15 @@ def rotate():
     y_rot_eta *= 10000  # Convert to microns
     y_rot_centroid *= 10000
 
-    # mask_eta = np.full_like(y_rot_eta, True, dtype=bool)
-    # mask_centroid = np.full_like(y_rot_centroid, True, dtype=bool)
-    # YMIN = -6760
-    # mask_eta = (y_rot_eta > YMIN) & (y_rot_eta < -6450)
-    # mask_centroid = (y_rot_centroid > YMIN) & (y_rot_centroid < -6450)
-    BIN_SIZE = 1    # microns
-    SIGMA = 2       # bins
-    slanted_edge_eta = SlantedEdgeResolution(y_rot_eta,
+    mask_eta = np.full_like(y_rot_eta, True, dtype=bool)
+    mask_centroid = np.full_like(y_rot_centroid, True, dtype=bool)
+    YMIN = -530
+    YMAX = -450
+    mask_eta = (y_rot_eta > YMIN) & (y_rot_eta < YMAX)
+    mask_centroid = (y_rot_centroid > YMIN) & (y_rot_centroid < YMAX)
+    BIN_SIZE = 0.5    # microns
+    SIGMA = 4       # bins
+    slanted_edge_eta = SlantedEdgeResolution(y_rot_eta[mask_eta],
                                              bin_size=BIN_SIZE,
                                              sigma=SIGMA)
     plt.figure("ESF")
@@ -46,7 +47,7 @@ def rotate():
 
     plt.plot(freq*1000, mtf, '.k')
 
-    slanted_edge_centroid = SlantedEdgeResolution(y_rot_centroid,
+    slanted_edge_centroid = SlantedEdgeResolution(y_rot_centroid[mask_centroid],
                                                   bin_size=BIN_SIZE,
                                                   sigma=SIGMA)
     plt.figure("ESF")

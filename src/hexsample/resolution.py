@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
@@ -51,9 +51,16 @@ class SlitsAligner:
         The standard deviation of the Gaussian filter to be applied to the image during the Canny
         edge detection. If its value is too small, the pixel edges are detected instead of the slit
         edges. Otherwise, a too large value can lead to no edge being detected.
+    angle : Optional[float]
+        The tilt angle of the slits with respect to the detector x-axis in counterclockwise
+        direction. If this value is given, the alignment is done by directly rotating the
+        reconstructed positions by this angle. Otherwise, the angle is estimated by applying the
+        the edge detection and the Hough transform. This can be useful to compare the results with
+        the Monte Carlo angle and the estimated angle.
     """
     bin_size: float = 0.001
     sigma: float = 10.
+    angle: Optional[float] = None
 
     def _detect_edges(self, x: np.ndarray, y: np.ndarray) -> np.ndarray:
         """Detect the slit edges of the Huttner test pattern to align the slit to the detector
@@ -127,10 +134,14 @@ class SlitsAligner:
         y : np.ndarray
             The y coordinates of the reconstructed positions aligned to the detector x-axis.
         """
-        # Detect the edges of the slits
-        edges = self._detect_edges(x, y)
-        # Estimate the tilt angle
-        theta = self._estimate_angle(edges)
+        if self.angle is not None:
+            # If the angle is given as an argument, we can directly use it.
+            theta = self.angle
+        else:
+            # Detect the edges of the slits
+            edges = self._detect_edges(x, y)
+            # Estimate the tilt angle
+            theta = self._estimate_angle(edges)
         # Rotate the reconstruction positions by the estimated angle
         x_aligned = x * np.cos(theta) - y * np.sin(theta)
         y_aligned = x * np.sin(theta) + y * np.cos(theta)
@@ -188,8 +199,10 @@ class SlantedEdgeResolution:
         edges = np.arange(x_min, x_center, step=self.bin_size)
         # Prepare the data for the smoothing with a Gaussian filter.
         counts, _ = np.histogram(self.x[self.x < x_center], bins=edges)
-        smoothet_esf = gaussian_filter1d(counts, sigma=self.sigma)
-        return smoothet_esf, edges
+        if self.sigma is None:
+            return counts, edges
+        smoothed_esf = gaussian_filter1d(counts, sigma=self.sigma)
+        return smoothed_esf, edges
 
     @property
     def esf(self) -> Histogram1d:
