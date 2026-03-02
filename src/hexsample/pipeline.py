@@ -76,16 +76,13 @@ def calibrate(**kwargs) -> None:
     """Calibrate the gain and noise of the chip.
     """
     input_file_path = kwargs["input_file"]
-    suffix = kwargs.get("suffix", tasks.CalibrationDefaults.suffix)
-    energy = kwargs.get("energy", tasks.CalibrationDefaults.energy)
+    energy = kwargs["energy"]
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationDefaults.zero_sup_threshold)
     default_gain = kwargs.get("default_gain", tasks.CalibrationDefaults.default_gain)
     default_noise = kwargs.get("default_noise", tasks.CalibrationDefaults.default_noise)
-    gain_calibration_method = kwargs.get("gain_calibration_method",
-                                         tasks.CalibrationDefaults.gain_calibration_method)
-    return tasks.calibrate(input_file_path, suffix, energy, zero_sup_threshold, default_gain,
-                           default_noise, gain_calibration_method)
+    return tasks.calibrate(input_file_path, energy, zero_sup_threshold, default_gain,
+                           default_noise)
 
 
 def display(**kwargs) -> None:
