@@ -27,6 +27,7 @@ import numpy as np
 from aptapy.plotting import plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import RegularPolygon
+from matplotlib.widgets import Button, TextBox
 
 from .clustering import ClusteringNN
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
@@ -35,8 +36,6 @@ from .mc import MonteCarloEvent
 from .readout import HexagonalReadoutBase
 from .roi import RegionOfInterest
 
-from matplotlib.widgets import TextBox, Button
-from .fileio import DigiDescriptionBase
 
 class HexagonCollection(PatchCollection):
 
@@ -80,7 +79,8 @@ class HexagonalGridDisplay:
     """Display for an HexagonalGrid object.
     """
 
-    def __init__(self, grid: HexagonalGrid, input_file, zero_sup_threshold: int = 0, **kwargs) -> None:
+    def __init__(self, grid: HexagonalGrid, input_file, zero_sup_threshold: int = 0,
+                 **kwargs) -> None:
         """Constructor.
         """
         self._grid = grid
@@ -89,7 +89,7 @@ class HexagonalGridDisplay:
         self.color_map = matplotlib.colormaps[kwargs.get("cmap_name", "Reds")].copy()
         self.color_map_offset = kwargs.get("cmap_offset", 0)
         self.color_map.set_under("white")
-        self.recon_defaults = kwargs.get("recon_defaults", None)
+        self.recon_defaults = kwargs.get("recon_defaults")
         self.event_id = kwargs.get("event_id", 0)
         self.show()
         self.next(None)
@@ -100,10 +100,12 @@ class HexagonalGridDisplay:
         event = next(self._input_file)
         self.axes.clear()
         self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
+                            self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
-        self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
+        # Show current event ID in the text box after picking the event. This can be improved
+        self.text_box.set_val(event.trigger_id)
         self.figure.canvas.draw_idle()
 
     def prev(self, _) -> DigiEventBase:
@@ -112,37 +114,42 @@ class HexagonalGridDisplay:
         event = self._input_file.prev()
         self.axes.clear()
         self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
+                            self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
-        self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
+        # Show current event ID in the text box after picking the event. This can be improved
+        self.text_box.set_val(event.trigger_id)
         self.figure.canvas.draw_idle()
-    
+
     def pick_event(self, _) -> DigiEventBase:
         """Convenience method to get a specific event from the input file.
         """
         event = self._input_file.pick_event(int(self.text_box.text))
         self.axes.clear()
         self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
+                            self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
-        self.text_box.set_val(event.trigger_id) ##Show current event ID in the text box after picking the event. This can be improved
+        # Show current event ID in the text box after picking the event. This can be improved
+        self.text_box.set_val(event.trigger_id)
         self.figure.canvas.draw_idle()
-    
+
     def update_zero_sup(self, _) -> DigiEventBase:
         """Convenience method to update the zero suppression threshold and re-plot the event.
         """
         self.zero_sup_threshold = int(self.text_box2.text)
-        event = self._input_file.pick_event(int(self.text_box.text)) ##Shows current event ID. 
+        event = self._input_file.pick_event(int(self.text_box.text)) ##Shows current event ID.
         self.axes.clear()
         self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
+                            self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
         self.text_box.set_val(event.trigger_id)
         self.figure.canvas.draw_idle()
-        
+
     def setup_gca(self):
         """Setup the current axes object to make the display work.
         Includes a modified axes adding a text box for event ID input.
@@ -153,10 +160,11 @@ class HexagonalGridDisplay:
         self.figure.subplots_adjust(bottom=0.2)
         self.axes.set_aspect("equal")
         self.draw_digi_event(initial_event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), initial_event, self._grid, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), initial_event,
+                            self._grid, self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
-        
+
         ##Draw the previous and next buttons for event navigation
         axprev = self.figure.add_axes([0.7, 0.05, 0.12, 0.075])
         self.bprev = Button(axprev, 'Previous')
@@ -165,19 +173,22 @@ class HexagonalGridDisplay:
         axnext = self.figure.add_axes([0.83, 0.05, 0.12, 0.075])
         self.bnext = Button(axnext, 'Next')
         self.bnext.on_clicked(self.next)
-        
-        ##Draw the textbox for event ID input
+
+        # Draw the textbox for event ID input
         axbox = self.figure.add_axes([0.5, 0.05, 0.1, 0.075])
         self.text_box = TextBox(axbox, "Event ID: ", textalignment="center")
         self.text_box.on_submit(self.pick_event)
-        self.text_box.set_val(initial_event.trigger_id) ##Show current event ID in the text box after picking the event.
-        
-        ### Textbox for zero suppression threshold input. With this we redraw the event with the newly picked threshold value.
+        # Show current event ID in the text box after picking the event.
+        self.text_box.set_val(initial_event.trigger_id)
+
+        # Textbox for zero suppression threshold input. With this we redraw the
+        # event with the newly picked threshold value.
         axzerosup = self.figure.add_axes([0.25, 0.05, 0.1, 0.075])
         self.text_box2 = TextBox(axzerosup, "Zero Sup. Thresh.: ", textalignment="center")
         self.text_box2.on_submit(self.update_zero_sup)
-        self.text_box2.set_val(int(self.zero_sup_threshold)) ##Show current zero suppression threshold in the text box.        
-    
+        # Show current zero suppression threshold in the text box.
+        self.text_box2.set_val(int(self.zero_sup_threshold))
+
     def show(self):
         """Convenience function to setup the matplotlib canvas for an event display.
         """
@@ -300,7 +311,7 @@ class HexagonalGridDisplay:
         raise NotImplementedError(f"Cannot draw event of type {type(event)}.")
 
     def draw_positions(self, mc_event: MonteCarloEvent, digi_event: DigiEventBase,
-                       readout: HexagonalReadoutBase, 
+                       readout: HexagonalReadoutBase,
                        zero_sup_threshold: int) -> None:
         """Draw the Monte Carlo truth position and the reconstructed positions on top of the digi
         event.
@@ -316,7 +327,8 @@ class HexagonalGridDisplay:
         # Calculate and plot eta reconstructed position.
         eta_recon_args = (self.recon_defaults.eta_2pix_rad, self.recon_defaults.eta_2pix_pivot,
                           self.recon_defaults.eta_3pix_rad0, self.recon_defaults.eta_3pix_rad1,
-                          self.recon_defaults.eta_3pix_rad_pivot, self.recon_defaults.eta_3pix_theta0)
+                          self.recon_defaults.eta_3pix_rad_pivot,
+                          self.recon_defaults.eta_3pix_theta0)
         try:
             eta_position = cluster.eta(*eta_recon_args, pitch=readout.pitch)
             # If cluster size is not 2 or 3, eta returns the centroid position, so we only

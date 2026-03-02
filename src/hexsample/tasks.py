@@ -209,7 +209,7 @@ def reconstruct(
 
     num_neighbors : int
         The number of neighbor pixels to be used for the clustering.
-    
+
     max_neighbors : int
         The maximum number of neighbor pixels to be used for the clustering. If max_neighbors is
         specified (i.e. different from -1), it has priority over num_neighbors.
@@ -291,7 +291,6 @@ class DisplayDefaults:
 def display(
         input_file_path: str,
         zero_sup_threshold: int = DisplayDefaults.zero_sup_threshold,
-        event_id: int = DisplayDefaults.event_id
         ) -> None:
     """Display events from a digi file.
 
@@ -330,7 +329,8 @@ def display(
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
     recon_defaults = ReconstructionDefaults
-    grid_display = HexagonalGridDisplay(readout, input_file, recon_defaults=recon_defaults, zero_sup_threshold=zero_sup_threshold)
+    _ = HexagonalGridDisplay(readout, input_file, recon_defaults=recon_defaults,
+                             zero_sup_threshold=zero_sup_threshold)
     input_file.close()
 
 
