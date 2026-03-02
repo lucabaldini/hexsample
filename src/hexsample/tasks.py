@@ -52,9 +52,9 @@ from .readout import (
     HexagonalReadoutMode,
     HexagonalReadoutRectangular,
 )
-from .recon import ReconEvent, DEFAULT_IONIZATION_POTENTIAL
+from .recon import ReconEvent
 from .sensor import Sensor
-from .source import Source
+from .source import Source, Line, DiskBeam
 
 # Make room for the output data.
 HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"
@@ -302,21 +302,16 @@ class CalibrationDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    suffix: str = "calibration_matrix"
-    energy: float = 6000.
     zero_sup_threshold: float = 20.
     default_gain: float | None = None
     default_noise: float | None = None
-    gain_calibration_method: str = "lsm"
 
 
 def calibrate(input_file_path: str,
-              suffix: str = CalibrationDefaults.suffix,
-              energy: float = CalibrationDefaults.energy,
+              energy: float,
               zero_sup_threshold: float = CalibrationDefaults.zero_sup_threshold,
               default_gain: float | None = CalibrationDefaults.default_gain,
-              default_noise: float | None = CalibrationDefaults.default_noise,
-              gain_calibration_method: str = CalibrationDefaults.gain_calibration_method) -> None:
+              default_noise: float | None = CalibrationDefaults.default_noise) -> None:
     """Calibrate the gain and noise response of the readout chip using the events from a digi file.
     The results are stored as a matrix in two separate HDF5 files, one for the gain and one for
     the noise.
@@ -325,9 +320,6 @@ def calibrate(input_file_path: str,
     ---------
     input_file_path : str
         The path to the input file.
-    
-    suffix : str
-        The suffix to append to the output file name.
     
     energy : float
         The energy of the X-ray photons in eV. This is used to convert the charge collected in
@@ -344,8 +336,6 @@ def calibrate(input_file_path: str,
         The default noise value to use for the noise calibration. If None, it will be set to the
         mean value of the noise matrix after processing all the events.
 
-    gain_calibration_method : str
-        The method to use for the gain calibration. It can be either "single" or "lsm". 
     """
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
@@ -368,8 +358,7 @@ def calibrate(input_file_path: str,
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
     # Initialize the gain and noise matrices.
-    gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy,
-                                        default_gain, gain_calibration_method)
+    gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, default_gain)
     noise = CalibrationMatrixNoise(header["num_cols"], header["num_rows"], default_noise)
     # Run the calibration.
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
@@ -383,72 +372,33 @@ def calibrate(input_file_path: str,
         if readout_mode is HexagonalReadoutMode.RECTANGULAR:
             noise.analyze_event(event)
     # Save the noise matricx to a HDF5 files.
-    noise_output_file_path = input_file_path.replace(".h5", f"_{suffix}_noise.h5")
+    noise_output_file_path = input_file_path.replace(".h5", f"_matrix_noise.h5")
     noise.to_hdf5(noise_output_file_path)
     logger.info(f"Saving noise calibration map to {noise_output_file_path}...")
-    # Simulate a dataset with uniform gain set at the mean value of the gain matrix. Use the ENC
-    # given by the noise calibration histogram to set the same S/N ratio.
-    enc = noise.enc()
-    uniform_gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"],
-                                         default=gain.matrix.mean())
-    # # I can decide the beam
-    from .source import DiskBeam, Line
-    spectrum = Line(energy)
-    source = Source(spectrum, DiskBeam(radius=0.05))
+    # Use the gain matrix to simulate a new file with the same energy and SNR to correct the bias
+    output = "/home/augusto/hexsampledata/_tmp_simulation_bias.h5"
+    source = Source(Line(energy), DiskBeam(radius=0.05))
     sensor = Sensor()
-    # # Updating the readout
-    readout.enc = enc
-    readout.gain = uniform_gain.matrix
-
-    # simulation_path = input_file_path.replace(".h5", f"_tmp_cal_simulation.h5")
-    # simulate(source, sensor, readout, num_events=10000, output_file_path=simulation_path)
-    # simulation_file = file_type(simulation_path)
-    # unbiased_gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, method=gain_calibration_method)
-    # readout.gain = 1.
-    # clustering_unbiased = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
-    # for _, event in tqdm(enumerate(simulation_file)):
-    #     try:
-    #         cluster = clustering_unbiased.run(event)
-    #     except IndexError:
-    #         continue
-    #     unbiased_gain.analyze_cluster(cluster)
-    # residuals = (unbiased_gain.matrix[unbiased_gain.hits > 0] - uniform_gain.matrix[unbiased_gain.hits > 0]) / uniform_gain.matrix[unbiased_gain.hits > 0]
-    # residuals_hist = Histogram1d(np.linspace(-0.1, 0.1, 200))
-    # residuals_hist.fill(residuals)
-    # model = Gaussian()
-    # model.fit_iterative(residuals_hist, num_sigma_left=1.5, num_sigma_right=1.5)
-    # bias = model.mu.value
-    # # gain.matrix /= (1. + bias)
-
-
-
-
-
-
-
-    # # Reconstruct the energy spectrum of the events using the gain matrix to correct the bias.
-    # readout.gain = gain.matrix
-    # reconstruction_clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
-    # recon_energy = []
-    # logger.info("Reconstructing energy and estimate gain bias...")
-    # for _, event in tqdm(enumerate(input_file)):
-    #     try:
-    #         cluster = reconstruction_clustering.run(event)
-    #         recon_energy.append(cluster.pulse_height() * DEFAULT_IONIZATION_POTENTIAL)
-    #     except IndexError:
-    #         continue
-    # input_file.close()
-    # # Fit the energy spectrum with a Gaussian to extract the mean value.
-    # model = Gaussian()
-    # xedges = np.linspace(min(recon_energy), max(recon_energy), 100)
-    # histo = Histogram1d(xedges).fill(recon_energy)
-    # model.fit_iterative(histo, num_sigma_left=1.5, num_sigma_right=1.5)
-    # # Estimate the bias and update the gain matrix
-    # bias = (model.mu.value - energy) / energy
-    # logger.info(f"Updating gain matrix with bias correction factor {bias:.3f}...")
-    # gain.matrix *= 1. + bias
+    mean = np.mean(gain.matrix[gain.hits > 0])
+    readout_sim = HexagonalReadoutCircular(enc=noise.enc() / mean, gain=gain.matrix)
+    logger.info("Simulating events with the best-fit gain matrix to correct the bias...")
+    simulate(source, sensor, readout_sim, 10000, output)
+    # Open the simulated file and run the gain calibration again
+    tmp_input_file = digi_input_file_class("circular")(output)
+    tmp_gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, default_gain)
+    for _, event in tqdm(enumerate(tmp_input_file)):
+        try:
+            cluster = clustering.run(event)
+        except IndexError:
+            continue
+        tmp_gain.analyze_cluster(cluster)
+    tmp_input_file.close()
+    # Calculate the correction factor and apply it to the gain matrix.
+    residuals = (tmp_gain.matrix[tmp_gain.hits > 0] - gain.matrix[tmp_gain.hits > 0]) / gain.matrix[tmp_gain.hits > 0]
+    correction_factor = 1. / (1 + np.mean(residuals))
+    gain.matrix = gain.matrix * correction_factor
     # Save the gain matrix to a HDF5 file.
-    gain_output_file_path = input_file_path.replace(".h5", f"_{suffix}_gain.h5")
+    gain_output_file_path = input_file_path.replace(".h5", f"_matrix_gain.h5")
     gain.to_hdf5(gain_output_file_path)
     logger.info(f"Saving gain calibration map to {gain_output_file_path}...")
 
