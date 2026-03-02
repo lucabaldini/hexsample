@@ -27,7 +27,6 @@ from typing import Tuple, Union
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
-from aptapy.models import Gaussian
 from aptapy.plotting import plt, setup_gca
 from tqdm import tqdm
 
@@ -54,7 +53,7 @@ from .readout import (
 )
 from .recon import ReconEvent
 from .sensor import Sensor
-from .source import Source, Line, DiskBeam
+from .source import DiskBeam, Line, Source
 
 # Make room for the output data.
 HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"
@@ -372,17 +371,20 @@ def calibrate(input_file_path: str,
         if readout_mode is HexagonalReadoutMode.RECTANGULAR:
             noise.analyze_event(event)
     # Save the noise matricx to a HDF5 files.
-    noise_output_file_path = input_file_path.replace(".h5", f"_matrix_noise.h5")
+    noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     noise.to_hdf5(noise_output_file_path)
     logger.info(f"Saving noise calibration map to {noise_output_file_path}...")
     # Use the gain matrix to simulate a new file with the same energy and SNR to correct the bias
-    output = "/home/augusto/hexsampledata/_tmp_simulation_bias.h5"
-    source = Source(Line(energy), DiskBeam(radius=0.05))
-    sensor = Sensor()
     mean = np.mean(gain.matrix[gain.hits > 0])
     readout_sim = HexagonalReadoutCircular(enc=noise.enc() / mean, gain=gain.matrix)
     logger.info("Simulating events with the best-fit gain matrix to correct the bias...")
-    simulate(source, sensor, readout_sim, 10000, output)
+    output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
+    simulate(
+        source=Source(Line(energy), DiskBeam(radius=0.05)),
+        sensor=Sensor(),
+        readout=readout_sim,
+        num_events=10000,
+        output_file_path=output)
     # Open the simulated file and run the gain calibration again
     tmp_input_file = digi_input_file_class("circular")(output)
     tmp_gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, default_gain)
@@ -394,11 +396,11 @@ def calibrate(input_file_path: str,
         tmp_gain.analyze_cluster(cluster)
     tmp_input_file.close()
     # Calculate the correction factor and apply it to the gain matrix.
-    residuals = (tmp_gain.matrix[tmp_gain.hits > 0] - gain.matrix[tmp_gain.hits > 0]) / gain.matrix[tmp_gain.hits > 0]
-    correction_factor = 1. / (1 + np.mean(residuals))
-    gain.matrix = gain.matrix * correction_factor
+    mask = tmp_gain.hits > 0
+    residuals = (tmp_gain.matrix[mask] - gain.matrix[mask]) / gain.matrix[mask]
+    gain.matrix = gain.matrix / (1 + np.mean(residuals))
     # Save the gain matrix to a HDF5 file.
-    gain_output_file_path = input_file_path.replace(".h5", f"_matrix_gain.h5")
+    gain_output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
     gain.to_hdf5(gain_output_file_path)
     logger.info(f"Saving gain calibration map to {gain_output_file_path}...")
 

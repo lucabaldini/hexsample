@@ -26,7 +26,7 @@ from typing import Union
 import numpy as np
 import tables
 from aptapy.hist import Histogram1d, Histogram2d
-from aptapy.models import Probit, Gaussian
+from aptapy.models import Gaussian, Probit
 from aptapy.plotting import last_line_color, plt
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
@@ -352,7 +352,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         """Return the histogram of the noise values.
         """
         return self._histogram
-    
+
     def enc(self) -> float:
         edges = np.arange(-0.5, len(self._histogram) + 0.5, 1)
         hist = Histogram1d(edges)
