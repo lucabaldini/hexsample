@@ -97,11 +97,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_recon_options(recon)
         recon.set_defaults(runner=pipeline.reconstruct)
 
+        # Run the chip calibration?
         calibrate = subparsers.add_parser("calibrate",
             help="calibrate the gain and noise of the chip",
             formatter_class=self._FORMATTER_CLASS)
         self.add_input_file(calibrate)
-        self.add_suffix(calibrate, default=tasks.CalibrationDefaults.suffix)
+        self.add_energy(calibrate)
         self.add_logging_level(calibrate)
         self.add_calibration_options(calibrate)
         calibrate.set_defaults(runner=pipeline.calibrate)
@@ -180,6 +181,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--suffix", type=str, default=default,
                             help="suffix for the output file")
+
+    @staticmethod
+    def add_energy(parser: argparse.ArgumentParser) -> None:
+        """Add an option for the energy of the X-ray photons.
+        """
+        parser.add_argument("energy", type=float,
+                            help="line energy in eV")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
@@ -344,9 +352,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="the value to use for pixels in the noise map that cannot be" \
                            " calibrated, e.g., because they have no events detected. If not" \
                            " specified, these pixels wil be set to the mean noise value.")
-        group.add_argument("--gain_calibration_method", type=str,
-                           choices=["lsm", "single"], default="lsm",
-                           help="method to use for the gain calibration.")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display.
