@@ -177,9 +177,7 @@ def mdat3_to_digi(file_path: str, num_events: int = None) -> None:
     with MDAT3File(file_path) as input_file:
         for i, event in tqdm(enumerate(input_file)):
             if i == num_events:
-                #output_file.flush()
                 output_file.close()
                 break
             output_file.add_row(event, None)
-    #output_file.flush()
     output_file.close()
