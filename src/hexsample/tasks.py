@@ -23,7 +23,7 @@
 import inspect
 import pathlib
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
@@ -32,6 +32,7 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
+from .calibration import CalibrationMatrixGain, CalibrationMatrixNoise
 from .clustering import ClusteringNN
 from .display import EventDisplay
 from .fileio import (
@@ -52,7 +53,7 @@ from .readout import (
 )
 from .recon import ReconEvent
 from .sensor import Sensor
-from .source import Source
+from .source import DiskBeam, Line, Source
 
 # Make room for the output data.
 HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"
@@ -165,6 +166,7 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
+    gain_map: Optional[np.ndarray] = None
     eta_2pix_rad: float = 0.127
     eta_2pix_pivot: float = 0.04
     eta_3pix_rad0: float = 0.513
@@ -180,6 +182,7 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
+        gain_map: Optional[np.ndarray] = ReconstructionDefaults.gain_map,
         eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
         eta_2pix_pivot: float = ReconstructionDefaults.eta_2pix_pivot,
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
@@ -217,6 +220,9 @@ def reconstruct(
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
 
+    gain_map : np.ndarray or None
+        The gain map to use for the reconstruction. If None, no gain correction is applied.
+
     eta_index : float
         The eta index to use.
     """
@@ -225,7 +231,7 @@ def reconstruct(
     # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
     input_file_path = str(input_file_path)
     if not input_file_path.endswith(".h5"):
-        raise RuntimeError("Input file {input_file_path} does not look like a HDF5 file")
+        raise RuntimeError(f"Input file {input_file_path} does not look like a HDF5 file")
 
     # It is necessary to extract the reaodut type because every readout type
     # corresponds to a different DigiEvent type.
@@ -235,8 +241,14 @@ def reconstruct(
     file_type = digi_input_file_class(readout_mode)
     input_file = file_type(input_file_path)
     header = input_file.header
+    # Open the gain calibration file to update the readout gain argument. If no gain file is
+    # provided, use the scalar value in the header.
+    gain = header["gain"]
+    if gain_map is not None:
+        gain = gain_map
+    # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"]
+        header["pitch"], header["enc"], gain
     if readout_mode is HexagonalReadoutMode.RECTANGULAR:
         readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
@@ -244,7 +256,6 @@ def reconstruct(
     else:
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
-
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
     # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
@@ -260,19 +271,143 @@ def reconstruct(
     # Create a list of acceptable cluster sizes.
     size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]
     for i, event in tqdm(enumerate(input_file)):
-        cluster = clustering.run(event)
+        try:
+            cluster = clustering.run(event)
+        except IndexError as e:
+            logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
         if cluster.size() in size:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
-                                     eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1,
-                                     eta_3pix_rad_pivot, eta_3pix_theta0)
-            mc_event = input_file.mc_event(i)
+                                    eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1,
+                                    eta_3pix_rad_pivot, eta_3pix_theta0)
+            try:
+                mc_event = input_file.mc_event(i)
+            except IndexError:
+                mc_event = None
             output_file.add_row(recon_event, mc_event)
+
     output_file.flush()
     input_file.close()
     output_file.close()
     return output_file_path
+
+
+@dataclass(frozen=True)
+class CalibrationDefaults:
+    """Default parameters for the calibrate task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    num_events: int = 50000
+    zero_sup_threshold: float = 20.
+    default_gain: float = None
+    default_noise: float = None
+
+
+def calibrate(input_file_path: str,
+              energy: float,
+              num_events: int,
+              zero_sup_threshold: float = CalibrationDefaults.zero_sup_threshold,
+              default_gain: float = CalibrationDefaults.default_gain,
+              default_noise: float = CalibrationDefaults.default_noise) -> None:
+    """Calibrate the gain and noise response of the readout chip using the events from a digi file.
+    The results are stored as a matrix in two separate HDF5 files, one for the gain and one for
+    the noise.
+
+    Arguments
+    ---------
+    input_file_path : str
+        The path to the input file.
+
+    energy : float
+        The energy of the X-ray photons in eV. This is used to convert the charge collected in
+        each pixel to the number of electron, which is necessary for the gain calibration.
+
+    num_events : int
+        The number of events to simulate to find the bias correction.
+
+    zero_sup_threshold : float
+        The zero-suppression threshold to use for the clustering in the gain calibration.
+
+    default_gain : float
+        The default gain value to use for the gain calibration. If None, it will be set to the
+        mean value of the gain matrix after processing all the events.
+
+    default_noise : float
+        The default noise value to use for the noise calibration. If None, it will be set to the
+        mean value of the noise matrix after processing all the events.
+
+    """
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    # Open the input file and extract the readout information
+    input_file_path = str(input_file_path)
+    if not input_file_path.endswith(".h5"):
+        raise RuntimeError(f"Input file {input_file_path} does not look like a HDF5 file")
+    readout_mode = peek_readout_type(input_file_path)
+    file_type = digi_input_file_class(readout_mode)
+    input_file = file_type(input_file_path)
+    header = input_file.header
+    # Manually setting the gain argument to 1. for the calibration.
+    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"], header["enc"], 1.
+    if readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
+    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+        readout = HexagonalReadoutCircular(*args)
+    else:
+        raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
+    logger.info(f"Readout chip: {readout}")
+    # Initialize the gain and noise matrices.
+    gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, default_gain)
+    noise = CalibrationMatrixNoise(header["num_cols"], header["num_rows"], default_noise)
+    # Run the calibration.
+    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
+    for _, event in tqdm(enumerate(input_file)):
+        try:
+            cluster = clustering.run(event)
+        except IndexError:
+            continue
+        gain.analyze_cluster(cluster)
+        # We can run noise analysis only with rectangular readout
+        if readout_mode is HexagonalReadoutMode.RECTANGULAR:
+            noise.analyze_event(event)
+    # Save the noise matricx to a HDF5 files.
+    noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
+    noise.to_hdf5(noise_output_file_path)
+    logger.info(f"Saving noise calibration map to {noise_output_file_path}...")
+    # Use the gain matrix to simulate a new file with the same energy and SNR to correct the bias
+    mean = np.mean(gain.matrix[gain.hits > 0])
+    readout_sim = HexagonalReadoutRectangular(enc=noise.enc() / mean, gain=gain.matrix)
+    logger.info("Simulating events with the best-fit gain matrix to correct the bias...")
+    output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
+    simulate(
+        source=Source(Line(energy), DiskBeam(radius=0.1)),
+        sensor=Sensor(),
+        readout=readout_sim,
+        num_events=num_events,
+        output_file_path=output)
+    # Open the simulated file and run the gain calibration again
+    tmp_input_file = digi_input_file_class("rectangular")(output)
+    tmp_gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, default_gain)
+    for _, event in tqdm(enumerate(tmp_input_file)):
+        try:
+            cluster = clustering.run(event)
+        except IndexError:
+            continue
+        tmp_gain.analyze_cluster(cluster)
+    tmp_input_file.close()
+    # Calculate the correction factor and apply it to the gain matrix.
+    mask = tmp_gain.hits > 0
+    residuals = (tmp_gain.matrix[mask] - gain.matrix[mask]) / gain.matrix[mask]
+    gain.matrix = gain.matrix / (1 + np.mean(residuals))
+    # Save the gain matrix to a HDF5 file.
+    gain_output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
+    gain.to_hdf5(gain_output_file_path)
+    logger.info(f"Saving gain calibration map to {gain_output_file_path}...")
 
 
 class DisplayDefaults:

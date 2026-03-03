@@ -97,6 +97,18 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_recon_options(recon)
         recon.set_defaults(runner=pipeline.reconstruct)
 
+        # Run the chip calibration?
+        calibrate = subparsers.add_parser("calibrate",
+            help="calibrate the gain and noise of the chip",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_input_file(calibrate)
+        self.add_energy(calibrate)
+        self.add_num_events(calibrate, default=tasks.CalibrationDefaults.num_events,
+                            intent="used for the gain calibration")
+        self.add_logging_level(calibrate)
+        self.add_calibration_options(calibrate)
+        calibrate.set_defaults(runner=pipeline.calibrate)
+
         # Run the single-event display?
         display = subparsers.add_parser("display",
             help="run the single-event display",
@@ -171,6 +183,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--suffix", type=str, default=default,
                             help="suffix for the output file")
+
+    @staticmethod
+    def add_energy(parser: argparse.ArgumentParser) -> None:
+        """Add an option for the energy of the X-ray photons.
+        """
+        parser.add_argument("energy", type=float,
+                            help="line energy in eV")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
@@ -251,6 +270,9 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="equivalent noise charge in electrons")
         group.add_argument("--gain", type=float, default=readout.HexagonalReadoutBase.gain,
                            help="conversion factor between electron equivalent and ADC counts")
+        group.add_argument("--map_gain_file", type=str, default=None,
+                           help="path to a file containing the gain map. If not specified, the" \
+                           " gain value of the --gain argument is used for all the pixels.")
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
                            choices=readout.ReadoutProxy.choices(),
                            default=readout.ReadoutProxy.default(),
@@ -278,6 +300,10 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="maximum number of neighbors to be considered")
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "dnn", "gnn"],
                            type=str, default="centroid", help="How to reconstruct position")
+        group.add_argument("--map_gain_file", type=str, default=None,
+                           help="path to a file containing the gain map. If not specified, the" \
+                           " gain value stored in the DigiFile header will be used for all" \
+                           " the pixels.")
         group.add_argument("--eta_2pix_rad",
                            default=tasks.ReconstructionDefaults.eta_2pix_rad,
                            type=float,
@@ -313,6 +339,21 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="model to use for neural network reconstruction")
         group.add_argument("--model_path", type=str,
                            help="path of the model to use, in case of custom model")
+
+    def add_calibration_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the calibration properties.
+        """
+        group = parser.add_argument_group("calibration", "Calibration configuration")
+        CliArgumentParser.add_zero_sup_threshold(group,
+                           default=tasks.CalibrationDefaults.zero_sup_threshold)
+        group.add_argument("--default_gain", type=float, default=None,
+                           help="the value to use for pixels in the gain map that cannot be" \
+                           " calibrated, e.g., because they have no events detected. If not" \
+                           " specified, these pixels wil be set to the mean gain value.")
+        group.add_argument("--default_noise", type=float, default=None,
+                           help="the value to use for pixels in the noise map that cannot be" \
+                           " calibrated, e.g., because they have no events detected. If not" \
+                           " specified, these pixels wil be set to the mean noise value.")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display.

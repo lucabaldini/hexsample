@@ -21,6 +21,7 @@
 """
 
 from . import legacy, tasks
+from .calibration import CalibrationMatrixGain
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
@@ -32,6 +33,10 @@ def simulate(**kwargs) -> str:
     defaults = tasks.SimulationDefaults
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
+    # If a gain response file is provided, load the gain matrix and update the kwargs
+    if kwargs.get("map_gain_file") is not None:
+        gain_file = CalibrationMatrixGain.from_hdf5(kwargs.get("map_gain_file"))
+        kwargs.update({"gain": gain_file.matrix})
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
@@ -50,6 +55,11 @@ def reconstruct(**kwargs) -> str:
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
     max_neighbors = kwargs.get("max_neighbors", defaults.max_neighbors)
     pos_recon_algorithm = kwargs.get("pos_recon_algorithm", defaults.pos_recon_algorithm)
+    map_gain_file = kwargs.get("map_gain_file")
+    if map_gain_file is not None:
+        gain_map = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
+    else:
+        gain_map = None
     eta_2pix_rad = kwargs.get("eta_2pix_rad", defaults.eta_2pix_rad)
     eta_2pix_pivot = kwargs.get("eta_2pix_pivot", defaults.eta_2pix_pivot)
     eta_3pix_rad0 = kwargs.get("eta_3pix_rad0", defaults.eta_3pix_rad0)
@@ -57,9 +67,23 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
     eta_3pix_theta0 = kwargs.get("eta_3pix_theta0", defaults.eta_3pix_theta0)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1, \
-           eta_3pix_rad_pivot, eta_3pix_theta0
+           pos_recon_algorithm, gain_map, eta_2pix_rad, eta_2pix_pivot, \
+           eta_3pix_rad0, eta_3pix_rad1, eta_3pix_rad_pivot, eta_3pix_theta0
     return tasks.reconstruct(*args, kwargs)
+
+
+def calibrate(**kwargs) -> None:
+    """Calibrate the gain and noise of the chip.
+    """
+    input_file_path = kwargs["input_file"]
+    energy = kwargs["energy"]
+    num_events = kwargs.get("num_events", tasks.CalibrationDefaults.num_events)
+    zero_sup_threshold = kwargs.get("zero_sup_threshold",
+                                    tasks.CalibrationDefaults.zero_sup_threshold)
+    default_gain = kwargs.get("default_gain", tasks.CalibrationDefaults.default_gain)
+    default_noise = kwargs.get("default_noise", tasks.CalibrationDefaults.default_noise)
+    return tasks.calibrate(input_file_path, energy, num_events,zero_sup_threshold, default_gain,
+                           default_noise)
 
 
 def display(**kwargs) -> None:

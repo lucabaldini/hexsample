@@ -3,6 +3,16 @@
 Release notes
 =============
 
+* Added classes `CalibrationMatrixGain` and `CalibrationMatrixNoise` to use gain and noise
+  matrices to support non-uniform pixel response in the readout chip.
+* Command `calibrate` added to the CLI interface to use a DigiFile to calibrate the gain response
+  and noise of the readout chip.
+* Implemented the possibility to use the gain calibration matrix to simulate and reconstruct
+  data with non-uniform pixel response, with the option `--map_gain_file` in the cli interface.
+* `ClusteringBase` modified to accept a `HexagonalReadoutBase` instance instead of `HexagonalGrid`.
+  This guarantees that the reconstruction can be performed even with non-uniform pixel gain.
+* `Cluster` now has `col` and `row` arguments in the constructor, in order always carry the info
+  about the logical coordinates of the event.
 * New `legacy.py` module containing the code to convert .mdat3 files to .h5 files.
 * New command `convert` to convert .mdat3 files to .h5 files using the CLI.
 * Added an actual interactive event display with some GUI.
@@ -11,6 +21,7 @@ Release notes
 * Pull requests merged and issues closed:
 
   - https://github.com/lucabaldini/hexsample/pull/103
+  - https://github.com/lucabaldini/hexsample/pull/101
   - https://github.com/lucabaldini/hexsample/pull/100
   - https://github.com/lucabaldini/hexsample/issues/93
   - https://github.com/lucabaldini/hexsample/issues/67
