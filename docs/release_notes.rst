@@ -6,9 +6,7 @@ Release notes
 * Added classes `CalibrationMatrixGain` and `CalibrationMatrixNoise` to use gain and noise
   matrices to support non-uniform pixel response in the readout chip.
 * Command `calibrate` added to the CLI interface to use a DigiFile to calibrate the gain response
-  and noise of the readout chip. Gain calibration can be performed with two methods: least squares
-  minimization and single pixel calibration, but the latter is not recommended and in the future it
-  could be removed.
+  and noise of the readout chip.
 * Implemented the possibility to use the gain calibration matrix to simulate and reconstruct
   data with non-uniform pixel response, with the option `--map_gain_file` in the cli interface.
 * `ClusteringBase` modified to accept a `HexagonalReadoutBase` instance instead of `HexagonalGrid`.

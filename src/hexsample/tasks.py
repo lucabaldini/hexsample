@@ -23,7 +23,7 @@
 import inspect
 import pathlib
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
