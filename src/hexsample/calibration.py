@@ -21,7 +21,7 @@
 """
 
 
-from typing import Tuple, Union
+from typing import Optional, Tuple
 
 import numpy as np
 import tables
