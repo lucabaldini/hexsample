@@ -3,6 +3,13 @@
 Release notes
 =============
 
+* Added an actual interactive event display with some GUI.
+* Added support for random access in event files.
+* Small cleanup in the fileio.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/103
+
 
 Version 0.13.3 (2026-02-10)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
