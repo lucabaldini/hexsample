@@ -558,6 +558,16 @@ class DigiInputFileBase(InputFileBase):
         """
         return self.mc_table.col(name)
 
+    def digi_event(self, row_index: int) -> DigiEventBase:
+        """Random access to the DigiEvent part of the event contribution.
+
+        Arguments
+        ---------
+        row_index : int
+            The index of the target row in the event file.
+        """
+        raise NotImplementedError
+
     def mc_event(self, row_index: int) -> MonteCarloEvent:
         """Random access to the MonteCarloEvent part of the event contribution.
 
@@ -568,6 +578,13 @@ class DigiInputFileBase(InputFileBase):
         """
         row =  self.mc_table[row_index]
         return MonteCarloEvent(*row)
+
+    def current_mc_event(self) -> MonteCarloEvent:
+        """Return the MonteCarloEvent corresponding to the current event index.
+        """
+        if self.__index == -1:
+            raise IndexError("No event has been picked yet.")
+        return self.mc_event(self.__index)
 
     def __iter__(self):
         """Overloaded method for the implementation of the iterator protocol.
@@ -581,6 +598,34 @@ class DigiInputFileBase(InputFileBase):
         self.__index += 1
         if self.__index == len(self.digi_table):
             raise StopIteration
+        return self.digi_event(self.__index)
+
+    def prev(self) -> DigiEventBase:
+        """Overloaded method for the implementation of the iterator protocol.
+        """
+        if self.__index == 0:
+            raise IndexError("Already at the beginning of the file.")
+        self.__index -= 1
+        return self.digi_event(self.__index)
+
+    def pick_event(self, input_index) -> DigiEventBase:
+        """Pick a specific event from the file, given its index.
+
+        Arguments
+        ---------
+        input_index : int
+            The index of the target event in the file.
+        """
+        input_index = int(input_index)
+        if input_index < 0 or input_index >= len(self.digi_table):
+            raise IndexError(f"Invalid event index {input_index}.")
+        if input_index == -1:
+            input_index = len(self.digi_table) - 1
+        try:
+            self.__index = int(input_index)
+        except ValueError:
+            self.__index = 0
+
         return self.digi_event(self.__index)
 
 
@@ -599,7 +644,6 @@ class DigiInputFileRectangular(DigiInputFileBase):
         """
         super().__init__(file_path)
         self.pha_array = self.root.digi.pha
-        self.__index = -1
 
     def digi_event(self, row_index: int) -> DigiEventRectangular:
         """Random access to the DigiEvent part of the event contribution.
@@ -613,20 +657,6 @@ class DigiInputFileRectangular(DigiInputFileBase):
         pha = self.pha_array[row_index]
         return DigiEventRectangular.from_digi(row, pha)
 
-    def __iter__(self):
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index = -1
-        return self
-
-    def __next__(self) -> DigiEventRectangular:
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index += 1
-        if self.__index == len(self.digi_table):
-            raise StopIteration
-        return self.digi_event(self.__index)
-
 
 class DigiInputFileCircular(DigiInputFileBase):
 
@@ -637,12 +667,6 @@ class DigiInputFileCircular(DigiInputFileBase):
     row into the corresponding DigiEvent or MonteCarloEvent objects, along with
     an implementation of the iterator protocol to make event loops easier.
     """
-
-    def __init__(self, file_path: str):
-        """Constructor.
-        """
-        super().__init__(file_path)
-        self.__index = -1
 
     def digi_event(self, row_index: int) -> DigiEventCircular:
         """Random access to the DigiEventCircular part of the event contribution.
@@ -655,19 +679,6 @@ class DigiInputFileCircular(DigiInputFileBase):
         row = self.digi_table[row_index]
         return DigiEventCircular.from_digi(row)
 
-    def __iter__(self):
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index = -1
-        return self
-
-    def __next__(self) -> DigiEventCircular:
-        """Overloaded method for the implementation of the iterator protocol.
-        """
-        self.__index += 1
-        if self.__index == len(self.digi_table):
-            raise StopIteration
-        return self.digi_event(self.__index)
 
 
 class ReconInputFile(InputFileBase):

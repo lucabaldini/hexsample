@@ -33,7 +33,7 @@ from tqdm import tqdm
 from . import rng
 from .analysis import create_histogram
 from .clustering import ClusteringNN
-from .display import HexagonalGridDisplay
+from .display import EventDisplay
 from .fileio import (
     ReconInputFile,
     ReconOutputFile,
@@ -209,7 +209,7 @@ def reconstruct(
 
     num_neighbors : int
         The number of neighbor pixels to be used for the clustering.
-    
+
     max_neighbors : int
         The maximum number of neighbor pixels to be used for the clustering. If max_neighbors is
         specified (i.e. different from -1), it has priority over num_neighbors.
@@ -291,7 +291,6 @@ class DisplayDefaults:
 def display(
         input_file_path: str,
         zero_sup_threshold: int = DisplayDefaults.zero_sup_threshold,
-        event_id: int = DisplayDefaults.event_id
         ) -> None:
     """Display events from a digi file.
 
@@ -329,19 +328,9 @@ def display(
     else:
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
-    grid_display = HexagonalGridDisplay(readout)
-    for i, event in enumerate(input_file):
-        if event_id is not None and i != event_id:
-            continue
-        recon_defaults = ReconstructionDefaults
-        grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)
-        try:
-            mc_event = input_file.mc_event(i)
-            grid_display.draw_positions(mc_event, event, readout, recon_defaults,
-                                        zero_sup_threshold)
-        except IndexError:
-            pass
-        grid_display.show()
+    recon_defaults = ReconstructionDefaults
+    _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
+                     recon_defaults=recon_defaults)
     input_file.close()
 
 
