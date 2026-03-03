@@ -107,7 +107,7 @@ def angle(pos: np.ndarray, versors: np.ndarray) -> np.ndarray:
     return np.arctan2(y_proj, x_proj)
 
 
-def distance(pos: np.ndarray, projection_axis: np.ndarray | None = None) -> np.ndarray:
+def distance(pos: np.ndarray, projection_axis: np.ndarray = None) -> np.ndarray:
     """Calculate the distance of the photon from the center of the most charged pixel. If
     specified, project the distance on the given projection axis, given as a unit vector.
 
@@ -118,7 +118,7 @@ def distance(pos: np.ndarray, projection_axis: np.ndarray | None = None) -> np.n
     projection_axis : np.ndarray | None
         The axis on which to project the distance, given as a unit vector. If None,
         the distance is not projected. Default is None.
-    
+
     Returns
     -------
     distance : np.ndarray
@@ -146,7 +146,7 @@ def calibration_data(input_file: DigiInputFileBase, clustering: ClusteringNN, pi
         The clustering algorithm to be used to reconstruct the clusters.
     pitch : float
         The pixel pitch of the detector.
-    
+
     Returns
     -------
     size : np.ndarray
