@@ -517,7 +517,7 @@ def distance(pos: np.ndarray, projection_axis: np.ndarray = None) -> np.ndarray:
 
 
 def calibration_data(input_file: DigiInputFileBase, clustering: ClusteringNN, pitch: float
-                     ) -> tuple[np.ndarray, ...]:
+                     ) -> Tuple[np.ndarray, ...]:
     """Open the simulated input file and extract the data needed for the calibration of the eta
     function. The data are extracted only for 2-pixel and 3-pixel clusters. The resuling arrays
     need to be masked to select the desired cluster size before the calibration.
@@ -612,7 +612,7 @@ def calibrate_dr_2pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
     return model.sigma.value
 
 
-def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> tuple[float, float]:
+def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> Tuple[float, float]:
     """Calibrate the radial component of the 3-pixel eta function, using the distance of the photon
     from the center of the most charged pixel. The eta function is fitted with a probit model.
 

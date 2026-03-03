@@ -302,15 +302,15 @@ class CalibrationDefaults:
     """
 
     zero_sup_threshold: float = 20.
-    default_gain: float | None = None
-    default_noise: float | None = None
+    default_gain: float = None
+    default_noise: float = None
 
 
 def calibrate(input_file_path: str,
               energy: float,
               zero_sup_threshold: float = CalibrationDefaults.zero_sup_threshold,
-              default_gain: float | None = CalibrationDefaults.default_gain,
-              default_noise: float | None = CalibrationDefaults.default_noise) -> None:
+              default_gain: float = CalibrationDefaults.default_gain,
+              default_noise: float = CalibrationDefaults.default_noise) -> None:
     """Calibrate the gain and noise response of the readout chip using the events from a digi file.
     The results are stored as a matrix in two separate HDF5 files, one for the gain and one for
     the noise.
@@ -319,18 +319,18 @@ def calibrate(input_file_path: str,
     ---------
     input_file_path : str
         The path to the input file.
-    
+
     energy : float
         The energy of the X-ray photons in eV. This is used to convert the charge collected in
         each pixel to the number of electron, which is necessary for the gain calibration.
 
     zero_sup_threshold : float
         The zero-suppression threshold to use for the clustering in the gain calibration.
-    
+
     default_gain : float
         The default gain value to use for the gain calibration. If None, it will be set to the
         mean value of the gain matrix after processing all the events.
-    
+
     default_noise : float
         The default noise value to use for the noise calibration. If None, it will be set to the
         mean value of the noise matrix after processing all the events.
