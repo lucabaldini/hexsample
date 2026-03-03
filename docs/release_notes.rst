@@ -13,6 +13,7 @@ Release notes
   - https://github.com/lucabaldini/hexsample/pull/103
   - https://github.com/lucabaldini/hexsample/pull/100
   - https://github.com/lucabaldini/hexsample/issues/93
+  - https://github.com/lucabaldini/hexsample/issues/67
 
 
 Version 0.13.3 (2026-02-10)
