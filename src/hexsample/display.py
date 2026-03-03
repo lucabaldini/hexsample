@@ -244,23 +244,25 @@ class HexagonalGridDisplay:
             pass
         self.axes.legend()
 
+
 class EventAccess(HexagonalGridDisplay):
+
     def __init__(self, input_file, grid: HexagonalGrid, zero_sup_threshold: int = 0, **kwargs):
         super().__init__(grid, zero_sup_threshold, **kwargs)
         self._input_file = input_file
         self.event_id = kwargs.get("event_id", 0)
         ##Draw the previous and next buttons for event navigation
         axprev = self.figure.add_axes([0.7, 0.05, 0.12, 0.075])
-        self.bprev = Button(axprev, 'Previous')
+        self.prev_button = Button(axprev, 'Previous')
         axnext = self.figure.add_axes([0.83, 0.05, 0.12, 0.075])
-        self.bnext = Button(axnext, 'Next')
+        self.next_button = Button(axnext, 'Next')
         # Draw the textbox for event ID input
         axbox = self.figure.add_axes([0.5, 0.05, 0.1, 0.075])
-        self.text_box = TextBox(axbox, "Event ID: ", textalignment="center")
+        self.event_id_text_box = TextBox(axbox, "Event ID: ", textalignment="center")
         # Textbox for zero suppression threshold input. With this we redraw the
         # event with the newly picked threshold value.
         axzerosup = self.figure.add_axes([0.25, 0.05, 0.1, 0.075])
-        self.text_box2 = TextBox(axzerosup, "Zero Sup. Thresh.: ", textalignment="center")
+        self.zero_sup_text_box = TextBox(axzerosup, "Zero Sup. Thresh.: ", textalignment="center")
         self.show()
         self.next(None)
 
@@ -276,70 +278,64 @@ class EventAccess(HexagonalGridDisplay):
                             self._grid, self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
-        self.bprev.on_clicked(self.prev)
-        self.bnext.on_clicked(self.next)
-        self.text_box.on_submit(self.pick_event)
+        self.prev_button.on_clicked(self.prev)
+        self.next_button.on_clicked(self.next)
+        self.event_id_text_box.on_submit(self.pick_event)
         # Show current event ID in the text box after picking the event.
-        self.text_box.set_val(initial_event.trigger_id)
-        self.text_box2.on_submit(self.update_zero_sup)
+        self.event_id_text_box.set_val(initial_event.trigger_id)
+        self.zero_sup_text_box.on_submit(self.update_zero_sup)
         # Show current zero suppression threshold in the text box.
-        self.text_box2.set_val(int(self.zero_sup_threshold))
+        self.zero_sup_text_box.set_val(self.zero_sup_threshold)
+
+    def current_event_id(self) -> int:
+        """Convenience method to get the current event ID.
+        """
+        return int(self.event_id_text_box.text)
+
+    def current_zero_sup_threshold(self) -> int:
+        """Convenience method to get the current zero suppression threshold.
+        """
+        return int(self.zero_sup_text_box.text)
+
+    def _draw(self, event: DigiEventBase) -> None:
+        """Complete draw method for an event.
+
+        This is a private hook that is called by the event navigation methods
+        (next, prev, pick_event) to redraw the underlying digi event, as well as
+        the relevant reconstructed quantities.
+        """
+        self.axes.clear()
+        self.draw_digi_event(event, self.zero_sup_threshold)
+        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
+                            self.zero_sup_threshold)
+        self.axes.autoscale()
+        self.axes.axis("off")
+        # Show current event ID in the text box after picking the event. This can be improved
+        self.event_id_text_box.set_val(event.trigger_id)
+        self.figure.canvas.draw_idle()
 
     def next(self, _) -> DigiEventBase:
         """Convenience method to get the next event from the input file.
         """
-        event = next(self._input_file)
-        self.axes.clear()
-        self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
-                            self.zero_sup_threshold)
-        self.axes.autoscale()
-        self.axes.axis("off")
-        # Show current event ID in the text box after picking the event. This can be improved
-        self.text_box.set_val(event.trigger_id)
-        self.figure.canvas.draw_idle()
+        self._draw(next(self._input_file))
 
     def prev(self, _) -> DigiEventBase:
         """Convenience method to get the previous event from the input file.
         """
-        event = self._input_file.prev()
-        self.axes.clear()
-        self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
-                            self.zero_sup_threshold)
-        self.axes.autoscale()
-        self.axes.axis("off")
-        # Show current event ID in the text box after picking the event. This can be improved
-        self.text_box.set_val(event.trigger_id)
-        self.figure.canvas.draw_idle()
+        self._draw(self._input_file.prev())
 
     def pick_event(self, _) -> DigiEventBase:
         """Convenience method to get a specific event from the input file.
         """
-        event = self._input_file.pick_event(int(self.text_box.text))
-        self.axes.clear()
-        self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
-                            self.zero_sup_threshold)
-        self.axes.autoscale()
-        self.axes.axis("off")
-        # Show current event ID in the text box after picking the event. This can be improved
-        self.text_box.set_val(event.trigger_id)
-        self.figure.canvas.draw_idle()
+        event = self._input_file.pick_event(self.current_event_id())
+        self._draw(event)
 
     def update_zero_sup(self, _) -> DigiEventBase:
         """Convenience method to update the zero suppression threshold and re-plot the event.
         """
-        self.zero_sup_threshold = int(self.text_box2.text)
-        event = self._input_file.pick_event(int(self.text_box.text)) ##Shows current event ID.
-        self.axes.clear()
-        self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
-                            self.zero_sup_threshold)
-        self.axes.autoscale()
-        self.axes.axis("off")
-        self.text_box.set_val(event.trigger_id)
-        self.figure.canvas.draw_idle()
+        self.zero_sup_threshold = self.current_zero_sup_threshold()
+        event = self._input_file.pick_event(self.current_event_id())
+        self._draw(event)
 
     def show(self):
         self.setup_gca()
