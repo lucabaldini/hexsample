@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.14.0 (2026-03-03)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Added classes `CalibrationMatrixGain` and `CalibrationMatrixNoise` to use gain and noise
   matrices to support non-uniform pixel response in the readout chip.
 * Command `calibrate` added to the CLI interface to use a DigiFile to calibrate the gain response
