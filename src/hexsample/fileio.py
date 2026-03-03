@@ -389,7 +389,8 @@ class DigiOutputFileRectangular(OutputFileBase):
         # pylint: disable=arguments-differ
         _fill_digi_row_rectangular(self.digi_table.row, digi_event)
         self.pha_array.append(digi_event.pha.flatten())
-        _fill_mc_row(self.mc_table.row, mc_event)
+        if mc_event is not None:
+            _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.

@@ -20,7 +20,7 @@
 """Pipeline facilities.
 """
 
-from . import tasks
+from . import legacy, tasks
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
@@ -75,3 +75,11 @@ def quicklook(**kwargs) -> None:
     """
     input_file_path = kwargs["input_file"]
     return tasks.quicklook(input_file_path)
+
+
+def mdat3_to_digi(**kwargs) -> None:
+    """Convert a .mdat3 file to a HDF5 digi file.
+    """
+    file_path = kwargs["input_file"]
+    num_events = kwargs.get("num_events")
+    return legacy.mdat3_to_digi(file_path, num_events)
