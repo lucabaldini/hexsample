@@ -21,7 +21,7 @@
 """
 
 
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import tables
@@ -415,7 +415,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
 
 
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
-            ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+            ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the profile of a set of xdata and ydata. The profile is computed by creating
     the 2D histogram and computing the median of the y-axis distribution for each x-bin.
 
@@ -491,7 +491,7 @@ def angle(pos: np.ndarray, versors: np.ndarray) -> np.ndarray:
     return np.arctan2(y_proj, x_proj)
 
 
-def distance(pos: np.ndarray, projection_axis: Union[np.ndarray, None] = None) -> np.ndarray:
+def distance(pos: np.ndarray, projection_axis: np.ndarray = None) -> np.ndarray:
     """Calculate the distance of the photon from the center of the most charged pixel. If
     specified, project the distance on the given projection axis, given as a unit vector.
 
@@ -502,7 +502,7 @@ def distance(pos: np.ndarray, projection_axis: Union[np.ndarray, None] = None) -
     projection_axis : Union[np.ndarray, None]
         The axis on which to project the distance, given as a unit vector. If None,
         the distance is not projected. Default is None.
-    
+
     Returns
     -------
     distance : np.ndarray
@@ -517,7 +517,7 @@ def distance(pos: np.ndarray, projection_axis: Union[np.ndarray, None] = None) -
 
 
 def calibration_data(input_file: DigiInputFileBase, clustering: ClusteringNN, pitch: float
-                     ) -> tuple[np.ndarray, ...]:
+                     ) -> Tuple[np.ndarray, ...]:
     """Open the simulated input file and extract the data needed for the calibration of the eta
     function. The data are extracted only for 2-pixel and 3-pixel clusters. The resuling arrays
     need to be masked to select the desired cluster size before the calibration.
@@ -530,7 +530,7 @@ def calibration_data(input_file: DigiInputFileBase, clustering: ClusteringNN, pi
         The clustering algorithm to be used to reconstruct the clusters.
     pitch : float
         The pixel pitch of the detector.
-    
+
     Returns
     -------
     size : np.ndarray
@@ -612,7 +612,7 @@ def calibrate_dr_2pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
     return model.sigma.value
 
 
-def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> tuple[float, float]:
+def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> Tuple[float, float]:
     """Calibrate the radial component of the 3-pixel eta function, using the distance of the photon
     from the center of the most charged pixel. The eta function is fitted with a probit model.
 

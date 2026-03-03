@@ -34,7 +34,7 @@ from . import rng
 from .analysis import create_histogram
 from .calibration import CalibrationMatrixGain, CalibrationMatrixNoise
 from .clustering import ClusteringNN
-from .display import HexagonalGridDisplay
+from .display import EventDisplay
 from .fileio import (
     ReconInputFile,
     ReconOutputFile,
@@ -212,7 +212,7 @@ def reconstruct(
 
     num_neighbors : int
         The number of neighbor pixels to be used for the clustering.
-    
+
     max_neighbors : int
         The maximum number of neighbor pixels to be used for the clustering. If max_neighbors is
         specified (i.e. different from -1), it has priority over num_neighbors.
@@ -303,16 +303,16 @@ class CalibrationDefaults:
 
     num_events: int = 50000
     zero_sup_threshold: float = 20.
-    default_gain: float | None = None
-    default_noise: float | None = None
+    default_gain: float = None
+    default_noise: float = None
 
 
 def calibrate(input_file_path: str,
               energy: float,
               num_events: int,
               zero_sup_threshold: float = CalibrationDefaults.zero_sup_threshold,
-              default_gain: float | None = CalibrationDefaults.default_gain,
-              default_noise: float | None = CalibrationDefaults.default_noise) -> None:
+              default_gain: float = CalibrationDefaults.default_gain,
+              default_noise: float = CalibrationDefaults.default_noise) -> None:
     """Calibrate the gain and noise response of the readout chip using the events from a digi file.
     The results are stored as a matrix in two separate HDF5 files, one for the gain and one for
     the noise.
@@ -321,7 +321,7 @@ def calibrate(input_file_path: str,
     ---------
     input_file_path : str
         The path to the input file.
-    
+
     energy : float
         The energy of the X-ray photons in eV. This is used to convert the charge collected in
         each pixel to the number of electron, which is necessary for the gain calibration.
@@ -331,11 +331,11 @@ def calibrate(input_file_path: str,
 
     zero_sup_threshold : float
         The zero-suppression threshold to use for the clustering in the gain calibration.
-    
+
     default_gain : float
         The default gain value to use for the gain calibration. If None, it will be set to the
         mean value of the gain matrix after processing all the events.
-    
+
     default_noise : float
         The default noise value to use for the noise calibration. If None, it will be set to the
         mean value of the noise matrix after processing all the events.
@@ -426,7 +426,6 @@ class DisplayDefaults:
 def display(
         input_file_path: str,
         zero_sup_threshold: int = DisplayDefaults.zero_sup_threshold,
-        event_id: int = DisplayDefaults.event_id
         ) -> None:
     """Display events from a digi file.
 
@@ -464,19 +463,9 @@ def display(
     else:
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
-    grid_display = HexagonalGridDisplay(readout)
-    for i, event in enumerate(input_file):
-        if event_id is not None and event.trigger_id != event_id:
-            continue
-        recon_defaults = ReconstructionDefaults
-        grid_display.draw_digi_event(event, zero_sup_threshold=zero_sup_threshold)
-        try:
-            mc_event = input_file.mc_event(i)
-            grid_display.draw_positions(mc_event, event, readout, recon_defaults,
-                                        zero_sup_threshold)
-        except IndexError:
-            pass
-        grid_display.show()
+    recon_defaults = ReconstructionDefaults
+    _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
+                     recon_defaults=recon_defaults)
     input_file.close()
 
 
