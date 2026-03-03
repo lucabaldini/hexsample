@@ -21,7 +21,7 @@
 """
 
 
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import tables
@@ -415,7 +415,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
 
 
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
-            ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+            ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the profile of a set of xdata and ydata. The profile is computed by creating
     the 2D histogram and computing the median of the y-axis distribution for each x-bin.
 
