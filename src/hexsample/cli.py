@@ -103,6 +103,8 @@ class CliArgumentParser(argparse.ArgumentParser):
             formatter_class=self._FORMATTER_CLASS)
         self.add_input_file(calibrate)
         self.add_energy(calibrate)
+        self.add_num_events(calibrate, default=tasks.CalibrationDefaults.num_events,
+                            intent="used for the gain calibration")
         self.add_logging_level(calibrate)
         self.add_calibration_options(calibrate)
         calibrate.set_defaults(runner=pipeline.calibrate)

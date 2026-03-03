@@ -23,7 +23,7 @@
 import inspect
 import pathlib
 from dataclasses import dataclass
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
@@ -166,7 +166,7 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
-    gain_map: Union[np.ndarray, None] = None
+    gain_map: Optional[np.ndarray] = None
     eta_2pix_rad: float = 0.127
     eta_2pix_pivot: float = 0.04
     eta_3pix_rad0: float = 0.513
@@ -182,7 +182,7 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
-        gain_map: Union[np.ndarray, None] = ReconstructionDefaults.gain_map,
+        gain_map: Optional[np.ndarray] = ReconstructionDefaults.gain_map,
         eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
         eta_2pix_pivot: float = ReconstructionDefaults.eta_2pix_pivot,
         eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
@@ -301,6 +301,7 @@ class CalibrationDefaults:
     definition in this Python module and the command-line interface.
     """
 
+    num_events: int = 50000
     zero_sup_threshold: float = 20.
     default_gain: float | None = None
     default_noise: float | None = None
@@ -308,6 +309,7 @@ class CalibrationDefaults:
 
 def calibrate(input_file_path: str,
               energy: float,
+              num_events: int,
               zero_sup_threshold: float = CalibrationDefaults.zero_sup_threshold,
               default_gain: float | None = CalibrationDefaults.default_gain,
               default_noise: float | None = CalibrationDefaults.default_noise) -> None:
@@ -323,6 +325,9 @@ def calibrate(input_file_path: str,
     energy : float
         The energy of the X-ray photons in eV. This is used to convert the charge collected in
         each pixel to the number of electron, which is necessary for the gain calibration.
+
+    num_events : int
+        The number of events to simulate to find the bias correction.
 
     zero_sup_threshold : float
         The zero-suppression threshold to use for the clustering in the gain calibration.
@@ -376,17 +381,17 @@ def calibrate(input_file_path: str,
     logger.info(f"Saving noise calibration map to {noise_output_file_path}...")
     # Use the gain matrix to simulate a new file with the same energy and SNR to correct the bias
     mean = np.mean(gain.matrix[gain.hits > 0])
-    readout_sim = HexagonalReadoutCircular(enc=noise.enc() / mean, gain=gain.matrix)
+    readout_sim = HexagonalReadoutRectangular(enc=noise.enc() / mean, gain=gain.matrix)
     logger.info("Simulating events with the best-fit gain matrix to correct the bias...")
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
     simulate(
-        source=Source(Line(energy), DiskBeam(radius=0.05)),
+        source=Source(Line(energy), DiskBeam(radius=0.1)),
         sensor=Sensor(),
         readout=readout_sim,
-        num_events=10000,
+        num_events=num_events,
         output_file_path=output)
     # Open the simulated file and run the gain calibration again
-    tmp_input_file = digi_input_file_class("circular")(output)
+    tmp_input_file = digi_input_file_class("rectangular")(output)
     tmp_gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, default_gain)
     for _, event in tqdm(enumerate(tmp_input_file)):
         try:

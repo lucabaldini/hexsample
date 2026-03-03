@@ -77,11 +77,12 @@ def calibrate(**kwargs) -> None:
     """
     input_file_path = kwargs["input_file"]
     energy = kwargs["energy"]
+    num_events = kwargs.get("num_events", tasks.CalibrationDefaults.num_events)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationDefaults.zero_sup_threshold)
     default_gain = kwargs.get("default_gain", tasks.CalibrationDefaults.default_gain)
     default_noise = kwargs.get("default_noise", tasks.CalibrationDefaults.default_noise)
-    return tasks.calibrate(input_file_path, energy, zero_sup_threshold, default_gain,
+    return tasks.calibrate(input_file_path, energy, num_events,zero_sup_threshold, default_gain,
                            default_noise)
 
 
