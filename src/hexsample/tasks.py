@@ -33,7 +33,7 @@ from tqdm import tqdm
 from . import rng
 from .analysis import create_histogram
 from .clustering import ClusteringNN
-from .display import EventAccess
+from .display import EventDisplay
 from .fileio import (
     ReconInputFile,
     ReconOutputFile,
@@ -329,8 +329,8 @@ def display(
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
     recon_defaults = ReconstructionDefaults
-    _ = EventAccess(input_file, readout, zero_sup_threshold=zero_sup_threshold,
-                    recon_defaults=recon_defaults)
+    _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
+                     recon_defaults=recon_defaults)
     input_file.close()
 
 

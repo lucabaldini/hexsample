@@ -72,6 +72,7 @@ class HexagonCollection(PatchCollection):
         # arguments: facecolor, edgecolor, linewidths, norm or cmap.
         super().__init__(patches, match_original=False, **kwargs)
 
+
 class HexagonalGridDisplay:
 
     """Display for an HexagonalGrid object.
@@ -245,7 +246,7 @@ class HexagonalGridDisplay:
         self.axes.legend()
 
 
-class EventAccess(HexagonalGridDisplay):
+class EventDisplay(HexagonalGridDisplay):
 
     def __init__(self, input_file, grid: HexagonalGrid, zero_sup_threshold: int = 0, **kwargs):
         super().__init__(grid, zero_sup_threshold, **kwargs)
