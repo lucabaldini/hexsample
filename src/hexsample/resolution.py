@@ -107,7 +107,7 @@ class SlitsAligner:
         test_angles = np.deg2rad(np.linspace(80, 100, 1000))
         hspace, angles, distances = transform.hough_line(edges, theta=test_angles)
         # Extract the peaks from the Hough transform.
-        _, peaks_angles, _ = transform.hough_line_peaks(hspace, angles, distances, num_peaks=10)
+        _, peaks_angles, _ = transform.hough_line_peaks(hspace, angles, distances, num_peaks=2)
         # Calculate the tilt angle as pi/2 minus the mean angle of the detected peaks.
         # The pi/2 is needed because the Hough transform returns the angle of the normal to the
         # line.
@@ -134,17 +134,14 @@ class SlitsAligner:
         y : np.ndarray
             The y coordinates of the reconstructed positions aligned to the detector x-axis.
         """
-        if self.angle is not None:
-            # If the angle is given as an argument, we can directly use it.
-            theta = self.angle
-        else:
+        if not self.angle:
             # Detect the edges of the slits
             edges = self._detect_edges(x, y)
             # Estimate the tilt angle
-            theta = self._estimate_angle(edges)
+            self.angle = self._estimate_angle(edges)
         # Rotate the reconstruction positions by the estimated angle
-        x_aligned = x * np.cos(theta) - y * np.sin(theta)
-        y_aligned = x * np.sin(theta) + y * np.cos(theta)
+        x_aligned = x * np.cos(self.angle) - y * np.sin(self.angle)
+        y_aligned = x * np.sin(self.angle) + y * np.cos(self.angle)
         return x_aligned, y_aligned
 
 
