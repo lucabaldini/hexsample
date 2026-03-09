@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from aptapy.models import Probit
@@ -181,7 +181,7 @@ class ClusteringBase:
     """
 
     readout: HexagonalReadoutBase
-    zero_sup_threshold: float
+    zero_sup_threshold: Union[float, np.ndarray]
 
     def __post_init__(self) -> None:
         """Check if the readout gain is a scalar or an array.
@@ -199,11 +199,11 @@ class ClusteringBase:
             return self.readout.gain
         return self.readout.gain[row, col]
 
-    def zero_suppress(self, array: np.ndarray) -> np.ndarray:
+    def zero_suppress(self, array: np.ndarray, threshold: Union[float, np.ndarray]) -> np.ndarray:
         """Zero suppress a generic array.
         """
         out = array.copy()
-        out[out <= self.zero_sup_threshold] = 0
+        out[out <= threshold] = 0
         return out
 
     def position_suppress(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray
@@ -321,7 +321,11 @@ class ClusteringNN(ClusteringBase):
             pha = np.array([event(_col, _row)/self._gain(_row, _col)
                             for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
-        pha = self.zero_suppress(pha)
+        if isinstance(self.zero_sup_threshold, (int)):
+            pha = self.zero_suppress(pha, self.zero_sup_threshold)
+        else:
+            zero_sup_array = np.array([self.zero_sup_threshold[_row, _col] for _col, _row in zip(col, row)])
+            pha = self.zero_suppress(pha, zero_sup_array)
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.
         idx = np.argsort(-pha)

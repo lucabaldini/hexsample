@@ -79,10 +79,10 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
 
     Arguments
     ---------
-    enc : float
+    enc : float, np.ndarray
         The equivalent noise charge in electrons.
 
-    gain : float
+    gain : float, np.ndarray
         The readout gain in ADC counts per electron (default 1, which means that
         the PHA you get out are the electrons collected).
 
@@ -90,14 +90,14 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         Trigger threshold in electron equivalent (note this is a float because it
         is expressed in physical space, not in electronics space).
 
-    zero_sup_threshold : int
+    zero_sup_threshold : int, np.ndarray
         Zero suppression threshold in ADC counts.
     """
 
-    enc: float = 30.
+    enc: Union[float, np.ndarray] = 30.
     gain: Union[float, np.ndarray] = 1.
     trg_threshold: float = 500.
-    zero_sup_threshold: int = 0
+    zero_sup_threshold: Union[int, np.ndarray] = 0
 
     def __post_init__(self):
         """Post-initialization.
@@ -121,7 +121,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         return not value & 0x1
 
     @staticmethod
-    def discriminate(array: np.ndarray, threshold: float) -> np.ndarray:
+    def discriminate(array: np.ndarray, threshold: Union[float, np.ndarray]) -> np.ndarray:
         """Utility function acting as a simple constant-threshold discriminator
         over a generic array. This returns a boolean mask with True for all the
         array elements larger than the threshold.
@@ -137,7 +137,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         return array > threshold
 
     @staticmethod
-    def zero_suppress(array: np.ndarray, threshold: float) -> None:
+    def zero_suppress(array: np.ndarray, threshold: Union[float, np.ndarray]) -> None:
         """Utility function to zero-suppress a generic array.
 
         This is returning an array of the same shape of the input where all the
@@ -151,7 +151,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         array : array_like
             The input array.
 
-        threshold : float
+        threshold : float, np.ndarray
             The zero suppression threshold.
         """
         mask = np.logical_not(HexagonalReadoutBase.discriminate(array, threshold))
@@ -199,8 +199,18 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         # See https://stackoverflow.com/questions/38673531
         #
         # Add the noise.
-        if self.enc > 0:
+        if isinstance(self.enc, (int, float)) and self.enc > 0:
             pha = pha + rng.generator.normal(0., self.enc, size=pha.shape)
+        else:
+            if coords is not None:
+                enc_array = np.empty_like(pha, dtype=float)
+                for i, coord in enumerate(coords):
+                    col, row = coord
+                    enc_array[i] = self.enc[row, col]
+            elif roi is not None:
+                row_slice, col_slice = roi.readout_slice()
+                enc_array = self.enc[row_slice, col_slice]
+            pha = pha + np.random.normal(0., scale=enc_array)
         # ... apply the conversion between electrons and ADC counts, using the gain matrix if
         # provied, otherwise using the same gain parameter for all the pixels...
         if isinstance(self.gain, float):
@@ -225,7 +235,18 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         # ... if necessary, add the offset for diagnostic events...
         pha += offset
         # ... zero suppress the thing...
-        self.zero_suppress(pha, self.zero_sup_threshold)
+        if isinstance(self.zero_sup_threshold, int):
+            self.zero_suppress(pha, self.zero_sup_threshold)
+        else:
+            if coords is not None:
+                zero_sup_array = np.empty_like(pha, dtype=int)
+                for i, coord in enumerate(coords):
+                    col, row = coord
+                    zero_sup_array[i] = self.zero_sup_threshold[row, col]
+            elif roi is not None:
+                row_slice, col_slice = roi.readout_slice()
+                zero_sup_array = self.zero_sup_threshold[row_slice, col_slice]
+            self.zero_suppress(pha, zero_sup_array)
         # ... flatten the array to simulate the serial readout and return the
         # array as the BEE would have.
         return pha.flatten()

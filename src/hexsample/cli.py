@@ -268,6 +268,9 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="pitch of the readout chip in cm")
         group.add_argument("--enc", type=float, default=readout.HexagonalReadoutBase.enc,
                            help="equivalent noise charge in electrons")
+        group.add_argument("--map_enc_file", type=str, default=None,
+                           help="path to a file containing the noise map. If not specified, the" \
+                           " noise value of the --enc argument is used for all the pixels.")
         group.add_argument("--gain", type=float, default=readout.HexagonalReadoutBase.gain,
                            help="conversion factor between electron equivalent and ADC counts")
         group.add_argument("--map_gain_file", type=str, default=None,

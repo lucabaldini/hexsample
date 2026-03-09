@@ -381,7 +381,7 @@ def calibrate(input_file_path: str,
     logger.info(f"Saving noise calibration map to {noise_output_file_path}...")
     # Use the gain matrix to simulate a new file with the same energy and SNR to correct the bias
     mean = np.mean(gain.matrix[gain.hits > 0])
-    readout_sim = HexagonalReadoutRectangular(enc=noise.enc() / mean, gain=gain.matrix)
+    readout_sim = HexagonalReadoutRectangular(enc=np.mean(noise.matrix) / mean, gain=gain.matrix)
     logger.info("Simulating events with the best-fit gain matrix to correct the bias...")
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
     simulate(
