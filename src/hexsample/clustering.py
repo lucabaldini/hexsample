@@ -195,6 +195,8 @@ class ClusteringBase:
         map. It would be a mess to handle the two cases in the run method, so we check the type
         in the constructor and then we return the gain value in a unified way here.
         """
+        if not self._scalar_gain:
+            return 1.
         if self._scalar_gain:
             return self.readout.gain
         return self.readout.gain[row, col]

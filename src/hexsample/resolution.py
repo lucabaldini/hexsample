@@ -235,8 +235,12 @@ class SlantedEdgeResolution:
         # Cut the data after the LSF reaches zero to avoid the noise from the plateau. We should
         # think of a more robust way dto do this, such as a windowing function.
         centers = (edges[:-1] + edges[1:]) / 2
-        zero_crossing = centers[lsf < 0][0]
-        lsf[centers >= zero_crossing] = 0
+        try:
+            zero_crossing = centers[lsf < 0][0]
+            lsf[centers >= zero_crossing] = 0
+        except IndexError:
+            # If there is no zero crossing, we can keep all the data.
+            pass
         # Normalize the LSF histogram, so that the MTF maximum is 1.
         lsf /= np.sum(lsf) * self.bin_size
         return lsf, edges
