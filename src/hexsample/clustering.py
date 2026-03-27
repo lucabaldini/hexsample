@@ -321,7 +321,7 @@ class ClusteringNN(ClusteringBase):
             pha = np.array([event(_col, _row)/self._gain(_row, _col)
                             for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
-        if isinstance(self.zero_sup_threshold, (int)):
+        if isinstance(self.zero_sup_threshold, (int, float)):
             pha = self.zero_suppress(pha, self.zero_sup_threshold)
         else:
             zero_sup_array = np.array([self.zero_sup_threshold[_row, _col] for _col, _row in zip(col, row)])

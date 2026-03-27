@@ -25,7 +25,7 @@ from typing import Tuple, Optional
 
 import numpy as np
 import tables
-from aptapy.hist import Histogram2d
+from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.models import Probit
 from aptapy.plotting import last_line_color, plt
 from scipy.sparse import csr_matrix
@@ -188,6 +188,46 @@ class CalibrationMatrixBase:
                 target_attr = f"_{node_name}"
                 setattr(obj, target_attr, data)
         return obj
+    
+    def plot(self, hits_cut: int = -1, nbins: int = 100, **kwargs) -> Tuple[plt.Figure, plt.Figure]:
+        """Plot the calibration matrix as a 2D histogram and the distribution of the values in the
+        calibration matrix as a 1D histogram.
+
+        Arguments
+        ---------
+        hits_cut : int
+            The minimum number of hits a pixel must have to be included in the 1D distribution plot.
+            Default is -1 (include all pixels).
+        nbins : int
+            The number of bins for the 1D histogram. Default is 100.
+        kwargs : dict
+            Additional keyword arguments to be passed to the plotting functions.
+
+        Returns
+        -------
+        matrix : plt.Figure
+            The figure containing the 2D histogram of the calibration matrix.
+        distribution : plt.Figure
+            The figure containing the 1D histogram of the calibration matrix values.
+        """
+        label = kwargs.get("label", "label")
+        
+        fig_matrix = plt.figure()
+        plt.imshow(self.matrix, origin="lower")
+        plt.xlabel("Column")
+        plt.ylabel("Row")
+        plt.colorbar(label=label)
+
+        fig_dist = plt.figure()
+        # Mask for the pixels that pass the hits cut and, if exc_zero is True, that have a non-zero
+        # value in the calibration matrix.
+        mask = self.hits > hits_cut
+        edges = np.linspace(self.matrix[mask].min(), self.matrix[mask].max(), nbins)
+        hist = Histogram1d(edges, xlabel=label)
+        hist.fill(self.matrix[mask])
+        hist.plot(label=label, statistics=True)
+        plt.legend()
+        return fig_matrix, fig_dist
 
 
 class CalibrationMatrixGain(CalibrationMatrixBase):
