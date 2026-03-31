@@ -173,6 +173,12 @@ class Cluster:
                                " eta function")
         return x_recon, y_recon
 
+    def mle(self):
+        pass
+
+    def position(self):
+        pass
+
 
 @dataclass
 class ClusteringBase:
@@ -331,5 +337,46 @@ class ClusteringNN(ClusteringBase):
         mask = idx[:self.num_neighbors + 1]
         # Sort the arrays in decreasing order before applying the position suppression.
         pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
+        x, y = self.readout.pixel_to_world(col, row)
+        return Cluster(x, y, col, row, pha)
+
+
+@dataclass
+class ClusteringSimple(ClusteringBase):
+
+    num_neighbors: int
+
+    def run(self, event) -> Cluster:
+        """Overladed method.
+
+        .. warning::
+           The loop ever the neighbors might likely be vectorized and streamlined
+           for speed using proper numpy array for the offset indexes.
+        """
+        self.num_neighbors = 6
+        if isinstance(event, DigiEventCircular):
+            # If the readout is circular, we want to take all the neirest neighbors.
+            # Trailing -1 is bc the central px is already considered.
+            col = [event.column]
+            row = [event.row]
+            pha = [event.pha[self.readout.adc_channel(event.column, event.row)]]
+            # Taking the NN in logical coordinates ...
+            for _col, _row in self.readout.neighbors(event.column, event.row):
+                col.append(_col)
+                row.append(_row)
+                idx = self.readout.adc_channel(_col, _row)
+                pha.append(event.pha[idx])
+        elif isinstance(event, DigiEventRectangular):
+            seed_col, seed_row = event.highest_pixel()
+            col = [seed_col]
+            row = [seed_row]
+            pha = [event.pha(seed_col, seed_row)]
+            for _col, _row in self.readout.neighbors(seed_col, seed_row):
+                col.append(_col)
+                row.append(_row)
+                pha.append(event.pha[_col, _row])
+        row = np.array(row)
+        col = np.array(col)
+        pha = np.array(pha)
         x, y = self.readout.pixel_to_world(col, row)
         return Cluster(x, y, col, row, pha)
