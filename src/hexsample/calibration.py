@@ -435,9 +435,6 @@ class MatrixChargeDiffusion:
                 self.matrix[:, :, i] = table_slice
 
 
-
-
-
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
             ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the profile of a set of xdata and ydata. The profile is computed by creating
@@ -463,9 +460,6 @@ def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
         yerr: np.ndarray
             The errors of the median values in the y axis for each x bin.
     """
-    # Be sure that the input data are float arrays
-    xdata = xdata
-    ydata = ydata
     # Create the 2D histogram to compute the profile
     xedges = np.linspace(xdata.min(), xdata.max(), xbins + 1).flatten()
     yedges = np.linspace(ydata.min(), ydata.max(), ybins + 1).flatten()

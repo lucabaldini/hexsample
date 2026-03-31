@@ -48,7 +48,7 @@ def simulate(**kwargs) -> str:
 def reconstruct(**kwargs) -> str:
     """Run a reconstruction.
     """
-    defaults = tasks.ReconstructionDefaults
+    defaults = tasks.ReconstructionDefaults()
     input_file_path = kwargs["input_file"]
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
@@ -60,15 +60,16 @@ def reconstruct(**kwargs) -> str:
         gain_map = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
     else:
         gain_map = None
-    eta_2pix_rad = kwargs.get("eta_2pix_rad", defaults.eta_2pix_rad)
-    eta_2pix_pivot = kwargs.get("eta_2pix_pivot", defaults.eta_2pix_pivot)
-    eta_3pix_rad0 = kwargs.get("eta_3pix_rad0", defaults.eta_3pix_rad0)
-    eta_3pix_rad1 = kwargs.get("eta_3pix_rad1", defaults.eta_3pix_rad1)
-    eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
-    eta_3pix_theta0 = kwargs.get("eta_3pix_theta0", defaults.eta_3pix_theta0)
+    recon_pars = dict(
+        s2=kwargs.get("s2", defaults.recon_pars["s2"]),
+        p2=kwargs.get("p2", defaults.recon_pars["p2"]),
+        mu3_r=kwargs.get("mu3_r", defaults.recon_pars["mu3_r"]),
+        s3_r=kwargs.get("s3_r", defaults.recon_pars["s3_r"]),
+        p3_r=kwargs.get("p3_r", defaults.recon_pars["p3_r"]),
+        s3_t=kwargs.get("s3_t", defaults.recon_pars["s3_t"])
+    )
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, gain_map, eta_2pix_rad, eta_2pix_pivot, \
-           eta_3pix_rad0, eta_3pix_rad1, eta_3pix_rad_pivot, eta_3pix_theta0
+           pos_recon_algorithm, gain_map, recon_pars
     return tasks.reconstruct(*args, kwargs)
 
 

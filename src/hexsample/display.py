@@ -226,18 +226,15 @@ class HexagonalGridDisplay:
         # Plot the Monte Carlo truth position.
         self.axes.scatter(mc_event.absx, mc_event.absy, marker=".", s=100, label="Monte Carlo")
         # Calculate the cluster from the digi event.
-        cluster = ClusteringNN(readout, zero_sup_threshold,
-                               num_neighbors=6).run(digi_event)
+        cluster = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
+                               pos_recon_algorithm=None, recon_pars=None).run(digi_event)
         # Calculate and plot centroid position.
         centroid_position = cluster.centroid()
         self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         # Calculate and plot eta reconstructed position.
-        eta_recon_args = (self.recon_defaults.eta_2pix_rad, self.recon_defaults.eta_2pix_pivot,
-                          self.recon_defaults.eta_3pix_rad0, self.recon_defaults.eta_3pix_rad1,
-                          self.recon_defaults.eta_3pix_rad_pivot,
-                          self.recon_defaults.eta_3pix_theta0)
+        recon_pars = self.recon_defaults.recon_pars
         try:
-            eta_position = cluster.eta(*eta_recon_args, pitch=readout.pitch)
+            eta_position = cluster.eta(pitch=readout.pitch, **recon_pars)
             # If cluster size is not 2 or 3, eta returns the centroid position, so we only
             # plot it if it's different from the centroid.
             self.axes.scatter(*eta_position, marker="+", s=100, label=r"$\eta$")

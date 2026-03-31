@@ -22,7 +22,7 @@
 
 import inspect
 import pathlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
 import numpy as np
@@ -167,12 +167,14 @@ class ReconstructionDefaults:
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
     gain_map: Optional[np.ndarray] = None
-    eta_2pix_rad: float = 0.127
-    eta_2pix_pivot: float = 0.04
-    eta_3pix_rad0: float = 0.513
-    eta_3pix_rad1: float = 0.141
-    eta_3pix_rad_pivot: float = 0.05
-    eta_3pix_theta0: float = 0.104
+    recon_pars: dict = field(default_factory=lambda: dict(
+        s2=0.127,
+        p2=0.04,
+        mu3_r=0.513,
+        s3_r=0.141,
+        p3_r=0.05,
+        s3_t=0.104)
+        )
 
 
 def reconstruct(
@@ -183,12 +185,7 @@ def reconstruct(
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
         gain_map: Optional[np.ndarray] = ReconstructionDefaults.gain_map,
-        eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
-        eta_2pix_pivot: float = ReconstructionDefaults.eta_2pix_pivot,
-        eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
-        eta_3pix_rad1: float = ReconstructionDefaults.eta_3pix_rad1,
-        eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
-        eta_3pix_theta0: float = ReconstructionDefaults.eta_3pix_theta0,
+        recon_pars: Optional[dict] = None,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -262,7 +259,13 @@ def reconstruct(
     # to the circular.
     effective_neighbors = max_neighbors if max_neighbors >= 0 else num_neighbors
     # Run the actual reconstruction.
-    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors)
+    if recon_pars is None:
+        recon_pars = ReconstructionDefaults().recon_pars.copy()
+    else:
+        recon_pars = recon_pars.copy()
+    recon_pars["pitch"] = header["pitch"]
+    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
+                              pos_recon_algorithm, recon_pars)
     output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
     output_file = ReconOutputFile(output_file_path)
     if header_kwargs is not None:
@@ -278,9 +281,7 @@ def reconstruct(
         if cluster.size() in size:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
-            recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
-                                    eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1,
-                                    eta_3pix_rad_pivot, eta_3pix_theta0)
+            recon_event = ReconEvent(*args)
             try:
                 mc_event = input_file.mc_event(i)
             except IndexError:
@@ -365,7 +366,8 @@ def calibrate(input_file_path: str,
     gain = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy, default_gain)
     noise = CalibrationMatrixNoise(header["num_cols"], header["num_rows"], default_noise)
     # Run the calibration.
-    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
+    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
+                              pos_recon_algorithm=None, recon_pars=None)
     for _, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
@@ -463,7 +465,7 @@ def display(
     else:
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
-    recon_defaults = ReconstructionDefaults
+    recon_defaults = ReconstructionDefaults()
     _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
                      recon_defaults=recon_defaults)
     input_file.close()
