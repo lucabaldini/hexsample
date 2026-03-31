@@ -414,6 +414,30 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         h5file.create_array(h5file.root, "histogram", self.histogram)
 
 
+class MatrixChargeDiffusion:
+
+    def __init__(self, nbins: int, readout) -> None:
+        if readout.pointy_topped():
+            self.xedges = np.linspace(-0.5, 0.5, nbins + 1)
+            self.yedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
+        else:
+            self.xedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
+            self.yedges = np.linspace(-0.5, 0.5, nbins + 1)
+        self.matrix = np.zeros((nbins, nbins, 7))
+
+    def create_matrix(self, x: np.ndarray, y: np.ndarray, eta: np.ndarray) -> None:
+        bin_count, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges])
+        for i in range(7):
+            bin_sum, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges], weights=eta[:, i])
+            with np.errstate(divide='ignore', invalid='ignore'):
+                table_slice = bin_sum / bin_count
+                table_slice[np.isnan(table_slice)] = 0
+                self.matrix[:, :, i] = table_slice
+
+
+
+
+
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
             ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the profile of a set of xdata and ydata. The profile is computed by creating
@@ -440,11 +464,11 @@ def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
             The errors of the median values in the y axis for each x bin.
     """
     # Be sure that the input data are float arrays
-    xdata = xdata.astype(float)
-    ydata = ydata.astype(float)
+    xdata = xdata
+    ydata = ydata
     # Create the 2D histogram to compute the profile
-    xedges = np.linspace(xdata.min(), xdata.max(), xbins + 1)
-    yedges = np.linspace(ydata.min(), ydata.max(), ybins + 1)
+    xedges = np.linspace(xdata.min(), xdata.max(), xbins + 1).flatten()
+    yedges = np.linspace(ydata.min(), ydata.max(), ybins + 1).flatten()
     hist = Histogram2d(xedges, yedges)
     hist.fill(xdata, ydata)
     # Create the arrays to store the profile values and their errors
@@ -632,7 +656,7 @@ def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
         The best-fit value of the sigma parameter of the probit function.
     """
     # Calculate the sum of the eta values for each event
-    eta_sum = np.sum(eta, axis=1)
+    eta_sum = np.sum(eta, axis=1) * 3 / 4
     # Calculate the profile of the data
     x, y, yerr = profile(eta_sum, dr, nbins, 101)
     # Fit with a probit model
