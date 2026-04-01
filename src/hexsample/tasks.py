@@ -32,8 +32,8 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
-from .calibration import CalibrationMatrixGain, CalibrationMatrixNoise
-from .clustering import ClusteringNN
+from .calibration import CalibrationMatrixGain, CalibrationMatrixNoise, MatrixChargeDiffusion
+from .clustering import ClusteringNN, ClusteringHex
 from .display import EventDisplay
 from .fileio import (
     ReconInputFile,
@@ -253,6 +253,12 @@ def reconstruct(
     else:
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
+    # Create the output file and update the header with the relevant metadata.
+    output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
+    output_file = ReconOutputFile(output_file_path)
+    if header_kwargs is not None:
+        output_file.update_header(**header_kwargs)
+    output_file.update_digi_header(**input_file.header)
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
     # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
@@ -264,13 +270,13 @@ def reconstruct(
     else:
         recon_pars = recon_pars.copy()
     recon_pars["pitch"] = header["pitch"]
+    # if pos_recon_algorithm == "mle":
+    #     recon_pars = dict(charge_matrix=MatrixChargeDiffusion.from_hdf5("/home/augusto/hexsampledata/mle_table.h5"),
+    #                       sigma_noise=header["enc"])
+    #     clustering = ClusteringHex(readout, 0, recon_pars)
+    # else:
     clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
-                              pos_recon_algorithm, recon_pars)
-    output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
-    output_file = ReconOutputFile(output_file_path)
-    if header_kwargs is not None:
-        output_file.update_header(**header_kwargs)
-    output_file.update_digi_header(**input_file.header)
+                                pos_recon_algorithm, recon_pars)
     # Create a list of acceptable cluster sizes.
     size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]
     for i, event in tqdm(enumerate(input_file)):

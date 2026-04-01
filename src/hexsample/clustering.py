@@ -23,10 +23,12 @@
 from dataclasses import dataclass
 from typing import Tuple
 
+import iminuit
 import numpy as np
 from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
+from .likelihood import nll_numba, nll_grad_numba
 from .readout import HexagonalReadoutBase
 
 
@@ -172,6 +174,70 @@ class Cluster:
                                " eta function")
         return x_recon, y_recon
 
+    def mle(self, charge_matrix: "MatrixChargeDiffusion",
+            sigma_noise: float) -> Tuple[float, float]:
+        """Return the cluster reconstructed position using the maximum likelihood estimator. The
+        computation is performed using the negative log-likelihood, which is minimized with the
+        iminuit package.
+
+        To speed up the computation, the negative log-likelihood and its gradient are implemented
+        in the likelihood.py module and decorated with numba.njit.
+
+        Arguments
+        ---------
+        charge_matrix : MatrixChargeDiffusion
+            The charge matrix object containing the charge diffusion map, the gradients and the
+            pixel coordinates.
+        sigma_noise : float
+            The noise level for the likelihood computation.
+        """
+        f = charge_matrix.eta
+        dx = charge_matrix.dx
+        dy = charge_matrix.dy
+        x_bins = charge_matrix.x_bins
+        y_bins = charge_matrix.y_bins
+        x0, y0 = x_bins[0], y_bins[0]
+        dx_bin, dy_bin = x_bins[1]-x_bins[0], y_bins[1]-y_bins[0]
+        pha = self.pha
+
+        def nll(x, y):
+            """Wrapper around the nll_numba function to be passed to iminuit, which expects a
+            function that takes the parameters to be optimized as arguments.
+            """
+            return nll_numba(x, y, pha, f, x0, y0, dx_bin, dy_bin, sigma_noise)
+
+        def nll_grad(x, y):
+            """Wrapper around the nll_grad_numba function to be passed to iminuit, which expects a
+            function that takes the parameters to be optimized as arguments.
+            """
+            return nll_grad_numba(x, y, pha, f, dx, dy, x0, y0, dx_bin, dy_bin, sigma_noise)
+        x_centroid, y_centroid = self.centroid()
+        x_centroid -= self.x[0] 
+        y_centroid -= self.y[0]
+        start_x, start_y = x_centroid / 0.005, y_centroid / 0.005
+        m = iminuit.Minuit(nll, x=start_x, y=start_y, grad=nll_grad)
+        m.limits = [(x_bins[0], x_bins[-1]), (y_bins[0], y_bins[-1])]
+        m.migrad()
+        # m.hesse()
+        # from aptapy.plotting import plt
+        
+        # print(f"Values after minimization: {m.values}")
+        # print(f"Errors after minimization: {m.errors}")
+
+        # x_range = np.linspace(x_bins[0], x_bins[-1], 100)
+        # y_range = np.linspace(y_bins[0], y_bins[-1], 100)
+        # X, Y = np.meshgrid(x_range, y_range)
+
+        # Z = np.array([[nll(x, y) for x in x_range] for y in y_range])
+
+        # plt.contourf(X, Y, Z, levels=50, cmap='viridis')
+        # plt.colorbar(label='NLL')
+        # plt.plot(m.values['x'], m.values['y'], 'ro', label='minimum')
+        # plt.plot(start_x, start_y, 'wx', label='centroid')             
+        # plt.legend()
+
+        return self.x[0] + m.values['x'] * 0.005, self.y[0] + m.values['y'] * 0.005
+    
     def position(self):
         """Return the cluster reconstructed position using the position reconstruction algorithm
         specified in the constructor.
@@ -184,6 +250,8 @@ class Cluster:
             return self.centroid()
         if self.pos_recon_algorithm == "eta":
             return self.eta(**self.recon_pars)
+        if self.pos_recon_algorithm == "mle":
+            return self.mle(**self.recon_pars)
         raise RuntimeError(f"Unknown position reconstruction method {self.pos_recon_algorithm}")
 
 
@@ -348,3 +416,46 @@ class ClusteringNN(ClusteringBase):
         pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
         x, y = self.readout.pixel_to_world(col, row)
         return Cluster(x, y, col, row, pha, self.pos_recon_algorithm, self.recon_pars)
+
+
+@dataclass
+class ClusteringHex(ClusteringBase):
+
+    recon_pars: dict = None
+
+    def run(self, event) -> Cluster:
+        """Overladed method.
+
+        .. warning::
+           The loop ever the neighbors might likely be vectorized and streamlined
+           for speed using proper numpy array for the offset indexes.
+        """
+        # Always take all the six neighbors
+        col, row, pha = [], [], []
+        if isinstance(event, DigiEventCircular):
+            gain_array = [self._gain(event.row, event.column)]
+            col.append(event.column)
+            row.append(event.row)
+            pha.append(event.pha[self.readout.adc_channel(event.column, event.row)] / gain_array[0])
+            for _col, _row in self.readout.neighbors(event.column, event.row):
+                col.append(_col)
+                row.append(_row)
+                _pha = event.pha[self.readout.adc_channel(_col, _row)]
+                pha.append(_pha / self._gain(_row, _col))
+        # pylint: disable = invalid-name
+        elif isinstance(event, DigiEventRectangular):
+            seed_col, seed_row = event.highest_pixel()
+            col.append(seed_col)
+            row.append(seed_row)
+            pha.append(event(seed_col, seed_row)/self._gain(seed_row, seed_col))
+            for _col, _row in self.readout.neighbors(seed_col, seed_row):
+                col.append(_col)
+                row.append(_row)
+                pha.append(event(_col, _row)/self._gain(_row, _col))
+        # Converting lists into numpy arrays
+        col = np.array(col)
+        row = np.array(row)
+        pha = np.array(pha)
+        # Calculate the physical coordinates of the pixels in the cluster.
+        x, y = self.readout.pixel_to_world(col, row)
+        return Cluster(x, y, col, row, pha, "mle", self.recon_pars)

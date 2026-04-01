@@ -299,7 +299,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of neighbors to be considered (0--6)")
         group.add_argument("--max_neighbors", type=int, default=-1,
                            help="maximum number of neighbors to be considered")
-        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "dnn", "gnn"],
+        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
                            type=str, default="centroid", help="How to reconstruct position")
         group.add_argument("--map_gain_file", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \

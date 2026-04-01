@@ -28,6 +28,7 @@ import tables
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.models import Gaussian, Probit
 from aptapy.plotting import last_line_color, plt
+from scipy.interpolate import RectBivariateSpline
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
 from tables.attributeset import AttributeSet
@@ -417,22 +418,91 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
 class MatrixChargeDiffusion:
 
     def __init__(self, nbins: int, readout) -> None:
-        if readout.pointy_topped():
+        self.nbins = nbins
+        if readout is None:
+            self.xedges = np.linspace(-0.5, 0.5, nbins + 1)
+            self.yedges = np.linspace(-0.5, 0.5, nbins + 1)
+        elif readout.pointy_topped():
             self.xedges = np.linspace(-0.5, 0.5, nbins + 1)
             self.yedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
         else:
             self.xedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
             self.yedges = np.linspace(-0.5, 0.5, nbins + 1)
-        self.matrix = np.zeros((nbins, nbins, 7))
+        spline_binning = 5 * nbins
+        self._x_bins = np.linspace(self.xedges[0], self.xedges[-1], spline_binning)
+        self._y_bins = np.linspace(self.yedges[0], self.yedges[-1], spline_binning)
+        self._eta = np.zeros((spline_binning, spline_binning, 7))
+        self._dx = np.zeros((spline_binning, spline_binning, 7))
+        self._dy = np.zeros((spline_binning, spline_binning, 7))
 
-    def create_matrix(self, x: np.ndarray, y: np.ndarray, eta: np.ndarray) -> None:
+    def upload_data(self, x: np.ndarray, y: np.ndarray, eta: np.ndarray) -> None:
         bin_count, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges])
         for i in range(7):
             bin_sum, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges], weights=eta[:, i])
             with np.errstate(divide='ignore', invalid='ignore'):
-                table_slice = bin_sum / bin_count
-                table_slice[np.isnan(table_slice)] = 0
-                self.matrix[:, :, i] = table_slice
+                average = bin_sum / bin_count
+                average[np.isnan(average)] = 0
+            spline = self._interpolate(average)
+            self._eta[:, :, i] = spline(self._x_bins, self._y_bins)
+            _dx, _dy = self._gradient(self._x_bins, self._y_bins, spline)
+            self._dx[:, :, i] = _dx
+            self._dy[:, :, i] = _dy
+    
+    def _interpolate(self, array: np.ndarray) -> RectBivariateSpline:
+        x_bins = (self.xedges[:-1] + self.xedges[1:]) / 2
+        y_bins = (self.yedges[:-1] + self.yedges[1:]) / 2
+        return RectBivariateSpline(x_bins, y_bins, array)
+
+    def _gradient(self, x: np.ndarray, y: np.ndarray, spline: RectBivariateSpline) -> tuple[np.ndarray, np.ndarray]:
+        dx = spline(x, y, dx=1, dy=0)
+        dy = spline(x, y, dx=0, dy=1)
+        return dx, dy
+
+    @property
+    def eta(self) -> np.ndarray:
+        return self._eta
+    
+    @property
+    def dx(self) -> np.ndarray:
+        return self._dx
+    
+    @property
+    def dy(self) -> np.ndarray:
+        return self._dy
+    
+    @property
+    def x_bins(self) -> np.ndarray:
+        return self._x_bins
+
+    @property
+    def y_bins(self) -> np.ndarray:
+        return self._y_bins
+    
+    def to_hdf5(self, file_path: str) -> str:
+        with tables.File(file_path, "w") as h5file:
+            root = h5file.root
+            h5file.create_array(root, "eta", self.eta)
+            h5file.create_array(root, "dx", self.dx)
+            h5file.create_array(root, "dy", self.dy)
+            h5file.create_array(root, "x_bins", self.x_bins)
+            h5file.create_array(root, "y_bins", self.y_bins)
+        return file_path
+
+    @classmethod
+    def from_hdf5(cls, file_path: str) -> "MatrixChargeDiffusion":
+        with tables.File(file_path, "r") as h5file:
+            eta = h5file.root.eta[:]
+            dx = h5file.root.dx[:]
+            dy = h5file.root.dy[:]
+            x_bins = h5file.root.x_bins[:]
+            y_bins = h5file.root.y_bins[:]
+        obj = cls(0, None)
+        obj._eta = eta
+        obj._dx = dx
+        obj._dy = dy
+        obj._x_bins = x_bins
+        obj._y_bins = y_bins
+        return obj
 
 
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
