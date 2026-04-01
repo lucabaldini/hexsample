@@ -458,6 +458,7 @@ class ClusteringHex(ClusteringBase):
         col = np.array(col)
         row = np.array(row)
         pha = np.array(pha)
+        pha -= self.readout.offset
         # Calculate the physical coordinates of the pixels in the cluster.
         x, y = self.readout.pixel_to_world(col, row)
         return Cluster(x, y, col, row, pha, "mle", self.recon_pars)

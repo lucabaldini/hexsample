@@ -270,12 +270,12 @@ def reconstruct(
     else:
         recon_pars = recon_pars.copy()
     recon_pars["pitch"] = header["pitch"]
-    # if pos_recon_algorithm == "mle":
-    #     recon_pars = dict(charge_matrix=MatrixChargeDiffusion.from_hdf5("/home/augusto/hexsampledata/mle_table.h5"),
-    #                       sigma_noise=header["enc"])
-    #     clustering = ClusteringHex(readout, 0, recon_pars)
-    # else:
-    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
+    if pos_recon_algorithm == "mle":
+        recon_pars = dict(charge_matrix=MatrixChargeDiffusion.from_hdf5("/home/augusto/hexsampledata/mle_table.h5"),
+                          sigma_noise=header["enc"])
+        clustering = ClusteringHex(readout, 0, recon_pars)
+    else:
+        clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
                                 pos_recon_algorithm, recon_pars)
     # Create a list of acceptable cluster sizes.
     size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]

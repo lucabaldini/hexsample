@@ -57,7 +57,7 @@ def nll_numba(x: float, y: float, pha: np.ndarray, f_map: np.ndarray,
         # Compute the expected mean of the signal in i-th pixel
         mu = f_map[ix, iy, i] * pha.sum()
         # For pixels signal above zero, use the Gaussian likelihood
-        if pha[i] > 0:
+        if pha[i] >= 0 or pha[i] < 0:
             res = pha[i] - mu
             _nll += 0.5 * (res**2 * inv_sigma2 + LOG2PI)
         # For pixels with zero signal, use the CDF of the Gaussian to compute the probability of
@@ -95,7 +95,7 @@ def nll_grad_numba(x: float, y: float, pha: np.ndarray, f_map: np.ndarray,
         mu = f_i * energy
         # For pixels signal above zero, the gradient with respect to the mean is the derivative of
         # the Gaussian likelihood
-        if pha[i] > 0:
+        if pha[i] >= 0 or pha[i] < 0:
             d_loss_dmu = -(pha[i] - mu) * inv_sigma2
         # For pixels with zero signal, the gradient is computed using the derivative of the CDF of
         # the Gaussian distribution
