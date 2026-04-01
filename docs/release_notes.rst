@@ -3,6 +3,8 @@
 Release notes
 =============
 
+* Added possibility to add an offset to the readout and subtract it during clustering, allowing
+  to have negative pha values in the events.
 
 Version 0.14.0 (2026-03-03)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
