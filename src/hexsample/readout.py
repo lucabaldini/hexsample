@@ -400,7 +400,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
         roi, pha = self.trigger(signal, min_col, min_row)
-        pha = self.digitize(pha, roi=roi, offset=self.offset)
+        pha = self.digitize(pha, roi=roi)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 
