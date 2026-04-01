@@ -303,7 +303,7 @@ class ClusteringNN(ClusteringBase):
                 adc_channel_order.append(self.readout.adc_channel(_col, _row))
                 gain_array.append(self._gain(_row, _col))
             # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i].
-            pha = event.pha[adc_channel_order] / np.array(gain_array)
+            pha = (event.pha[adc_channel_order] - self.readout.offset) / np.array(gain_array)
             # Converting lists into numpy arrays
             col = np.array(col)
             row = np.array(row)
@@ -318,10 +318,8 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([event(_col, _row)/self._gain(_row, _col)
+            pha = np.array([(event(_col, _row) - self.readout.offset) / self._gain(_row, _col)
                             for _col, _row in zip(col, row)])
-        # Subtracting the readout offset
-        pha -= self.readout.offset
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to
