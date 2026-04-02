@@ -114,3 +114,8 @@ class ReconEvent:
         """Return the reconstructed position of the event.
         """
         return self.cluster.position()
+
+    def error(self, recon_par: str) -> float:
+        """Return the error of the reconstructed parameter.
+        """
+        return self.cluster.pos_error(recon_par)
