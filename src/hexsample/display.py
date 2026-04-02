@@ -235,15 +235,15 @@ class HexagonalGridDisplay:
         self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         # Calculate and plot eta reconstructed position.
         recon_pars = self.recon_defaults.recon_pars
-        # from hexsample.calibration import MatrixChargeDiffusion
-        # from hexsample.clustering import ClusteringHex
-        # charge_diff = MatrixChargeDiffusion.from_hdf5("/home/augusto/hexsampledata/mle_table.h5")
-        # cluster_hex = ClusteringHex(readout, 0, None).run(digi_event)
-        # fig = plt.figure()
-        # mle_pos = cluster_hex.mle(charge_diff, 100)
-        # fig.show()
-        
-        # self.axes.scatter(*mle_pos, marker="^", s=100, label="MLE")
+        from hexsample.calibration import MatrixChargeDiffusion
+        from hexsample.clustering import ClusteringHex
+        charge_diff = MatrixChargeDiffusion.from_hdf5("/home/augusto/hexsampledata/mle_table.h5")
+        cluster_hex = ClusteringHex(readout, 0, None).run(digi_event)
+        fig = plt.figure()
+        mle_pos = cluster_hex.mle(charge_diff, 100)
+        fig.show()
+        print(f"x_mc = {(mc_event.absx - cluster.x[0]) / 0.005:.3f}, y_mc = {(mc_event.absy - cluster.y[0]) / 0.005:.3f}\n")
+        self.axes.scatter(*mle_pos, marker="^", s=100, label="MLE")
         try:
             eta_position = cluster.eta(pitch=readout.pitch, **recon_pars)
             # If cluster size is not 2 or 3, eta returns the centroid position, so we only

@@ -28,7 +28,7 @@ import numpy as np
 from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
-from .likelihood import nll_numba, nll_grad_numba
+from .likelihood import nll_numba, nll_grad_numba, nll_numba_profiled, nll_grad_numba_profiled
 from .readout import HexagonalReadoutBase
 
 
@@ -192,8 +192,6 @@ class Cluster:
             The noise level for the likelihood computation.
         """
         f = charge_matrix.eta
-        dx = charge_matrix.dx
-        dy = charge_matrix.dy
         x_bins = charge_matrix.x_bins
         y_bins = charge_matrix.y_bins
         x0, y0 = x_bins[0], y_bins[0]
@@ -210,20 +208,21 @@ class Cluster:
             """Wrapper around the nll_grad_numba function to be passed to iminuit, which expects a
             function that takes the parameters to be optimized as arguments.
             """
-            return nll_grad_numba(x, y, pha, f, dx, dy, x0, y0, dx_bin, dy_bin, sigma_noise)
+            return nll_grad_numba(x, y, pha, f, x0, y0, dx_bin, dy_bin, sigma_noise)
+        
         x_centroid, y_centroid = self.centroid()
-        x_centroid -= self.x[0] 
+        x_centroid -= self.x[0]
         y_centroid -= self.y[0]
         start_x, start_y = x_centroid / 0.005, y_centroid / 0.005
         m = iminuit.Minuit(nll, x=start_x, y=start_y, grad=nll_grad)
         m.limits = [(x_bins[0], x_bins[-1]), (y_bins[0], y_bins[-1])]
+        m.errors = [0.01, 0.01]
         m.migrad()
-        # m.hesse()
+        m.minos()
         # from aptapy.plotting import plt
         
-        # print(f"Values after minimization: {m.values}")
-        # print(f"Errors after minimization: {m.errors}")
-
+        # print(f"x_rc = {m.values['x']:.3f} + {m.merrors['x'].upper:.3f} - {m.merrors['x'].lower:.3f}")
+        # print(f"y_rc = {m.values['y']:.3f} + {m.merrors['y'].upper:.3f} - {m.merrors['y'].lower:.3f}")
         # x_range = np.linspace(x_bins[0], x_bins[-1], 100)
         # y_range = np.linspace(y_bins[0], y_bins[-1], 100)
         # X, Y = np.meshgrid(x_range, y_range)
@@ -436,27 +435,26 @@ class ClusteringHex(ClusteringBase):
             gain_array = [self._gain(event.row, event.column)]
             col.append(event.column)
             row.append(event.row)
-            pha.append(event.pha[self.readout.adc_channel(event.column, event.row)] / gain_array[0])
+            pha.append((event.pha[self.readout.adc_channel(event.column, event.row)] - self.readout.offset) / gain_array[0])
             for _col, _row in self.readout.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 _pha = event.pha[self.readout.adc_channel(_col, _row)]
-                pha.append(_pha / self._gain(_row, _col))
+                pha.append((_pha - self.readout.offset) / self._gain(_row, _col))
         # pylint: disable = invalid-name
         elif isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
             col.append(seed_col)
             row.append(seed_row)
-            pha.append(event(seed_col, seed_row)/self._gain(seed_row, seed_col))
+            pha.append((event(seed_col, seed_row) - self.readout.offset) / self._gain(seed_row, seed_col))
             for _col, _row in self.readout.neighbors(seed_col, seed_row):
                 col.append(_col)
                 row.append(_row)
-                pha.append(event(_col, _row)/self._gain(_row, _col))
+                pha.append((event(_col, _row) - self.readout.offset) / self._gain(_row, _col))
         # Converting lists into numpy arrays
         col = np.array(col)
         row = np.array(row)
         pha = np.array(pha)
-        pha -= self.readout.offset
         # Calculate the physical coordinates of the pixels in the cluster.
         x, y = self.readout.pixel_to_world(col, row)
         return Cluster(x, y, col, row, pha, "mle", self.recon_pars)
