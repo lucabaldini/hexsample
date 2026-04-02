@@ -43,6 +43,10 @@ class Cluster:
     col: np.ndarray
     row: np.ndarray
     pha: np.ndarray
+    _errx_low: float = 0.
+    _errx_high: float = 0.
+    _erry_low: float = 0.
+    _erry_high: float = 0.
 
     def __post_init__(self) -> None:
         """Small cross check on the dimensions of the arrays passed in the constructor.
@@ -172,6 +176,15 @@ class Cluster:
             raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position with" \
                                " eta function")
         return x_recon, y_recon
+
+    def pos_error(self, recon_par: str) -> Tuple[float, float]:
+        """Return the error of the reconstructed parameter.
+        """
+        if recon_par == "x":
+            return self._errx_low, self._errx_high
+        if recon_par == "y":
+            return self._erry_low, self._erry_high
+        raise ValueError(f"Invalid reconstruction parameter: {recon_par}")
 
 
 @dataclass

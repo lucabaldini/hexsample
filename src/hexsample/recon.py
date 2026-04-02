@@ -137,3 +137,8 @@ class ReconEvent:
         args = [available[_par] for _par in signature.parameters]
 
         return recon_method(*args)
+
+    def error(self, recon_par: str) -> float:
+        """Return the error of the reconstructed parameter.
+        """
+        return self.cluster.pos_error(recon_par)

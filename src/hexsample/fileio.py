@@ -228,6 +228,10 @@ class ReconDescription(tables.IsDescription):
     energy = tables.Float32Col(pos=5)
     posx = tables.Float32Col(pos=6)
     posy = tables.Float32Col(pos=7)
+    errx_low = tables.Float32Col(pos=8)
+    errx_high = tables.Float32Col(pos=9)
+    erry_low = tables.Float32Col(pos=10)
+    erry_high = tables.Float32Col(pos=11)
 
 def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     """Helper function to fill an output table row, given a ReconEvent object.
@@ -245,6 +249,9 @@ def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     row["cluster_size"] = event.cluster.size()
     row["energy"] = event.energy()
     row["posx"], row["posy"] = event.position()
+    row["errx_low"], row["errx_high"] = event.error("x")
+    row["erry_low"], row["erry_high"] = event.error("y")
+
     row.append()
 
 
