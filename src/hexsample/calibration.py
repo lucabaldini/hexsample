@@ -38,6 +38,7 @@ from .clustering import Cluster, ClusteringNN
 from .digi import DigiEventRectangular
 from .fileio import DigiInputFileBase
 from .recon import DEFAULT_IONIZATION_POTENTIAL
+from .readout import HexagonalReadoutBase
 
 
 class CalibrationMatrixBase:
@@ -417,89 +418,127 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
 
 class MatrixChargeDiffusion:
 
-    def __init__(self, nbins: int, readout) -> None:
+    """Charge diffusion calibration matrix for the detecotr.
+
+    This class implements the logic to create a calibration matrix to determine the fraction
+    of charge collected by each pixel as a function of the incident position of the photon on the
+    central pixel of the cluster. The calibration matrix is calculated by creating a grid of bins
+    and calculating the average value of the fraction of charge collected by each pixel for each bin
+    over all the events that fall in that bin.
+
+    Arguments
+    ---------
+    nbins : int
+        The number of bins in the x and y axes of the grid. The grid is a square grid.
+    readout : HexagonalReadoutBase
+        The detector readout instance.
+    """
+
+    def __init__(self, nbins: int, readout: HexagonalReadoutBase) -> None:
+        """Class constructor.
+        """
         self.nbins = nbins
-        if readout is None:
-            self.xedges = np.linspace(-0.5, 0.5, nbins + 1)
-            self.yedges = np.linspace(-0.5, 0.5, nbins + 1)
-        elif readout.pointy_topped():
-            self.xedges = np.linspace(-0.5, 0.5, nbins + 1)
-            self.yedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
-        else:
-            self.xedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
-            self.yedges = np.linspace(-0.5, 0.5, nbins + 1)
-        spline_binning = 5 * nbins
-        self._x_bins = np.linspace(self.xedges[0], self.xedges[-1], spline_binning)
-        self._y_bins = np.linspace(self.yedges[0], self.yedges[-1], spline_binning)
-        self._eta = np.zeros((spline_binning, spline_binning, 7))
-        self._dx = np.zeros((spline_binning, spline_binning, 7))
-        self._dy = np.zeros((spline_binning, spline_binning, 7))
+        # Initialize the arrays to store the calibration data and the bin edges.
+        self._xbins = None
+        self._ybins = None
+        self._eta = np.zeros((nbins, nbins, 7))
+        # Set the bin edges according to the pixel orientation.
+        if readout:
+            if readout.pointy_topped():
+                self.xedges = np.linspace(-0.5, 0.5, nbins + 1)
+                self.yedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
+            if readout.flat_topped():
+                self.xedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
+                self.yedges = np.linspace(-0.5, 0.5, nbins + 1)
+            # Calculate the bin centers from the edges.
+            self._x_bins = (self.xedges[:-1] + self.xedges[1:]) / 2
+            self._y_bins = (self.yedges[:-1] + self.yedges[1:]) / 2
 
     def upload_data(self, x: np.ndarray, y: np.ndarray, eta: np.ndarray) -> None:
+        """Update the calibration matrix with the data from the events. The data are uploaded by
+        calculating the average value of eta for each bin in the x and y axes, and storing the
+        average values in the corresponding bins of the calibration matrix.
+
+        Arguments
+        ---------
+        x : np.ndarray
+            The x coordinates of the events, in units of pixel pitch.
+        y : np.ndarray
+            The y coordinates of the events, in units of pixel pitch.
+        eta : np.ndarray
+            The eta values array of the events.
+        """
         bin_count, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges])
         for i in range(7):
             bin_sum, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges], weights=eta[:, i])
             with np.errstate(divide='ignore', invalid='ignore'):
                 average = bin_sum / bin_count
                 average[np.isnan(average)] = 0
-            spline = self._interpolate(average)
-            self._eta[:, :, i] = spline(self._x_bins, self._y_bins)
-            _dx, _dy = self._gradient(self._x_bins, self._y_bins, spline)
-            self._dx[:, :, i] = _dx
-            self._dy[:, :, i] = _dy
-    
-    def _interpolate(self, array: np.ndarray) -> RectBivariateSpline:
-        x_bins = (self.xedges[:-1] + self.xedges[1:]) / 2
-        y_bins = (self.yedges[:-1] + self.yedges[1:]) / 2
-        return RectBivariateSpline(x_bins, y_bins, array)
-
-    def _gradient(self, x: np.ndarray, y: np.ndarray, spline: RectBivariateSpline) -> tuple[np.ndarray, np.ndarray]:
-        dx = spline(x, y, dx=1, dy=0)
-        dy = spline(x, y, dx=0, dy=1)
-        return dx, dy
+            self._eta[:, :, i] = average
 
     @property
     def eta(self) -> np.ndarray:
+        """Calibration matrix with the fraction of charge collected by each pixel for each
+        position of the grid.
+        """
         return self._eta
-    
-    @property
-    def dx(self) -> np.ndarray:
-        return self._dx
-    
-    @property
-    def dy(self) -> np.ndarray:
-        return self._dy
-    
+
     @property
     def x_bins(self) -> np.ndarray:
+        """Bin centers in the x axis.
+        """
         return self._x_bins
 
     @property
     def y_bins(self) -> np.ndarray:
+        """Bin centers in the y axis.
+        """
         return self._y_bins
-    
+
     def to_hdf5(self, file_path: str) -> str:
+        """Save the calibration matrix to an HDF5 file at the given path. The file stores the
+        calibratin matrix and the bin centers in the x and y axes.
+
+        Arguments
+        ---------
+        file_path : str
+            The path of the file on the disk.
+        
+        Returns
+        -------
+        file_path : str
+            The path of the file on the disk.
+        """
         with tables.File(file_path, "w") as h5file:
             root = h5file.root
             h5file.create_array(root, "eta", self.eta)
-            h5file.create_array(root, "dx", self.dx)
-            h5file.create_array(root, "dy", self.dy)
             h5file.create_array(root, "x_bins", self.x_bins)
             h5file.create_array(root, "y_bins", self.y_bins)
         return file_path
 
     @classmethod
     def from_hdf5(cls, file_path: str) -> "MatrixChargeDiffusion":
+        """Create an instance of MatrixChargeDiffusion from an HDF5 file at the given path. The
+        instance contains the calibration matrix and the bin centers in the x and y axes.
+
+        Arguments
+        ---------
+        file_path : str
+            The path of the file on the disk.
+        
+        Returns
+        -------
+        obj : MatrixChargeDiffusion
+            An instance of MatrixChargeDiffusion initialized with the data from the HDF5 file.
+        """
         with tables.File(file_path, "r") as h5file:
             eta = h5file.root.eta[:]
-            dx = h5file.root.dx[:]
-            dy = h5file.root.dy[:]
             x_bins = h5file.root.x_bins[:]
             y_bins = h5file.root.y_bins[:]
+        # Instantiate the object with the data loaded from the HDF5 file.
         obj = cls(0, None)
+        # Set the attributes with the data loaded from the HDF5 file.
         obj._eta = eta
-        obj._dx = dx
-        obj._dy = dy
         obj._x_bins = x_bins
         obj._y_bins = y_bins
         return obj
