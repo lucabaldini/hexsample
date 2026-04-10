@@ -28,7 +28,7 @@ import numpy as np
 from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
-from .likelihood import nll_numba, nll_grad_numba, nll_numba_profiled, nll_grad_numba_profiled
+from .likelihood import nll_numba, nll_grad_numba
 from .readout import HexagonalReadoutBase
 
 
@@ -215,18 +215,24 @@ class Cluster:
             return nll_grad_numba(x, y, pha, f, x0, y0, dx_bin, dy_bin, sigma_noise)
         
         x_centroid, y_centroid = self.centroid()
-        x_centroid -= self.x[0]
-        y_centroid -= self.y[0]
-        start_x, start_y = x_centroid / 0.005, y_centroid / 0.005
-        m = iminuit.Minuit(nll, x=start_x, y=start_y, grad=nll_grad)
+        parin = np.array([x_centroid - self.x[0], y_centroid - self.y[0]]) / 0.005
+        parname = ["x", "y"]
+        m = iminuit.Minuit(nll, *parin, grad=nll_grad, name=parname)
         m.limits = [(x_bins[0], x_bins[-1]), (y_bins[0], y_bins[-1])]
         m.errors = [0.01, 0.01]
         m.migrad()
-        m.minos()
+        # Sometimes errors estimation fails, so we need to check if they can be calculated
+        if m.fmin.is_valid:
+            try:
+                m.minos()
+                self._errx_low, self._errx_high = m.merrors["x"].lower * 0.005, m.merrors["x"].upper * 0.005
+                self._erry_low, self._erry_high = m.merrors["y"].lower * 0.005, m.merrors["y"].upper * 0.005
+            except RuntimeError:
+                pass
         # from aptapy.plotting import plt
-        
-        # print(f"x_rc = {m.values['x']:.3f} + {m.merrors['x'].upper:.3f} - {m.merrors['x'].lower:.3f}")
-        # print(f"y_rc = {m.values['y']:.3f} + {m.merrors['y'].upper:.3f} - {m.merrors['y'].lower:.3f}")
+
+        # print(f"x_rc = {m.values['x']:.3f} + {self._errx_high:.3f} - {self._errx_low:.3f}")
+        # print(f"y_rc = {m.values['y']:.3f} + {self._erry_high:.3f} - {self._erry_low:.3f}")
         # x_range = np.linspace(x_bins[0], x_bins[-1], 100)
         # y_range = np.linspace(y_bins[0], y_bins[-1], 100)
         # X, Y = np.meshgrid(x_range, y_range)
