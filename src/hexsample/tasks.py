@@ -33,7 +33,7 @@ from tqdm import tqdm
 from . import rng
 from .analysis import create_histogram
 from .calibration import CalibrationMatrixGain, CalibrationMatrixNoise, ChargeFractionMatrices
-from .clustering import ClusteringNN, ClusteringHex
+from .clustering import ClusteringHex, ClusteringNN
 from .display import EventDisplay
 from .fileio import (
     ReconInputFile,

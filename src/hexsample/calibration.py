@@ -28,7 +28,6 @@ import tables
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.models import Gaussian, Probit
 from aptapy.plotting import last_line_color, plt
-from scipy.interpolate import RectBivariateSpline
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
 from tables.attributeset import AttributeSet
@@ -37,8 +36,8 @@ from tqdm import tqdm
 from .clustering import Cluster, ClusteringNN
 from .digi import DigiEventRectangular
 from .fileio import DigiInputFileBase
-from .recon import DEFAULT_IONIZATION_POTENTIAL
 from .readout import HexagonalReadoutBase
+from .recon import DEFAULT_IONIZATION_POTENTIAL
 
 
 class CalibrationMatrixBase:
@@ -420,11 +419,11 @@ class ChargeFractionMatrices:
 
     """Charge fraction calibration matrices for the detector.
 
-    This class implements the logic to create a set of calibration matrices to determine the fraction
-    of charge collected by each pixel as a function of the incident position of the photon on the
-    central pixel of the cluster. The calibration matrices are calculated by creating a grid of bins
-    and calculating the average value of the fraction of charge collected by each pixel for each bin
-    over all the events that fall in that bin.
+    This class implements the logic to create a set of calibration matrices to determine the
+    fraction of charge collected by each pixel as a function of the incident position of the
+    photon on the central pixel of the cluster. The calibration matrices are calculated by creating
+    a grid of bins and calculating the average value of the fraction of charge collected by each
+    pixel for each bin over all the events that fall in that bin.
 
     Arguments
     ---------

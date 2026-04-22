@@ -28,7 +28,7 @@ import numpy as np
 from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
-from .likelihood import nll_numba, nll_grad_numba
+from .likelihood import nll_grad_numba, nll_numba
 from .readout import HexagonalReadoutBase
 
 
@@ -178,7 +178,7 @@ class Cluster:
                                " eta function")
         return x_recon, y_recon
 
-    def mle(self, charge_matrix: "MatrixChargeDiffusion",
+    def mle(self, charge_matrix: "ChargeFractionMatrices",
             sigma_noise: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the maximum likelihood estimator. The
         computation is performed using the negative log-likelihood, which is minimized with the
@@ -189,9 +189,9 @@ class Cluster:
 
         Arguments
         ---------
-        charge_matrix : MatrixChargeDiffusion
-            The charge matrix object containing the charge diffusion map, the gradients and the
-            pixel coordinates.
+        charge_matrix : ChargeFractionMatrices
+            The charge fraction matrices object containing the charge fraction maps and the pixel
+            grid information.
         sigma_noise : float
             The noise level for the likelihood computation.
         """
@@ -438,6 +438,18 @@ class ClusteringNN(ClusteringBase):
 
 @dataclass
 class ClusteringHex(ClusteringBase):
+
+    """Hexagonal clustering.
+
+    This clustering strategy always takes the six neighbors of the seed pixel, without applyng
+    any position suppression. The order of the pixels is fixed, with the seed pixel always in the
+    first position, and the neighbors ordered clockwise, depending on the readout geometry.
+
+    Arguments
+    ---------
+    recon_pars : dict, optional
+        Dictionary containing the parameters for the position reconstruction algorithm.
+    """
 
     recon_pars: dict = None
 
