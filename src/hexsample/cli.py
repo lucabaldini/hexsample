@@ -101,13 +101,30 @@ class CliArgumentParser(argparse.ArgumentParser):
         calibrate = subparsers.add_parser("calibrate",
             help="calibrate the gain and noise of the chip",
             formatter_class=self._FORMATTER_CLASS)
-        self.add_input_file(calibrate)
-        self.add_energy(calibrate)
-        self.add_num_events(calibrate, default=tasks.CalibrationDefaults.num_events,
+        
+        calibrate_subparsers = calibrate.add_subparsers(required=True, help="calibration mode")
+        # Eta function calibration
+        eta = calibrate_subparsers.add_parser("eta", help="calibrate the eta function")
+        self.add_input_file(eta)
+        self.add_num_bins(eta, default=tasks.CalibrationEtaDefaults.num_bins)
+        self.add_zero_sup_threshold(eta, default=tasks.CalibrationEtaDefaults.zero_sup_threshold)
+        self.add_logging_level(eta)
+        eta.set_defaults(runner=pipeline.calibrate_eta)
+        # Noise calibration
+        noise = calibrate_subparsers.add_parser("noise", help="calibrate the chip noise")
+        self.add_input_file(noise)
+        self.add_logging_level(noise)
+        noise.set_defaults(runner=pipeline.calibrate_noise)
+        # Gain calibration
+        gain = calibrate_subparsers.add_parser("gain", help="calibrate the chip gain")
+        self.add_input_file(gain)
+        self.add_energy(gain)
+        self.add_num_events(gain, default=tasks.CalibrationGainDefaults.num_events,
                             intent="used for the gain calibration")
-        self.add_logging_level(calibrate)
-        self.add_calibration_options(calibrate)
-        calibrate.set_defaults(runner=pipeline.calibrate)
+        self.add_enc(gain, default=tasks.CalibrationGainDefaults.enc)
+        self.add_zero_sup_threshold(gain, default=tasks.CalibrationGainDefaults.zero_sup_threshold)
+        self.add_logging_level(gain)
+        gain.set_defaults(runner=pipeline.calibrate_gain)
 
         # Run the single-event display?
         display = subparsers.add_parser("display",
@@ -190,6 +207,20 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("energy", type=float,
                             help="line energy in eV")
+
+    @staticmethod
+    def add_enc(parser: argparse.ArgumentParser, default: int) -> None:
+        """Add an option for the equivalent noise charge of the readout.
+        """
+        parser.add_argument("--enc", type=float, default=default,
+                            help="equivalent noise charge in electrons")
+
+    @staticmethod
+    def add_num_bins(parser: argparse.ArgumentParser, default: int) -> None:
+        """Add an option for the number of bins to be used in the eta function calibration.
+        """
+        parser.add_argument("--num_bins", type=int, default=default,
+                            help="number of bins to be used in the eta function calibration")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
