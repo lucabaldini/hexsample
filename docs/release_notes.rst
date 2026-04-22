@@ -7,6 +7,14 @@ Release notes
   using the slanted edge method. This class calculates the edge spread function (ESF), the line
   spread function (LSF) and the modulation transfer function (MTF) for a slit beam.
 * Implemented `SlitsAligner` class to align a slit beam from a Huttner test.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/102
+
+
+Version 0.14.0 (2026-03-03)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Added classes `CalibrationMatrixGain` and `CalibrationMatrixNoise` to use gain and noise
   matrices to support non-uniform pixel response in the readout chip.
 * Command `calibrate` added to the CLI interface to use a DigiFile to calibrate the gain response
