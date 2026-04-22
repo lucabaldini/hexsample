@@ -89,7 +89,7 @@ class SlitsAligner:
         return feature.canny(image.T, sigma=self.sigma)
 
     def _estimate_angle(self, edges: np.ndarray) -> float:
-        """Estimate the tilt angle of the slits with respect to the detector axes by applyting the
+        """Estimate the tilt angle of the slits with respect to the detector axes by applying the
         Hough transform to the slits edge image calculated with the Canny edge detection.
 
         Arguments
@@ -105,7 +105,7 @@ class SlitsAligner:
         """
         # Calculate the Hough transform of the detected edges. We test a small range of angles
         # as we expect the slits to be tilted only by a few degrees with respect to the detector
-        # x-axis. These angles are reffered to the normal to the edges.
+        # x-axis. These angles are referred to the normal to the edges.
         test_angles = np.deg2rad(np.linspace(80, 100, 1000))
         hspace, angles, distances = transform.hough_line(edges, theta=test_angles)
         # Extract the peaks from the Hough transform.
@@ -136,7 +136,7 @@ class SlitsAligner:
         y : np.ndarray
             The y coordinates of the reconstructed positions aligned to the detector x-axis.
         """
-        if not self.angle:
+        if self.angle is None:
             # Detect the edges of the slits
             edges = self._detect_edges(x, y)
             # Estimate the tilt angle
@@ -165,12 +165,12 @@ class SlantedEdgeResolution:
     sigma: float
         The standard deviation of the Gaussian filter to smooth the ESF. It is expressed in number
         of bins. Consider that the smoothing acts as a low-pass filter, so if it is too large it
-        can lead to an underestimation of the resolution.
+        can lead to an underestimation of the resolution. If None, no smoothing is applied.
     """
 
     x : np.ndarray
     bin_size: float = 0.0002
-    sigma: float = 2
+    sigma: Optional[float] = 2
 
     def _esf(self) -> Tuple[np.ndarray, np.ndarray]:
         """Calculate the edge spread function (ESF) of the slanted edge. A padding is added to the
@@ -235,7 +235,7 @@ class SlantedEdgeResolution:
         lsf = np.diff(esf) / self.bin_size
         edges = esf_edges[1:]
         # Cut the data after the LSF reaches zero to avoid the noise from the plateau. We should
-        # think of a more robust way dto do this, such as a windowing function.
+        # think of a more robust way to do this, such as a windowing function.
         centers = (edges[:-1] + edges[1:]) / 2
         try:
             zero_crossing = centers[lsf < 0][0]
@@ -302,7 +302,7 @@ class SlantedEdgeResolution:
         # Interpolate the MTF
         mtf_interp = interp1d(freqs, mtf, kind="cubic")
         # Find the value of k at which the MTF drops to 0.1
-        k = fsolve(lambda x: mtf_interp(x) - 0.1, 1.)
+        k = fsolve(lambda x: mtf_interp(x) - 0.1, 1.)[0]
         # Calculate the resolution
         return np.sqrt(np.log(10)/2) / (np.pi * k)
 

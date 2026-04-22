@@ -334,7 +334,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         The number of columns in the readout chip.
     num_rows : int
         The number of rows in the readout chip.
-    default : float
+    default : float, optional
         The default value to set for pixels in the calibration matrix. If None, the default value
         is estimated as the mean of the noise distribution for each pixel.
     """
