@@ -39,7 +39,7 @@ from .calibration import (
     calibrate_dr_2pix,
     calibrate_dr_3pix,
     calibrate_theta_3pix,
-    distance
+    distance,
 )
 from .clustering import ClusteringNN
 from .display import EventDisplay
@@ -463,7 +463,8 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     """
     # Open the input file and extract the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
-    # Define the arguments to create the readout object with unit gain, necessary for the calibration.
+    # Define the arguments to create the readout object with unit gain, necessary for the
+    # calibration.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], 1.
     readout = create_readout(readout_mode, header, *args)

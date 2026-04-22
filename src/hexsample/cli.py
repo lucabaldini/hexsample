@@ -67,6 +67,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def __init__(self) -> None:
         """Overloaded method.
         """
+        # pylint: disable=too-many-statements
         super().__init__(description=self._DESCRIPTION, epilog=self._EPILOG,
                          formatter_class=self._FORMATTER_CLASS)
         subparsers = self.add_subparsers(required=True, help="sub-command help")
@@ -101,7 +102,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         calibrate = subparsers.add_parser("calibrate",
             help="calibrate the gain and noise of the chip",
             formatter_class=self._FORMATTER_CLASS)
-        
+
         calibrate_subparsers = calibrate.add_subparsers(required=True, help="calibration mode")
         # Eta function calibration
         eta = calibrate_subparsers.add_parser("eta", help="calibrate the eta function")
@@ -370,21 +371,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="model to use for neural network reconstruction")
         group.add_argument("--model_path", type=str,
                            help="path of the model to use, in case of custom model")
-
-    def add_calibration_options(self, parser: argparse.ArgumentParser) -> None:
-        """Add an option group for the calibration properties.
-        """
-        group = parser.add_argument_group("calibration", "Calibration configuration")
-        CliArgumentParser.add_zero_sup_threshold(group,
-                           default=tasks.CalibrationDefaults.zero_sup_threshold)
-        group.add_argument("--default_gain", type=float, default=None,
-                           help="the value to use for pixels in the gain map that cannot be" \
-                           " calibrated, e.g., because they have no events detected. If not" \
-                           " specified, these pixels wil be set to the mean gain value.")
-        group.add_argument("--default_noise", type=float, default=None,
-                           help="the value to use for pixels in the noise map that cannot be" \
-                           " calibrated, e.g., because they have no events detected. If not" \
-                           " specified, these pixels wil be set to the mean noise value.")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display.
