@@ -44,7 +44,7 @@ from .calibration import (
 from .clustering import ClusteringNN
 from .display import EventDisplay
 from .fileio import (
-    ReconInputFile,
+    DigiInputFileBase,
     ReconOutputFile,
     digi_input_file_class,
     digi_output_file_class,
@@ -55,6 +55,7 @@ from .logging_ import logger
 from .mc import PhotonList
 from .readout import (
     AbstractReadout,
+    HexagonalReadoutBase,
     HexagonalReadoutCircular,
     HexagonalReadoutMode,
     HexagonalReadoutRectangular,
@@ -73,17 +74,6 @@ if not HEXSAMPLE_DATA.exists():
 def current_call() -> Tuple[str, dict]:
     """Return the name and arguments of the current function call.
     """
-    frame = inspect.currentframe().f_back
-    func = frame.f_code.co_name
-    sig = inspect.signature(frame.f_globals[func])
-    bound = sig.bind(**frame.f_locals)
-    bound.apply_defaults()
-    return func, bound.arguments
-
-
-def _current_call() -> Tuple[str, dict]:
-    """Return the name and arguments of the current function call.
-    """
     frame = inspect.currentframe().f_back.f_back
     func = frame.f_code.co_name
     sig = inspect.signature(frame.f_globals[func])
@@ -91,8 +81,11 @@ def _current_call() -> Tuple[str, dict]:
     bound.apply_defaults()
     return func, bound.arguments
 
-def open_file(input_file_path: Union[str, pathlib.Path]):
-    name, args = _current_call()
+
+def open_file(input_file_path: Union[str, pathlib.Path]) -> Tuple[DigiInputFileBase, dict, str]:
+    """Open a digi file and extract the header and the readout type.
+    """
+    name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     input_file_path = str(input_file_path)
     if not input_file_path.endswith(".h5"):
@@ -103,7 +96,11 @@ def open_file(input_file_path: Union[str, pathlib.Path]):
     header = input_file.header
     return input_file, header, readout_mode
 
-def create_readout(readout_mode: HexagonalReadoutMode, header: dict, *args):
+
+def create_readout(readout_mode: HexagonalReadoutMode, header: dict, *args
+                   ) -> HexagonalReadoutBase:
+    """Create and return a readout object based on the readout mode and the header information.
+    """
     if readout_mode is HexagonalReadoutMode.RECTANGULAR:
         readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
@@ -261,27 +258,14 @@ def reconstruct(
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
 
-    gain_map : np.ndarray or None
+    gain_map : np.ndarray, optional
         The gain map to use for the reconstruction. If None, no gain correction is applied.
 
     eta_index : float
         The eta index to use.
     """
-    name, args = current_call()
-    logger.info(f"Running {__name__}.{name} with arguments {args}...")
-    # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
-    input_file_path = str(input_file_path)
-    if not input_file_path.endswith(".h5"):
-        raise RuntimeError(f"Input file {input_file_path} does not look like a HDF5 file")
-
-    # It is necessary to extract the reaodut type because every readout type
-    # corresponds to a different DigiEvent type.
-    readout_mode = peek_readout_type(input_file_path)
-    # And we should get rid of all this crap when we store the readout type and all the
-    # relevant metadata in the hdf5 file in a sensible way.
-    file_type = digi_input_file_class(readout_mode)
-    input_file = file_type(input_file_path)
-    header = input_file.header
+    # Open the input file and extract the header and the readout information.
+    input_file, header, readout_mode = open_file(input_file_path)
     # Open the gain calibration file to update the readout gain argument. If no gain file is
     # provided, use the scalar value in the header.
     gain = header["gain"]
@@ -290,13 +274,7 @@ def reconstruct(
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], gain
-    if readout_mode is HexagonalReadoutMode.RECTANGULAR:
-        readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
-    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
-        readout = HexagonalReadoutCircular(*args)
-    else:
-        raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
-    logger.info(f"Readout chip: {readout}")
+    readout = create_readout(readout_mode, header, *args)
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
     # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
@@ -347,7 +325,7 @@ class CalibrationEtaDefaults:
     zero_sup_threshold: int = 30
 
 
-def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int):
+def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int) -> None:
     """Calibrate the eta function using the events from a digi file.
 
     Arguments
@@ -361,14 +339,17 @@ def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int):
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"], zero_sup_threshold
+        header["pitch"], header["enc"], header["gain"]
     readout = create_readout(readout_mode, header, *args)
     clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6)
     # Create the lists to store the data.
     size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
     # Loop over the events and calculate the interesting quantities.
     for i, event in tqdm(enumerate(input_file)):
-        cluster = clustering.run(event)
+        try:
+            cluster = clustering.run(event)
+        except IndexError:
+            continue
         # Analyze only 2-pixel and 3-pixel events.
         if cluster.size() == 2 or cluster.size() == 3:
             mc_event = input_file.mc_event(i)
@@ -480,7 +461,8 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     # Calculate the gain matrix and the mean value
     matrix = gain_matrix.matrix
     mean_gain = np.mean(matrix[gain_matrix.hits > 0])
-    # Create the readout object for the simulation
+    # Create the readout object for the simulation. We are using rectangular readout just because
+    # it's faster to simulate.
     simulation_readout = HexagonalReadoutRectangular(enc=enc / mean_gain, gain=matrix)
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
     # Simulate events with the best-fit gain matrix to correct the bias.
@@ -540,31 +522,11 @@ def display(
     event_id : int
         The ID of the event to display. If None, display all events.
     """
-    name, args = current_call()
-    logger.info(f"Running {__name__}.{name} with arguments {args}...")
-
-    # Note we cast the input file to string, in case it happens to be a pathlib.Path object.
-    input_file_path = str(input_file_path)
-    if not input_file_path.endswith(".h5"):
-        raise RuntimeError("Input file {input_file_path} does not look like a HDF5 file")
-
-    # It is necessary to extract the reaodut type because every readout type
-    # corresponds to a different DigiEvent type.
-    readout_mode = peek_readout_type(input_file_path)
-    # And we should get rid of all this crap when we store the readout type and all the
-    # relevant metadata in the hdf5 file in a sensible way.
-    file_type = digi_input_file_class(readout_mode)
-    input_file = file_type(input_file_path)
-    header = input_file.header
+    # Open the input file and extract the header and the readout information.
+    input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], header["gain"]
-    if readout_mode is HexagonalReadoutMode.RECTANGULAR:
-        readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
-    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
-        readout = HexagonalReadoutCircular(*args)
-    else:
-        raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
-    logger.info(f"Readout chip: {readout}")
+    readout = create_readout(readout_mode, header, *args)
     recon_defaults = ReconstructionDefaults
     _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
                      recon_defaults=recon_defaults)
@@ -590,9 +552,8 @@ def quicklook(input_file_path: str) -> None:
     file_path : str
         The path to the input recon file.
     """
-    name, args = current_call()
-    logger.info(f"Running {__name__}.{name} with arguments {args}...")
-    input_file = ReconInputFile(input_file_path)
+    # Open the input file
+    input_file, _, _ = open_file(input_file_path)
     # Plotting the reconstructed energy and the true energy
     histo = create_histogram(input_file, "energy", mc=False)
     mc_histo = create_histogram(input_file, "energy", mc=True, binning=histo.bin_edges())

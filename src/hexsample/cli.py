@@ -100,7 +100,7 @@ class CliArgumentParser(argparse.ArgumentParser):
 
         # Run the chip calibration?
         calibrate = subparsers.add_parser("calibrate",
-            help="calibrate the gain and noise of the chip",
+            help="run chip calibration tasks",
             formatter_class=self._FORMATTER_CLASS)
 
         calibrate_subparsers = calibrate.add_subparsers(required=True, help="calibration mode")
@@ -213,7 +213,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_enc(parser: argparse.ArgumentParser, default: int) -> None:
         """Add an option for the equivalent noise charge of the readout.
         """
-        parser.add_argument("--enc", type=float, default=default,
+        parser.add_argument("--enc", type=int, default=default,
                             help="equivalent noise charge in electrons")
 
     @staticmethod

@@ -82,14 +82,14 @@ def calibrate_eta(**kwargs) -> None:
     return tasks.calibrate_eta(input_file_path, num_bins, zero_sup_threshold)
 
 
-def calibrate_noise(**kwargs) -> None:
+def calibrate_noise(**kwargs) -> str:
     """Calibrate the noise of the chip.
     """
     input_file_path = kwargs["input_file"]
     return tasks.calibrate_noise(input_file_path)
 
 
-def calibrate_gain(**kwargs) -> None:
+def calibrate_gain(**kwargs) -> str:
     """Calibrate the gain of the chip.
     """
     input_file_path = kwargs["input_file"]
