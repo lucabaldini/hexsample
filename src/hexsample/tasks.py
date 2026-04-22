@@ -173,7 +173,7 @@ class ReconstructionDefaults:
     eta_3pix_rad_pivot: float = 0.05
     eta_3pix_theta_sigma: float = 0.104
     gain_map: Optional[np.ndarray] = None
-    
+
 
 def reconstruct(
         input_file_path: str,
