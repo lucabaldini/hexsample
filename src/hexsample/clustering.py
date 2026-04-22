@@ -293,6 +293,12 @@ class ClusteringNN(ClusteringBase):
     ---------
     num_neighbors : int
         The number of neighbors (between 0 and 6) to include in the cluster.
+    pos_recon_algorithm : str
+        The position reconstruction algorithm to use for the cluster position reconstruction.
+        Possible values are "centroid" and "eta".
+    recon_pars : dict, optional
+        The parameters for the position reconstruction algorithm. This is not required if
+        pos_recon_algorithm is "centroid".
     """
 
     num_neighbors: int
