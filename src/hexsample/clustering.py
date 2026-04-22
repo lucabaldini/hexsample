@@ -185,6 +185,8 @@ class Cluster:
         if self.pos_recon_algorithm == "centroid":
             return self.centroid()
         if self.pos_recon_algorithm == "eta":
+            if self.recon_pars is None:
+                raise RuntimeError("Eta reconstruction algorithm requires recon_pars to be set.")
             return self.eta(**self.recon_pars)
         raise RuntimeError(f"Unknown position reconstruction method {self.pos_recon_algorithm}")
 

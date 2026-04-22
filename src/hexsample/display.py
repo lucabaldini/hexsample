@@ -227,7 +227,7 @@ class HexagonalGridDisplay:
         self.axes.scatter(mc_event.absx, mc_event.absy, marker=".", s=100, label="Monte Carlo")
         # Calculate the cluster from the digi event.
         cluster = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
-                               pos_recon_algorithm=None, recon_pars=None).run(digi_event)
+                               pos_recon_algorithm="centroid", recon_pars=None).run(digi_event)
         # Calculate and plot centroid position.
         centroid_position = cluster.centroid()
         self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")

@@ -240,9 +240,6 @@ def reconstruct(
 
     gain_map : np.ndarray or None
         The gain map to use for the reconstruction. If None, no gain correction is applied.
-
-    eta_index : float
-        The eta index to use.
     """
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
@@ -395,7 +392,7 @@ def calibrate(input_file_path: str,
     noise = CalibrationMatrixNoise(header["num_cols"], header["num_rows"], default_noise)
     # Run the calibration.
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
-                              pos_recon_algorithm=None, recon_pars=None)
+                              pos_recon_algorithm="centroid", recon_pars=None)
     for _, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
