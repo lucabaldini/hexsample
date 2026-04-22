@@ -3,6 +3,10 @@
 Release notes
 =============
 
+* Implemented `SlantedEdgeResolution` class to calculate the estimate the resolution of the detector
+  using the slanted edge method. This class calculates the edge spread function (ESF), the line
+  spread function (LSF) and the modulation transfer function (MTF) for a slit beam.
+* Implemented `SlitsAligner` class to align a slit beam from a Huttner test.
 * Added classes `CalibrationMatrixGain` and `CalibrationMatrixNoise` to use gain and noise
   matrices to support non-uniform pixel response in the readout chip.
 * Command `calibrate` added to the CLI interface to use a DigiFile to calibrate the gain response
