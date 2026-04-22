@@ -414,27 +414,6 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         h5file.create_array(h5file.root, "histogram", self.histogram)
 
 
-class MatrixChargeDiffusion:
-
-    def __init__(self, nbins: int, readout) -> None:
-        if readout.pointy_topped():
-            self.xedges = np.linspace(-0.5, 0.5, nbins + 1)
-            self.yedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
-        else:
-            self.xedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
-            self.yedges = np.linspace(-0.5, 0.5, nbins + 1)
-        self.matrix = np.zeros((nbins, nbins, 7))
-
-    def create_matrix(self, x: np.ndarray, y: np.ndarray, eta: np.ndarray) -> None:
-        bin_count, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges])
-        for i in range(7):
-            bin_sum, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges], weights=eta[:, i])
-            with np.errstate(divide='ignore', invalid='ignore'):
-                table_slice = bin_sum / bin_count
-                table_slice[np.isnan(table_slice)] = 0
-                self.matrix[:, :, i] = table_slice
-
-
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
             ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the profile of a set of xdata and ydata. The profile is computed by creating
