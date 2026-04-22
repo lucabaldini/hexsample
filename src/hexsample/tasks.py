@@ -32,7 +32,7 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
-from .calibration import CalibrationMatrixGain, CalibrationMatrixNoise, MatrixChargeDiffusion
+from .calibration import CalibrationMatrixGain, CalibrationMatrixNoise, ChargeFractionMatrices
 from .clustering import ClusteringNN, ClusteringHex
 from .display import EventDisplay
 from .fileio import (
@@ -166,6 +166,7 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
+    charge_fraction_matrices: Optional[ChargeFractionMatrices] = None
     gain_map: Optional[np.ndarray] = None
     recon_pars: dict = field(default_factory=lambda: dict(
         s2=0.127,
@@ -184,6 +185,7 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
+        charge_fraction_matrices: Optional[ChargeFractionMatrices] = None,
         gain_map: Optional[np.ndarray] = ReconstructionDefaults.gain_map,
         recon_pars: Optional[dict] = None,
         header_kwargs: dict = None,
@@ -270,8 +272,9 @@ def reconstruct(
     else:
         recon_pars = recon_pars.copy()
     recon_pars["pitch"] = header["pitch"]
+
     if pos_recon_algorithm == "mle":
-        recon_pars = dict(charge_matrix=MatrixChargeDiffusion.from_hdf5("/home/augusto/hexsampledata/mle_table.h5"),
+        recon_pars = dict(charge_matrix=charge_fraction_matrices,
                           sigma_noise=header["enc"])
         clustering = ClusteringHex(readout, 0, recon_pars)
     else:
@@ -297,6 +300,69 @@ def reconstruct(
     output_file.flush()
     input_file.close()
     output_file.close()
+    return output_file_path
+
+
+@dataclass(frozen=True)
+class CalibrationMLEDefaults:
+    """Default parameters for the Maximum Likelihood Estimator (MLE) calibration task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    num_bins: int = 100
+
+
+def calibrate_mle(input_file_path: str, num_bins: int) -> str:
+    """Calibrate the charge diffusion for the Maximum Likelihood Estimator (MLE) position
+    reconstruction algorithm, using the events from a digi file.
+    The results are stored as a matrix in a HDF5 file.
+
+    Arguments
+    ---------
+    input_file_path : str
+        The path to the input file.
+    num_bins : int
+        The number of bins to use for the charge diffusion matrix.
+    """
+    # After the other PRs, this block of code has to be rewritten
+    if not input_file_path.endswith(".h5"):
+        raise RuntimeError(f"Input file {input_file_path} does not look like a HDF5 file")
+    readout_mode = peek_readout_type(input_file_path)
+    file_type = digi_input_file_class(readout_mode)
+    input_file = file_type(input_file_path)
+    header = input_file.header
+    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"], header["enc"], header["gain"]
+    if readout_mode is HexagonalReadoutMode.RECTANGULAR:
+        readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
+    elif readout_mode is HexagonalReadoutMode.CIRCULAR:
+        readout = HexagonalReadoutCircular(*args)
+    else:
+        raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
+    logger.info(f"Readout chip: {readout}")
+    
+    clustering = ClusteringHex(readout, 0)
+    # Create lists to store the x, y (incident position) and charge fraction values of the events.
+    x, y, fraction = [], [], []
+    # Loop over the events in the input file and fill the lists with the relevant information.
+    for i, event in tqdm(enumerate(input_file)):
+        cluster = clustering.run(event)
+        fraction.append(cluster.pha / cluster.pulse_height())
+        mc_event = input_file.mc_event(i)
+        x.append(mc_event.absx - cluster.x[0])
+        y.append(mc_event.absy - cluster.y[0])
+    input_file.close()
+    # Convert the lists to numpy arrays and normalize the x and y coordinates by the pixel pitch.
+    fraction = np.array(fraction)
+    x = np.array(x) / readout.pitch
+    y = np.array(y) / readout.pitch
+
+    matrices = ChargeFractionMatrices(num_bins, readout)
+    matrices.upload_data(x, y, fraction)
+    output_file_path = input_file_path.replace(".h5", "_mle_matrices.h5")
+    matrices.to_hdf5(output_file_path)
     return output_file_path
 
 

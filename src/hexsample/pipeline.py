@@ -21,7 +21,7 @@
 """
 
 from . import legacy, tasks
-from .calibration import CalibrationMatrixGain
+from .calibration import CalibrationMatrixGain, ChargeFractionMatrices
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
@@ -55,9 +55,12 @@ def reconstruct(**kwargs) -> str:
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
     max_neighbors = kwargs.get("max_neighbors", defaults.max_neighbors)
     pos_recon_algorithm = kwargs.get("pos_recon_algorithm", defaults.pos_recon_algorithm)
-    map_gain_file = kwargs.get("map_gain_file")
-    if map_gain_file is not None:
-        gain_map = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
+    if kwargs.get("charge_fraction_matrices_file") is not None:
+        charge_fraction_matrices = ChargeFractionMatrices.from_hdf5(kwargs.get("charge_fraction_matrices_file"))
+    else:
+        charge_fraction_matrices = None
+    if kwargs.get("map_gain_file") is not None:
+        gain_map = CalibrationMatrixGain.from_hdf5(kwargs.get("map_gain_file")).matrix
     else:
         gain_map = None
     recon_pars = dict(
@@ -69,8 +72,16 @@ def reconstruct(**kwargs) -> str:
         s3_t=kwargs.get("s3_t", defaults.recon_pars["s3_t"])
     )
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, gain_map, recon_pars
+           pos_recon_algorithm, charge_fraction_matrices, gain_map, recon_pars
     return tasks.reconstruct(*args, kwargs)
+
+
+def calibrate_mle(**kwargs) -> str:
+    """Calibrate the MLE position reconstruction algorithm.
+    """
+    input_file_path = kwargs["input_file"]
+    num_bins = kwargs.get("num_bins", tasks.CalibrationMLEDefaults.num_bins)
+    return tasks.calibrate_mle(input_file_path, num_bins)
 
 
 def calibrate(**kwargs) -> None:

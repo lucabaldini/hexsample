@@ -235,9 +235,9 @@ class HexagonalGridDisplay:
         self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         # Calculate and plot eta reconstructed position.
         recon_pars = self.recon_defaults.recon_pars
-        from hexsample.calibration import MatrixChargeDiffusion
+        from hexsample.calibration import ChargeFractionMatrices
         from hexsample.clustering import ClusteringHex
-        charge_diff = MatrixChargeDiffusion.from_hdf5("/home/augusto/hexsampledata/mle_table.h5")
+        charge_diff = ChargeFractionMatrices.from_hdf5("/home/augusto/hexsampledata/mle_table.h5")
         cluster_hex = ClusteringHex(readout, 0, None).run(digi_event)
         fig = plt.figure()
         mle_pos = cluster_hex.mle(charge_diff, 100)

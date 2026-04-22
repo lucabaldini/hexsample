@@ -416,13 +416,13 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         h5file.create_array(h5file.root, "histogram", self.histogram)
 
 
-class MatrixChargeDiffusion:
+class ChargeFractionMatrices:
 
-    """Charge diffusion calibration matrix for the detecotr.
+    """Charge fraction calibration matrices for the detector.
 
-    This class implements the logic to create a calibration matrix to determine the fraction
+    This class implements the logic to create a set of calibration matrices to determine the fraction
     of charge collected by each pixel as a function of the incident position of the photon on the
-    central pixel of the cluster. The calibration matrix is calculated by creating a grid of bins
+    central pixel of the cluster. The calibration matrices are calculated by creating a grid of bins
     and calculating the average value of the fraction of charge collected by each pixel for each bin
     over all the events that fall in that bin.
 
@@ -441,7 +441,7 @@ class MatrixChargeDiffusion:
         # Initialize the arrays to store the calibration data and the bin edges.
         self._xbins = None
         self._ybins = None
-        self._eta = np.zeros((nbins, nbins, 7))
+        self._matrices = np.zeros((7, nbins, nbins))
         # Set the bin edges according to the pixel orientation.
         if readout:
             if readout.pointy_topped():
@@ -454,10 +454,10 @@ class MatrixChargeDiffusion:
             self._x_bins = (self.xedges[:-1] + self.xedges[1:]) / 2
             self._y_bins = (self.yedges[:-1] + self.yedges[1:]) / 2
 
-    def upload_data(self, x: np.ndarray, y: np.ndarray, eta: np.ndarray) -> None:
+    def upload_data(self, x: np.ndarray, y: np.ndarray, fraction: np.ndarray) -> None:
         """Update the calibration matrix with the data from the events. The data are uploaded by
-        calculating the average value of eta for each bin in the x and y axes, and storing the
-        average values in the corresponding bins of the calibration matrix.
+        calculating the average value of the charge fraction for each bin in the x and y axes, and
+        storing the average values in the corresponding bins of the calibration matrix.
 
         Arguments
         ---------
@@ -465,23 +465,24 @@ class MatrixChargeDiffusion:
             The x coordinates of the events, in units of pixel pitch.
         y : np.ndarray
             The y coordinates of the events, in units of pixel pitch.
-        eta : np.ndarray
-            The eta values array of the events.
+        fraction : np.ndarray
+            The charge fraction values array of the events.
         """
         bin_count, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges])
         for i in range(7):
-            bin_sum, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges], weights=eta[:, i])
+            bin_sum, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges],
+                                           weights=fraction[:, i])
             with np.errstate(divide='ignore', invalid='ignore'):
                 average = bin_sum / bin_count
                 average[np.isnan(average)] = 0
-            self._eta[:, :, i] = average
+            self._matrices[i, :, :] = average
 
     @property
-    def eta(self) -> np.ndarray:
-        """Calibration matrix with the fraction of charge collected by each pixel for each
+    def matrices(self) -> np.ndarray:
+        """Set of calibration matrices with the fraction of charge collected by each pixel for each
         position of the grid.
         """
-        return self._eta
+        return self._matrices
 
     @property
     def x_bins(self) -> np.ndarray:
@@ -496,8 +497,8 @@ class MatrixChargeDiffusion:
         return self._y_bins
 
     def to_hdf5(self, file_path: str) -> str:
-        """Save the calibration matrix to an HDF5 file at the given path. The file stores the
-        calibratin matrix and the bin centers in the x and y axes.
+        """Save the calibration matrices to an HDF5 file at the given path. The file stores the
+        calibration matrices and the bin centers in the x and y axes.
 
         Arguments
         ---------
@@ -511,15 +512,15 @@ class MatrixChargeDiffusion:
         """
         with tables.File(file_path, "w") as h5file:
             root = h5file.root
-            h5file.create_array(root, "eta", self.eta)
+            h5file.create_array(root, "matrices", self.matrices)
             h5file.create_array(root, "x_bins", self.x_bins)
             h5file.create_array(root, "y_bins", self.y_bins)
         return file_path
 
     @classmethod
-    def from_hdf5(cls, file_path: str) -> "MatrixChargeDiffusion":
-        """Create an instance of MatrixChargeDiffusion from an HDF5 file at the given path. The
-        instance contains the calibration matrix and the bin centers in the x and y axes.
+    def from_hdf5(cls, file_path: str) -> "ChargeFractionMatrices":
+        """Create an instance of ChargeFractionMatrices from an HDF5 file at the given path. The
+        instance contains the calibration matrices and the bin centers in the x and y axes.
 
         Arguments
         ---------
@@ -528,17 +529,17 @@ class MatrixChargeDiffusion:
         
         Returns
         -------
-        obj : MatrixChargeDiffusion
-            An instance of MatrixChargeDiffusion initialized with the data from the HDF5 file.
+        obj : ChargeFractionMatrices
+            An instance of ChargeFractionMatrices initialized with the data from the HDF5 file.
         """
         with tables.File(file_path, "r") as h5file:
-            eta = h5file.root.eta[:]
+            matrices = h5file.root.matrices[:]
             x_bins = h5file.root.x_bins[:]
             y_bins = h5file.root.y_bins[:]
         # Instantiate the object with the data loaded from the HDF5 file.
         obj = cls(0, None)
         # Set the attributes with the data loaded from the HDF5 file.
-        obj._eta = eta
+        obj._matrices = matrices
         obj._x_bins = x_bins
         obj._y_bins = y_bins
         return obj

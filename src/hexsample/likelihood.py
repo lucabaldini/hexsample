@@ -54,10 +54,10 @@ def nll_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, 
     sum_qf = .0
     sum_f2 = .0
     for i in range(7):
-        v00 = f[ix0, iy0, i]
-        v10 = f[ix0 + 1, iy0, i]
-        v01 = f[ix0, iy0 + 1, i]
-        v11 = f[ix0 + 1, iy0 + 1, i]
+        v00 = f[i, ix0, iy0]
+        v10 = f[i, ix0 + 1, iy0]
+        v01 = f[i, ix0, iy0 + 1]
+        v11 = f[i, ix0 + 1, iy0 + 1]
         # Bilinear interpolation
         fi = (v00 * (1 - wx) * (1 - wy) +
               v10 * wx * (1 - wy) +
@@ -103,10 +103,10 @@ def nll_grad_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: fl
     sum_qf = .0
     sum_f2 = .0
     for i in range(7):
-        v00 = f[ix0, iy0, i]
-        v10 = f[ix0 + 1, iy0, i]
-        v01 = f[ix0, iy0 + 1, i]
-        v11 = f[ix0 + 1, iy0 + 1, i]
+        v00 = f[i, ix0, iy0]
+        v10 = f[i, ix0 + 1, iy0]
+        v01 = f[i, ix0, iy0 + 1]
+        v11 = f[i, ix0 + 1, iy0 + 1]
         # Bilinear interpolation
         fi = (v00 * (1 - wx) * (1 - wy) +
               v10 * wx * (1 - wy) +

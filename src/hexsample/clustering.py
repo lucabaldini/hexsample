@@ -195,7 +195,7 @@ class Cluster:
         sigma_noise : float
             The noise level for the likelihood computation.
         """
-        f = charge_matrix.eta
+        f = charge_matrix.matrices
         x_bins = charge_matrix.x_bins
         y_bins = charge_matrix.y_bins
         x0, y0 = x_bins[0], y_bins[0]
@@ -221,14 +221,14 @@ class Cluster:
         m.limits = [(x_bins[0], x_bins[-1]), (y_bins[0], y_bins[-1])]
         m.errors = [0.01, 0.01]
         m.migrad()
-        # Sometimes errors estimation fails, so we need to check if they can be calculated
-        if m.fmin.is_valid:
-            try:
-                m.minos()
-                self._errx_low, self._errx_high = m.merrors["x"].lower * 0.005, m.merrors["x"].upper * 0.005
-                self._erry_low, self._erry_high = m.merrors["y"].lower * 0.005, m.merrors["y"].upper * 0.005
-            except RuntimeError:
-                pass
+        # # Sometimes errors estimation fails, so we need to check if they can be calculated
+        # if m.fmin.is_valid:
+        #     try:
+        #         m.minos()
+        #         self._errx_low, self._errx_high = m.merrors["x"].lower * 0.005, m.merrors["x"].upper * 0.005
+        #         self._erry_low, self._erry_high = m.merrors["y"].lower * 0.005, m.merrors["y"].upper * 0.005
+        #     except RuntimeError:
+        #         pass
         # from aptapy.plotting import plt
 
         # print(f"x_rc = {m.values['x']:.3f} + {self._errx_high:.3f} - {self._errx_low:.3f}")
