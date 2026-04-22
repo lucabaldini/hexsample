@@ -26,7 +26,9 @@ from typing import Optional, Tuple
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.plotting import plt
+from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
+from scipy.optimize import fsolve
 from skimage import feature, transform
 
 from .fileio import ReconInputFile
@@ -285,6 +287,24 @@ class SlantedEdgeResolution:
         # Normalize the MTF so that its value at zero frequency is 1.
         mtf /= mtf[0]
         return mtf, freqs
+
+    @property
+    def resolution(self) -> float:
+        """Calculate the resolution of the detector from the MTF. The resolution is calculated from
+        the spatial frequency at which the MTF drops to 10% of its maximum value.
+
+        Returns
+        -------
+        resolution : float
+            The resolution of the detector
+        """
+        mtf, freqs = self.mtf()
+        # Interpolate the MTF
+        mtf_interp = interp1d(freqs, mtf, kind="cubic")
+        # Find the value of k at which the MTF drops to 0.1
+        k = fsolve(lambda x: mtf_interp(x) - 0.1, 1.)
+        # Calculate the resolution
+        return np.sqrt(np.log(10)/2) / (np.pi * k)
 
 
 def dist_residual(input_file: ReconInputFile) -> np.ndarray:

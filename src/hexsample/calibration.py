@@ -226,7 +226,7 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
     """
 
     def __init__(self, num_cols: int, num_rows: int, energy: float = None,
-                 default: Optional[float] = None, method: str = None) -> None:
+                 default: Optional[float] = None) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
