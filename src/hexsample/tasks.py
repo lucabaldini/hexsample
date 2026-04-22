@@ -22,7 +22,7 @@
 
 import inspect
 import pathlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import numpy as np
@@ -166,16 +166,14 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
+    eta_2pix_rad_sigma: float = 0.127
+    eta_2pix_rad_pivot: float = 0.04
+    eta_3pix_rad_offset: float = 0.513
+    eta_3pix_rad_sigma: float = 0.141
+    eta_3pix_rad_pivot: float = 0.05
+    eta_3pix_theta_sigma: float = 0.104
     gain_map: Optional[np.ndarray] = None
-    recon_pars: dict = field(default_factory=lambda: dict(
-        s2=0.127,
-        p2=0.04,
-        mu3_r=0.513,
-        s3_r=0.141,
-        p3_r=0.05,
-        s3_t=0.104)
-        )
-
+    
 
 def reconstruct(
         input_file_path: str,
@@ -184,8 +182,13 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
+        eta_2pix_rad_sigma: float = ReconstructionDefaults.eta_2pix_rad_sigma,
+        eta_2pix_rad_pivot: float = ReconstructionDefaults.eta_2pix_rad_pivot,
+        eta_3pix_rad_offset: float = ReconstructionDefaults.eta_3pix_rad_offset,
+        eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
+        eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
+        eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
         gain_map: Optional[np.ndarray] = ReconstructionDefaults.gain_map,
-        recon_pars: Optional[dict] = None,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -216,6 +219,24 @@ def reconstruct(
 
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
+
+    eta_2pix_rad_sigma : float
+        The sigma parameter for the radial component of the eta function for two pixel events.
+
+    eta_2pix_rad_pivot : float
+        The pivot parameter for the radial component of the eta function for two pixel events.
+
+    eta_3pix_rad_offset : float
+        The offset parameter for the radial component of the eta function for three pixel events.
+
+    eta_3pix_rad_sigma : float
+        The sigma parameter for the radial component of the eta function for three pixel events.
+
+    eta_3pix_rad_pivot : float
+        The pivot parameter for the radial component of the eta function for three pixel events.
+
+    eta_3pix_theta_sigma : float
+        The sigma parameter for the angular component of the eta function for three pixel events.
 
     gain_map : np.ndarray or None
         The gain map to use for the reconstruction. If None, no gain correction is applied.
@@ -258,12 +279,19 @@ def reconstruct(
     # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
     # to the circular.
     effective_neighbors = max_neighbors if max_neighbors >= 0 else num_neighbors
+    # Create the dictionary with the reconstruction parameters to be passed to the clustering.
+    recon_pars = None
+    if pos_recon_algorithm == "eta":
+        recon_pars = dict(
+            eta_2pix_rad_sigma=eta_2pix_rad_sigma,
+            eta_2pix_rad_pivot=eta_2pix_rad_pivot,
+            eta_3pix_rad_offset=eta_3pix_rad_offset,
+            eta_3pix_rad_sigma=eta_3pix_rad_sigma,
+            eta_3pix_rad_pivot=eta_3pix_rad_pivot,
+            eta_3pix_theta_sigma=eta_3pix_theta_sigma,
+            pitch=header["pitch"]
+        )
     # Run the actual reconstruction.
-    if recon_pars is None:
-        recon_pars = ReconstructionDefaults().recon_pars.copy()
-    else:
-        recon_pars = recon_pars.copy()
-    recon_pars["pitch"] = header["pitch"]
     clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
                               pos_recon_algorithm, recon_pars)
     output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
@@ -465,9 +493,18 @@ def display(
     else:
         raise RuntimeError(f"Unsupported readout mode: {readout_mode}")
     logger.info(f"Readout chip: {readout}")
-    recon_defaults = ReconstructionDefaults()
+    recon_defaults = ReconstructionDefaults
+    recon_pars = dict(
+        eta_2pix_rad_sigma=recon_defaults.eta_2pix_rad_sigma,
+        eta_2pix_rad_pivot=recon_defaults.eta_2pix_rad_pivot,
+        eta_3pix_rad_offset=recon_defaults.eta_3pix_rad_offset,
+        eta_3pix_rad_sigma=recon_defaults.eta_3pix_rad_sigma,
+        eta_3pix_rad_pivot=recon_defaults.eta_3pix_rad_pivot,
+        eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
+        pitch=header["pitch"]
+    )
     _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
-                     recon_defaults=recon_defaults)
+                     recon_pars=recon_pars)
     input_file.close()
 
 

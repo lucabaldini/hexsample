@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from aptapy.models import Probit
@@ -44,7 +44,7 @@ class Cluster:
     row: np.ndarray
     pha: np.ndarray
     pos_recon_algorithm: str
-    recon_pars: dict
+    recon_pars: Optional[dict] = None
 
     def __post_init__(self) -> None:
         """Small cross check on the dimensions of the arrays passed in the constructor.
@@ -111,7 +111,8 @@ class Cluster:
                 v = np.zeros(2)
         return u, v
 
-    def eta(self, s2: float, p2: float, mu3_r: float, s3_r: float, p3_r: float, s3_t: float,
+    def eta(self, eta_2pix_rad_sigma: float, eta_2pix_rad_pivot: float, eta_3pix_rad_offset: float,
+            eta_3pix_rad_sigma: float, eta_3pix_rad_pivot: float, eta_3pix_theta_sigma: float,
             pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
@@ -119,18 +120,18 @@ class Cluster:
 
         Arguments
         ---------
-        s2 : float
+        eta_2pix_rad_sigma : float
             Probit function sigma parameter for two pixel events.
-        p2 : float
+        eta_2pix_rad_pivot : float
             Transition value from linear (0 to pivot) to probit (> pivot) for two pixel events.
-        mu3_r : float
+        eta_3pix_rad_offset : float
             Probit function offset parameter for three pixel events radial position component.
-        s3_r : float
+        eta_3pix_rad_sigma : float
             Probit function sigma parameter for three pixel events radial position component.
-        p3_r : float
+        eta_3pix_rad_pivot : float
             Transition value from linear (0 to pivot) to probit (> pivot) for three pixel events
             radial position component.
-        s3_t : float
+        eta_3pix_theta_sigma : float
             Probit function sigma parameter for three pixel events angular position component.
         pitch : float
             The pitch of the pixels.
@@ -145,23 +146,24 @@ class Cluster:
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the probit function.
-            if _eta[0] > p2 or p2 <= 0.:
-                r = Probit().evaluate(_eta[0], 0.5, s2)
+            if _eta[0] > eta_2pix_rad_pivot or eta_2pix_rad_pivot <= 0.:
+                r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad_sigma)
             else:
-                y_pivot = Probit().evaluate(p2, 0.5, s2)
-                r = y_pivot / p2 * _eta[0]
+                y_pivot = Probit().evaluate(eta_2pix_rad_pivot, 0.5, eta_2pix_rad_sigma)
+                r = y_pivot / eta_2pix_rad_pivot * _eta[0]
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:
             # For 3-pixel events we estimate both r and theta using the probit function.
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
-            if eta_sum > p3_r or p3_r <= 0.:
-                r = Probit().evaluate(eta_sum, mu3_r, s3_r)
+            if eta_sum > eta_3pix_rad_pivot or eta_3pix_rad_pivot <= 0.:
+                r = Probit().evaluate(eta_sum, eta_3pix_rad_offset, eta_3pix_rad_sigma)
             else:
-                y_pivot = Probit().evaluate(p3_r, mu3_r, s3_r)
-                r = y_pivot / p3_r * eta_sum
-            theta = Probit().evaluate((eta_diff + 1)/2, 0, s3_t) / r
+                y_pivot = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad_offset,
+                                            eta_3pix_rad_sigma)
+                r = y_pivot / eta_3pix_rad_pivot * eta_sum
+            theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta_sigma) / r
             # Reconstructing the position using r and theta
             x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
             y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
@@ -293,7 +295,7 @@ class ClusteringNN(ClusteringBase):
 
     num_neighbors: int
     pos_recon_algorithm: str
-    recon_pars: dict = None
+    recon_pars: Optional[dict] = None
 
     def run(self, event) -> Cluster:
         """Overladed method.

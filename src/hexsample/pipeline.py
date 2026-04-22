@@ -55,21 +55,21 @@ def reconstruct(**kwargs) -> str:
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
     max_neighbors = kwargs.get("max_neighbors", defaults.max_neighbors)
     pos_recon_algorithm = kwargs.get("pos_recon_algorithm", defaults.pos_recon_algorithm)
+    eta_2pix_rad_sigma = kwargs.get("eta_2pix_rad_sigma", defaults.eta_2pix_rad_sigma)
+    eta_2pix_rad_pivot = kwargs.get("eta_2pix_rad_pivot", defaults.eta_2pix_rad_pivot)
+    eta_3pix_rad_offset = kwargs.get("eta_3pix_rad_offset", defaults.eta_3pix_rad_offset)
+    eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
+    eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
+    eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
     map_gain_file = kwargs.get("map_gain_file")
     if map_gain_file is not None:
         gain_map = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
     else:
         gain_map = None
-    recon_pars = dict(
-        s2=kwargs.get("s2", defaults.recon_pars["s2"]),
-        p2=kwargs.get("p2", defaults.recon_pars["p2"]),
-        mu3_r=kwargs.get("mu3_r", defaults.recon_pars["mu3_r"]),
-        s3_r=kwargs.get("s3_r", defaults.recon_pars["s3_r"]),
-        p3_r=kwargs.get("p3_r", defaults.recon_pars["p3_r"]),
-        s3_t=kwargs.get("s3_t", defaults.recon_pars["s3_t"])
-    )
+    recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
+                  eta_3pix_rad_pivot, eta_3pix_theta_sigma)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, gain_map, recon_pars
+           pos_recon_algorithm, *recon_args, gain_map
     return tasks.reconstruct(*args, kwargs)
 
 

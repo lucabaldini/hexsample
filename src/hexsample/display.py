@@ -87,7 +87,7 @@ class HexagonalGridDisplay:
         self.color_map = matplotlib.colormaps[kwargs.get("cmap_name", "Reds")].copy()
         self.color_map_offset = kwargs.get("cmap_offset", 0)
         self.color_map.set_under("white")
-        self.recon_defaults = kwargs.get("recon_defaults")
+        self.recon_pars = kwargs.get("recon_pars")
         self.figure, self.axes = plt.gcf(), plt.gca()
         self.figure.subplots_adjust(bottom=0.2)
 
@@ -232,9 +232,8 @@ class HexagonalGridDisplay:
         centroid_position = cluster.centroid()
         self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         # Calculate and plot eta reconstructed position.
-        recon_pars = self.recon_defaults.recon_pars
         try:
-            eta_position = cluster.eta(pitch=readout.pitch, **recon_pars)
+            eta_position = cluster.eta(**self.recon_pars)
             # If cluster size is not 2 or 3, eta returns the centroid position, so we only
             # plot it if it's different from the centroid.
             self.axes.scatter(*eta_position, marker="+", s=100, label=r"$\eta$")
