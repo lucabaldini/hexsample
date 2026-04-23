@@ -212,28 +212,32 @@ class ClusteringBase:
                           ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Suppress pixels in the cluster that do not satisfy the position requirements.
 
-        If the cluster contains 2 or fewer pixels, no action is taken. For clusters with 
-        more than 2 pixels, the algorithm retains the two most charged pixels and 
-        only one additional neighbor (the one with the highest charge) of the second 
+        If the cluster contains 2 or fewer pixels, no action is taken. For clusters with
+        more than 2 pixels, the algorithm retains the two most charged pixels and
+        only one additional neighbor (the one with the highest charge) of the second
         pixel, discarding all others.
 
         Arguments
         ---------
         pha : np.ndarray
             The array of pulse heights of the pixels in the cluster, ordered in decreasing order.
+
         col : np.ndarray
             The array of column indexes of the pixels in the cluster.
+
         row : np.ndarray
             The array of row indexes of the pixels in the cluster.
-        
+
         Returns
         -------
         pha : np.ndarray
             The array of pulse heights of the pixels in the cluster after position suppression,
             ordered in decreasing order.
+
         col : np.ndarray
             The array of column indexes of the pixels in the cluster after position suppression,
             ordered in decreasing order of pulse height.
+
         row : np.ndarray
             The array of row indexes of the pixels in the cluster after position suppression,
             ordered in decreasing order of pulse height.
@@ -304,8 +308,8 @@ class ClusteringNN(ClusteringBase):
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
                 adc_channel_order.append(self.readout.adc_channel(_col, _row))
                 gain_array.append(self._gain(_row, _col))
-            # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i].
-            pha = event.pha[adc_channel_order] / np.array(gain_array)
+            # ... reordering the pha array for the correspondence (col[i], row[i]) with pha[i].
+            pha = (event.pha[adc_channel_order] - self.readout.offset) / np.array(gain_array)
             # Converting lists into numpy arrays
             col = np.array(col)
             row = np.array(row)
@@ -320,7 +324,7 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([event(_col, _row)/self._gain(_row, _col)
+            pha = np.array([(event(_col, _row) - self.readout.offset) / self._gain(_row, _col)
                             for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)

@@ -248,7 +248,7 @@ def reconstruct(
         gain = gain_map
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], gain
+        header["pitch"], header["enc"], gain, header.get("offset", 0)
     if readout_mode is HexagonalReadoutMode.RECTANGULAR:
         readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
@@ -353,7 +353,7 @@ def calibrate(input_file_path: str,
     header = input_file.header
     # Manually setting the gain argument to 1. for the calibration.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], 1.
+        header["pitch"], header["enc"], 1., header.get("offset", 0)
     if readout_mode is HexagonalReadoutMode.RECTANGULAR:
         readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
@@ -455,7 +455,7 @@ def display(
     input_file = file_type(input_file_path)
     header = input_file.header
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"]
+        header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
     if readout_mode is HexagonalReadoutMode.RECTANGULAR:
         readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
