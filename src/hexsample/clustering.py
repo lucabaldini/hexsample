@@ -263,15 +263,6 @@ class Cluster:
             return self.mle(**self.recon_pars)
         raise RuntimeError(f"Unknown position reconstruction method {self.pos_recon_algorithm}")
 
-    def pos_error(self, recon_par: str) -> Tuple[float, float]:
-        """Return the error of the reconstructed parameter.
-        """
-        if recon_par == "x":
-            return self._errx_low, self._errx_high
-        if recon_par == "y":
-            return self._erry_low, self._erry_high
-        raise ValueError(f"Invalid reconstruction parameter: {recon_par}")
-
 
 @dataclass
 class ClusteringBase:

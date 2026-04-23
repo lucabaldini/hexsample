@@ -331,11 +331,6 @@ def reconstruct(
         clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
                                 pos_recon_algorithm, recon_pars)
     # Run the actual reconstruction.
-    output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
-    output_file = ReconOutputFile(output_file_path)
-    if header_kwargs is not None:
-        output_file.update_header(**header_kwargs)
-    output_file.update_digi_header(**input_file.header)
     # Create a list of acceptable cluster sizes.
     size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]
     for i, event in tqdm(enumerate(input_file)):

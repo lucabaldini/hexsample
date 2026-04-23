@@ -335,12 +335,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="maximum number of neighbors to be considered")
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
                            type=str, default="centroid", help="How to reconstruct position")
-        group.add_argument("--charge_fraction_matrices_file", type=str, default=None,
-                            help="path to a file containing the charge fraction matrices.")
-        group.add_argument("--map_gain_file", type=str, default=None,
-                           help="path to a file containing the gain map. If not specified, the" \
-                           " gain value stored in the DigiFile header will be used for all" \
-                           " the pixels.")
         group.add_argument("--eta_2pix_rad_sigma", default=defaults.eta_2pix_rad_sigma, type=float,
                            help="probit function sigma parameter for two pixel" \
                            "events eta reconstruction")
@@ -359,6 +353,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
                            type=float, help="probit function sigma parameter for three pixel " \
                            "events angular component eta reconstruction")
+        group.add_argument("--charge_fraction_matrices_file", type=str, default=None,
+                           help="path to a file containing the charge fraction matrices.")
+        group.add_argument("--map_gain_file", type=str, default=None,
+                           help="path to a file containing the gain map. If not specified, the" \
+                           " gain value stored in the DigiFile header will be used for all" \
+                           " the pixels.")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display.
