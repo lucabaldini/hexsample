@@ -30,6 +30,7 @@ from hexsample.source import (
     Line,
     LineForest,
     PointBeam,
+    SlitBeam,
     Source,
     TriangularBeam,
 )
@@ -138,6 +139,19 @@ def test_gaussian_beam(sigma=0.1, num_photons=1000000):
     model.fit_iterative(hy, num_sigma_left=3., num_sigma_right=3.)
     model.plot(fit_output=True)
     plt.legend()
+
+
+def test_slit_beam(num_photons: int = 10000):
+    """Test for SlitBeam class
+    """
+    beam = SlitBeam(theta=30)
+    x, y = beam.rvs(num_photons)
+
+    binning_x = np.linspace(min(x), max(x), 100)
+    binning_y = np.linspace(min(y), max(y), 100)
+    plt.figure("Slit beam")
+    Histogram2d(binning_x, binning_y).fill(x, y).plot()
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 
 
 def test_triangular_beam(num_photons: int = 10000):

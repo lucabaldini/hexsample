@@ -273,6 +273,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--map_gain_file", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \
                            " gain value of the --gain argument is used for all the pixels.")
+        group.add_argument("--offset", type=int, default=readout.HexagonalReadoutBase.offset,
+                           help="offset in ADC counts to be applied before the zero suppression")
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
                            choices=readout.ReadoutProxy.choices(),
                            default=readout.ReadoutProxy.default(),

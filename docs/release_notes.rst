@@ -3,6 +3,17 @@
 Release notes
 =============
 
+* Implemented `SlantedEdgeResolution` class to calculate the estimate the resolution of the detector
+  using the slanted edge method. This class calculates the edge spread function (ESF), the line
+  spread function (LSF) and the modulation transfer function (MTF) for a slit beam.
+* Implemented `SlitsAligner` class to align a slit beam from a Huttner test.
+* Added possibility to add an offset to the readout and subtract it during clustering, allowing
+  to have negative pha values in the events.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/102
+  - https://github.com/lucabaldini/hexsample/pull/104
+
 
 Version 0.14.0 (2026-03-03)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

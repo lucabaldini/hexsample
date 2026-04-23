@@ -42,6 +42,7 @@ dependencies = [
     "uncertainties",
     "xraydb",
     "aptapy>=0.18.0",
+    "scikit-image",
   ]
 
 [project.optional-dependencies]
