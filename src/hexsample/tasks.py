@@ -71,10 +71,17 @@ if not HEXSAMPLE_DATA.exists():
     pathlib.Path.mkdir(HEXSAMPLE_DATA)
 
 
-def current_call() -> Tuple[str, dict]:
+def current_call(num_backward_steps: int = 2) -> Tuple[str, dict]:
     """Return the name and arguments of the current function call.
+
+    Arguments
+    ---------
+    num_backward_steps : int
+        The number of steps to go back in the call stack to find the function call.
     """
-    frame = inspect.currentframe().f_back.f_back
+    frame = inspect.currentframe()
+    for _ in range(num_backward_steps):
+        frame = frame.f_back
     func = frame.f_code.co_name
     sig = inspect.signature(frame.f_globals[func])
     bound = sig.bind(**frame.f_locals)
@@ -169,7 +176,7 @@ def simulate(
     str
         The path to the output file that the task has created.
     """
-    name, args = current_call()
+    name, args = current_call(num_backward_steps=1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     rng.initialize(seed=random_seed)
     photon_list = PhotonList(source, sensor, num_events)
