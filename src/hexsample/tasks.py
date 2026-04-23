@@ -286,6 +286,10 @@ def reconstruct(
     eta_3pix_theta_sigma : float
         The sigma parameter for the angular component of the eta function for three pixel events.
 
+    charge_fraction_matrices : ChargeFractionMatrices, optional
+        The charge fraction matrices to use for the MLE position reconstruction. If None, the MLE
+        reconstruction will not be available.
+
     gain_map : np.ndarray or None
         The gain map to use for the reconstruction. If None, no gain correction is applied.
     """
@@ -324,6 +328,8 @@ def reconstruct(
             pitch=header["pitch"]
         )
     if pos_recon_algorithm == "mle":
+        if charge_fraction_matrices is None:
+            raise RuntimeError("Charge fraction matrices must be provided for MLE position reconstruction")
         recon_pars = dict(charge_matrix=charge_fraction_matrices,
                           sigma_noise=header["enc"])
         clustering = ClusteringHex(readout, 0, recon_pars)

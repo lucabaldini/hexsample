@@ -111,6 +111,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_zero_sup_threshold(eta, default=tasks.CalibrationEtaDefaults.zero_sup_threshold)
         self.add_logging_level(eta)
         eta.set_defaults(runner=pipeline.calibrate_eta)
+        # MLE position reconstruction calibration
+        mle = calibrate_subparsers.add_parser("mle", help="calibrate the MLE position reconstruction algorithm")
+        self.add_input_file(mle)
+        self.add_num_bins(mle, default=tasks.CalibrationMLEDefaults.num_bins)
+        self.add_logging_level(mle)
+        mle.set_defaults(runner=pipeline.calibrate_mle)
         # Noise calibration
         noise = calibrate_subparsers.add_parser("noise", help="calibrate the chip noise")
         self.add_input_file(noise)
@@ -218,10 +224,10 @@ class CliArgumentParser(argparse.ArgumentParser):
 
     @staticmethod
     def add_num_bins(parser: argparse.ArgumentParser, default: int) -> None:
-        """Add an option for the number of bins to be used in the eta function calibration.
+        """Add an option for the number of bins to be used in different calibrations.
         """
         parser.add_argument("--num_bins", type=int, default=default,
-                            help="number of bins to be used in the eta function calibration")
+                            help="number of bins to be used in the calibration")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:

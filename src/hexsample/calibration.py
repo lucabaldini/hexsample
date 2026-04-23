@@ -34,7 +34,6 @@ from tables.attributeset import AttributeSet
 
 from .clustering import Cluster
 from .digi import DigiEventRectangular
-from .fileio import DigiInputFileBase
 from .readout import HexagonalReadoutBase
 from .recon import DEFAULT_IONIZATION_POTENTIAL
 
