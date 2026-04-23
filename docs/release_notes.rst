@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.15.0 (2026-04-23)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * All calibration scripts turned into tasks.
 * Small refactoring of the tasks module.
 * Parameters for the eta function reconstruction renamed and packed into a
