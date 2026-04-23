@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import iminuit
 import numpy as np
@@ -30,6 +30,11 @@ from aptapy.models import Probit
 from .digi import DigiEventCircular, DigiEventRectangular
 from .likelihood import nll_grad_numba, nll_numba
 from .readout import HexagonalReadoutBase
+
+# This line is necessary to avoid circular imports errors, allowing to import the class only
+# when type checking is performed
+if TYPE_CHECKING:
+    from .calibration import ChargeFractionMatrices
 
 
 @dataclass
@@ -176,8 +181,8 @@ class Cluster:
                                " eta function")
         return x_recon, y_recon
 
-    def mle(self, charge_matrix: "ChargeFractionMatrices",
-            sigma_noise: float) -> Tuple[float, float]:
+    def mle(self, charge_fraction_matrices: ChargeFractionMatrices, sigma_noise: float,
+            pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the maximum likelihood estimator. The
         computation is performed using the negative log-likelihood, which is minimized with the
         iminuit package.
@@ -187,64 +192,58 @@ class Cluster:
 
         Arguments
         ---------
-        charge_matrix : ChargeFractionMatrices
+        charge_fraction_matrices : ChargeFractionMatrices
             The charge fraction matrices object containing the charge fraction maps and the pixel
             grid information.
         sigma_noise : float
             The noise level for the likelihood computation.
+        pitch : float
+            The pitch of the pixels.
         """
-        f = charge_matrix.matrices
-        x_bins = charge_matrix.x_bins
-        y_bins = charge_matrix.y_bins
-        x0, y0 = x_bins[0], y_bins[0]
+        # Load the data from the charge fraction matrices and calculate the binning information
+        # needed for the likelihood computation.
+        matrices = charge_fraction_matrices.matrices
+        x_bins = charge_fraction_matrices.x_bins
+        y_bins = charge_fraction_matrices.y_bins
+        xmin, ymin = x_bins[0], y_bins[0]
         dx_bin, dy_bin = x_bins[1]-x_bins[0], y_bins[1]-y_bins[0]
-        pha = self.pha
-
+        # Define the wrapper functions for the nll and its gradient for the minimization.
         def nll(x, y):
             """Wrapper around the nll_numba function to be passed to iminuit, which expects a
             function that takes the parameters to be optimized as arguments.
             """
-            return nll_numba(x, y, pha, f, x0, y0, dx_bin, dy_bin, sigma_noise)
+            return nll_numba(x, y, self.pha, matrices, xmin, ymin, dx_bin, dy_bin, sigma_noise)
 
         def nll_grad(x, y):
             """Wrapper around the nll_grad_numba function to be passed to iminuit, which expects a
             function that takes the parameters to be optimized as arguments.
             """
-            return nll_grad_numba(x, y, pha, f, x0, y0, dx_bin, dy_bin, sigma_noise)
-        
+            return nll_grad_numba(x, y, self.pha, matrices, xmin, ymin, dx_bin, dy_bin,
+                                  sigma_noise)
+        # Compute the initial guess for the minimization using the cluster centroid.
         x_centroid, y_centroid = self.centroid()
-        parin = np.array([x_centroid - self.x[0], y_centroid - self.y[0]]) / 0.005
+        parin = np.array([x_centroid - self.x[0], y_centroid - self.y[0]]) / pitch
         parname = ["x", "y"]
+        # Initialize the minimizer.
         m = iminuit.Minuit(nll, *parin, grad=nll_grad, name=parname)
+        # Set limits and initial step sizes for the minimization.
         m.limits = [(x_bins[0], x_bins[-1]), (y_bins[0], y_bins[-1])]
         m.errors = [0.01, 0.01]
+        # Run the minimization.
         m.migrad()
-        # # Sometimes errors estimation fails, so we need to check if they can be calculated
+        # # These lines are for uncertainty estimation, but it is currently not supported by the
+        # # Recon files
         # if m.fmin.is_valid:
         #     try:
         #         m.minos()
-        #         self._errx_low, self._errx_high = m.merrors["x"].lower * 0.005, m.merrors["x"].upper * 0.005
-        #         self._erry_low, self._erry_high = m.merrors["y"].lower * 0.005, m.merrors["y"].upper * 0.005
+        #         self._errx_low = m.merrors["x"].lower * 0.005
+        #         self._errx_high = m.merrors["x"].upper * 0.005
+        #         self._erry_low = m.merrors["y"].lower * 0.005
+        #         self._erry_high = m.merrors["y"].upper * 0.005
         #     except RuntimeError:
         #         pass
-        # from aptapy.plotting import plt
+        return self.x[0] + m.values['x'] * pitch, self.y[0] + m.values['y'] * pitch
 
-        # print(f"x_rc = {m.values['x']:.3f} + {self._errx_high:.3f} - {self._errx_low:.3f}")
-        # print(f"y_rc = {m.values['y']:.3f} + {self._erry_high:.3f} - {self._erry_low:.3f}")
-        # x_range = np.linspace(x_bins[0], x_bins[-1], 100)
-        # y_range = np.linspace(y_bins[0], y_bins[-1], 100)
-        # X, Y = np.meshgrid(x_range, y_range)
-
-        # Z = np.array([[nll(x, y) for x in x_range] for y in y_range])
-
-        # plt.contourf(X, Y, Z, levels=50, cmap='viridis')
-        # plt.colorbar(label='NLL')
-        # plt.plot(m.values['x'], m.values['y'], 'ro', label='minimum')
-        # plt.plot(start_x, start_y, 'wx', label='centroid')             
-        # plt.legend()
-
-        return self.x[0] + m.values['x'] * 0.005, self.y[0] + m.values['y'] * 0.005
-    
     def position(self):
         """Return the cluster reconstructed position using the position reconstruction algorithm
         specified in the constructor.
@@ -450,10 +449,14 @@ class ClusteringHex(ClusteringBase):
 
     Arguments
     ---------
+    pos_recon_algorithm : str
+        The position reconstruction algorithm to use for the cluster position reconstruction.
+        Possible values are "centroid" and "mle".
     recon_pars : dict, optional
         Dictionary containing the parameters for the position reconstruction algorithm.
     """
 
+    pos_recon_algorithm: str = "mle"
     recon_pars: dict = None
 
     def run(self, event) -> Cluster:
@@ -463,13 +466,12 @@ class ClusteringHex(ClusteringBase):
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
-        # Always take all the six neighbors
-        col, row, pha = [], [], []
         if isinstance(event, DigiEventCircular):
             gain_array = [self._gain(event.row, event.column)]
-            col.append(event.column)
-            row.append(event.row)
-            pha.append((event.pha[self.readout.adc_channel(event.column, event.row)] - self.readout.offset) / gain_array[0])
+            col = [event.column]
+            row = [event.row]
+            seed_pha = event.pha[self.readout.adc_channel(event.column, event.row)]
+            pha = [(seed_pha - self.readout.offset) / gain_array[0]]
             for _col, _row in self.readout.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
@@ -478,17 +480,19 @@ class ClusteringHex(ClusteringBase):
         # pylint: disable = invalid-name
         elif isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
-            col.append(seed_col)
-            row.append(seed_row)
-            pha.append((event(seed_col, seed_row) - self.readout.offset) / self._gain(seed_row, seed_col))
+            col = [seed_col]
+            row = [seed_row]
+            seed_pha = event.pha[self.readout.adc_channel(seed_col, seed_row)]
+            pha = [(seed_pha - self.readout.offset) / self._gain(seed_row, seed_col)]
             for _col, _row in self.readout.neighbors(seed_col, seed_row):
                 col.append(_col)
                 row.append(_row)
-                pha.append((event(_col, _row) - self.readout.offset) / self._gain(_row, _col))
+                _pha = event.pha[self.readout.adc_channel(_col, _row)]
+                pha.append((_pha - self.readout.offset) / self._gain(_row, _col))
         # Converting lists into numpy arrays
         col = np.array(col)
         row = np.array(row)
         pha = np.array(pha)
         # Calculate the physical coordinates of the pixels in the cluster.
         x, y = self.readout.pixel_to_world(col, row)
-        return Cluster(x, y, col, row, pha, "mle", self.recon_pars)
+        return Cluster(x, y, col, row, pha, self.pos_recon_algorithm, self.recon_pars)

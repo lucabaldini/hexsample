@@ -43,6 +43,8 @@ dependencies = [
     "xraydb",
     "aptapy>=0.18.0",
     "scikit-image",
+    "iminuit",
+    "numba",
   ]
 
 [project.optional-dependencies]

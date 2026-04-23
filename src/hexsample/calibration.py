@@ -435,12 +435,11 @@ class ChargeFractionMatrices:
         """Class constructor.
         """
         if bin_size <= 0 or bin_size > 1:
-            raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 1].") 
+            raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 1].")
         # Set the bin edges according to the pixel orientation.
         if readout:
-            if readout.pointy_topped():
-                xedge = 0.5
-                yedge = 1/np.sqrt(3)
+            xedge = 0.5
+            yedge = 1/np.sqrt(3)
             if readout.flat_topped():
                 xedge = 1/np.sqrt(3)
                 yedge = 0.5

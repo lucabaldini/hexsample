@@ -229,7 +229,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--num_bins", type=int, default=default,
                             help="number of bins to be used in the calibration")
-    
+
     @staticmethod
     def add_bin_size(parser: argparse.ArgumentParser, default: float) -> None:
         """Add an option for the bin size to be used in different calibrations.

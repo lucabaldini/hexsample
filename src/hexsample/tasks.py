@@ -235,7 +235,9 @@ def reconstruct(
         eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
         eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
         eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
-        charge_fraction_matrices: Optional[ChargeFractionMatrices] = None,
+        charge_fraction_matrices: Optional[ChargeFractionMatrices] = (
+            ReconstructionDefaults.charge_fraction_matrices
+        ),
         gain_map: Optional[np.ndarray] = ReconstructionDefaults.gain_map,
         header_kwargs: dict = None,
         ) -> str:
@@ -290,7 +292,7 @@ def reconstruct(
         The charge fraction matrices to use for the MLE position reconstruction. If None, the MLE
         reconstruction will not be available.
 
-    gain_map : np.ndarray or None
+    gain_map : np.ndarray, optional
         The gain map to use for the reconstruction. If None, no gain correction is applied.
     """
     # Open the input file and extract the header and the readout information.
@@ -331,9 +333,9 @@ def reconstruct(
         if charge_fraction_matrices is None:
             raise RuntimeError("Charge fraction matrices must be provided for MLE position" \
             "reconstruction")
-        recon_pars = dict(charge_matrix=charge_fraction_matrices,
-                          sigma_noise=header["enc"])
-        clustering = ClusteringHex(readout, 0, recon_pars)
+        recon_pars = dict(charge_fraction_matrices=charge_fraction_matrices,
+                          sigma_noise=header["enc"], pitch=header["pitch"])
+        clustering = ClusteringHex(readout, 0, pos_recon_algorithm, recon_pars)
     else:
         clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
                                 pos_recon_algorithm, recon_pars)
@@ -384,9 +386,11 @@ def calibrate_mle(input_file_path: str, bin_size: float) -> str:
     bin_size : float
         The size of the bins to use for the charge diffusion matrix.
     """
+    # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
+    # Create the readout object, necessary to create the clustering object
     readout = create_readout(readout_mode, header, *args)
     clustering = ClusteringHex(readout, 0)
     # Create lists to store the x, y (incident position) and charge fraction values of the events.
@@ -403,7 +407,7 @@ def calibrate_mle(input_file_path: str, bin_size: float) -> str:
     fraction = np.array(fraction)
     x = np.array(x) / readout.pitch
     y = np.array(y) / readout.pitch
-
+    # Create the charge fraction matrices and save them to a HDF5 file.
     matrices = ChargeFractionMatrices(bin_size, readout)
     matrices.upload_data(x, y, fraction)
     output_file_path = input_file_path.replace(".h5", "_mle_matrices.h5")
