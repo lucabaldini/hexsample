@@ -355,7 +355,8 @@ class ClusteringNN(ClusteringBase):
         if isinstance(self.zero_sup_threshold, (int, float)):
             pha = self.zero_suppress(pha, self.zero_sup_threshold)
         else:
-            zero_sup_array = np.array([self.zero_sup_threshold[_row, _col] for _col, _row in zip(col, row)])
+            zero_sup_array = np.array([self.zero_sup_threshold[_row, _col]
+                                       for _col, _row in zip(col, row)])
             pha = self.zero_suppress(pha, zero_sup_array)
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.

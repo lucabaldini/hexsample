@@ -186,7 +186,7 @@ class CalibrationMatrixBase:
                 target_attr = f"_{node_name}"
                 setattr(obj, target_attr, data)
         return obj
-    
+
     def plot(self, hits_cut: int = -1, nbins: int = 100, **kwargs) -> Tuple[plt.Figure, plt.Figure]:
         """Plot the calibration matrix as a 2D histogram and the distribution of the values in the
         calibration matrix as a 1D histogram.
@@ -209,7 +209,7 @@ class CalibrationMatrixBase:
             The figure containing the 1D histogram of the calibration matrix values.
         """
         label = kwargs.get("label", "label")
-        
+
         fig_matrix = plt.figure()
         plt.imshow(self.matrix, origin="lower")
         plt.xlabel("Column")
@@ -378,7 +378,8 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         """
         if np.array_equal(self._matrix, np.zeros(self._shape)):
             with np.errstate(divide='ignore', invalid='ignore'):
-                self._matrix = np.where(self._hits > 0, np.sqrt(self._sum2 / self._hits), self.default)
+                self._matrix = np.where(self._hits > 0, np.sqrt(self._sum2 / self._hits),
+                                        self.default)
         return super().matrix
 
     @matrix.setter
@@ -394,7 +395,7 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
     def _save_other_data(self, h5file: tables.File) -> None:
         """Save the noise counts histogram in the HDF5 file.
         """
-        pass
+
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
         """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3

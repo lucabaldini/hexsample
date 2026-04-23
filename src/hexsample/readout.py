@@ -207,7 +207,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
             elif roi is not None:
                 row_slice, col_slice = roi.readout_slice()
                 enc_array = self.enc[row_slice, col_slice]
-            pha = pha + np.random.normal(0., scale=enc_array)
+            pha = pha + rng.generator.normal(0., scale=enc_array)
         # ... apply the conversion between electrons and ADC counts, using the gain matrix if
         # provied, otherwise using the same gain parameter for all the pixels...
         if isinstance(self.gain, float):
