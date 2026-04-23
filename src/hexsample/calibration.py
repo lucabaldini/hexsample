@@ -439,12 +439,9 @@ def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
         yerr: np.ndarray
             The errors of the median values in the y axis for each x bin.
     """
-    # Be sure that the input data are float arrays
-    xdata = xdata.astype(float)
-    ydata = ydata.astype(float)
     # Create the 2D histogram to compute the profile
-    xedges = np.linspace(xdata.min(), xdata.max(), xbins + 1)
-    yedges = np.linspace(ydata.min(), ydata.max(), ybins + 1)
+    xedges = np.linspace(xdata.min(), xdata.max(), xbins + 1).flatten()
+    yedges = np.linspace(ydata.min(), ydata.max(), ybins + 1).flatten()
     hist = Histogram2d(xedges, yedges)
     hist.fill(xdata, ydata)
     # Create the arrays to store the profile values and their errors
@@ -632,7 +629,7 @@ def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
         The best-fit value of the sigma parameter of the probit function.
     """
     # Calculate the sum of the eta values for each event
-    eta_sum = np.sum(eta, axis=1)
+    eta_sum = np.sum(eta, axis=1) * 3 / 4
     # Calculate the profile of the data
     x, y, yerr = profile(eta_sum, dr, nbins, 101)
     # Fit with a probit model

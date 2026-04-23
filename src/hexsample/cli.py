@@ -293,6 +293,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_recon_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the reconstruction properties.
         """
+        defaults = tasks.ReconstructionDefaults
         group = parser.add_argument_group("reconstruction", "Reconstruction configuration")
         group.add_argument("--zero_sup_threshold", type=int, default=0,
                            help="zero-suppression threshold in ADC counts")
@@ -300,47 +301,30 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of neighbors to be considered (0--6)")
         group.add_argument("--max_neighbors", type=int, default=-1,
                            help="maximum number of neighbors to be considered")
-        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "dnn", "gnn"],
+        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta"],
                            type=str, default="centroid", help="How to reconstruct position")
         group.add_argument("--map_gain_file", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \
                            " gain value stored in the DigiFile header will be used for all" \
                            " the pixels.")
-        group.add_argument("--eta_2pix_rad",
-                           default=tasks.ReconstructionDefaults.eta_2pix_rad,
-                           type=float,
+        group.add_argument("--eta_2pix_rad_sigma", default=defaults.eta_2pix_rad_sigma, type=float,
                            help="probit function sigma parameter for two pixel" \
                            "events eta reconstruction")
-        group.add_argument("--eta_2pix_pivot",
-                           default=tasks.ReconstructionDefaults.eta_2pix_pivot,
-                           type=float,
+        group.add_argument("--eta_2pix_rad_pivot", default=defaults.eta_2pix_rad_pivot, type=float,
                            help="transition value from linear (0 to pivot) to probit (> pivot) " \
                            "for two pixel events eta reconstruction")
-        group.add_argument("--eta_3pix_rad0",
-                           default=tasks.ReconstructionDefaults.eta_3pix_rad0,
-                           type=float,
-                           help="probit function offset parameter for three pixel" \
+        group.add_argument("--eta_3pix_rad_offset", default=defaults.eta_3pix_rad_offset,
+                           type=float, help="probit function offset parameter for three pixel" \
                            "events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_rad1",
-                           default=tasks.ReconstructionDefaults.eta_3pix_rad1,
-                           type=float,
+        group.add_argument("--eta_3pix_rad_sigma", default=defaults.eta_3pix_rad_sigma, type=float,
                            help="probit function sigma parameter for three pixel " \
                            "events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_rad_pivot",
-                           default=tasks.ReconstructionDefaults.eta_3pix_rad_pivot,
-                           type=float,
+        group.add_argument("--eta_3pix_rad_pivot", default=defaults.eta_3pix_rad_pivot, type=float,
                            help="transition value from linear (0 to pivot) to probit (> pivot) " \
                            "for three pixel events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_theta0",
-                           default=tasks.ReconstructionDefaults.eta_3pix_theta0,
-                           type=float,
-                           help="probit function sigma parameter for three pixel " \
+        group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
+                           type=float, help="probit function sigma parameter for three pixel " \
                            "events angular component eta reconstruction")
-        group.add_argument("--nnmodel", type=str, default="pretrained",
-                           choices=["pretrained", "custom"],
-                           help="model to use for neural network reconstruction")
-        group.add_argument("--model_path", type=str,
-                           help="path of the model to use, in case of custom model")
 
     def add_calibration_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the calibration properties.

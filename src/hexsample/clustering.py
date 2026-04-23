@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from aptapy.models import Probit
@@ -43,6 +43,8 @@ class Cluster:
     col: np.ndarray
     row: np.ndarray
     pha: np.ndarray
+    pos_recon_algorithm: str
+    recon_pars: Optional[dict] = None
 
     def __post_init__(self) -> None:
         """Small cross check on the dimensions of the arrays passed in the constructor.
@@ -53,7 +55,6 @@ class Cluster:
     def size(self) -> int:
         """Return the size of the cluster.
         """
-        # Modify to np.count_nonzero(self.pha) for compatibility with neural network
         return self.x.size
 
     def pulse_height(self) -> float:
@@ -69,8 +70,7 @@ class Cluster:
     def calculate_eta(self) -> np.ndarray:
         """Return the eta values of the pixels in the cluster.
         """
-        eta = np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
-        return eta
+        return np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
 
     def versors(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return the versors u and v for the cluster. Their definitions depend on the cluster size.
@@ -111,8 +111,8 @@ class Cluster:
                 v = np.zeros(2)
         return u, v
 
-    def eta(self, eta_2pix_rad: float, eta_2pix_pivot: float, eta_3pix_rad0: float,
-            eta_3pix_rad1: float, eta_3pix_rad_pivot: float, eta_3pix_theta0: float,
+    def eta(self, eta_2pix_rad_sigma: float, eta_2pix_rad_pivot: float, eta_3pix_rad_offset: float,
+            eta_3pix_rad_sigma: float, eta_3pix_rad_pivot: float, eta_3pix_theta_sigma: float,
             pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
@@ -120,18 +120,18 @@ class Cluster:
 
         Arguments
         ---------
-        eta_2pix_rad : float
+        eta_2pix_rad_sigma : float
             Probit function sigma parameter for two pixel events.
-        eta_2pix_pivot : float
+        eta_2pix_rad_pivot : float
             Transition value from linear (0 to pivot) to probit (> pivot) for two pixel events.
-        eta_3pix_rad0 : float
+        eta_3pix_rad_offset : float
             Probit function offset parameter for three pixel events radial position component.
-        eta_3pix_rad1 : float
+        eta_3pix_rad_sigma : float
             Probit function sigma parameter for three pixel events radial position component.
         eta_3pix_rad_pivot : float
             Transition value from linear (0 to pivot) to probit (> pivot) for three pixel events
             radial position component.
-        eta_3pix_theta0 : float
+        eta_3pix_theta_sigma : float
             Probit function sigma parameter for three pixel events angular position component.
         pitch : float
             The pitch of the pixels.
@@ -146,11 +146,11 @@ class Cluster:
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the probit function.
-            if _eta[0] > eta_2pix_pivot or eta_2pix_pivot <= 0.:
-                r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad)
+            if _eta[0] > eta_2pix_rad_pivot or eta_2pix_rad_pivot <= 0.:
+                r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad_sigma)
             else:
-                y_pivot = Probit().evaluate(eta_2pix_pivot, 0.5, eta_2pix_rad)
-                r = y_pivot / eta_2pix_pivot * _eta[0]
+                y_pivot = Probit().evaluate(eta_2pix_rad_pivot, 0.5, eta_2pix_rad_sigma)
+                r = y_pivot / eta_2pix_rad_pivot * _eta[0]
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:
@@ -158,11 +158,12 @@ class Cluster:
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
             if eta_sum > eta_3pix_rad_pivot or eta_3pix_rad_pivot <= 0.:
-                r = Probit().evaluate(eta_sum, eta_3pix_rad0, eta_3pix_rad1)
+                r = Probit().evaluate(eta_sum, eta_3pix_rad_offset, eta_3pix_rad_sigma)
             else:
-                y_pivot = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad0, eta_3pix_rad1)
+                y_pivot = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad_offset,
+                                            eta_3pix_rad_sigma)
                 r = y_pivot / eta_3pix_rad_pivot * eta_sum
-            theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta0) / r
+            theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta_sigma) / r
             # Reconstructing the position using r and theta
             x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
             y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
@@ -172,6 +173,22 @@ class Cluster:
             raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position with" \
                                " eta function")
         return x_recon, y_recon
+
+    def position(self):
+        """Return the cluster reconstructed position using the position reconstruction algorithm
+        specified in the constructor.
+
+        This method is a wrapper around the different position reconstruction algorithms. It checks
+        the value of pos_recon_algorithm and calls the corresponding method. If the value of
+        pos_recon_algorithm is not recognized, it raises an error.
+        """
+        if self.pos_recon_algorithm == "centroid":
+            return self.centroid()
+        if self.pos_recon_algorithm == "eta":
+            if self.recon_pars is None:
+                raise RuntimeError("Eta reconstruction algorithm requires recon_pars to be set.")
+            return self.eta(**self.recon_pars)
+        raise RuntimeError(f"Unknown position reconstruction method {self.pos_recon_algorithm}")
 
 
 @dataclass
@@ -282,9 +299,17 @@ class ClusteringNN(ClusteringBase):
     ---------
     num_neighbors : int
         The number of neighbors (between 0 and 6) to include in the cluster.
+    pos_recon_algorithm : str
+        The position reconstruction algorithm to use for the cluster position reconstruction.
+        Possible values are "centroid" and "eta".
+    recon_pars : dict, optional
+        The parameters for the position reconstruction algorithm. This is not required if
+        pos_recon_algorithm is "centroid".
     """
 
     num_neighbors: int
+    pos_recon_algorithm: str
+    recon_pars: Optional[dict] = None
 
     def run(self, event) -> Cluster:
         """Overladed method.
@@ -338,4 +363,4 @@ class ClusteringNN(ClusteringBase):
         # Sort the arrays in decreasing order before applying the position suppression.
         pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
         x, y = self.readout.pixel_to_world(col, row)
-        return Cluster(x, y, col, row, pha)
+        return Cluster(x, y, col, row, pha, self.pos_recon_algorithm, self.recon_pars)
