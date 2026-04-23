@@ -44,8 +44,7 @@ class AbstractReadout(ABC):
     """
 
     @abstractmethod
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
-             offset: int = 0) -> DigiEventBase:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray) -> DigiEventBase:
         """Readout a single event, given the input coordinates of the charge.
 
         Arguments
@@ -58,9 +57,6 @@ class AbstractReadout(ABC):
 
         y : array_like
             The physical y coordinates of the input charge.
-
-        offset : int
-            Optional offset in ADC counts to be applied before the zero suppression.
         """
 
 
@@ -85,6 +81,9 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
     gain : float
         The readout gain in ADC counts per electron (default 1, which means that
         the PHA you get out are the electrons collected).
+    
+    offset : int
+        Optional offset in ADC counts to be applied before the zero suppression.
 
     trg_threshold : float
         Trigger threshold in electron equivalent (note this is a float because it
@@ -96,6 +95,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
 
     enc: float = 30.
     gain: Union[float, np.ndarray] = 1.
+    offset: int = 0
     trg_threshold: float = 500.
     zero_sup_threshold: int = 0
 
@@ -175,8 +175,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         return int(seconds), int(1000000 * microseconds), livetime
 
     def digitize(self, pha: np.ndarray, roi: Optional[RegionOfInterest] = None,
-                 coords: Optional[Sequence[Optional[Tuple[int, int]]]] = None,
-                 offset: int = 0) -> np.ndarray:
+                 coords: Optional[Sequence[Optional[Tuple[int, int]]]] = None) -> np.ndarray:
         """Digitize the actual signal.
 
         Arguments
@@ -187,8 +186,6 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
             The region of interest to be read out, used to digitize rectangular readout events.
         coords : sequence of (col, row) tuples or None, optional
             The coordinates of the pixels to be read out, used to digitize circular readout events.
-        offset : int
-            Optional offset in ADC counts to be applied before the zero suppression.
         """
         # Note that the array type of the input pha argument is not guaranteed, here.
         # Over the course of the calculation the pha is bound to be a float (the noise
@@ -222,8 +219,8 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
                 pha = pha * gain_array
         # ... round to the nearest integer...
         pha = np.round(pha).astype(int)
-        # ... if necessary, add the offset for diagnostic events...
-        pha += offset
+        # ... if necessary, add the offset...
+        pha += self.offset
         # ... zero suppress the thing...
         self.zero_suppress(pha, self.zero_sup_threshold)
         # ... flatten the array to simulate the serial readout and return the
@@ -244,8 +241,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
 
     NUM_PIXELS = 7
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
-             offset: int = 0) -> DigiEventCircular:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray) -> DigiEventCircular:
         """Overloaded method.
         """
         # pylint: disable=unused-argument
@@ -273,7 +269,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # necessarily the trigger or there is no event
         # trigger_mask = self.discriminate(pha, self.trg_threshold)
         # .. and digitize the pha values.
-        pha = self.digitize(pha, coords=adc_coords, offset=offset)
+        pha = self.digitize(pha, coords=adc_coords)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
@@ -398,14 +394,13 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         self.trigger_id += 1
         return roi, pha
 
-    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray,
-             offset: int = 0) -> DigiEventRectangular:
+    def read(self, timestamp: float, x: np.ndarray, y: np.ndarray) -> DigiEventRectangular:
         """Overloaded method.
         """
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
         roi, pha = self.trigger(signal, min_col, min_row)
-        pha = self.digitize(pha, roi=roi, offset=offset)
+        pha = self.digitize(pha, roi=roi)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 

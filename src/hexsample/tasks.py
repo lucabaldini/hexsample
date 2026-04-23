@@ -204,13 +204,13 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
-    gain_map: Optional[np.ndarray] = None
-    eta_2pix_rad: float = 0.127
-    eta_2pix_pivot: float = 0.04
-    eta_3pix_rad0: float = 0.513
-    eta_3pix_rad1: float = 0.141
+    eta_2pix_rad_sigma: float = 0.127
+    eta_2pix_rad_pivot: float = 0.04
+    eta_3pix_rad_offset: float = 0.513
+    eta_3pix_rad_sigma: float = 0.141
     eta_3pix_rad_pivot: float = 0.05
-    eta_3pix_theta0: float = 0.104
+    eta_3pix_theta_sigma: float = 0.104
+    gain_map: Optional[np.ndarray] = None
 
 
 def reconstruct(
@@ -220,13 +220,13 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
-        gain_map: Optional[np.ndarray] = ReconstructionDefaults.gain_map,
-        eta_2pix_rad: float = ReconstructionDefaults.eta_2pix_rad,
-        eta_2pix_pivot: float = ReconstructionDefaults.eta_2pix_pivot,
-        eta_3pix_rad0: float = ReconstructionDefaults.eta_3pix_rad0,
-        eta_3pix_rad1: float = ReconstructionDefaults.eta_3pix_rad1,
+        eta_2pix_rad_sigma: float = ReconstructionDefaults.eta_2pix_rad_sigma,
+        eta_2pix_rad_pivot: float = ReconstructionDefaults.eta_2pix_rad_pivot,
+        eta_3pix_rad_offset: float = ReconstructionDefaults.eta_3pix_rad_offset,
+        eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
         eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
-        eta_3pix_theta0: float = ReconstructionDefaults.eta_3pix_theta0,
+        eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
+        gain_map: Optional[np.ndarray] = ReconstructionDefaults.gain_map,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -258,11 +258,26 @@ def reconstruct(
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
 
-    gain_map : np.ndarray, optional
-        The gain map to use for the reconstruction. If None, no gain correction is applied.
+    eta_2pix_rad_sigma : float
+        The sigma parameter for the radial component of the eta function for two pixel events.
 
-    eta_index : float
-        The eta index to use.
+    eta_2pix_rad_pivot : float
+        The pivot parameter for the radial component of the eta function for two pixel events.
+
+    eta_3pix_rad_offset : float
+        The offset parameter for the radial component of the eta function for three pixel events.
+
+    eta_3pix_rad_sigma : float
+        The sigma parameter for the radial component of the eta function for three pixel events.
+
+    eta_3pix_rad_pivot : float
+        The pivot parameter for the radial component of the eta function for three pixel events.
+
+    eta_3pix_theta_sigma : float
+        The sigma parameter for the angular component of the eta function for three pixel events.
+
+    gain_map : np.ndarray or None
+        The gain map to use for the reconstruction. If None, no gain correction is applied.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -273,15 +288,28 @@ def reconstruct(
         gain = gain_map
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], gain
+        header["pitch"], header["enc"], gain, header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
     # define it here because rectangular readout doesn't have a fixed number of neighbors, contrary
     # to the circular.
     effective_neighbors = max_neighbors if max_neighbors >= 0 else num_neighbors
+    # Create the dictionary with the reconstruction parameters to be passed to the clustering.
+    recon_pars = None
+    if pos_recon_algorithm == "eta":
+        recon_pars = dict(
+            eta_2pix_rad_sigma=eta_2pix_rad_sigma,
+            eta_2pix_rad_pivot=eta_2pix_rad_pivot,
+            eta_3pix_rad_offset=eta_3pix_rad_offset,
+            eta_3pix_rad_sigma=eta_3pix_rad_sigma,
+            eta_3pix_rad_pivot=eta_3pix_rad_pivot,
+            eta_3pix_theta_sigma=eta_3pix_theta_sigma,
+            pitch=header["pitch"]
+        )
     # Run the actual reconstruction.
-    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors)
+    clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
+                              pos_recon_algorithm, recon_pars)
     output_file_path = input_file_path.replace(".h5", f"_{suffix}.h5")
     output_file = ReconOutputFile(output_file_path)
     if header_kwargs is not None:
@@ -297,9 +325,7 @@ def reconstruct(
         if cluster.size() in size:
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
-            recon_event = ReconEvent(*args, pos_recon_algorithm, readout.pitch,
-                                    eta_2pix_rad, eta_2pix_pivot, eta_3pix_rad0, eta_3pix_rad1,
-                                    eta_3pix_rad_pivot, eta_3pix_theta0)
+            recon_event = ReconEvent(*args)
             try:
                 mc_event = input_file.mc_event(i)
             except IndexError:
@@ -386,7 +412,7 @@ def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int) 
 def calibrate_noise(input_file_path: str) -> str:
     """Calibrate noise of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
-    
+
     Arguments
     ---------
     input_file_path : str
@@ -431,14 +457,18 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     ---------
     input_file_path : str
         The path to the input file.
+
     energy : float
         The energy of the X-ray photons in eV. This is used to convert the charge collected in
         each pixel to the number of electron, which is necessary for the gain calibration.
+
     num_events : int
         The number of events to simulate to correct the bias.
+
     enc : int
         The equivalent noise charge of the readout in electrons. This is used to set the noise
         level of the simulated events for the bias correction.
+
     zero_sup_threshold : int
         The zero-suppression threshold to use for the clustering in the gain calibration.
     """
@@ -447,11 +477,12 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     # Define the arguments to create the readout object with unit gain, necessary for the
     # calibration.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], 1.
+        header["pitch"], header["enc"], 1., header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
     gain_matrix = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy)
-    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6)
+    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
+                              pos_recon_algorithm="centroid", recon_pars=None)
     for _, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
@@ -525,11 +556,20 @@ def display(
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"]
+        header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     recon_defaults = ReconstructionDefaults
+    recon_pars = dict(
+        eta_2pix_rad_sigma=recon_defaults.eta_2pix_rad_sigma,
+        eta_2pix_rad_pivot=recon_defaults.eta_2pix_rad_pivot,
+        eta_3pix_rad_offset=recon_defaults.eta_3pix_rad_offset,
+        eta_3pix_rad_sigma=recon_defaults.eta_3pix_rad_sigma,
+        eta_3pix_rad_pivot=recon_defaults.eta_3pix_rad_pivot,
+        eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
+        pitch=header["pitch"]
+    )
     _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
-                     recon_defaults=recon_defaults)
+                     recon_pars=recon_pars)
     input_file.close()
 
 

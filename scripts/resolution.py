@@ -121,7 +121,7 @@ def resolution(**kwargs):
     best_recon_file.close()
 
     # Study the resolution as a function of zero sup threshold for eta algorithm
-    zero_sup_ratios = np.linspace(0, 3, 13)
+    zero_sup_ratios = np.linspace(0, 3, 0)
     recon_kwargs = dict(input_file=str(simulation_path),
                         max_neighbors=6)
     eef_zsup_best_fig = plt.figure(f"eef_vs_zsup_best_enc{enc}")

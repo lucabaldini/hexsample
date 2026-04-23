@@ -21,7 +21,7 @@
 """
 
 
-from typing import Tuple, Union
+from typing import Optional, Tuple
 
 import numpy as np
 import tables
@@ -54,11 +54,11 @@ class CalibrationMatrixBase:
         The number of columns of the readout chip.
     num_rows : int
         The number of rows of the readout chip.
-    default : Union[float, None]
+    default : float, optional
         The default value to set for pixels in the calibration matrix.
     """
 
-    def __init__(self, num_cols: int, num_rows: int, default: Union[float, None] = None,
+    def __init__(self, num_cols: int, num_rows: int, default: Optional[float] = None,
                  **kwargs) -> None:
         """Class constructor.
         """
@@ -218,13 +218,13 @@ class CalibrationMatrixGain(CalibrationMatrixBase):
         The number of rows in the readout chip.
     energy : float
         The energy of the photons in the events used for the gain calibration, in eV.
-    default : float | None
+    default : float, optional
         The default value to set for pixels in the calibration matrix. If None, the default value
         is estimated from the data.
     """
 
     def __init__(self, num_cols: int, num_rows: int, energy: float = None,
-                 default: Union[float, None] = None) -> None:
+                 default: Optional[float] = None) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
@@ -332,12 +332,12 @@ class CalibrationMatrixNoise(CalibrationMatrixBase):
         The number of columns in the readout chip.
     num_rows : int
         The number of rows in the readout chip.
-    default : Union[float, None]
+    default : float, optional
         The default value to set for pixels in the calibration matrix. If None, the default value
         is estimated as the mean of the noise distribution for each pixel.
     """
 
-    def __init__(self, num_cols: int, num_rows: int, default: Union[float, None] = None) -> None:
+    def __init__(self, num_cols: int, num_rows: int, default: Optional[float] = None) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows, default)
@@ -486,7 +486,7 @@ def angle(pos: np.ndarray, versors: np.ndarray) -> np.ndarray:
     return np.arctan2(y_proj, x_proj)
 
 
-def distance(pos: np.ndarray, projection_axis: np.ndarray = None) -> np.ndarray:
+def distance(pos: np.ndarray, projection_axis: Optional[np.ndarray] = None) -> np.ndarray:
     """Calculate the distance of the photon from the center of the most charged pixel. If
     specified, project the distance on the given projection axis, given as a unit vector.
 
@@ -494,7 +494,7 @@ def distance(pos: np.ndarray, projection_axis: np.ndarray = None) -> np.ndarray:
     ---------
     pos : np.ndarray
         The position of the photon with respect to the most charged pixel, in units of pitch.
-    projection_axis : Union[np.ndarray, None]
+    projection_axis : np.ndarray, optional
         The axis on which to project the distance, given as a unit vector. If None,
         the distance is not projected. Default is None.
 
@@ -577,7 +577,7 @@ def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
         The best-fit value of the sigma parameter of the probit function.
     """
     # Calculate the sum of the eta values for each event
-    eta_sum = np.sum(eta, axis=1)
+    eta_sum = np.sum(eta, axis=1) * 3 / 4
     # Calculate the profile of the data
     x, y, yerr = profile(eta_sum, dr, nbins, 101)
     # Fit with a probit model
