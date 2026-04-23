@@ -31,11 +31,9 @@ from aptapy.plotting import last_line_color, plt
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
 from tables.attributeset import AttributeSet
-from tqdm import tqdm
 
-from .clustering import Cluster, ClusteringNN
+from .clustering import Cluster
 from .digi import DigiEventRectangular
-from .fileio import DigiInputFileBase
 from .recon import DEFAULT_IONIZATION_POTENTIAL
 
 
@@ -511,56 +509,6 @@ def distance(pos: np.ndarray, projection_axis: Optional[np.ndarray] = None) -> n
         return np.sqrt(np.sum(pos**2, axis=1))
     # This is useful for 2-pixel events
     return np.sum(pos * projection_axis, axis=1)
-
-
-def calibration_data(input_file: DigiInputFileBase, clustering: ClusteringNN, pitch: float
-                     ) -> Tuple[np.ndarray, ...]:
-    """Open the simulated input file and extract the data needed for the calibration of the eta
-    function. The data are extracted only for 2-pixel and 3-pixel clusters. The resuling arrays
-    need to be masked to select the desired cluster size before the calibration.
-
-    Arguments
-    ---------
-    input_file : DigiInputFileBase
-        The input file to be analyzed.
-    clustering : ClusteringNN
-        The clustering algorithm to be used to reconstruct the clusters.
-    pitch : float
-        The pixel pitch of the detector.
-
-    Returns
-    -------
-    size : np.ndarray
-        Array containing the size of the clusters for each event.
-    photon_pos : np.ndarray
-        Array containing the position of the photon with respect to the most charged pixel, in
-        units of pitch, for each event.
-    versors : np.ndarray
-        Array containing the versors of the cluster for each event.
-    eta : np.ndarray
-        Array containing the eta values for each event.
-    """
-    # Create the lists to store the data.
-    size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
-    # Loop over the events and calculate the interesting quantities.
-    for i, event in tqdm(enumerate(input_file)):
-        cluster = clustering.run(event)
-        # Analyze only 2-pixel and 3-pixel events.
-        if cluster.size() == 2 or cluster.size() == 3:
-            mc_event = input_file.mc_event(i)
-            size_list.append(cluster.size())
-            # Calculate the photon position with respect to the most charged pixel
-            ph_pos = np.array([mc_event.absx - cluster.x[0],
-                               mc_event.absy - cluster.y[0]]) / pitch
-            photon_pos_list.append(ph_pos)
-            eta_list.append(cluster.calculate_eta())
-            versors_list.append(cluster.versors())
-    # Convert the lists to numpy arrays
-    size = np.asarray(size_list, dtype=int)
-    photon_pos = np.asarray(photon_pos_list, dtype=float)
-    versors = np.asarray(versors_list, dtype=float)
-    eta = np.asarray(eta_list, dtype=object)
-    return size, photon_pos, versors, eta
 
 
 def calibrate_dr_2pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> float:

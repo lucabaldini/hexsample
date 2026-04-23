@@ -3,6 +3,8 @@
 Release notes
 =============
 
+* All calibration scripts turned into tasks.
+* Small refactoring of the tasks module.
 * Parameters for the eta function reconstruction renamed and packed into a
   dictionary when passed around.
 * Implemented `SlantedEdgeResolution` class to calculate the estimate the resolution of the detector
@@ -13,9 +15,10 @@ Release notes
   to have negative pha values in the events.
 * Pull requests merged and issues closed:
 
-  - https://github.com/lucabaldini/hexsample/pull/102
-  - https://github.com/lucabaldini/hexsample/pull/104
+  - https://github.com/lucabaldini/hexsample/pull/107
   - https://github.com/lucabaldini/hexsample/pull/105
+  - https://github.com/lucabaldini/hexsample/pull/104
+  - https://github.com/lucabaldini/hexsample/pull/102
   - https://github.com/lucabaldini/hexsample/issues/90
   - https://github.com/lucabaldini/hexsample/issues/89
 

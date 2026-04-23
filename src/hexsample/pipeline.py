@@ -73,18 +73,33 @@ def reconstruct(**kwargs) -> str:
     return tasks.reconstruct(*args, kwargs)
 
 
-def calibrate(**kwargs) -> None:
-    """Calibrate the gain and noise of the chip.
+def calibrate_eta(**kwargs) -> None:
+    """Calibrate the eta function using the events from a digi file.
+    """
+    input_file_path = kwargs["input_file"]
+    num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
+    zero_sup_threshold = kwargs.get("zero_sup_threshold",
+                                    tasks.CalibrationEtaDefaults.zero_sup_threshold)
+    return tasks.calibrate_eta(input_file_path, num_bins, zero_sup_threshold)
+
+
+def calibrate_noise(**kwargs) -> str:
+    """Calibrate the noise of the chip.
+    """
+    input_file_path = kwargs["input_file"]
+    return tasks.calibrate_noise(input_file_path)
+
+
+def calibrate_gain(**kwargs) -> str:
+    """Calibrate the gain of the chip.
     """
     input_file_path = kwargs["input_file"]
     energy = kwargs["energy"]
-    num_events = kwargs.get("num_events", tasks.CalibrationDefaults.num_events)
+    num_events = kwargs.get("num_events", tasks.CalibrationGainDefaults.num_events)
+    enc = kwargs.get("enc", tasks.CalibrationGainDefaults.enc)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
-                                    tasks.CalibrationDefaults.zero_sup_threshold)
-    default_gain = kwargs.get("default_gain", tasks.CalibrationDefaults.default_gain)
-    default_noise = kwargs.get("default_noise", tasks.CalibrationDefaults.default_noise)
-    return tasks.calibrate(input_file_path, energy, num_events,zero_sup_threshold, default_gain,
-                           default_noise)
+                                    tasks.CalibrationGainDefaults.zero_sup_threshold)
+    return tasks.calibrate_gain(input_file_path, energy, num_events, enc, zero_sup_threshold)
 
 
 def display(**kwargs) -> None:

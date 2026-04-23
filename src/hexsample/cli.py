@@ -67,6 +67,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def __init__(self) -> None:
         """Overloaded method.
         """
+        # pylint: disable=too-many-statements
         super().__init__(description=self._DESCRIPTION, epilog=self._EPILOG,
                          formatter_class=self._FORMATTER_CLASS)
         subparsers = self.add_subparsers(required=True, help="sub-command help")
@@ -99,15 +100,32 @@ class CliArgumentParser(argparse.ArgumentParser):
 
         # Run the chip calibration?
         calibrate = subparsers.add_parser("calibrate",
-            help="calibrate the gain and noise of the chip",
+            help="run chip calibration tasks",
             formatter_class=self._FORMATTER_CLASS)
-        self.add_input_file(calibrate)
-        self.add_energy(calibrate)
-        self.add_num_events(calibrate, default=tasks.CalibrationDefaults.num_events,
+
+        calibrate_subparsers = calibrate.add_subparsers(required=True, help="calibration mode")
+        # Eta function calibration
+        eta = calibrate_subparsers.add_parser("eta", help="calibrate the eta function")
+        self.add_input_file(eta)
+        self.add_num_bins(eta, default=tasks.CalibrationEtaDefaults.num_bins)
+        self.add_zero_sup_threshold(eta, default=tasks.CalibrationEtaDefaults.zero_sup_threshold)
+        self.add_logging_level(eta)
+        eta.set_defaults(runner=pipeline.calibrate_eta)
+        # Noise calibration
+        noise = calibrate_subparsers.add_parser("noise", help="calibrate the chip noise")
+        self.add_input_file(noise)
+        self.add_logging_level(noise)
+        noise.set_defaults(runner=pipeline.calibrate_noise)
+        # Gain calibration
+        gain = calibrate_subparsers.add_parser("gain", help="calibrate the chip gain")
+        self.add_input_file(gain)
+        self.add_energy(gain)
+        self.add_num_events(gain, default=tasks.CalibrationGainDefaults.num_events,
                             intent="used for the gain calibration")
-        self.add_logging_level(calibrate)
-        self.add_calibration_options(calibrate)
-        calibrate.set_defaults(runner=pipeline.calibrate)
+        self.add_enc(gain, default=tasks.CalibrationGainDefaults.enc)
+        self.add_zero_sup_threshold(gain, default=tasks.CalibrationGainDefaults.zero_sup_threshold)
+        self.add_logging_level(gain)
+        gain.set_defaults(runner=pipeline.calibrate_gain)
 
         # Run the single-event display?
         display = subparsers.add_parser("display",
@@ -190,6 +208,20 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("energy", type=float,
                             help="line energy in eV")
+
+    @staticmethod
+    def add_enc(parser: argparse.ArgumentParser, default: int) -> None:
+        """Add an option for the equivalent noise charge of the readout.
+        """
+        parser.add_argument("--enc", type=int, default=default,
+                            help="equivalent noise charge in electrons")
+
+    @staticmethod
+    def add_num_bins(parser: argparse.ArgumentParser, default: int) -> None:
+        """Add an option for the number of bins to be used in the eta function calibration.
+        """
+        parser.add_argument("--num_bins", type=int, default=default,
+                            help="number of bins to be used in the eta function calibration")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
@@ -325,21 +357,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
                            type=float, help="probit function sigma parameter for three pixel " \
                            "events angular component eta reconstruction")
-
-    def add_calibration_options(self, parser: argparse.ArgumentParser) -> None:
-        """Add an option group for the calibration properties.
-        """
-        group = parser.add_argument_group("calibration", "Calibration configuration")
-        CliArgumentParser.add_zero_sup_threshold(group,
-                           default=tasks.CalibrationDefaults.zero_sup_threshold)
-        group.add_argument("--default_gain", type=float, default=None,
-                           help="the value to use for pixels in the gain map that cannot be" \
-                           " calibrated, e.g., because they have no events detected. If not" \
-                           " specified, these pixels wil be set to the mean gain value.")
-        group.add_argument("--default_noise", type=float, default=None,
-                           help="the value to use for pixels in the noise map that cannot be" \
-                           " calibrated, e.g., because they have no events detected. If not" \
-                           " specified, these pixels wil be set to the mean noise value.")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display.
