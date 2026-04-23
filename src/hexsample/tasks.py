@@ -358,16 +358,19 @@ def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int) 
     ---------
     input_file_path : str
         The path to the input file.
+
     num_bins : int
         The number of bins to be used in the calibration.
+
     zero_sup_threshold : int
         The zero-suppression threshold to be used for the clustering in the calibration.
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"]
+        header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
-    clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6)
+    clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
+                              pos_recon_algorithm="centroid")
     # Create the lists to store the data.
     size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
     # Loop over the events and calculate the interesting quantities.
