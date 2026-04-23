@@ -17,9 +17,8 @@
 """
 
 import numpy as np
-from aptapy.plotting import plt
-
 import pytest
+from aptapy.plotting import plt
 
 from hexsample import rng
 from hexsample.resolution import SlantedEdgeResolution, SlitsAligner
