@@ -187,13 +187,13 @@ class CalibrationMatrixBase:
                 setattr(obj, target_attr, data)
         return obj
 
-    def plot(self, hits_cut: int = -1, nbins: int = 100, **kwargs) -> Tuple[plt.Figure, plt.Figure]:
+    def plot(self, min_hits: int = -1, nbins: int = 100, **kwargs) -> Tuple[plt.Figure, plt.Figure]:
         """Plot the calibration matrix as a 2D histogram and the distribution of the values in the
         calibration matrix as a 1D histogram.
 
         Arguments
         ---------
-        hits_cut : int
+        min_hits : int
             The minimum number of hits a pixel must have to be included in the 1D distribution plot.
             Default is -1 (include all pixels).
         nbins : int
@@ -219,7 +219,7 @@ class CalibrationMatrixBase:
         fig_dist = plt.figure()
         # Mask for the pixels that pass the hits cut and, if exc_zero is True, that have a non-zero
         # value in the calibration matrix.
-        mask = self.hits > hits_cut
+        mask = self.hits > min_hits
         edges = np.linspace(self.matrix[mask].min(), self.matrix[mask].max(), nbins)
         hist = Histogram1d(edges, xlabel=label)
         hist.fill(self.matrix[mask])
@@ -455,12 +455,12 @@ def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
 
     Returns
     -------
-        x : np.ndarray
-            The bin centers in the x axis.
-        y : np.ndarray
-            The median values in the y axis for each x bin.
-        yerr: np.ndarray
-            The errors of the median values in the y axis for each x bin.
+    x : np.ndarray
+        The bin centers in the x axis.
+    y : np.ndarray
+        The median values in the y axis for each x bin.
+    yerr: np.ndarray
+        The errors of the median values in the y axis for each x bin.
     """
     # Create the 2D histogram to compute the profile
     xedges = np.linspace(xdata.min(), xdata.max(), xbins + 1).flatten()
