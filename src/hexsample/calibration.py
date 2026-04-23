@@ -21,7 +21,7 @@
 """
 
 
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import numpy as np
 import tables
@@ -31,11 +31,9 @@ from aptapy.plotting import last_line_color, plt
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
 from tables.attributeset import AttributeSet
-from tqdm import tqdm
 
-from .clustering import Cluster, ClusteringNN
+from .clustering import Cluster
 from .digi import DigiEventRectangular
-from .fileio import DigiInputFileBase
 from .recon import DEFAULT_IONIZATION_POTENTIAL
 
 
@@ -463,12 +461,9 @@ def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
         yerr: np.ndarray
             The errors of the median values in the y axis for each x bin.
     """
-    # Be sure that the input data are float arrays
-    xdata = xdata.astype(float)
-    ydata = ydata.astype(float)
     # Create the 2D histogram to compute the profile
-    xedges = np.linspace(xdata.min(), xdata.max(), xbins + 1)
-    yedges = np.linspace(ydata.min(), ydata.max(), ybins + 1)
+    xedges = np.linspace(xdata.min(), xdata.max(), xbins + 1).flatten()
+    yedges = np.linspace(ydata.min(), ydata.max(), ybins + 1).flatten()
     hist = Histogram2d(xedges, yedges)
     hist.fill(xdata, ydata)
     # Create the arrays to store the profile values and their errors
@@ -523,7 +518,7 @@ def distance(pos: np.ndarray, projection_axis: Optional[np.ndarray] = None) -> n
     ---------
     pos : np.ndarray
         The position of the photon with respect to the most charged pixel, in units of pitch.
-    projection_axis : Optional[np.ndarray]
+    projection_axis : np.ndarray, optional
         The axis on which to project the distance, given as a unit vector. If None,
         the distance is not projected. Default is None.
 
@@ -538,56 +533,6 @@ def distance(pos: np.ndarray, projection_axis: Optional[np.ndarray] = None) -> n
         return np.sqrt(np.sum(pos**2, axis=1))
     # This is useful for 2-pixel events
     return np.sum(pos * projection_axis, axis=1)
-
-
-def calibration_data(input_file: DigiInputFileBase, clustering: ClusteringNN, pitch: float
-                     ) -> Tuple[np.ndarray, ...]:
-    """Open the simulated input file and extract the data needed for the calibration of the eta
-    function. The data are extracted only for 2-pixel and 3-pixel clusters. The resuling arrays
-    need to be masked to select the desired cluster size before the calibration.
-
-    Arguments
-    ---------
-    input_file : DigiInputFileBase
-        The input file to be analyzed.
-    clustering : ClusteringNN
-        The clustering algorithm to be used to reconstruct the clusters.
-    pitch : float
-        The pixel pitch of the detector.
-
-    Returns
-    -------
-    size : np.ndarray
-        Array containing the size of the clusters for each event.
-    photon_pos : np.ndarray
-        Array containing the position of the photon with respect to the most charged pixel, in
-        units of pitch, for each event.
-    versors : np.ndarray
-        Array containing the versors of the cluster for each event.
-    eta : np.ndarray
-        Array containing the eta values for each event.
-    """
-    # Create the lists to store the data.
-    size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
-    # Loop over the events and calculate the interesting quantities.
-    for i, event in tqdm(enumerate(input_file)):
-        cluster = clustering.run(event)
-        # Analyze only 2-pixel and 3-pixel events.
-        if cluster.size() == 2 or cluster.size() == 3:
-            mc_event = input_file.mc_event(i)
-            size_list.append(cluster.size())
-            # Calculate the photon position with respect to the most charged pixel
-            ph_pos = np.array([mc_event.absx - cluster.x[0],
-                               mc_event.absy - cluster.y[0]]) / pitch
-            photon_pos_list.append(ph_pos)
-            eta_list.append(cluster.calculate_eta())
-            versors_list.append(cluster.versors())
-    # Convert the lists to numpy arrays
-    size = np.asarray(size_list, dtype=int)
-    photon_pos = np.asarray(photon_pos_list, dtype=float)
-    versors = np.asarray(versors_list, dtype=float)
-    eta = np.asarray(eta_list, dtype=object)
-    return size, photon_pos, versors, eta
 
 
 def calibrate_dr_2pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> float:
@@ -656,7 +601,7 @@ def calibrate_dr_3pix(eta: np.ndarray, dr: np.ndarray, nbins: int, **kwargs) -> 
         The best-fit value of the sigma parameter of the probit function.
     """
     # Calculate the sum of the eta values for each event
-    eta_sum = np.sum(eta, axis=1)
+    eta_sum = np.sum(eta, axis=1) * 3 / 4
     # Calculate the profile of the data
     x, y, yerr = profile(eta_sum, dr, nbins, 101)
     # Fit with a probit model

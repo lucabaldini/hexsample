@@ -48,42 +48,58 @@ def simulate(**kwargs) -> str:
 def reconstruct(**kwargs) -> str:
     """Run a reconstruction.
     """
-    defaults = tasks.ReconstructionDefaults
+    defaults = tasks.ReconstructionDefaults()
     input_file_path = kwargs["input_file"]
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
     max_neighbors = kwargs.get("max_neighbors", defaults.max_neighbors)
     pos_recon_algorithm = kwargs.get("pos_recon_algorithm", defaults.pos_recon_algorithm)
+    eta_2pix_rad_sigma = kwargs.get("eta_2pix_rad_sigma", defaults.eta_2pix_rad_sigma)
+    eta_2pix_rad_pivot = kwargs.get("eta_2pix_rad_pivot", defaults.eta_2pix_rad_pivot)
+    eta_3pix_rad_offset = kwargs.get("eta_3pix_rad_offset", defaults.eta_3pix_rad_offset)
+    eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
+    eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
+    eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
     map_gain_file = kwargs.get("map_gain_file")
     if map_gain_file is not None:
         gain_map = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
     else:
         gain_map = None
-    eta_2pix_rad = kwargs.get("eta_2pix_rad", defaults.eta_2pix_rad)
-    eta_2pix_pivot = kwargs.get("eta_2pix_pivot", defaults.eta_2pix_pivot)
-    eta_3pix_rad0 = kwargs.get("eta_3pix_rad0", defaults.eta_3pix_rad0)
-    eta_3pix_rad1 = kwargs.get("eta_3pix_rad1", defaults.eta_3pix_rad1)
-    eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
-    eta_3pix_theta0 = kwargs.get("eta_3pix_theta0", defaults.eta_3pix_theta0)
+    recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
+                  eta_3pix_rad_pivot, eta_3pix_theta_sigma)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, gain_map, eta_2pix_rad, eta_2pix_pivot, \
-           eta_3pix_rad0, eta_3pix_rad1, eta_3pix_rad_pivot, eta_3pix_theta0
+           pos_recon_algorithm, *recon_args, gain_map
     return tasks.reconstruct(*args, kwargs)
 
 
-def calibrate(**kwargs) -> None:
-    """Calibrate the gain and noise of the chip.
+def calibrate_eta(**kwargs) -> None:
+    """Calibrate the eta function using the events from a digi file.
+    """
+    input_file_path = kwargs["input_file"]
+    num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
+    zero_sup_threshold = kwargs.get("zero_sup_threshold",
+                                    tasks.CalibrationEtaDefaults.zero_sup_threshold)
+    return tasks.calibrate_eta(input_file_path, num_bins, zero_sup_threshold)
+
+
+def calibrate_noise(**kwargs) -> str:
+    """Calibrate the noise of the chip.
+    """
+    input_file_path = kwargs["input_file"]
+    return tasks.calibrate_noise(input_file_path)
+
+
+def calibrate_gain(**kwargs) -> str:
+    """Calibrate the gain of the chip.
     """
     input_file_path = kwargs["input_file"]
     energy = kwargs["energy"]
-    num_events = kwargs.get("num_events", tasks.CalibrationDefaults.num_events)
+    num_events = kwargs.get("num_events", tasks.CalibrationGainDefaults.num_events)
+    enc = kwargs.get("enc", tasks.CalibrationGainDefaults.enc)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
-                                    tasks.CalibrationDefaults.zero_sup_threshold)
-    default_gain = kwargs.get("default_gain", tasks.CalibrationDefaults.default_gain)
-    default_noise = kwargs.get("default_noise", tasks.CalibrationDefaults.default_noise)
-    return tasks.calibrate(input_file_path, energy, num_events,zero_sup_threshold, default_gain,
-                           default_noise)
+                                    tasks.CalibrationGainDefaults.zero_sup_threshold)
+    return tasks.calibrate_gain(input_file_path, energy, num_events, enc, zero_sup_threshold)
 
 
 def display(**kwargs) -> None:

@@ -67,6 +67,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def __init__(self) -> None:
         """Overloaded method.
         """
+        # pylint: disable=too-many-statements
         super().__init__(description=self._DESCRIPTION, epilog=self._EPILOG,
                          formatter_class=self._FORMATTER_CLASS)
         subparsers = self.add_subparsers(required=True, help="sub-command help")
@@ -99,15 +100,32 @@ class CliArgumentParser(argparse.ArgumentParser):
 
         # Run the chip calibration?
         calibrate = subparsers.add_parser("calibrate",
-            help="calibrate the gain and noise of the chip",
+            help="run chip calibration tasks",
             formatter_class=self._FORMATTER_CLASS)
-        self.add_input_file(calibrate)
-        self.add_energy(calibrate)
-        self.add_num_events(calibrate, default=tasks.CalibrationDefaults.num_events,
+
+        calibrate_subparsers = calibrate.add_subparsers(required=True, help="calibration mode")
+        # Eta function calibration
+        eta = calibrate_subparsers.add_parser("eta", help="calibrate the eta function")
+        self.add_input_file(eta)
+        self.add_num_bins(eta, default=tasks.CalibrationEtaDefaults.num_bins)
+        self.add_zero_sup_threshold(eta, default=tasks.CalibrationEtaDefaults.zero_sup_threshold)
+        self.add_logging_level(eta)
+        eta.set_defaults(runner=pipeline.calibrate_eta)
+        # Noise calibration
+        noise = calibrate_subparsers.add_parser("noise", help="calibrate the chip noise")
+        self.add_input_file(noise)
+        self.add_logging_level(noise)
+        noise.set_defaults(runner=pipeline.calibrate_noise)
+        # Gain calibration
+        gain = calibrate_subparsers.add_parser("gain", help="calibrate the chip gain")
+        self.add_input_file(gain)
+        self.add_energy(gain)
+        self.add_num_events(gain, default=tasks.CalibrationGainDefaults.num_events,
                             intent="used for the gain calibration")
-        self.add_logging_level(calibrate)
-        self.add_calibration_options(calibrate)
-        calibrate.set_defaults(runner=pipeline.calibrate)
+        self.add_enc(gain, default=tasks.CalibrationGainDefaults.enc)
+        self.add_zero_sup_threshold(gain, default=tasks.CalibrationGainDefaults.zero_sup_threshold)
+        self.add_logging_level(gain)
+        gain.set_defaults(runner=pipeline.calibrate_gain)
 
         # Run the single-event display?
         display = subparsers.add_parser("display",
@@ -190,6 +208,20 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("energy", type=float,
                             help="line energy in eV")
+
+    @staticmethod
+    def add_enc(parser: argparse.ArgumentParser, default: int) -> None:
+        """Add an option for the equivalent noise charge of the readout.
+        """
+        parser.add_argument("--enc", type=int, default=default,
+                            help="equivalent noise charge in electrons")
+
+    @staticmethod
+    def add_num_bins(parser: argparse.ArgumentParser, default: int) -> None:
+        """Add an option for the number of bins to be used in the eta function calibration.
+        """
+        parser.add_argument("--num_bins", type=int, default=default,
+                            help="number of bins to be used in the eta function calibration")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
@@ -276,6 +308,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--map_gain_file", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \
                            " gain value of the --gain argument is used for all the pixels.")
+        group.add_argument("--offset", type=int, default=readout.HexagonalReadoutBase.offset,
+                           help="offset in ADC counts to be applied before the zero suppression")
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
                            choices=readout.ReadoutProxy.choices(),
                            default=readout.ReadoutProxy.default(),
@@ -294,6 +328,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_recon_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the reconstruction properties.
         """
+        defaults = tasks.ReconstructionDefaults
         group = parser.add_argument_group("reconstruction", "Reconstruction configuration")
         group.add_argument("--zero_sup_threshold", type=int, default=0,
                            help="zero-suppression threshold in ADC counts")
@@ -301,62 +336,30 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of neighbors to be considered (0--6)")
         group.add_argument("--max_neighbors", type=int, default=-1,
                            help="maximum number of neighbors to be considered")
-        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "dnn", "gnn"],
+        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta"],
                            type=str, default="centroid", help="How to reconstruct position")
         group.add_argument("--map_gain_file", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \
                            " gain value stored in the DigiFile header will be used for all" \
                            " the pixels.")
-        group.add_argument("--eta_2pix_rad",
-                           default=tasks.ReconstructionDefaults.eta_2pix_rad,
-                           type=float,
+        group.add_argument("--eta_2pix_rad_sigma", default=defaults.eta_2pix_rad_sigma, type=float,
                            help="probit function sigma parameter for two pixel" \
                            "events eta reconstruction")
-        group.add_argument("--eta_2pix_pivot",
-                           default=tasks.ReconstructionDefaults.eta_2pix_pivot,
-                           type=float,
+        group.add_argument("--eta_2pix_rad_pivot", default=defaults.eta_2pix_rad_pivot, type=float,
                            help="transition value from linear (0 to pivot) to probit (> pivot) " \
                            "for two pixel events eta reconstruction")
-        group.add_argument("--eta_3pix_rad0",
-                           default=tasks.ReconstructionDefaults.eta_3pix_rad0,
-                           type=float,
-                           help="probit function offset parameter for three pixel" \
+        group.add_argument("--eta_3pix_rad_offset", default=defaults.eta_3pix_rad_offset,
+                           type=float, help="probit function offset parameter for three pixel" \
                            "events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_rad1",
-                           default=tasks.ReconstructionDefaults.eta_3pix_rad1,
-                           type=float,
+        group.add_argument("--eta_3pix_rad_sigma", default=defaults.eta_3pix_rad_sigma, type=float,
                            help="probit function sigma parameter for three pixel " \
                            "events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_rad_pivot",
-                           default=tasks.ReconstructionDefaults.eta_3pix_rad_pivot,
-                           type=float,
+        group.add_argument("--eta_3pix_rad_pivot", default=defaults.eta_3pix_rad_pivot, type=float,
                            help="transition value from linear (0 to pivot) to probit (> pivot) " \
                            "for three pixel events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_theta0",
-                           default=tasks.ReconstructionDefaults.eta_3pix_theta0,
-                           type=float,
-                           help="probit function sigma parameter for three pixel " \
+        group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
+                           type=float, help="probit function sigma parameter for three pixel " \
                            "events angular component eta reconstruction")
-        group.add_argument("--nnmodel", type=str, default="pretrained",
-                           choices=["pretrained", "custom"],
-                           help="model to use for neural network reconstruction")
-        group.add_argument("--model_path", type=str,
-                           help="path of the model to use, in case of custom model")
-
-    def add_calibration_options(self, parser: argparse.ArgumentParser) -> None:
-        """Add an option group for the calibration properties.
-        """
-        group = parser.add_argument_group("calibration", "Calibration configuration")
-        CliArgumentParser.add_zero_sup_threshold(group,
-                           default=tasks.CalibrationDefaults.zero_sup_threshold)
-        group.add_argument("--default_gain", type=float, default=None,
-                           help="the value to use for pixels in the gain map that cannot be" \
-                           " calibrated, e.g., because they have no events detected. If not" \
-                           " specified, these pixels wil be set to the mean gain value.")
-        group.add_argument("--default_noise", type=float, default=None,
-                           help="the value to use for pixels in the noise map that cannot be" \
-                           " calibrated, e.g., because they have no events detected. If not" \
-                           " specified, these pixels wil be set to the mean noise value.")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the event display.

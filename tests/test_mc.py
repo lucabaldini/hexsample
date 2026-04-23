@@ -36,9 +36,9 @@ def test_diffusion(diff_sigma=40.):
     evt = MonteCarloEvent(0., 8000., 0., 0., 0.05, 3000)
     x, y = evt.propagate(diff_sigma)
     padding = Padding(1, 1, 1, 1)
-    args = HexagonalLayout.ODD_R, 10, 10, 0.005, 40., 1., 80, 0, padding
+    args = HexagonalLayout.ODD_R, 10, 10, 0.005, 40., 1., 500, 80, 0, padding
     readout = HexagonalReadoutRectangular(*args)
-    digi_event = readout.read(evt.timestamp, x, y, 500.)
+    digi_event = readout.read(evt.timestamp, x, y)
     print(digi_event.ascii())
     display = HexagonalGridDisplay(grid)
     display.draw()
