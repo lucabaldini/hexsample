@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 
 import iminuit
 import numpy as np
@@ -46,11 +46,7 @@ class Cluster:
     row: np.ndarray
     pha: np.ndarray
     pos_recon_algorithm: str
-    recon_pars: dict
-    _errx_low: float = 0.
-    _errx_high: float = 0.
-    _erry_low: float = 0.
-    _erry_high: float = 0.
+    recon_pars: Optional[dict] = None
 
     def __post_init__(self) -> None:
         """Small cross check on the dimensions of the arrays passed in the constructor.
@@ -117,7 +113,8 @@ class Cluster:
                 v = np.zeros(2)
         return u, v
 
-    def eta(self, s2: float, p2: float, mu3_r: float, s3_r: float, p3_r: float, s3_t: float,
+    def eta(self, eta_2pix_rad_sigma: float, eta_2pix_rad_pivot: float, eta_3pix_rad_offset: float,
+            eta_3pix_rad_sigma: float, eta_3pix_rad_pivot: float, eta_3pix_theta_sigma: float,
             pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function calibrated for 2
         and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
@@ -125,18 +122,18 @@ class Cluster:
 
         Arguments
         ---------
-        s2 : float
+        eta_2pix_rad_sigma : float
             Probit function sigma parameter for two pixel events.
-        p2 : float
+        eta_2pix_rad_pivot : float
             Transition value from linear (0 to pivot) to probit (> pivot) for two pixel events.
-        mu3_r : float
+        eta_3pix_rad_offset : float
             Probit function offset parameter for three pixel events radial position component.
-        s3_r : float
+        eta_3pix_rad_sigma : float
             Probit function sigma parameter for three pixel events radial position component.
-        p3_r : float
+        eta_3pix_rad_pivot : float
             Transition value from linear (0 to pivot) to probit (> pivot) for three pixel events
             radial position component.
-        s3_t : float
+        eta_3pix_theta_sigma : float
             Probit function sigma parameter for three pixel events angular position component.
         pitch : float
             The pitch of the pixels.
@@ -151,23 +148,24 @@ class Cluster:
         if self.size() == 2:
             # For 2-pixel events we estimate the position along the line that connects the
             # two pixels using the probit function.
-            if _eta[0] > p2 or p2 <= 0.:
-                r = Probit().evaluate(_eta[0], 0.5, s2)
+            if _eta[0] > eta_2pix_rad_pivot or eta_2pix_rad_pivot <= 0.:
+                r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad_sigma)
             else:
-                y_pivot = Probit().evaluate(p2, 0.5, s2)
-                r = y_pivot / p2 * _eta[0]
+                y_pivot = Probit().evaluate(eta_2pix_rad_pivot, 0.5, eta_2pix_rad_sigma)
+                r = y_pivot / eta_2pix_rad_pivot * _eta[0]
             x_recon = self.x[0] + r * pitch * u[0]
             y_recon = self.y[0] + r * pitch * u[1]
         elif self.size() == 3:
             # For 3-pixel events we estimate both r and theta using the probit function.
             eta_sum = _eta[0] + _eta[1]
             eta_diff = (_eta[0] - _eta[1]) / eta_sum
-            if eta_sum > p3_r or p3_r <= 0.:
-                r = Probit().evaluate(eta_sum, mu3_r, s3_r)
+            if eta_sum > eta_3pix_rad_pivot or eta_3pix_rad_pivot <= 0.:
+                r = Probit().evaluate(eta_sum, eta_3pix_rad_offset, eta_3pix_rad_sigma)
             else:
-                y_pivot = Probit().evaluate(p3_r, mu3_r, s3_r)
-                r = y_pivot / p3_r * eta_sum
-            theta = Probit().evaluate((eta_diff + 1)/2, 0, s3_t) / r
+                y_pivot = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad_offset,
+                                            eta_3pix_rad_sigma)
+                r = y_pivot / eta_3pix_rad_pivot * eta_sum
+            theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta_sigma) / r
             # Reconstructing the position using r and theta
             x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
             y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
@@ -258,6 +256,8 @@ class Cluster:
         if self.pos_recon_algorithm == "centroid":
             return self.centroid()
         if self.pos_recon_algorithm == "eta":
+            if self.recon_pars is None:
+                raise RuntimeError("Eta reconstruction algorithm requires recon_pars to be set.")
             return self.eta(**self.recon_pars)
         if self.pos_recon_algorithm == "mle":
             return self.mle(**self.recon_pars)
@@ -294,6 +294,8 @@ class ClusteringBase:
         map. It would be a mess to handle the two cases in the run method, so we check the type
         in the constructor and then we return the gain value in a unified way here.
         """
+        if self._scalar_gain is None:
+            return 1.
         if self._scalar_gain:
             return self.readout.gain
         return self.readout.gain[row, col]
@@ -309,28 +311,32 @@ class ClusteringBase:
                           ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Suppress pixels in the cluster that do not satisfy the position requirements.
 
-        If the cluster contains 2 or fewer pixels, no action is taken. For clusters with 
-        more than 2 pixels, the algorithm retains the two most charged pixels and 
-        only one additional neighbor (the one with the highest charge) of the second 
+        If the cluster contains 2 or fewer pixels, no action is taken. For clusters with
+        more than 2 pixels, the algorithm retains the two most charged pixels and
+        only one additional neighbor (the one with the highest charge) of the second
         pixel, discarding all others.
 
         Arguments
         ---------
         pha : np.ndarray
             The array of pulse heights of the pixels in the cluster, ordered in decreasing order.
+
         col : np.ndarray
             The array of column indexes of the pixels in the cluster.
+
         row : np.ndarray
             The array of row indexes of the pixels in the cluster.
-        
+
         Returns
         -------
         pha : np.ndarray
             The array of pulse heights of the pixels in the cluster after position suppression,
             ordered in decreasing order.
+
         col : np.ndarray
             The array of column indexes of the pixels in the cluster after position suppression,
             ordered in decreasing order of pulse height.
+
         row : np.ndarray
             The array of row indexes of the pixels in the cluster after position suppression,
             ordered in decreasing order of pulse height.
@@ -375,11 +381,17 @@ class ClusteringNN(ClusteringBase):
     ---------
     num_neighbors : int
         The number of neighbors (between 0 and 6) to include in the cluster.
+    pos_recon_algorithm : str
+        The position reconstruction algorithm to use for the cluster position reconstruction.
+        Possible values are "centroid" and "eta".
+    recon_pars : dict, optional
+        The parameters for the position reconstruction algorithm. This is not required if
+        pos_recon_algorithm is "centroid".
     """
 
     num_neighbors: int
     pos_recon_algorithm: str
-    recon_pars: dict = None
+    recon_pars: Optional[dict] = None
 
     def run(self, event) -> Cluster:
         """Overladed method.
@@ -403,7 +415,7 @@ class ClusteringNN(ClusteringBase):
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
                 adc_channel_order.append(self.readout.adc_channel(_col, _row))
                 gain_array.append(self._gain(_row, _col))
-            # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i].
+            # ... reordering the pha array for the correspondence (col[i], row[i]) with pha[i].
             pha = (event.pha[adc_channel_order] - self.readout.offset) / np.array(gain_array)
             # Converting lists into numpy arrays
             col = np.array(col)

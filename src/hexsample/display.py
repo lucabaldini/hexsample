@@ -87,7 +87,7 @@ class HexagonalGridDisplay:
         self.color_map = matplotlib.colormaps[kwargs.get("cmap_name", "Reds")].copy()
         self.color_map_offset = kwargs.get("cmap_offset", 0)
         self.color_map.set_under("white")
-        self.recon_defaults = kwargs.get("recon_defaults")
+        self.recon_pars = kwargs.get("recon_pars")
         self.figure, self.axes = plt.gcf(), plt.gca()
         self.figure.subplots_adjust(bottom=0.2)
 
@@ -229,23 +229,13 @@ class HexagonalGridDisplay:
         self.axes.scatter(mc_event.absx, mc_event.absy, marker=".", s=100, label="Monte Carlo")
         # Calculate the cluster from the digi event.
         cluster = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
-                               pos_recon_algorithm=None, recon_pars=None).run(digi_event)
+                               pos_recon_algorithm="centroid", recon_pars=None).run(digi_event)
         # Calculate and plot centroid position.
         centroid_position = cluster.centroid()
         self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         # Calculate and plot eta reconstructed position.
-        recon_pars = self.recon_defaults.recon_pars
-        from hexsample.calibration import ChargeFractionMatrices
-        from hexsample.clustering import ClusteringHex
-        charge_diff = ChargeFractionMatrices.from_hdf5("/home/augusto/hexsampledata/mle_table.h5")
-        cluster_hex = ClusteringHex(readout, 0, None).run(digi_event)
-        fig = plt.figure()
-        mle_pos = cluster_hex.mle(charge_diff, 100)
-        fig.show()
-        print(f"x_mc = {(mc_event.absx - cluster.x[0]) / 0.005:.3f}, y_mc = {(mc_event.absy - cluster.y[0]) / 0.005:.3f}\n")
-        self.axes.scatter(*mle_pos, marker="^", s=100, label="MLE")
         try:
-            eta_position = cluster.eta(pitch=readout.pitch, **recon_pars)
+            eta_position = cluster.eta(**self.recon_pars)
             # If cluster size is not 2 or 3, eta returns the centroid position, so we only
             # plot it if it's different from the centroid.
             self.axes.scatter(*eta_position, marker="+", s=100, label=r"$\eta$")
