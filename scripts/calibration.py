@@ -86,7 +86,7 @@ def hxeta(**kwargs) -> tuple[float, float, float, float]:
     plot_kwargs = dict(save=kwargs["save"], path=RESULTS_DIR)
     # 2-pixel events calibration
     mask_2pix = size == 2
-    eta_2pix = eta[mask_2pix].flatten()
+    eta_2pix = np.concatenate(eta[mask_2pix]).astype(float)
     dr_2pix = distance(photon_pos[mask_2pix], versors[mask_2pix, 0])
     sigma_2pix = calibrate_dr_2pix(eta_2pix, dr_2pix, nbins=NUMBINS, **plot_kwargs)
 
