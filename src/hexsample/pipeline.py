@@ -61,8 +61,8 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
     eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
-    if kwargs.get("charge_fraction_matrices_file") is not None:
-        charge_fraction_matrices = ChargeFractionMatrices.from_hdf5(kwargs.get("charge_fraction_matrices_file"))
+    if kwargs.get("mle_matrices_file") is not None:
+        charge_fraction_matrices = ChargeFractionMatrices.from_hdf5(kwargs.get("mle_matrices_file"))
     else:
         charge_fraction_matrices = None
     if kwargs.get("map_gain_file") is not None:
@@ -80,8 +80,8 @@ def calibrate_mle(**kwargs) -> str:
     """Calibrate the MLE position reconstruction algorithm.
     """
     input_file_path = kwargs["input_file"]
-    num_bins = kwargs.get("num_bins", tasks.CalibrationMLEDefaults.num_bins)
-    return tasks.calibrate_mle(input_file_path, num_bins)
+    bin_size = kwargs.get("bin_size", tasks.CalibrationMLEDefaults.bin_size)
+    return tasks.calibrate_mle(input_file_path, bin_size)
 
 
 def calibrate_eta(**kwargs) -> None:

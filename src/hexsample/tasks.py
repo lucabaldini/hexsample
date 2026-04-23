@@ -329,7 +329,8 @@ def reconstruct(
         )
     if pos_recon_algorithm == "mle":
         if charge_fraction_matrices is None:
-            raise RuntimeError("Charge fraction matrices must be provided for MLE position reconstruction")
+            raise RuntimeError("Charge fraction matrices must be provided for MLE position" \
+            "reconstruction")
         recon_pars = dict(charge_matrix=charge_fraction_matrices,
                           sigma_noise=header["enc"])
         clustering = ClusteringHex(readout, 0, recon_pars)
@@ -368,10 +369,10 @@ class CalibrationMLEDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    num_bins: int = 100
+    bin_size: float = 0.02
 
 
-def calibrate_mle(input_file_path: str, num_bins: int) -> str:
+def calibrate_mle(input_file_path: str, bin_size: float) -> str:
     """Calibrate the charge diffusion for the Maximum Likelihood Estimator (MLE) position
     reconstruction algorithm, using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
@@ -380,8 +381,8 @@ def calibrate_mle(input_file_path: str, num_bins: int) -> str:
     ---------
     input_file_path : str
         The path to the input file.
-    num_bins : int
-        The number of bins to use for the charge diffusion matrix.
+    bin_size : float
+        The size of the bins to use for the charge diffusion matrix.
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
@@ -403,7 +404,7 @@ def calibrate_mle(input_file_path: str, num_bins: int) -> str:
     x = np.array(x) / readout.pitch
     y = np.array(y) / readout.pitch
 
-    matrices = ChargeFractionMatrices(num_bins, readout)
+    matrices = ChargeFractionMatrices(bin_size, readout)
     matrices.upload_data(x, y, fraction)
     output_file_path = input_file_path.replace(".h5", "_mle_matrices.h5")
     matrices.to_hdf5(output_file_path)

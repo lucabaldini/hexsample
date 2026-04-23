@@ -425,34 +425,37 @@ class ChargeFractionMatrices:
 
     Arguments
     ---------
-    nbins : int
-        The number of bins in the x and y axes of the grid. The grid is a square grid.
+    bin_size: float
+        The size of the square bins in the grid, in units of pixel pitch.
     readout : HexagonalReadoutBase
         The detector readout instance.
     """
 
-    def __init__(self, nbins: int, readout: HexagonalReadoutBase) -> None:
+    def __init__(self, bin_size: float, readout: HexagonalReadoutBase) -> None:
         """Class constructor.
         """
-        self.nbins = nbins
-        # Initialize the arrays to store the calibration data and the bin edges.
-        self._xbins = None
-        self._ybins = None
-        self._matrices = np.zeros((7, nbins, nbins))
+        if bin_size <= 0 or bin_size > 1:
+            raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 1].") 
         # Set the bin edges according to the pixel orientation.
         if readout:
             if readout.pointy_topped():
-                self.xedges = np.linspace(-0.5, 0.5, nbins + 1)
-                self.yedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
+                xedge = 0.5
+                yedge = 1/np.sqrt(3)
             if readout.flat_topped():
-                self.xedges = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), nbins + 1)
-                self.yedges = np.linspace(-0.5, 0.5, nbins + 1)
+                xedge = 1/np.sqrt(3)
+                yedge = 0.5
+            x_nbins = int(2 * xedge / bin_size)
+            y_nbins = int(2 * yedge / bin_size)
+            self.xedges = np.linspace(-xedge, xedge, x_nbins + 1)
+            self.yedges = np.linspace(-yedge, yedge, y_nbins + 1)
+            # Prepare the matrices to store the calibration data.
+            self._matrices = np.zeros((7, x_nbins, y_nbins))
             # Calculate the bin centers from the edges.
             self._x_bins = (self.xedges[:-1] + self.xedges[1:]) / 2
             self._y_bins = (self.yedges[:-1] + self.yedges[1:]) / 2
 
-    def upload_data(self, x: np.ndarray, y: np.ndarray, fraction: np.ndarray) -> None:
-        """Update the calibration matrix with the data from the events. The data are uploaded by
+    def upload_data(self, x: np.ndarray, y: np.ndarray, fractions: np.ndarray) -> None:
+        """Update the calibration matriecs with the data from the events. The data are uploaded by
         calculating the average value of the charge fraction for each bin in the x and y axes, and
         storing the average values in the corresponding bins of the calibration matrix.
 
@@ -462,13 +465,13 @@ class ChargeFractionMatrices:
             The x coordinates of the events, in units of pixel pitch.
         y : np.ndarray
             The y coordinates of the events, in units of pixel pitch.
-        fraction : np.ndarray
+        fractions : np.ndarray
             The charge fraction values array of the events.
         """
         bin_count, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges])
         for i in range(7):
             bin_sum, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges],
-                                           weights=fraction[:, i])
+                                           weights=fractions[:, i])
             with np.errstate(divide='ignore', invalid='ignore'):
                 average = bin_sum / bin_count
                 average[np.isnan(average)] = 0
@@ -533,9 +536,9 @@ class ChargeFractionMatrices:
             matrices = h5file.root.matrices[:]
             x_bins = h5file.root.x_bins[:]
             y_bins = h5file.root.y_bins[:]
-        # Instantiate the object with the data loaded from the HDF5 file.
-        obj = cls(0, None)
-        # Set the attributes with the data loaded from the HDF5 file.
+        # Create an instance of the class without initializing the attributes, since we will set
+        # them with the data loaded from the HDF5 file.
+        obj = cls.__new__(cls)
         obj._matrices = matrices
         obj._x_bins = x_bins
         obj._y_bins = y_bins

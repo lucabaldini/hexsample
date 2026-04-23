@@ -112,9 +112,10 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(eta)
         eta.set_defaults(runner=pipeline.calibrate_eta)
         # MLE position reconstruction calibration
-        mle = calibrate_subparsers.add_parser("mle", help="calibrate the MLE position reconstruction algorithm")
+        mle = calibrate_subparsers.add_parser("mle",
+                                    help="calibrate the MLE position reconstruction algorithm")
         self.add_input_file(mle)
-        self.add_num_bins(mle, default=tasks.CalibrationMLEDefaults.num_bins)
+        self.add_bin_size(mle, default=tasks.CalibrationMLEDefaults.bin_size)
         self.add_logging_level(mle)
         mle.set_defaults(runner=pipeline.calibrate_mle)
         # Noise calibration
@@ -228,6 +229,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--num_bins", type=int, default=default,
                             help="number of bins to be used in the calibration")
+    
+    @staticmethod
+    def add_bin_size(parser: argparse.ArgumentParser, default: float) -> None:
+        """Add an option for the bin size to be used in different calibrations.
+        """
+        parser.add_argument("--bin_size", type=float, default=default,
+                            help="bin size to be used in the calibration, in units of pixel pitch")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
@@ -359,8 +367,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
                            type=float, help="probit function sigma parameter for three pixel " \
                            "events angular component eta reconstruction")
-        group.add_argument("--charge_fraction_matrices_file", type=str, default=None,
-                           help="path to a file containing the charge fraction matrices.")
+        group.add_argument("--mle_matrices_file", type=str, default=None,
+                           help="path to a file containing the MLE matrices.")
         group.add_argument("--map_gain_file", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \
                            " gain value stored in the DigiFile header will be used for all" \
