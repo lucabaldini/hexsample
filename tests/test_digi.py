@@ -52,10 +52,10 @@ def test_digi_event_circular():
 
 def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
-    gain: float = 0.5, num_pairs: int = 1000):
+    gain: float = 0.5, offset: int = 0, num_pairs: int = 1000):
     """Test for circular event digitalization class.
     """
-    readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc, gain)
+    readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc, gain, offset)
     # Pick out some particular pixels, we expect only the one with higher PHA
     # to be saved in the DigiEventCircular.
     col1, row1 = 2, 4
@@ -100,14 +100,14 @@ def test_digi_event_rectangular_comparison():
     assert evt1 != evt3
 
 def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols: int = 100,
-    num_rows: int = 100, pitch: float = 0.1, enc: float = 0., gain: float = 0.5,
+    num_rows: int = 100, pitch: float = 0.1, enc: float = 0., gain: float = 0.5, offset: int = 0,
     num_pairs: int = 1000, trg_threshold: float = 200., padding: Padding = None):
     """Create a fake digi event and test all the steps of the digitization.
     """
     if padding is None:
         padding = Padding(1, 1, 1, 1)
     readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch,
-                                          enc, gain, trg_threshold, 0, padding)
+                                          enc, gain, offset, trg_threshold, 0, padding)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f"Testing pixel ({col}, {row})...")
