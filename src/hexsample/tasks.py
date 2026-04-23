@@ -385,7 +385,7 @@ def calibrate_mle(input_file_path: str, num_bins: int) -> str:
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"]
+        header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     clustering = ClusteringHex(readout, 0)
     # Create lists to store the x, y (incident position) and charge fraction values of the events.
