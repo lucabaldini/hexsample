@@ -245,7 +245,6 @@ def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     row["cluster_size"] = event.cluster.size()
     row["energy"] = event.energy()
     row["posx"], row["posy"] = event.position()
-
     row.append()
 
 
