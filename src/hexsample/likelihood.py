@@ -30,7 +30,7 @@ LOG2PI = math.log(2 * math.pi)
 
 @njit
 def nll_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, ybin0: float,
-              dx_bin: float, dy_bin: float, sigma: float) -> float:
+              bin_size: float, sigma: float) -> float:
     """Compute the negative log-likelihood for a given position (x, y).
 
     The model is based on the Gaussian diffusion of the charge cloud, and uses the precomputed
@@ -38,12 +38,12 @@ def nll_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, 
     dimensionality of the optimization.
     """
     # Find the pixel indices corresponding to the (x, y) position in the map grid
-    x_frac = (x - xbin0) / dx_bin
-    y_frac = (y - ybin0) / dy_bin
+    x_frac = (x - xbin0) / bin_size
+    y_frac = (y - ybin0) / bin_size
     ix0 = int(math.floor(x_frac))
     iy0 = int(math.floor(y_frac))
     # Clamp the indices to be within the bounds of the map
-    nx, ny, _ = f.shape
+    _, nx, ny = f.shape
     ix0 = max(0, min(ix0, nx - 2))
     iy0 = max(0, min(iy0, ny - 2))
     # Compute the local coordinates within the bin for bilinear interpolation
@@ -81,16 +81,16 @@ def nll_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, 
 
 @njit
 def nll_grad_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, ybin0: float,
-                   dx_bin: float, dy_bin: float, sigma: float) -> np.ndarray:
+                   bin_size: float, sigma: float) -> np.ndarray:
     """Compute the gradient of the negative log-likelihood with respect to the free parameters.
     """
     # Find the pixel indices corresponding to the (x, y) position in the map grid
-    x_frac = (x - xbin0) / dx_bin
-    y_frac = (y - ybin0) / dy_bin
+    x_frac = (x - xbin0) / bin_size
+    y_frac = (y - ybin0) / bin_size
     ix0 = int(math.floor(x_frac))
     iy0 = int(math.floor(y_frac))
     # Clamp the indices to be within the bounds of the map
-    nx, ny, _ = f.shape
+    _, nx, ny = f.shape
     ix0 = max(0, min(ix0, nx - 2))
     iy0 = max(0, min(iy0, ny - 2))
     # Compute the local coordinates within the bin for bilinear interpolation
@@ -114,8 +114,8 @@ def nll_grad_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: fl
               v11 * wx * wy)
         f_interp[i] = fi
         # Derivatives of the interpolated f with respect to x and y
-        df_dx[i] = ((v10 - v00) * (1 - wy) + (v11 - v01) * wy) / dx_bin
-        df_dy[i] = ((v01 - v00) * (1 - wx) + (v11 - v10) * wx) / dy_bin
+        df_dx[i] = ((v10 - v00) * (1 - wy) + (v11 - v01) * wy) / bin_size
+        df_dy[i] = ((v01 - v00) * (1 - wx) + (v11 - v10) * wx) / bin_size
         # Compute the terms needed for profiling out the energy
         sum_qf += pha[i] * fi
         sum_f2 += fi * fi

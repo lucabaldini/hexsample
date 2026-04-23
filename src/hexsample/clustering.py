@@ -181,7 +181,7 @@ class Cluster:
                                " eta function")
         return x_recon, y_recon
 
-    def mle(self, charge_fraction_matrices: ChargeFractionMatrices, sigma_noise: float,
+    def mle(self, charge_fraction_matrices: "ChargeFractionMatrices", sigma_noise: float,
             pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the maximum likelihood estimator. The
         computation is performed using the negative log-likelihood, which is minimized with the
@@ -206,20 +206,19 @@ class Cluster:
         x_bins = charge_fraction_matrices.x_bins
         y_bins = charge_fraction_matrices.y_bins
         xmin, ymin = x_bins[0], y_bins[0]
-        dx_bin, dy_bin = x_bins[1]-x_bins[0], y_bins[1]-y_bins[0]
+        bin_size = x_bins[1] - x_bins[0]
         # Define the wrapper functions for the nll and its gradient for the minimization.
         def nll(x, y):
             """Wrapper around the nll_numba function to be passed to iminuit, which expects a
             function that takes the parameters to be optimized as arguments.
             """
-            return nll_numba(x, y, self.pha, matrices, xmin, ymin, dx_bin, dy_bin, sigma_noise)
+            return nll_numba(x, y, self.pha, matrices, xmin, ymin, bin_size, sigma_noise)
 
         def nll_grad(x, y):
             """Wrapper around the nll_grad_numba function to be passed to iminuit, which expects a
             function that takes the parameters to be optimized as arguments.
             """
-            return nll_grad_numba(x, y, self.pha, matrices, xmin, ymin, dx_bin, dy_bin,
-                                  sigma_noise)
+            return nll_grad_numba(x, y, self.pha, matrices, xmin, ymin, bin_size, sigma_noise)
         # Compute the initial guess for the minimization using the cluster centroid.
         x_centroid, y_centroid = self.centroid()
         parin = np.array([x_centroid - self.x[0], y_centroid - self.y[0]]) / pitch
@@ -482,12 +481,12 @@ class ClusteringHex(ClusteringBase):
             seed_col, seed_row = event.highest_pixel()
             col = [seed_col]
             row = [seed_row]
-            seed_pha = event.pha[self.readout.adc_channel(seed_col, seed_row)]
+            seed_pha = event(seed_col, seed_row)
             pha = [(seed_pha - self.readout.offset) / self._gain(seed_row, seed_col)]
             for _col, _row in self.readout.neighbors(seed_col, seed_row):
                 col.append(_col)
                 row.append(_row)
-                _pha = event.pha[self.readout.adc_channel(_col, _row)]
+                _pha = event(_col, _row)
                 pha.append((_pha - self.readout.offset) / self._gain(_row, _col))
         # Converting lists into numpy arrays
         col = np.array(col)
