@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -179,7 +179,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         return int(seconds), int(1000000 * microseconds), livetime
 
     def digitize(self, pha: np.ndarray,
-                 coords: Union[RegionOfInterest, list[Tuple[int, int]]]) -> np.ndarray:
+                 coords: Union[RegionOfInterest, Sequence[Tuple[int, int]]]) -> np.ndarray:
         """Digitize the actual signal.
 
         Arguments
