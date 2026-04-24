@@ -43,17 +43,20 @@ def simulate(**kwargs) -> str:
     else:
         default_gain = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"], kwargs["gain"])
         kwargs.update({"gain": default_gain})
-
     if kwargs.get("map_enc_file") is not None:
         enc_matrix = CalibrationMatrix.from_hdf5(kwargs.get("map_enc_file"))
         kwargs.update({"enc": enc_matrix})
     else:
         default_enc = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"], kwargs["enc"])
+        # This can't be passed to the header, it raises an error because the header expects a scalar value. This is just a momentary workaround until we write all the metadata in the hdf5 file properly.
         kwargs.update({"enc": default_enc})
 
 
 
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
+
+    kwargs.update({"enc": 100., "gain": 1.})  # This is just a momentary workaround until we write all the metadata in the hdf5 file properly.
+
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
@@ -82,10 +85,15 @@ def reconstruct(**kwargs) -> str:
         gain_map = CalibrationMatrix.from_hdf5(map_gain_file).matrix
     else:
         gain_map = None
+    noise_map_file = kwargs.get("map_enc_file")
+    if noise_map_file is not None:
+        noise_map = CalibrationMatrix.from_hdf5(noise_map_file).matrix
+    else:
+        noise_map = None
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
                   eta_3pix_rad_pivot, eta_3pix_theta_sigma)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, *recon_args, gain_map
+           pos_recon_algorithm, *recon_args, gain_map, noise_map
     return tasks.reconstruct(*args, kwargs)
 
 

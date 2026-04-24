@@ -205,19 +205,6 @@ class ClusteringBase:
         """
         self._scalar_gain = isinstance(self.readout.gain, (int, float))
 
-    def _gain(self, row: np.ndarray, col: np.ndarray) -> np.ndarray:
-        """Return the correct gain value for the given row and column indexes.
-
-        This method is necessary to handle both the case of a scalar gain and the case of a gain
-        map. It would be a mess to handle the two cases in the run method, so we check the type
-        in the constructor and then we return the gain value in a unified way here.
-        """
-        if self._scalar_gain is None:
-            return 1.
-        if self._scalar_gain:
-            return self.readout.gain
-        return self.readout.gain[row, col]
-
     def zero_suppress(self, array: np.ndarray, threshold: Union[float, np.ndarray]) -> np.ndarray:
         """Zero suppress a generic array.
         """
@@ -326,13 +313,13 @@ class ClusteringNN(ClusteringBase):
             row = [event.row]
             adc_channel_order = [self.readout.adc_channel(event.column, event.row)]
             # Taking the NN in logical coordinates ...
-            gain_array = [self._gain(event.row, event.column)]
+            gain_array = [self.readout.gain(event.row, event.column)]
             for _col, _row in self.readout.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
                 adc_channel_order.append(self.readout.adc_channel(_col, _row))
-                gain_array.append(self._gain(_row, _col))
+                gain_array.append(self.readout.gain(_row, _col))
             # ... reordering the pha array for the correspondence (col[i], row[i]) with pha[i].
             pha = (event.pha[adc_channel_order] - self.readout.offset) / np.array(gain_array)
             # Converting lists into numpy arrays
@@ -349,7 +336,7 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([(event(_col, _row) - self.readout.offset) / self._gain(_row, _col)
+            pha = np.array([(event(_col, _row) - self.readout.offset) / self.readout.gain(_row, _col)
                             for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
         if isinstance(self.zero_sup_threshold, (int, float)):

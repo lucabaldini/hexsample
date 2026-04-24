@@ -298,12 +298,12 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of rows in the readout chip")
         group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
-        group.add_argument("--enc", type=float, default=readout.HexagonalReadoutBase.enc,
+        group.add_argument("--enc", type=float, default=20.,  # readout.HexagonalReadoutBase.enc,
                            help="equivalent noise charge in electrons")
         group.add_argument("--map_enc_file", type=str, default=None,
                            help="path to a file containing the noise map. If not specified, the" \
                            " noise value of the --enc argument is used for all the pixels.")
-        group.add_argument("--gain", type=float, default=readout.HexagonalReadoutBase.gain,
+        group.add_argument("--gain", type=float, default=1.,  # readout.HexagonalReadoutBase.gain,
                            help="conversion factor between electron equivalent and ADC counts")
         group.add_argument("--map_gain_file", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \

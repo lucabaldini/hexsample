@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Sequence, Tuple, Union, TYPE_CHECKING
+from typing import Tuple, Union, TYPE_CHECKING
 
 import numpy as np
 
@@ -194,10 +194,10 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         else:
             cols, rows = np.array(coords).T
         # Add the noise
-        noise = rng.generator.normal(0., scale=self.enc[rows, cols])
+        noise = rng.generator.normal(0., scale=self.enc(rows, cols))
         pha = pha + noise
         # Apply the conversion between electrons and ADC counts
-        pha = pha * self.gain[rows, cols]
+        pha = pha * self.gain(rows, cols)
         # Round to the nearest integer
         pha = np.round(pha).astype(int)
         # Add the offset
