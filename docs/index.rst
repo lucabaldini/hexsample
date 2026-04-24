@@ -30,24 +30,25 @@ Solid-state hybrid detectors with hexagonal sampling.
    :maxdepth: 1
    :caption: Modules:
 
-   analysis
-   base
-   cli
-   clustering
-   digi
-   display
-   fileio
-   hexagon
-   mc
-   pipeline
-   pretty
-   readout
-   recon
-   rng
-   roi
-   sensor
-   source
-   tasks
+   api/analysis
+   api/base
+   api/calibration
+   api/cli
+   api/clustering
+   api/digi
+   api/display
+   api/fileio
+   api/hexagon
+   api/mc
+   api/pipeline
+   api/pretty
+   api/readout
+   api/recon
+   api/rng
+   api/roi
+   api/sensor
+   api/source
+   api/tasks
 
 
 Indices and tables
