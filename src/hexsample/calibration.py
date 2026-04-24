@@ -98,7 +98,7 @@ class CalibrationMatrix:
             The value to be set for all the pixels in the calibration matrix.
         """
         self._matrix = np.full(self._shape, value)
-    
+
     def fill(self, value: float, max_hits: int = 0) -> None:
         """Substitute the value of the pixels with less hits than or equal to a certain threshold
         with a given value.
@@ -182,7 +182,7 @@ class CalibrationMatrix:
                 target_attr = f"_{node_name}"
                 setattr(obj, target_attr, data)
         return obj
-    
+
     def __call__(self, col: np.ndarray, row: np.ndarray) -> float:
         """Return the value of the calibration matrix for the given pixel coordinates.
 

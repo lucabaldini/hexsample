@@ -21,7 +21,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import numpy as np
 from aptapy.models import Probit

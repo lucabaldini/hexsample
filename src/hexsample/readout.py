@@ -28,14 +28,15 @@ from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 
-if TYPE_CHECKING:
-    from hexsample.calibration import CalibrationMatrix
-
 from . import rng
 from .base import TypeProxy
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .roi import Padding, RegionOfInterest
+
+if TYPE_CHECKING:
+    from hexsample.calibration import CalibrationMatrix
+
 
 
 class AbstractReadout(ABC):
