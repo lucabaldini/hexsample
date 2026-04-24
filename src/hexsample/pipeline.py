@@ -21,7 +21,7 @@
 """
 
 from . import legacy, tasks
-from .calibration import CalibrationMatrixGain
+from .calibration import CalibrationMatrix
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
@@ -34,9 +34,25 @@ def simulate(**kwargs) -> str:
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
     # If a gain response file is provided, load the gain matrix and update the kwargs
+
+
+
     if kwargs.get("map_gain_file") is not None:
-        gain_file = CalibrationMatrixGain.from_hdf5(kwargs.get("map_gain_file"))
-        kwargs.update({"gain": gain_file.matrix})
+        gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("map_gain_file"))
+        kwargs.update({"gain": gain_matrix})
+    else:
+        default_gain = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"], kwargs["gain"])
+        kwargs.update({"gain": default_gain})
+
+    if kwargs.get("map_enc_file") is not None:
+        enc_matrix = CalibrationMatrix.from_hdf5(kwargs.get("map_enc_file"))
+        kwargs.update({"enc": enc_matrix})
+    else:
+        default_enc = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"], kwargs["enc"])
+        kwargs.update({"enc": default_enc})
+
+
+
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
@@ -63,7 +79,7 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
     map_gain_file = kwargs.get("map_gain_file")
     if map_gain_file is not None:
-        gain_map = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
+        gain_map = CalibrationMatrix.from_hdf5(map_gain_file).matrix
     else:
         gain_map = None
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,

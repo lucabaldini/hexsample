@@ -33,8 +33,9 @@ from tqdm import tqdm
 from . import rng
 from .analysis import create_histogram
 from .calibration import (
-    CalibrationMatrixGain,
-    CalibrationMatrixNoise,
+    CalibrateGain,
+    CalibrateNoise,
+    CalibrationMatrix,
     angle,
     calibrate_dr_2pix,
     calibrate_dr_3pix,
@@ -434,10 +435,12 @@ def calibrate_noise(input_file_path: str) -> str:
     if readout_mode is not HexagonalReadoutMode.RECTANGULAR:
         raise RuntimeError("Noise calibration is only supported for rectangular readout")
     # Create the calibration matrix
-    noise_matrix = CalibrationMatrixNoise(header["num_cols"], header["num_rows"])
+    noise_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    noise_calibration = CalibrateNoise(noise_matrix)
     # Loop over the events and analyze the noise.
     for _, event in tqdm(enumerate(input_file)):
-        noise_matrix.analyze_event(event)
+        noise_calibration.analyze_event(event)
+    noise_calibration.update()
     # Close the input file and save the noise matrix to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     noise_matrix.to_hdf5(output_file_path)
@@ -490,7 +493,8 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
         header["pitch"], header["enc"], 1., header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
-    gain_matrix = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy)
+    gain_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    gain_calibration = CalibrateGain(gain_matrix, energy)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid", recon_pars=None)
     for _, event in tqdm(enumerate(input_file)):
@@ -498,7 +502,8 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
             cluster = clustering.run(event)
         except IndexError:
             continue
-        gain_matrix.analyze_cluster(cluster)
+        gain_calibration.analyze_cluster(cluster)
+    gain_calibration.fit()
     # Calculate the gain matrix and the mean value
     matrix = gain_matrix.matrix
     mean_gain = np.mean(matrix[gain_matrix.hits > 0])
@@ -514,14 +519,16 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
         num_events=num_events,
         output_file_path=output)
     tmp_input_file = digi_input_file_class("rectangular")(output)
-    tmp_gain_matrix = CalibrationMatrixGain(header["num_cols"], header["num_rows"], energy)
+    tmp_gain_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    tmp_gain_calibration = CalibrateGain(tmp_gain_matrix, energy)
     # Re-run the gain calibration on the simulated events to calculate the correction factor.
     for _, event in tqdm(enumerate(tmp_input_file)):
         try:
             cluster = clustering.run(event)
         except IndexError:
             continue
-        tmp_gain_matrix.analyze_cluster(cluster)
+        tmp_gain_calibration.analyze_cluster(cluster)
+    tmp_gain_calibration.fit()
     # Calculate the correction factor from the simulation.
     mask = tmp_gain_matrix.hits > 0
     residuals = (tmp_gain_matrix.matrix[mask] - gain_matrix.matrix[mask]) / gain_matrix.matrix[mask]
