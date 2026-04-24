@@ -22,6 +22,12 @@ Solid-state hybrid detectors with hexagonal sampling.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Technical info:
+
+   calibration
+
+.. toctree::
+   :maxdepth: 1
    :caption: Modules:
 
    analysis
