@@ -84,7 +84,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
     gain : float, np.ndarray
         The readout gain in ADC counts per electron (default 1, which means that
         the PHA you get out are the electrons collected).
-    
+
     offset : int
         Optional offset in ADC counts to be applied before the zero suppression.
 
@@ -203,9 +203,6 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         # Add the offset
         pha += self.offset
         # Zero suppress the thing.
-        # TODO: we have to decide how to handle the zero suppression when we have a noise map.
-        # A suggestion is to change this parameter into a mulitplicative factor to be applied
-        # to the noise map.
         self.zero_suppress(pha, self.zero_sup_threshold)
         # Flatten the array to simulate the serial readout and return the
         # array as the BEE would have.

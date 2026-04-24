@@ -297,9 +297,11 @@ def reconstruct(
     # Open the gain calibration file to update the readout gain argument. If no gain file is
     # provided, use the scalar value in the header.
     if gain_map is None:
-        gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"], header["gain"])
+        gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
+        gain_map.set_value(header["gain"])
     if noise_map is None:
-        noise_map = CalibrationMatrix(header["num_cols"], header["num_rows"], header["enc"])
+        noise_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
+        noise_map.set_value(header["enc"])
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], noise_map, gain_map, header.get("offset", 0)
@@ -495,14 +497,18 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     input_file, header, readout_mode = open_file(input_file_path)
     # Define the arguments to create the readout object with unit gain, necessary for the
     # calibration.
+    gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    gain_map.set_value(1.)
+    noise_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    noise_map.set_value(enc)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], 1., header.get("offset", 0)
+        header["pitch"], noise_map, gain_map, header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
     gain_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
     gain_calibration = CalibrateGain(gain_matrix, energy)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
-                              pos_recon_algorithm="centroid", recon_pars=None)
+                              pos_recon_algorithm="centroid")
     for _, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
@@ -510,12 +516,15 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
             continue
         gain_calibration.analyze_cluster(cluster)
     gain_calibration.fit()
-    # Calculate the gain matrix and the mean value
-    matrix = gain_matrix.matrix
-    mean_gain = np.mean(matrix[gain_matrix.hits > 0])
     # Create the readout object for the simulation. We are using rectangular readout just because
     # it's faster to simulate.
-    simulation_readout = HexagonalReadoutRectangular(enc=enc / mean_gain, gain=matrix)
+    noise_map.set_value(enc / gain_matrix.mean())
+    gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    gain_sim.matrix = gain_matrix.matrix
+    gain_sim.fill(gain_sim.mean())
+    simulation_readout = HexagonalReadoutRectangular(enc=noise_map, gain=gain_sim)
+    plt.imshow(gain_matrix.matrix, origin="lower")
+    plt.show()
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
     # Simulate events with the best-fit gain matrix to correct the bias.
     simulate(
@@ -539,7 +548,7 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     mask = tmp_gain_matrix.hits > 0
     residuals = (tmp_gain_matrix.matrix[mask] - gain_matrix.matrix[mask]) / gain_matrix.matrix[mask]
     # Apply the correction factor to the gain matrix and save it to a HDF5 file.
-    gain_matrix.matrix = gain_matrix.matrix / (1 + np.mean(residuals))
+    gain_matrix.matrix[mask] = gain_matrix.matrix[mask] / (1 + np.mean(residuals))
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
     gain_matrix.to_hdf5(output_file_path)
     # Close the input files.

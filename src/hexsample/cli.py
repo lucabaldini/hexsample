@@ -303,7 +303,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--map_enc_file", type=str, default=None,
                            help="path to a file containing the noise map. If not specified, the" \
                            " noise value of the --enc argument is used for all the pixels.")
-        group.add_argument("--gain", type=float, default=1.,  # readout.HexagonalReadoutBase.gain,
+        group.add_argument("--gain", type=float, default=1.0,  # readout.HexagonalReadoutBase.gain,
                            help="conversion factor between electron equivalent and ADC counts")
         group.add_argument("--map_gain_file", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \

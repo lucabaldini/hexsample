@@ -41,14 +41,17 @@ def simulate(**kwargs) -> str:
         gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("map_gain_file"))
         kwargs.update({"gain": gain_matrix})
     else:
-        default_gain = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"], kwargs["gain"])
+        default_gain = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"])
+        default_gain.set_value(kwargs["gain"])
         kwargs.update({"gain": default_gain})
     if kwargs.get("map_enc_file") is not None:
         enc_matrix = CalibrationMatrix.from_hdf5(kwargs.get("map_enc_file"))
+        enc_matrix.fill(enc_matrix.mean(), max_hits=0)
         kwargs.update({"enc": enc_matrix})
+
     else:
-        default_enc = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"], kwargs["enc"])
-        # This can't be passed to the header, it raises an error because the header expects a scalar value. This is just a momentary workaround until we write all the metadata in the hdf5 file properly.
+        default_enc = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"])
+        default_enc.set_value(kwargs["enc"])
         kwargs.update({"enc": default_enc})
 
 
