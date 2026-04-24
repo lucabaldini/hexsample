@@ -39,16 +39,20 @@ Solid-state hybrid detectors with hexagonal sampling.
    api/display
    api/fileio
    api/hexagon
+   api/legacy
    api/mc
    api/pipeline
    api/pretty
    api/readout
    api/recon
+   api/resolution
    api/rng
    api/roi
    api/sensor
+   api/shell
    api/source
    api/tasks
+   api/xpol
 
 
 Indices and tables
