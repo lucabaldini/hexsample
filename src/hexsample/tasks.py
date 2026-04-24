@@ -224,6 +224,8 @@ class ReconstructionDefaults:
 
 def reconstruct(
         input_file_path: str,
+    gain_matrix: CalibrationMatrix,
+    noise_matrix: CalibrationMatrix,
         suffix: str = ReconstructionDefaults.suffix,
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
@@ -235,8 +237,6 @@ def reconstruct(
         eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
         eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
         eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
-        gain_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.gain_matrix,
-        noise_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.noise_matrix,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -251,6 +251,12 @@ def reconstruct(
     ----------
     input_file_path : str
         The path to the input file.
+
+    gain_matrix : CalibrationMatrix
+        The gain matrix to use for the reconstruction.
+
+    noise_matrix : CalibrationMatrix
+        The noise matrix to use for the reconstruction.
 
     suffix : str
         The suffix to append to the output file name.
@@ -286,12 +292,9 @@ def reconstruct(
     eta_3pix_theta_sigma : float
         The sigma parameter for the angular component of the eta function for three pixel events.
 
-    gain_matrix : np.ndarray or None
-        The gain matrix to use for the reconstruction. If None, no gain correction is applied.
-
-    noise_matrix : np.ndarray or None
-        The noise matrix to use for the reconstruction. If None, no noise correction is applied.
     """
+    if gain_matrix is None or noise_matrix is None:
+        raise TypeError("gain_matrix and noise_matrix are mandatory and cannot be None")
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     # Creating the readout object.

@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -79,10 +79,10 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
 
     Arguments
     ---------
-    enc : float, np.ndarray
+    enc : CalibrationMatrix
         The equivalent noise charge in electrons.
 
-    gain : float, np.ndarray
+    gain : CalibrationMatrix
         The readout gain in ADC counts per electron (default 1, which means that
         the PHA you get out are the electrons collected).
 
@@ -93,12 +93,12 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         Trigger threshold in electron equivalent (note this is a float because it
         is expressed in physical space, not in electronics space).
 
-    zero_sup_threshold : int, np.ndarray
+    zero_sup_threshold : int
         Zero suppression threshold in ADC counts.
     """
 
-    enc: "CalibrationMatrix" = None
-    gain: "CalibrationMatrix" = None
+    enc: Optional["CalibrationMatrix"] = None
+    gain: Optional["CalibrationMatrix"] = None
     offset: int = 0
     trg_threshold: float = 500.
     zero_sup_threshold: int = 0
@@ -107,6 +107,8 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         """Post-initialization.
         """
         HexagonalGrid.__post_init__(self)
+        if self.enc is None or self.gain is None:
+            raise TypeError("enc and gain are mandatory and cannot be None")
         self.trigger_id = -1
 
     @staticmethod
