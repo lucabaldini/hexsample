@@ -39,9 +39,9 @@ from .recon import DEFAULT_IONIZATION_POTENTIAL
 
 class CalibrationMatrix:
 
-    """Class to store the calibration matrix for the detector readout.
+    """Class to store and use calibration matrices for the detector readout.
 
-    The calibration matrix is a 2D array with the same shape as the detector readout chip,
+    A calibration matrix is a 2D array with the same shape as the detector readout chip,
     and each element of the matrix represents a pixel.
 
     Arguments
@@ -73,12 +73,6 @@ class CalibrationMatrix:
         """
         return self._matrix
 
-    @property
-    def hits(self) -> np.ndarray:
-        """Return the number of events for each pixel in the calibration matrix.
-        """
-        return self._hits
-
     @matrix.setter
     def matrix(self, new_matrix: np.ndarray) -> None:
         """Set the value of the calibration matrix to a new value.
@@ -88,6 +82,12 @@ class CalibrationMatrix:
             raise ValueError(f"Input matrix has shape {new_matrix.shape}, but expected shape is "
                              f"{self._shape}.")
         self._matrix = new_matrix
+
+    @property
+    def hits(self) -> np.ndarray:
+        """Return the number of events for each pixel in the calibration matrix.
+        """
+        return self._hits
 
     def set_value(self, value: float) -> None:
         """Set a value for all the pixels in the calibration matrix.
@@ -189,9 +189,9 @@ class CalibrationMatrix:
         Arguments
         ---------
         col : np.ndarray
-            The column coordinates of the pixels to be calibrated.
+            The column coordinates of the pixels to access.
         row : np.ndarray
-            The row coordinates of the pixels to be calibrated.
+            The row coordinates of the pixels to access.
         """
         return self.matrix[row, col]
 
@@ -293,6 +293,8 @@ class CalibrateGain:
     """
 
     def __init__(self, calibration_matrix: CalibrationMatrix, energy: float) -> None:
+        """Class constructor.
+        """
         self.cal_matrix = calibration_matrix
         self._shape = calibration_matrix.shape
         self._energy = energy

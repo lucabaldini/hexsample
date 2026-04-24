@@ -33,33 +33,14 @@ def simulate(**kwargs) -> str:
     defaults = tasks.SimulationDefaults
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
-    # If a gain response file is provided, load the gain matrix and update the kwargs
-
-
-
-    if kwargs.get("map_gain_file") is not None:
-        gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("map_gain_file"))
-        kwargs.update({"gain": gain_matrix})
-    else:
-        default_gain = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"])
-        default_gain.set_value(kwargs["gain"])
-        kwargs.update({"gain": default_gain})
-    if kwargs.get("map_enc_file") is not None:
-        enc_matrix = CalibrationMatrix.from_hdf5(kwargs.get("map_enc_file"))
-        enc_matrix.fill(enc_matrix.mean(), max_hits=0)
-        kwargs.update({"enc": enc_matrix})
-
-    else:
-        default_enc = CalibrationMatrix(kwargs["num_cols"], kwargs["num_rows"])
-        default_enc.set_value(kwargs["enc"])
-        kwargs.update({"enc": default_enc})
-
-
-
+    # Open the gain and noise calibration files.
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_gain"])
+    enc_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_enc"])
+    kwargs.update({"gain": gain_matrix, "enc": enc_matrix})
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
-
-    kwargs.update({"enc": 100., "gain": 1.})  # This is just a momentary workaround until we write all the metadata in the hdf5 file properly.
-
+    # Update the kwargs with the path of the calibration files, otherwise we get an error when
+    # updating the header of the output file.
+    kwargs.update({"enc": kwargs["cal_file_enc"], "gain": kwargs["cal_file_gain"]})
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
@@ -83,20 +64,12 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
     eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
-    map_gain_file = kwargs.get("map_gain_file")
-    if map_gain_file is not None:
-        gain_map = CalibrationMatrix.from_hdf5(map_gain_file).matrix
-    else:
-        gain_map = None
-    noise_map_file = kwargs.get("map_enc_file")
-    if noise_map_file is not None:
-        noise_map = CalibrationMatrix.from_hdf5(noise_map_file).matrix
-    else:
-        noise_map = None
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
                   eta_3pix_rad_pivot, eta_3pix_theta_sigma)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, *recon_args, gain_map, noise_map
+           pos_recon_algorithm, *recon_args, gain_matrix, noise_matrix
     return tasks.reconstruct(*args, kwargs)
 
 

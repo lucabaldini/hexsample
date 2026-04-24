@@ -198,14 +198,14 @@ class ClusteringBase:
     """
 
     readout: HexagonalReadoutBase
-    zero_sup_threshold: Union[float, np.ndarray]
+    zero_sup_threshold: float
 
     def __post_init__(self) -> None:
         """Check if the readout gain is a scalar or an array.
         """
         self._scalar_gain = isinstance(self.readout.gain, (int, float))
 
-    def zero_suppress(self, array: np.ndarray, threshold: Union[float, np.ndarray]) -> np.ndarray:
+    def zero_suppress(self, array: np.ndarray, threshold: float) -> np.ndarray:
         """Zero suppress a generic array.
         """
         out = array.copy()
@@ -305,23 +305,24 @@ class ClusteringNN(ClusteringBase):
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
+        readout = self.readout
         if isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
             # Trailing -1 is bc the central px is already considered.
             self.num_neighbors = 6 #HexagonalReadoutCircular.NUM_PIXELS - 1
             col = [event.column]
             row = [event.row]
-            adc_channel_order = [self.readout.adc_channel(event.column, event.row)]
+            adc_channel_order = [readout.adc_channel(event.column, event.row)]
             # Taking the NN in logical coordinates ...
-            gain_array = [self.readout.gain(event.row, event.column)]
-            for _col, _row in self.readout.neighbors(event.column, event.row):
+            gain_array = [readout.gain(event.row, event.column)]
+            for _col, _row in readout.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
-                adc_channel_order.append(self.readout.adc_channel(_col, _row))
-                gain_array.append(self.readout.gain(_row, _col))
+                adc_channel_order.append(readout.adc_channel(_col, _row))
+                gain_array.append(readout.gain(_row, _col))
             # ... reordering the pha array for the correspondence (col[i], row[i]) with pha[i].
-            pha = (event.pha[adc_channel_order] - self.readout.offset) / np.array(gain_array)
+            pha = (event.pha[adc_channel_order] - readout.offset) / np.array(gain_array)
             # Converting lists into numpy arrays
             col = np.array(col)
             row = np.array(row)
@@ -331,20 +332,15 @@ class ClusteringNN(ClusteringBase):
             seed_col, seed_row = event.highest_pixel()
             col = [seed_col]
             row = [seed_row]
-            for _col, _row in self.readout.neighbors(seed_col, seed_row):
+            for _col, _row in readout.neighbors(seed_col, seed_row):
                 col.append(_col)
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([(event(_col, _row) - self.readout.offset) / self.readout.gain(_row, _col)
+            pha = np.array([(event(_col, _row) - readout.offset) / readout.gain(_row, _col)
                             for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
-        if isinstance(self.zero_sup_threshold, (int, float)):
-            pha = self.zero_suppress(pha, self.zero_sup_threshold)
-        else:
-            zero_sup_array = np.array([self.zero_sup_threshold[_row, _col]
-                                       for _col, _row in zip(col, row)])
-            pha = self.zero_suppress(pha, zero_sup_array)
+        pha = self.zero_suppress(pha, self.zero_sup_threshold)
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.
         idx = np.argsort(-pha)

@@ -218,8 +218,8 @@ class ReconstructionDefaults:
     eta_3pix_rad_sigma: float = 0.141
     eta_3pix_rad_pivot: float = 0.05
     eta_3pix_theta_sigma: float = 0.104
-    gain_map: Optional[CalibrationMatrix] = None
-    noise_map: Optional[CalibrationMatrix] = None
+    gain_matrix: Optional[CalibrationMatrix] = None
+    noise_matrix: Optional[CalibrationMatrix] = None
 
 
 def reconstruct(
@@ -235,8 +235,8 @@ def reconstruct(
         eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
         eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
         eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
-        gain_map: Optional[CalibrationMatrix] = ReconstructionDefaults.gain_map,
-        noise_map: Optional[CalibrationMatrix] = ReconstructionDefaults.noise_map,
+        gain_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.gain_matrix,
+        noise_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.noise_matrix,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -286,25 +286,17 @@ def reconstruct(
     eta_3pix_theta_sigma : float
         The sigma parameter for the angular component of the eta function for three pixel events.
 
-    gain_map : np.ndarray or None
-        The gain map to use for the reconstruction. If None, no gain correction is applied.
+    gain_matrix : np.ndarray or None
+        The gain matrix to use for the reconstruction. If None, no gain correction is applied.
 
-    noise_map : np.ndarray or None
-        The noise map to use for the reconstruction. If None, no noise correction is applied.
+    noise_matrix : np.ndarray or None
+        The noise matrix to use for the reconstruction. If None, no noise correction is applied.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
-    # Open the gain calibration file to update the readout gain argument. If no gain file is
-    # provided, use the scalar value in the header.
-    if gain_map is None:
-        gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
-        gain_map.set_value(header["gain"])
-    if noise_map is None:
-        noise_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
-        noise_map.set_value(header["enc"])
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_map, gain_map, header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to

@@ -298,14 +298,12 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of rows in the readout chip")
         group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
-        group.add_argument("--enc", type=float, default=20.,  # readout.HexagonalReadoutBase.enc,
-                           help="equivalent noise charge in electrons")
-        group.add_argument("--map_enc_file", type=str, default=None,
+        # TODO: when we implement the CalDB, i think we just specify the set of calibration files,
+        # instead of having separate options, but for now let's implement it this way.
+        group.add_argument("--cal_file_enc", type=str, default=None,
                            help="path to a file containing the noise map. If not specified, the" \
                            " noise value of the --enc argument is used for all the pixels.")
-        group.add_argument("--gain", type=float, default=1.0,  # readout.HexagonalReadoutBase.gain,
-                           help="conversion factor between electron equivalent and ADC counts")
-        group.add_argument("--map_gain_file", type=str, default=None,
+        group.add_argument("--cal_file_gain", type=str, default=None,
                            help="path to a file containing the gain map. If not specified, the" \
                            " gain value of the --gain argument is used for all the pixels.")
         group.add_argument("--offset", type=int, default=readout.HexagonalReadoutBase.offset,
@@ -338,8 +336,12 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="maximum number of neighbors to be considered")
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta"],
                            type=str, default="centroid", help="How to reconstruct position")
-        group.add_argument("--map_gain_file", type=str, default=None,
-                           help="path to a file containing the gain map. If not specified, the" \
+        group.add_argument("--cal_file_enc", type=str, default=None,
+                           help="path to a file containing the noise map. If not specified, the" \
+                           " noise value stored in the DigiFile header will be used for all" \
+                           " the pixels.")
+        group.add_argument("--cal_file_gain", type=str, default=None,
+                           help="path to a file containing the gain matrix. If not specified, the" \
                            " gain value stored in the DigiFile header will be used for all" \
                            " the pixels.")
         group.add_argument("--eta_2pix_rad_sigma", default=defaults.eta_2pix_rad_sigma, type=float,

@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 
@@ -100,7 +100,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
     gain: "CalibrationMatrix" = None
     offset: int = 0
     trg_threshold: float = 500.
-    zero_sup_threshold: Union[int, np.ndarray] = 0
+    zero_sup_threshold: int = 0
 
     def __post_init__(self):
         """Post-initialization.
@@ -124,7 +124,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         return not value & 0x1
 
     @staticmethod
-    def discriminate(array: np.ndarray, threshold: Union[float, np.ndarray]) -> np.ndarray:
+    def discriminate(array: np.ndarray, threshold: float) -> np.ndarray:
         """Utility function acting as a simple constant-threshold discriminator
         over a generic array. This returns a boolean mask with True for all the
         array elements larger than the threshold.
@@ -140,7 +140,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         return array > threshold
 
     @staticmethod
-    def zero_suppress(array: np.ndarray, threshold: Union[float, np.ndarray]) -> None:
+    def zero_suppress(array: np.ndarray, threshold: float) -> None:
         """Utility function to zero-suppress a generic array.
 
         This is returning an array of the same shape of the input where all the
@@ -154,7 +154,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         array : array_like
             The input array.
 
-        threshold : float, np.ndarray
+        threshold : float
             The zero suppression threshold.
         """
         mask = np.logical_not(HexagonalReadoutBase.discriminate(array, threshold))
