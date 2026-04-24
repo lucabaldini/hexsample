@@ -68,8 +68,8 @@ def reconstruct(**kwargs) -> str:
     noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
                   eta_3pix_rad_pivot, eta_3pix_theta_sigma)
-    args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, *recon_args, gain_matrix, noise_matrix
+        args = input_file_path, gain_matrix, noise_matrix, suffix, zero_sup_threshold, num_neighbors, \
+            max_neighbors, pos_recon_algorithm, *recon_args
     return tasks.reconstruct(*args, kwargs)
 
 
