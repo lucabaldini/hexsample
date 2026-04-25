@@ -23,15 +23,15 @@
 
 from typing import Optional, Tuple
 
+import h5py
 import numpy as np
-import tables
 from aptapy.hist import Histogram2d
 from aptapy.models import Probit
 from aptapy.plotting import last_line_color, plt
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
-from tables.attributeset import AttributeSet
 
+from ._version import __version__
 from .clustering import Cluster
 from .digi import DigiEventRectangular
 from .recon import DEFAULT_IONIZATION_POTENTIAL
@@ -60,6 +60,12 @@ class CalibrationMatrix:
         # Create the arrays to store the calibration data and the number of events for each pixel.
         self._matrix = np.full(self._shape, np.nan)
         self._hits = np.zeros(self._shape, dtype=int)
+        # Store the metadata of the calibration matrix
+        self._metadata = dict(
+            num_cols=num_cols,
+            num_rows=num_rows,
+            version=__version__
+        )
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -88,6 +94,12 @@ class CalibrationMatrix:
         """Return the number of events for each pixel in the calibration matrix.
         """
         return self._hits
+
+    @property
+    def metadata(self) -> dict:
+        """Return the metadata of the calibration matrix.
+        """
+        return self._metadata
 
     def set_value(self, value: float) -> None:
         """Set a value for all the pixels in the calibration matrix.
@@ -127,37 +139,34 @@ class CalibrationMatrix:
             return np.nan
         return self._matrix[self._hits >= min_hits].mean()
 
-    def to_hdf5(self, file_path: str) -> str:
+    def to_hdf5(self, file_path: str, feature: str, is_synthetic: bool) -> str:
         """Save the calibration matrix to an HDF5 file at the given path.
 
         Arguments
         ---------
         file_path : str
             The path of the file on the disk.
+        feature : str
+            The feature for which the calibration matrix is being saved.
+        is_synthetic : bool
+            Whether the calibration data is synthetic or not.
         """
         # pylint: disable=protected-access
-        with tables.File(file_path, "w") as h5file:
-            root = h5file.root
+        compression_pars = dict(
+            compression="gzip",
+            compression_opts=9,
+            shuffle=True
+        )
+        with h5py.File(file_path, "w") as h5file:
             # Save the matrix and the hits matrices as arrays in the HDF5 file.
-            h5file.create_array(root, "matrix", self.matrix)
-            h5file.create_array(root, "hits", self.hits)
-            # Update the header with the relevant information.
-            attrs = root._v_attrs
-            attrs.num_rows = self._shape[0]
-            attrs.num_cols = self._shape[1]
+            h5file.create_dataset("matrix", data=self.matrix, **compression_pars)
+            h5file.create_dataset("hits", data=self.hits, **compression_pars)
+            # Update the header with the relevant information and metadata.
+            h5file.attrs["feature"] = feature
+            h5file.attrs["is_synthetic"] = is_synthetic
+            for key, val in self._metadata.items():
+                h5file.attrs[key] = val
         return file_path
-
-    @staticmethod
-    def _load_header_dict(attrs: AttributeSet) -> dict:
-        """Load the header of the HDF5 file and return a dictionary with the relevant attributes
-        for the calibration matrix.
-        """
-        # pylint: disable=protected-access
-        # Load all the attributes from the header.
-        header_dict = {name: getattr(attrs, name) for name in attrs._v_attrnames}
-        # We need to filter out the attributes that are not relevant for the calibration matrix.
-        return {key: val for key, val in header_dict.items()
-                if not key.isupper() and not key.startswith("PYTABLES_")}
 
     @classmethod
     def from_hdf5(cls, file_path: str) -> "CalibrationMatrix":
@@ -169,18 +178,15 @@ class CalibrationMatrix:
             The path of the file on the disk.
         """
         # pylint: disable=protected-access
-        with tables.File(file_path, "r") as h5file:
+        with h5py.File(file_path, "r") as h5file:
             # Load the attributes from the header.
-            attrs = cls._load_header_dict(h5file.root._v_attrs)
+            attrs = dict(h5file.attrs)
             # Instantiate the object with the attributes loaded from the header.
-            obj = cls(**attrs)
-            # Loop over the nodes in the HDF5 file and set the corresponding attributes with the
-            # data.
-            for node in h5file.iter_nodes(h5file.root):
-                node_name = node._v_name
-                data = node[:]
-                target_attr = f"_{node_name}"
-                setattr(obj, target_attr, data)
+            obj = cls(num_cols=attrs["num_cols"], num_rows=attrs["num_rows"])
+            obj._metadata.update(attrs)
+            # Load the matrix and the hits matrices from the HDF5 file.
+            obj._matrix = h5file["matrix"][:]
+            obj._hits = h5file["hits"][:]
         return obj
 
     def __call__(self, col: np.ndarray, row: np.ndarray) -> float:

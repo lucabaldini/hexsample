@@ -37,6 +37,7 @@ dependencies = [
     "numpy",
     "pydata-sphinx-theme",
     "scipy",
+    "h5py",
     "tables",
     "tqdm",
     "uncertainties",

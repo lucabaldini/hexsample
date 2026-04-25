@@ -298,8 +298,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of rows in the readout chip")
         group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
-        # TODO: when we implement the CalDB, i think we just specify the set of calibration files,
-        # instead of having separate options, but for now let's implement it this way.
         group.add_argument("--cal_file_enc", type=str, default=None,
                            help="path to a file containing the noise map. If not specified, the" \
                            " noise value of the --enc argument is used for all the pixels.")
