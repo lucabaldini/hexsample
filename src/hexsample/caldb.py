@@ -28,11 +28,11 @@ class MapIntent:
     pass
 
 
-def create_response_file(num_cols: int, num_rows: int, quantity: str, value: float):
-    """Create a response file for a given quantity and value.
+def create_response_file(num_cols: int, num_rows: int, feature: str, value: float):
+    """Create a response file for a given feature and value.
     """
     cal_matrix = CalibrationMatrix(num_cols, num_rows)
     matrix = np.full((num_rows, num_cols), value)
     cal_matrix.matrix = matrix
-    output_file_path = MapIntent(quantity)
-    cal_matrix.to_hdf5(output_file_path)
+    output_file_path = MapIntent(feature)
+    cal_matrix.to_hdf5(output_file_path, feature, True)
