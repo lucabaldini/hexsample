@@ -314,15 +314,13 @@ class ClusteringNN(ClusteringBase):
             row = [event.row]
             adc_channel_order = [readout.adc_channel(event.column, event.row)]
             # Taking the NN in logical coordinates ...
-            gain_array = [readout.gain(event.row, event.column)]
             for _col, _row in readout.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
                 adc_channel_order.append(readout.adc_channel(_col, _row))
-                gain_array.append(readout.gain(_row, _col))
             # ... reordering the pha array for the correspondence (col[i], row[i]) with pha[i].
-            pha = (event.pha[adc_channel_order] - readout.offset) / np.array(gain_array)
+            pha = (event.pha[adc_channel_order] - readout.pedestal(col, row)) / readout.gain(col, row)
             # Converting lists into numpy arrays
             col = np.array(col)
             row = np.array(row)
@@ -337,7 +335,7 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([(event(_col, _row) - readout.offset) / readout.gain(_row, _col)
+            pha = np.array([(event(_col, _row) - readout.pedestal(_col, _row)) / readout.gain(_col, _row)
                             for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha, self.zero_sup_threshold)

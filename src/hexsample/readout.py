@@ -86,8 +86,8 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         The readout gain in ADC counts per electron (default 1, which means that
         the PHA you get out are the electrons collected).
 
-    offset : int
-        Optional offset in ADC counts to be applied before the zero suppression.
+    pedestal : CalibrationMatrix
+        The pedestal in ADC counts.
 
     trg_threshold : float
         Trigger threshold in electron equivalent (note this is a float because it
@@ -99,7 +99,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
 
     enc: Optional["CalibrationMatrix"] = None
     gain: Optional["CalibrationMatrix"] = None
-    offset: int = 0
+    pedestal: Optional["CalibrationMatrix"] = None
     trg_threshold: float = 500.
     zero_sup_threshold: int = 0
 
@@ -197,14 +197,14 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         else:
             cols, rows = np.array(coords).T
         # Add the noise
-        noise = rng.generator.normal(0., scale=self.enc(rows, cols))
+        noise = rng.generator.normal(0., scale=self.enc(cols, rows))
         pha = pha + noise
         # Apply the conversion between electrons and ADC counts
-        pha = pha * self.gain(rows, cols)
+        pha = pha * self.gain(cols, rows)
         # Round to the nearest integer
         pha = np.round(pha).astype(int)
-        # Add the offset
-        pha += self.offset
+        # Add the pedestal
+        pha += self.pedestal(cols, rows)
         # Zero suppress the thing.
         self.zero_suppress(pha, self.zero_sup_threshold)
         # Flatten the array to simulate the serial readout and return the

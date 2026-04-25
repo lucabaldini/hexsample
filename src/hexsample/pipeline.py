@@ -36,11 +36,13 @@ def simulate(**kwargs) -> str:
     # Open the gain and noise calibration files.
     gain_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_gain"])
     enc_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_enc"])
-    kwargs.update({"gain": gain_matrix, "enc": enc_matrix})
+    pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_pedestal"])
+    kwargs.update({"gain": gain_matrix, "enc": enc_matrix, "pedestal": pedestal_matrix})
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
     # Update the kwargs with the path of the calibration files, otherwise we get an error when
     # updating the header of the output file.
-    kwargs.update({"enc": kwargs["cal_file_enc"], "gain": kwargs["cal_file_gain"]})
+    kwargs.update({"enc": kwargs["cal_file_enc"], "gain": kwargs["cal_file_gain"], 
+                   "pedestal": kwargs["cal_file_pedestal"]})
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
@@ -66,10 +68,11 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
     gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
     noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_pedestal"))
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
                   eta_3pix_rad_pivot, eta_3pix_theta_sigma)
     args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, *recon_args, gain_matrix, noise_matrix
+           pos_recon_algorithm, *recon_args, gain_matrix, noise_matrix, pedestal_matrix
     return tasks.reconstruct(*args, kwargs)
 
 

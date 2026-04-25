@@ -220,7 +220,7 @@ class ReconstructionDefaults:
     eta_3pix_theta_sigma: float = 0.104
     gain_matrix: Optional[CalibrationMatrix] = None
     noise_matrix: Optional[CalibrationMatrix] = None
-
+    pedestal_matrix: Optional[CalibrationMatrix] = None
 
 def reconstruct(
         input_file_path: str,
@@ -237,6 +237,7 @@ def reconstruct(
         eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
         gain_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.gain_matrix,
         noise_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.noise_matrix,
+        pedestal_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.pedestal_matrix,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -291,12 +292,15 @@ def reconstruct(
 
     noise_matrix : CalibrationMatrix
         The noise matrix to use for the reconstruction.
+
+    pedestal_matrix : CalibrationMatrix
+        The pedestal matrix to use for the reconstruction.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_matrix, header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
