@@ -94,7 +94,7 @@ class CalibrationMatrix:
         """Return the number of events for each pixel in the calibration matrix.
         """
         return self._hits
-    
+
     @property
     def metadata(self) -> dict:
         """Return the metadata of the calibration matrix.
