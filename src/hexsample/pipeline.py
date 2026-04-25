@@ -20,7 +20,9 @@
 """Pipeline facilities.
 """
 
+
 from . import legacy, tasks
+from .caldb import create_response_file
 from .calibration import CalibrationMatrix
 from .readout import ReadoutProxy
 from .sensor import Sensor
@@ -100,6 +102,19 @@ def calibrate_gain(**kwargs) -> str:
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationGainDefaults.zero_sup_threshold)
     return tasks.calibrate_gain(input_file_path, energy, num_events, enc, zero_sup_threshold)
+
+
+def create_cal_file(**kwargs) -> str:
+    """Create a calibration file for a given feature.
+    """
+    feature = kwargs["feature"]
+    loc = kwargs["loc"]
+    distribution = kwargs["distribution"]
+    scale = kwargs["scale"]
+    num_cols = kwargs["num_cols"]
+    num_rows = kwargs["num_rows"]
+    args = feature, loc, distribution, scale, num_cols, num_rows
+    return create_response_file(*args)
 
 
 def display(**kwargs) -> None:

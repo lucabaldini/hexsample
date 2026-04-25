@@ -23,7 +23,18 @@
 import argparse
 
 from hexsample import __name__ as __package_name__
-from hexsample import __version__, hexagon, logging_, pipeline, readout, roi, sensor, source, tasks
+from hexsample import (
+    __version__,
+    caldb,
+    hexagon,
+    logging_,
+    pipeline,
+    readout,
+    roi,
+    sensor,
+    source,
+    tasks
+)
 
 
 def start_message() -> None:
@@ -126,6 +137,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_zero_sup_threshold(gain, default=tasks.CalibrationGainDefaults.zero_sup_threshold)
         self.add_logging_level(gain)
         gain.set_defaults(runner=pipeline.calibrate_gain)
+        # Create calibration files
+        create_cal = calibrate_subparsers.add_parser("create", help="create calibration files")
+        self.add_feature(create_cal)
+        self.add_location(create_cal)
+        self.add_create_cal_file_options(create_cal)
+        self.add_logging_level(create_cal)
+        create_cal.set_defaults(runner=pipeline.create_cal_file)
 
         # Run the single-event display?
         display = subparsers.add_parser("display",
@@ -229,6 +247,21 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--zero_sup_threshold", type=int, default=default,
                             help="zero-suppression threshold in ADC counts")
+
+    @staticmethod
+    def add_feature(parser: argparse.ArgumentParser) -> None:
+        """Add an option for the feature to be calibrated.
+        """
+        parser.add_argument("feature", type=str, choices=caldb.CalibrationFeatures.values(),
+                            help="feature to be calibrated")
+
+    @staticmethod
+    def add_location(parser: argparse.ArgumentParser) -> None:
+        """Add an option for the location of the feature to be calibrated.
+        """
+        parser.add_argument("loc", type=float,
+                            help="mean of the distribution from which the feature values" \
+                            "are extracted")
 
     @staticmethod
     def add_source_options(parser: argparse.ArgumentParser) -> None:
@@ -370,6 +403,20 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--event_id", type=int,
                            default=tasks.DisplayDefaults.event_id,
                            help="ID of the event to display")
+
+    def add_create_cal_file_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group to create calibration files.
+        """
+        group = parser.add_argument_group("create", "Create calibration files")
+        group.add_argument("--distribution", type=str, default="scalar",
+                           choices=["gaussian", "scalar"],
+                           help="distribution from which the feature valuesare extracted")
+        group.add_argument("--scale", type=float, default=1.,
+                           help="scale factor for the feature values")
+        group.add_argument("--num_cols", type=int, default=hexagon.HexagonalGrid.num_cols,
+                           help="number of colums in the readout chip")
+        group.add_argument("--num_rows", type=int, default=hexagon.HexagonalGrid.num_rows,
+                           help="number of rows in the readout chip")
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.

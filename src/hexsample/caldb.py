@@ -20,19 +20,44 @@
 """Calibration database facilities.
 """
 
+from enum import Enum
+from typing import Tuple
+
 import numpy as np
 
 from .calibration import CalibrationMatrix
 
-class MapIntent:
-    pass
+
+class CalibrationFeatures(Enum):
+
+    """Enum class expressing the possible calibration features.
+    """
+
+    GAIN = "gain"
+    NOISE = "noise"
+    PEDESTAL = "pedestal"
+
+    @classmethod
+    def values(cls) -> Tuple[str, ...]:
+        """Return a tuple with all the enum values.
+        """
+        return tuple(item.value for item in cls)
 
 
-def create_response_file(num_cols: int, num_rows: int, feature: str, value: float):
+def create_response_file(feature: str, loc: float, distribution: str, scale: float, num_cols: int, num_rows: int):
     """Create a response file for a given feature and value.
     """
+    # Create the instance to store the calibration matrix.
     cal_matrix = CalibrationMatrix(num_cols, num_rows)
-    matrix = np.full((num_rows, num_cols), value)
+    # Create the matrix with the given distribution and location.
+    if distribution == "scalar":
+        matrix = np.full((num_rows, num_cols), loc)
+    elif distribution == "gaussian":
+        matrix = np.random.normal(loc, scale, (num_rows, num_cols))
+    else:
+        raise ValueError(f"Unsupported distribution: {distribution}")
+    # Store the matrix in the calibration matrix instance.
     cal_matrix.matrix = matrix
-    output_file_path = MapIntent(feature)
+    # Define the file name and save the calibration matrix to an HDF5 file.
+    output_file_path = "test_cal.hdf5"
     cal_matrix.to_hdf5(output_file_path, feature, True)

@@ -20,7 +20,7 @@
 """Calibration facilities.
 """
 
-
+from enum import Enum
 from typing import Optional, Tuple
 
 import h5py
