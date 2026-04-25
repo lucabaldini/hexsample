@@ -25,6 +25,7 @@ from typing import Tuple
 
 import numpy as np
 
+from .tasks import HEXSAMPLE_DATA
 from .calibration import CalibrationMatrix
 
 
@@ -59,5 +60,5 @@ def create_response_file(feature: str, loc: float, distribution: str, scale: flo
     # Store the matrix in the calibration matrix instance.
     cal_matrix.matrix = matrix
     # Define the file name and save the calibration matrix to an HDF5 file.
-    output_file_path = "test_cal.hdf5"
+    output_file_path = f"{HEXSAMPLE_DATA}/cal_{feature}.hdf5"    # Just a momentary placeholder
     cal_matrix.to_hdf5(output_file_path, feature, True)
