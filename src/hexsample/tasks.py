@@ -445,7 +445,7 @@ def calibrate_noise(input_file_path: str) -> str:
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     # TODO: consider adding an attribute in the simulated digi file to identify it as synthetic
     # data.
-    noise_matrix.to_hdf5(output_file_path, "noise", True)
+    noise_matrix.to_hdf5(output_file_path, "noise", False)
     input_file.close()
     return output_file_path
 
@@ -544,7 +544,7 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     # Apply the correction factor to the gain matrix and save it to a HDF5 file.
     gain_matrix.matrix[mask] = gain_matrix.matrix[mask] / (1 + np.mean(residuals))
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
-    gain_matrix.to_hdf5(output_file_path, "gain", True)
+    gain_matrix.to_hdf5(output_file_path, "gain", False)
     # Close the input files.
     tmp_input_file.close()
     input_file.close()
