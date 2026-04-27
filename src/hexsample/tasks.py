@@ -514,7 +514,7 @@ class CalibrationGainDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    num_events: int = 50000
+    num_events: int = 100000
     zero_sup_threshold: int = 20
 
 
@@ -586,7 +586,7 @@ def calibrate_gain(
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
     # Simulate events with the best-fit gain matrix to correct the bias.
     simulate(
-        source=Source(Line(energy), DiskBeam(radius=0.05)),
+        source=Source(Line(energy), DiskBeam(radius=0.02)),
         sensor=Sensor(),
         readout=simulation_readout,
         num_events=num_events,

@@ -114,9 +114,10 @@ def calibrate_gain(**kwargs) -> str:
     energy = kwargs["energy"]
     num_events = kwargs.get("num_events", tasks.CalibrationGainDefaults.num_events)
     noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_pedestal"))
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationGainDefaults.zero_sup_threshold)
-    args = input_file_path, energy, noise_matrix, num_events, zero_sup_threshold
+    args = input_file_path, energy, noise_matrix, pedestal_matrix, num_events, zero_sup_threshold
     return tasks.calibrate_gain(*args)
 
 
