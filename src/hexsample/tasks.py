@@ -509,7 +509,6 @@ class CalibrationGainDefaults:
     """
 
     num_events: int = 50000
-    enc: int = 20
     zero_sup_threshold: int = 20
 
 
