@@ -200,11 +200,11 @@ class ClusteringBase:
     readout: HexagonalReadoutBase
     zero_sup_threshold: float
 
-    def zero_suppress(self, array: np.ndarray, threshold: float) -> np.ndarray:
+    def zero_suppress(self, array: np.ndarray) -> np.ndarray:
         """Zero suppress a generic array.
         """
         out = array.copy()
-        out[out <= threshold] = 0
+        out[out <= self.zero_sup_threshold] = 0
         return out
 
     def position_suppress(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray
@@ -335,7 +335,7 @@ class ClusteringNN(ClusteringBase):
                 for _col, _row in zip(col, row)
             ])
         # Zero suppressing the event (whatever the readout type)...
-        pha = self.zero_suppress(pha, self.zero_sup_threshold)
+        pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.
         idx = np.argsort(-pha)
