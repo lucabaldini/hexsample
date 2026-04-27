@@ -319,8 +319,9 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
                 adc_channel_order.append(readout.adc_channel(_col, _row))
-            # ... reordering the pha array for the correspondence (col[i], row[i]) with pha[i].
-            pha = (event.pha[adc_channel_order] - readout.pedestal(col, row)) / readout.gain(col, row)
+            # Removing the pedestal and applying the gain correction.
+            pha = event.pha[adc_channel_order] - readout.pedestal(col, row)
+            pha = pha / readout.gain(col, row)
             # Converting lists into numpy arrays
             col = np.array(col)
             row = np.array(row)
@@ -335,8 +336,10 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([(event(_col, _row) - readout.pedestal(_col, _row)) / readout.gain(_col, _row)
-                            for _col, _row in zip(col, row)])
+            pha = np.array([
+                (event(_col, _row) - readout.pedestal(_col, _row)) / readout.gain(_col, _row)
+                for _col, _row in zip(col, row)
+            ])
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha, self.zero_sup_threshold)
         # Array indexes in order of decreasing pha---note that we use -pha to

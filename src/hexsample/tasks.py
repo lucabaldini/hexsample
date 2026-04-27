@@ -454,8 +454,6 @@ def calibrate_noise(
     noise_calibration.update()
     # Close the input file and save the noise matrix to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
-    # TODO: consider adding an attribute in the simulated digi file to identify it as synthetic
-    # data.
     noise_matrix.to_hdf5(output_file_path, "noise", False)
     input_file.close()
     return output_file_path
@@ -471,7 +469,7 @@ class CalibrationDarkDefaults:
 
     has_source: bool = True
     batch_size: int = 5000000
-    
+
 
 def calibrate_dark(
         input_file_path: str,
@@ -496,8 +494,6 @@ def calibrate_dark(
     # Close the input file and save the noise matrix to a HDF5 file.
     noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")
-    # TODO: consider adding an attribute in the simulated digi file to identify it as synthetic
-    # data.
     noise_matrix.to_hdf5(noise_output_file_path, "noise", False)
     pedestal_matrix.to_hdf5(pedestal_output_file_path, "pedestal", False)
     input_file.close()
@@ -572,7 +568,8 @@ def calibrate_gain(
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
     gain_sim.matrix = gain_matrix.matrix
     gain_sim.fill(gain_sim.mean())
-    simulation_readout = HexagonalReadoutRectangular(enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
+    simulation_readout = HexagonalReadoutRectangular(enc=noise_matrix, gain=gain_sim,
+                                                     pedestal=pedestal_matrix)
     plt.imshow(gain_matrix.matrix, origin="lower")
     plt.show()
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"

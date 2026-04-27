@@ -26,7 +26,7 @@ from typing import Optional, Tuple
 import h5py
 import numpy as np
 from aptapy.hist import Histogram2d, Histogram3d
-from aptapy.models import Gaussian, Probit
+from aptapy.models import Probit
 from aptapy.plotting import last_line_color, plt
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr

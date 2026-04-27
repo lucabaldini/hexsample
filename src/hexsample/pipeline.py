@@ -41,7 +41,7 @@ def simulate(**kwargs) -> str:
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
     # Update the kwargs with the path of the calibration files, otherwise we get an error when
     # updating the header of the output file.
-    kwargs.update({"enc": kwargs["cal_file_enc"], "gain": kwargs["cal_file_gain"], 
+    kwargs.update({"enc": kwargs["cal_file_enc"], "gain": kwargs["cal_file_gain"],
                    "pedestal": kwargs["cal_file_pedestal"]})
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)

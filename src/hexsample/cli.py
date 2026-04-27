@@ -373,10 +373,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the dark calibration properties.
         """
         group = parser.add_argument_group("dark_calibration", "Dark calibration configuration")
-        group.add_argument("--has_source", type=bool, default=tasks.CalibrationDarkDefaults.has_source,
-                            help="specify if the dataset contains events with a source on")
-        group.add_argument("--batch_size", type=int, default=tasks.CalibrationDarkDefaults.batch_size,
-                            help="number of events to be analyzed in a batch for the dark calibration")
+        group.add_argument("--has_source", type=bool,
+                           default=tasks.CalibrationDarkDefaults.has_source,
+                           help="specify if the dataset contains events with a source on")
+        group.add_argument("--batch_size", type=int,
+                           default=tasks.CalibrationDarkDefaults.batch_size,
+                           help="number of events to be analyzed in a batch for the dark" \
+                           "calibration")
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
