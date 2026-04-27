@@ -36,6 +36,7 @@ def simulate(**kwargs) -> str:
     # Open the gain and noise calibration files.
     gain_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_gain"])
     enc_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_enc"])
+    # We need to update the kwargs to pass the gain and noise matrices to the readout.
     kwargs.update({"gain": gain_matrix, "enc": enc_matrix})
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
     # Update the kwargs with the path of the calibration files, otherwise we get an error when
@@ -96,18 +97,21 @@ def calibrate_gain(**kwargs) -> str:
     input_file_path = kwargs["input_file"]
     energy = kwargs["energy"]
     num_events = kwargs.get("num_events", tasks.CalibrationGainDefaults.num_events)
-    enc = kwargs.get("enc", tasks.CalibrationGainDefaults.enc)
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationGainDefaults.zero_sup_threshold)
-    return tasks.calibrate_gain(input_file_path, energy, num_events, enc, zero_sup_threshold)
+    args = input_file_path, energy, num_events, noise_matrix, zero_sup_threshold
+    return tasks.calibrate_gain(*args)
 
 
 def display(**kwargs) -> None:
     """Display events from a digi or recon file.
     """
     input_file_path = kwargs["input_file"]
-    zero_sup_threshold = kwargs.get("zero_sup_threshold", tasks.DisplayDefaults.zero_sup_threshold)
-    return tasks.display(input_file_path, zero_sup_threshold)
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    args = input_file_path, gain_matrix, noise_matrix
+    return tasks.display(*args)
 
 
 def quicklook(**kwargs) -> None:

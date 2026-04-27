@@ -359,7 +359,11 @@ class CalibrationEtaDefaults:
     zero_sup_threshold: int = 30
 
 
-def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int) -> None:
+def calibrate_eta(
+        input_file_path: str,
+        num_bins: int,
+        zero_sup_threshold: int
+        ) -> None:
     """Calibrate the eta function using the events from a digi file.
 
     Arguments
@@ -420,7 +424,9 @@ def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int) 
     plt.show()
 
 
-def calibrate_noise(input_file_path: str) -> str:
+def calibrate_noise(
+        input_file_path: str
+        ) -> str:
     """Calibrate noise of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
 
@@ -459,12 +465,15 @@ class CalibrationGainDefaults:
     """
 
     num_events: int = 50000
-    enc: int = 20
     zero_sup_threshold: int = 20
 
 
-def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: int,
-                   zero_sup_threshold: int) -> str:
+def calibrate_gain(
+        input_file_path: str,
+        energy: float,
+        noise_matrix: CalibrationMatrix,
+        num_events: int,
+        zero_sup_threshold: int) -> str:
     """Calibrate gain of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
 
@@ -477,12 +486,11 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
         The energy of the X-ray photons in eV. This is used to convert the charge collected in
         each pixel to the number of electron, which is necessary for the gain calibration.
 
+    noise_matrix : CalibrationMatrix
+        The calibration noise matrix to use for the gain calibration.
+
     num_events : int
         The number of events to simulate to correct the bias.
-
-    enc : int
-        The equivalent noise charge of the readout in electrons. This is used to set the noise
-        level of the simulated events for the bias correction.
 
     zero_sup_threshold : int
         The zero-suppression threshold to use for the clustering in the gain calibration.
@@ -493,10 +501,8 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     # calibration.
     gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
     gain_map.set_value(1.)
-    noise_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    noise_map.set_value(enc)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_map, gain_map, header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_map, header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
     gain_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
@@ -512,11 +518,10 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     gain_calibration.fit()
     # Create the readout object for the simulation. We are using rectangular readout just because
     # it's faster to simulate.
-    noise_map.set_value(enc / gain_matrix.mean())
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
     gain_sim.matrix = gain_matrix.matrix
     gain_sim.fill(gain_sim.mean())
-    simulation_readout = HexagonalReadoutRectangular(enc=noise_map, gain=gain_sim)
+    simulation_readout = HexagonalReadoutRectangular(enc=noise_matrix, gain=gain_sim)
     plt.imshow(gain_matrix.matrix, origin="lower")
     plt.show()
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
@@ -551,22 +556,10 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     return output_file_path
 
 
-class DisplayDefaults:
-
-    """Default parameters for the display task.
-
-    This is a small helper dataclass to help ensure consistency between the main task
-    definition in this Python module and the command-line interface.
-    """
-
-    zero_sup_threshold: int = 30
-    num_neighbors: int = 6
-    event_id: int = None
-
-
 def display(
         input_file_path: str,
-        zero_sup_threshold: int = DisplayDefaults.zero_sup_threshold,
+        gain_matrix: CalibrationMatrix,
+        noise_matrix: CalibrationMatrix
         ) -> None:
     """Display events from a digi file.
 
@@ -582,7 +575,7 @@ def display(
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     recon_defaults = ReconstructionDefaults
     recon_pars = dict(
@@ -594,8 +587,7 @@ def display(
         eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
         pitch=header["pitch"]
     )
-    _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
-                     recon_pars=recon_pars)
+    _ = EventDisplay(input_file, readout, recon_pars=recon_pars)
     input_file.close()
 
 
