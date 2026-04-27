@@ -93,6 +93,16 @@ def calibrate_noise(**kwargs) -> str:
     return tasks.calibrate_noise(input_file_path)
 
 
+def calibrate_dark(**kwargs) -> str:
+    """Calibrate the dark of the chip.
+    """
+    input_file_path = kwargs["input_file"]
+    has_source = kwargs["has_source"]
+    batch_size = kwargs["batch_size"]
+    args = input_file_path, has_source, batch_size
+    return tasks.calibrate_dark(*args)
+
+
 def calibrate_gain(**kwargs) -> str:
     """Calibrate the gain of the chip.
     """
@@ -109,8 +119,11 @@ def display(**kwargs) -> None:
     """Display events from a digi or recon file.
     """
     input_file_path = kwargs["input_file"]
-    zero_sup_threshold = kwargs.get("zero_sup_threshold", tasks.DisplayDefaults.zero_sup_threshold)
-    return tasks.display(input_file_path, zero_sup_threshold)
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_pedestal"))
+    args = input_file_path, gain_matrix, noise_matrix, pedestal_matrix
+    return tasks.display(*args)
 
 
 def quicklook(**kwargs) -> None:

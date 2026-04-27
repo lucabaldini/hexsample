@@ -33,6 +33,7 @@ from tqdm import tqdm
 from . import rng
 from .analysis import create_histogram
 from .calibration import (
+    CalibrateDark,
     CalibrateGain,
     CalibrateNoise,
     CalibrationMatrix,
@@ -363,7 +364,11 @@ class CalibrationEtaDefaults:
     zero_sup_threshold: int = 30
 
 
-def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int) -> None:
+def calibrate_eta(
+        input_file_path: str,
+        num_bins: int,
+        zero_sup_threshold: int
+        ) -> None:
     """Calibrate the eta function using the events from a digi file.
 
     Arguments
@@ -424,7 +429,9 @@ def calibrate_eta(input_file_path: str, num_bins: int, zero_sup_threshold: int) 
     plt.show()
 
 
-def calibrate_noise(input_file_path: str) -> str:
+def calibrate_noise(
+        input_file_path: str
+        ) -> str:
     """Calibrate noise of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
 
@@ -455,6 +462,49 @@ def calibrate_noise(input_file_path: str) -> str:
 
 
 @dataclass(frozen=True)
+class CalibrationDarkDefaults:
+    """Default parameters for the dark calibration task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    has_source: bool = True
+    batch_size: int = 5000000
+    
+
+def calibrate_dark(
+        input_file_path: str,
+        has_source: bool = CalibrationDarkDefaults.has_source,
+        batch_size: int = CalibrationDarkDefaults.batch_size
+        ) -> str:
+    # Open the input file and extract the readout information.
+    input_file, header, readout_mode = open_file(input_file_path)
+    # The analysis is only supported for rectangular readout.
+    if readout_mode is not HexagonalReadoutMode.RECTANGULAR:
+        raise RuntimeError("Noise calibration is only supported for rectangular readout")
+    # Create the calibration matrix
+    noise_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    pedestal_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    dark_calibration = CalibrateDark(noise_matrix, pedestal_matrix)
+    # Loop over the events and analyze the noise.
+    for _, event in tqdm(enumerate(input_file)):
+        dark_calibration.analyze_event(event, has_source, batch_size)
+    # Update the histogram with the last batch of events and fit the data.
+    dark_calibration.update_hist()
+    dark_calibration.fit()
+    # Close the input file and save the noise matrix to a HDF5 file.
+    noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
+    pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")
+    # TODO: consider adding an attribute in the simulated digi file to identify it as synthetic
+    # data.
+    noise_matrix.to_hdf5(noise_output_file_path, "noise", False)
+    pedestal_matrix.to_hdf5(pedestal_output_file_path, "pedestal", False)
+    input_file.close()
+    return noise_output_file_path
+
+
+@dataclass(frozen=True)
 class CalibrationGainDefaults:
     """Default parameters for the gain calibration task.
 
@@ -467,8 +517,14 @@ class CalibrationGainDefaults:
     zero_sup_threshold: int = 20
 
 
-def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: int,
-                   zero_sup_threshold: int) -> str:
+def calibrate_gain(
+        input_file_path: str,
+        energy: float,
+        noise_matrix: Optional[CalibrationMatrix] = None,
+        pedestal_matrix: Optional[CalibrationMatrix] = None,
+        num_events: int = CalibrationGainDefaults.num_events,
+        zero_sup_threshold: int = CalibrationGainDefaults.zero_sup_threshold,
+        ) -> str:
     """Calibrate gain of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
 
@@ -481,12 +537,11 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
         The energy of the X-ray photons in eV. This is used to convert the charge collected in
         each pixel to the number of electron, which is necessary for the gain calibration.
 
+    noise_matrix : CalibrationMatrix
+        The calibration noise matrix to use for the gain calibration.
+
     num_events : int
         The number of events to simulate to correct the bias.
-
-    enc : int
-        The equivalent noise charge of the readout in electrons. This is used to set the noise
-        level of the simulated events for the bias correction.
 
     zero_sup_threshold : int
         The zero-suppression threshold to use for the clustering in the gain calibration.
@@ -497,10 +552,8 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     # calibration.
     gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
     gain_map.set_value(1.)
-    noise_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    noise_map.set_value(enc)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_map, gain_map, header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
     gain_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
@@ -516,11 +569,10 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     gain_calibration.fit()
     # Create the readout object for the simulation. We are using rectangular readout just because
     # it's faster to simulate.
-    noise_map.set_value(enc / gain_matrix.mean())
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
     gain_sim.matrix = gain_matrix.matrix
     gain_sim.fill(gain_sim.mean())
-    simulation_readout = HexagonalReadoutRectangular(enc=noise_map, gain=gain_sim)
+    simulation_readout = HexagonalReadoutRectangular(enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
     plt.imshow(gain_matrix.matrix, origin="lower")
     plt.show()
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
@@ -555,22 +607,11 @@ def calibrate_gain(input_file_path: str, energy: float, num_events: int, enc: in
     return output_file_path
 
 
-class DisplayDefaults:
-
-    """Default parameters for the display task.
-
-    This is a small helper dataclass to help ensure consistency between the main task
-    definition in this Python module and the command-line interface.
-    """
-
-    zero_sup_threshold: int = 30
-    num_neighbors: int = 6
-    event_id: int = None
-
-
 def display(
         input_file_path: str,
-        zero_sup_threshold: int = DisplayDefaults.zero_sup_threshold,
+        gain_matrix: Optional[CalibrationMatrix] = None,
+        noise_matrix: Optional[CalibrationMatrix] = None,
+        pedestal_matrix: Optional[CalibrationMatrix] = None,
         ) -> None:
     """Display events from a digi file.
 
@@ -586,7 +627,7 @@ def display(
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     recon_defaults = ReconstructionDefaults
     recon_pars = dict(
@@ -598,8 +639,7 @@ def display(
         eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
         pitch=header["pitch"]
     )
-    _ = EventDisplay(input_file, readout, zero_sup_threshold=zero_sup_threshold,
-                     recon_pars=recon_pars)
+    _ = EventDisplay(input_file, readout, recon_pars=recon_pars)
     input_file.close()
 
 

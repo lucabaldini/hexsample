@@ -193,7 +193,7 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         # In case of rectangular readout, we have a RegionOfInterest, otherwise we have a list with
         # the coordinates of the pixels to be read out.
         if isinstance(coords, RegionOfInterest):
-            cols, rows = coords.readout_slice()
+            rows, cols = coords.readout_slice()
         else:
             cols, rows = np.array(coords).T
         # Add the noise
@@ -201,10 +201,10 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         pha = pha + noise
         # Apply the conversion between electrons and ADC counts
         pha = pha * self.gain(cols, rows)
+        # Add the pedestal
+        pha = pha + self.pedestal(cols, rows)
         # Round to the nearest integer
         pha = np.round(pha).astype(int)
-        # Add the pedestal
-        pha += self.pedestal(cols, rows)
         # Zero suppress the thing.
         self.zero_suppress(pha, self.zero_sup_threshold)
         # Flatten the array to simulate the serial readout and return the
