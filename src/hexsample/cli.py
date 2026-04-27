@@ -230,7 +230,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--cal_file_enc", type=str, required=True,
                             help="path to a file containing the noise map.")
-            
+
     @staticmethod
     def add_cal_files(parser: argparse.ArgumentParser) -> None:
         """Add options for the calibration files.
