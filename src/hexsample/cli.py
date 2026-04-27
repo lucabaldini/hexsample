@@ -236,7 +236,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--cal_file_enc", type=str, required=True,
                             help="path to a file containing the noise map.")
-        parser.add_argument("--cal_file_pedestal", type=str, default=None,
+        parser.add_argument("--cal_file_pedestal", type=str, required=True,
                             help="path to a file containing the pedestal map.")
 
     @staticmethod
