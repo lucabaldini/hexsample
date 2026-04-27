@@ -107,6 +107,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         # Eta function calibration
         eta = calibrate_subparsers.add_parser("eta", help="calibrate the eta function")
         self.add_input_file(eta)
+        self.add_cal_files(eta)
         self.add_num_bins(eta, default=tasks.CalibrationEtaDefaults.num_bins)
         self.add_zero_sup_threshold(eta, default=tasks.CalibrationEtaDefaults.zero_sup_threshold)
         self.add_logging_level(eta)
@@ -233,9 +234,9 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_cal_files(parser: argparse.ArgumentParser) -> None:
         """Add options for the calibration files.
         """
-        parser.add_argument("--cal_file_enc", type=str, default=None,
+        parser.add_argument("--cal_file_enc", type=str, required=True,
                             help="path to a file containing the noise map.")
-        parser.add_argument("--cal_file_gain", type=str, default=None,
+        parser.add_argument("--cal_file_gain", type=str, required=True,
                             help="path to a file containing the gain map.")
         parser.add_argument("--cal_file_pedestal", type=str, default=None,
                             help="path to a file containing the pedestal map.")

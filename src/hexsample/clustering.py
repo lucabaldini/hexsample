@@ -200,11 +200,6 @@ class ClusteringBase:
     readout: HexagonalReadoutBase
     zero_sup_threshold: float
 
-    def __post_init__(self) -> None:
-        """Check if the readout gain is a scalar or an array.
-        """
-        self._scalar_gain = isinstance(self.readout.gain, (int, float))
-
     def zero_suppress(self, array: np.ndarray, threshold: float) -> np.ndarray:
         """Zero suppress a generic array.
         """
@@ -319,13 +314,12 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
                 adc_channel_order.append(readout.adc_channel(_col, _row))
-            # Removing the pedestal and applying the gain correction.
-            pha = event.pha[adc_channel_order] - readout.pedestal(col, row)
-            pha = pha / readout.gain(col, row)
-            # Converting lists into numpy arrays
+            # Converting lists into numpy arrays.
+            pha = np.array(event.pha[adc_channel_order])
             col = np.array(col)
             row = np.array(row)
-            pha = np.array(pha)
+            # Applying the pedestal subtraction and gain correction.
+            pha = (pha - readout.pedestal(col, row)) / readout.gain(col, row)
         # pylint: disable = invalid-name
         elif isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
