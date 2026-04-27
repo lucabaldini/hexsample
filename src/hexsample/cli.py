@@ -22,8 +22,6 @@
 
 import argparse
 
-from sympy import group
-
 from hexsample import __name__ as __package_name__
 from hexsample import __version__, hexagon, logging_, pipeline, readout, roi, sensor, source, tasks
 

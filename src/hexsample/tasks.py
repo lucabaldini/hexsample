@@ -449,8 +449,6 @@ def calibrate_noise(
     noise_calibration.update()
     # Close the input file and save the noise matrix to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
-    # TODO: consider adding an attribute in the simulated digi file to identify it as synthetic
-    # data.
     noise_matrix.to_hdf5(output_file_path, "noise", False)
     input_file.close()
     return output_file_path
