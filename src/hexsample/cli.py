@@ -123,7 +123,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_energy(gain)
         self.add_num_events(gain, default=tasks.CalibrationGainDefaults.num_events,
                             intent="used for the gain calibration")
-        self.add_cal_files(gain)
+        self.add_cal_dark_files(gain)
         self.add_zero_sup_threshold(gain, default=tasks.CalibrationGainDefaults.zero_sup_threshold)
         self.add_logging_level(gain)
         gain.set_defaults(runner=pipeline.calibrate_gain)
@@ -225,11 +225,17 @@ class CliArgumentParser(argparse.ArgumentParser):
                             help="zero-suppression threshold in ADC counts")
 
     @staticmethod
-    def add_cal_files(parser: argparse.ArgumentParser) -> None:
-        """Add options for the calibration files.
+    def add_cal_dark_files(parser: argparse.ArgumentParser) -> None:
+        """Add options for the noise and pedestal calibration files.
         """
         parser.add_argument("--cal_file_enc", type=str, required=True,
                             help="path to a file containing the noise map.")
+            
+    @staticmethod
+    def add_cal_files(parser: argparse.ArgumentParser) -> None:
+        """Add options for the calibration files.
+        """
+        CliArgumentParser.add_cal_dark_files(parser)
         parser.add_argument("--cal_file_gain", type=str, required=True,
                             help="path to a file containing the gain map.")
 
