@@ -3,18 +3,21 @@
 Release notes
 =============
 
+* Added new CLI command `calibrate dark` to create noise and pedestal calibration files from event
+  files.
 * The support of scalar properties in the readout chip (e.g., gain, noise, pedestal) is deprecated
   in favor of the calibration files that stores this information. All the CLI commands that need
   readout chip properties now require the corresponding calibration files to be passed as
   arguments.
-* Added classes `CalibrateGain` and `CalibrateNoise` to create gain and noise calibration files
-  from event files.
+* Added classes `CalibrateGain` and `CalibrateDark` to create gain, noise and pedestal calibration
+  files from event files.
 * Refactoring of the calibration matrices classes, with the introduction of a new unified
   `CalibrationMatrix` class, and the deprecation of the old `CalibrationMatrixGain` and
   `CalibrationMatrixNoise` classes. This class is intended to store all the calibration information
   needed for every feature of the readout chip.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/118
   - https://github.com/lucabaldini/hexsample/pull/111
   - https://github.com/lucabaldini/hexsample/issues/99
 
