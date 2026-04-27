@@ -201,9 +201,6 @@ class CalibrationMatrix:
         row : np.ndarray
             The row coordinates of the pixels to access.
         """
-        if (np.any(col < 0) or np.any(col >= self._shape[1]) or
-            np.any(row < 0) or np.any(row >= self._shape[0])):
-            raise ValueError("Pixel coordinates are out of bounds.")
         return self.matrix[row, col]
 
 
