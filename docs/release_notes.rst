@@ -19,6 +19,8 @@ Release notes
 
   - https://github.com/lucabaldini/hexsample/pull/118
   - https://github.com/lucabaldini/hexsample/pull/111
+  - https://github.com/lucabaldini/hexsample/issues/113
+  - https://github.com/lucabaldini/hexsample/issues/112
   - https://github.com/lucabaldini/hexsample/issues/99
 
 
