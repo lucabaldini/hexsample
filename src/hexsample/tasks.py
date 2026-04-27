@@ -370,6 +370,12 @@ def calibrate_eta(
     ---------
     input_file_path : str
         The path to the input file.
+    
+    gain_matrix : CalibrationMatrix
+        The gain calibration matrix to use for the analysis.
+    
+    noise_matrix : CalibrationMatrix
+        The noise calibration matrix to use for the analysis.
 
     num_bins : int
         The number of bins to be used in the calibration.
@@ -515,6 +521,10 @@ def calibrate_gain(
             continue
         gain_calibration.analyze_cluster(cluster)
     gain_calibration.fit()
+    if not np.any(gain_matrix.hits > 0):
+        raise RuntimeError("No valid gain values found during the first step of calibration," \
+        "cannot proceed further. The possible reason could be a small number of events over " \
+        "the analyzed chip region.")
     # Create the readout object for the simulation. We are using rectangular readout just because
     # it's faster to simulate.
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
@@ -568,8 +578,16 @@ def display(
     ---------
     file_path : str
         The path to the digi file.
+
+    gain_matrix : CalibrationMatrix
+        The gain calibration matrix to use for the display.
+
+    noise_matrix : CalibrationMatrix
+        The noise calibration matrix to use for the display.
+
     zero_sup_threshold : int
         The zero-suppression threshold to use when displaying the digi event.
+
     event_id : int
         The ID of the event to display. If None, display all events.
     """

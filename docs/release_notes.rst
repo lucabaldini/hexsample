@@ -3,8 +3,8 @@
 Release notes
 =============
 
-* The support of scalar properties in the readout chip (e.g., gain, noise, pedestal) is deprecated
-  in favor of the calibration files that stores this information. All the CLI commands that need
+* Support for scalar properties in the readout chip (e.g., gain, noise, pedestal) has been removed
+  in favor of the calibration files that store this information. All the CLI commands that need
   readout chip properties now require the corresponding calibration files to be passed as
   arguments.
 * Added classes `CalibrateGain` and `CalibrateNoise` to create gain and noise calibration files

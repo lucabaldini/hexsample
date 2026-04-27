@@ -201,6 +201,9 @@ class CalibrationMatrix:
         row : np.ndarray
             The row coordinates of the pixels to access.
         """
+        if (np.any(col < 0) or np.any(col >= self._shape[1]) or
+            np.any(row < 0) or np.any(row >= self._shape[0])):
+            raise ValueError("Pixel coordinates are out of bounds.")
         return self.matrix[row, col]
 
 
@@ -315,6 +318,8 @@ class CalibrateGain:
     def fit(self) -> None:
         """Perform the least squares fit to determine the gain of each pixel.
         """
+        if self._event_count == 0:
+            raise ValueError("No events have been analyzed, cannot perform the fit.")
         nrows, ncols = self._shape
         # Create the sparse matrix for the least squares fit. This object allows to store
         # and use efficiently the large and sparse matrix that we need for the fit.
