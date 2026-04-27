@@ -16,6 +16,7 @@ Release notes
 * Pull requests merged and issues closed:
 
   - https://github.com/lucabaldini/hexsample/pull/111
+  - https://github.com/lucabaldini/hexsample/issues/99
 
 
 Version 0.15.0 (2026-04-23)
