@@ -610,9 +610,9 @@ def calibrate_gain(
 
 def display(
         input_file_path: str,
-        gain_matrix: Optional[CalibrationMatrix] = None,
-        noise_matrix: Optional[CalibrationMatrix] = None,
-        pedestal_matrix: Optional[CalibrationMatrix] = None,
+        gain_matrix: CalibrationMatrix,
+        noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
         ) -> None:
     """Display events from a digi file.
 
