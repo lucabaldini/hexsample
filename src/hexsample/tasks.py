@@ -548,10 +548,10 @@ def calibrate_gain(
     input_file, header, readout_mode = open_file(input_file_path)
     # Define the arguments to create the readout object with unit gain, necessary for the
     # calibration.
-    gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    gain_map.set_value(1.)
+    unit_gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    unit_gain_map.set_value(1.)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_map, pedestal_matrix
+        header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
     gain_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
@@ -568,18 +568,15 @@ def calibrate_gain(
     # Create the readout object for the simulation. We are using rectangular readout just because
     # it's faster to simulate.
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    gain_sim.matrix = gain_matrix.matrix
-    gain_sim.set_value(gain_sim.mean())
+    gain_sim.set_value(gain_matrix.mean())
     simulation_readout = HexagonalReadoutRectangular(
         HexagonalLayout(header["layout"]),
         header["num_cols"], header["num_rows"], header["pitch"],
         enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
-    plt.imshow(gain_matrix.matrix, origin="lower")
-    plt.show()
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
     # Simulate events with the best-fit gain matrix to correct the bias.
     simulate(
-        source=Source(Line(energy), DiskBeam(radius=0.1)),
+        source=Source(Line(energy), DiskBeam(radius=0.05)),
         sensor=Sensor(),
         readout=simulation_readout,
         num_events=num_events,
@@ -597,9 +594,10 @@ def calibrate_gain(
     tmp_gain_calibration.fit()
     # Calculate the correction factor from the simulation.
     mask = tmp_gain_matrix.hits > 0
-    residuals = (tmp_gain_matrix.matrix[mask] - gain_matrix.matrix[mask]) / gain_matrix.matrix[mask]
+    residuals = (tmp_gain_matrix.matrix[mask] - gain_sim.matrix[mask]) / gain_sim.matrix[mask]
     # Apply the correction factor to the gain matrix and save it to a HDF5 file.
-    gain_matrix.matrix[mask] = gain_matrix.matrix[mask] / (1 + np.mean(residuals))
+    mask_gain = gain_matrix.hits > 0
+    gain_matrix.matrix[mask_gain] = gain_matrix.matrix[mask_gain] / (1 + np.mean(residuals))
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
     gain_matrix.to_hdf5(output_file_path, "gain", False)
     # Close the input files.
