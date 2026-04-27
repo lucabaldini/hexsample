@@ -319,7 +319,7 @@ class ClusteringNN(ClusteringBase):
             col = np.array(col)
             row = np.array(row)
             # Applying the pedestal subtraction and gain correction.
-            pha = (pha - readout.offset) / readout.gain(col, row)
+            pha = (pha - readout.pedestal(col, row)) / readout.gain(col, row)
         # pylint: disable = invalid-name
         elif isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
@@ -330,8 +330,10 @@ class ClusteringNN(ClusteringBase):
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([(event(_col, _row) - readout.offset) / readout.gain(_col, _row)
-                            for _col, _row in zip(col, row)])
+            pha = np.array([
+                (event(_col, _row) - readout.pedestal(_col, _row)) / readout.gain(_col, _row)
+                for _col, _row in zip(col, row)
+            ])
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)
         # Array indexes in order of decreasing pha---note that we use -pha to

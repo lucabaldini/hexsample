@@ -123,6 +123,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_zero_sup_threshold(eta, default=tasks.CalibrationEtaDefaults.zero_sup_threshold)
         self.add_logging_level(eta)
         eta.set_defaults(runner=pipeline.calibrate_eta)
+        # Dark calibration
+        dark = calibrate_subparsers.add_parser("dark", help="calibrate the chip noise and pedestal")
+        self.add_input_file(dark)
+        self.add_calibrate_dark_options(dark)
+        self.add_logging_level(dark)
+        dark.set_defaults(runner=pipeline.calibrate_dark)
         # Noise calibration
         noise = calibrate_subparsers.add_parser("noise", help="calibrate the chip noise")
         self.add_input_file(noise)
@@ -248,6 +254,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--cal_file_enc", type=str, required=True,
                             help="path to a file containing the noise map.")
+        parser.add_argument("--cal_file_pedestal", type=str, required=True,
+                            help="path to a file containing the pedestal map.")
 
     @staticmethod
     def add_cal_files(parser: argparse.ArgumentParser) -> None:
@@ -341,8 +349,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
         CliArgumentParser.add_cal_files(group)
-        group.add_argument("--offset", type=int, default=readout.HexagonalReadoutBase.offset,
-                           help="offset in ADC counts to be applied before the zero suppression")
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
                            choices=readout.ReadoutProxy.choices(),
                            default=readout.ReadoutProxy.default(),
@@ -390,6 +396,18 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
                            type=float, help="probit function sigma parameter for three pixel " \
                            "events angular component eta reconstruction")
+
+    def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the dark calibration properties.
+        """
+        group = parser.add_argument_group("dark_calibration", "Dark calibration configuration")
+        group.add_argument("--has_source", type=bool,
+                           default=tasks.CalibrationDarkDefaults.has_source,
+                           help="specify if the dataset contains events with a source on")
+        group.add_argument("--batch_size", type=int,
+                           default=tasks.CalibrationDarkDefaults.batch_size,
+                           help="number of events to be analyzed in a batch for the dark" \
+                           "calibration")
 
     def add_create_cal_file_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group to create calibration files.
