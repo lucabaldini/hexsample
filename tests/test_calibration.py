@@ -40,7 +40,9 @@ def test_initialization_matrix():
     assert cal_matrix.hits[0, 0] == 1
     # Test the __call__ method
     assert cal_matrix(0, 0) == cal_matrix.matrix[0, 0]
-    assert np.array_equal(cal_matrix([0, 1], [0, 1]), np.array([1., 1.]))
+    cols = np.array([0, 1])
+    rows = np.array([0, 1])
+    assert np.array_equal(cal_matrix(cols, rows), np.array([1., 1.]))
 
 def test_set_value_matrix():
     """Test the set_value method of the CalibrationMatrix class.

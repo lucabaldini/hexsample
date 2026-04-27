@@ -114,10 +114,10 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
         padding = Padding(1, 1, 1, 1)
     enc_matrix = CalibrationMatrix(num_cols, num_rows)
     enc_matrix.set_value(enc)
-    gain_matrix  = CalibrationMatrix(num_cols, num_rows)
+    gain_matrix = CalibrationMatrix(num_cols, num_rows)
     gain_matrix.set_value(gain)
     readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc_matrix,
-                                          gain_matrix, offset, trg_threshold, 0,padding)
+                                          gain_matrix, offset, trg_threshold, 0, padding)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f"Testing pixel ({col}, {row})...")

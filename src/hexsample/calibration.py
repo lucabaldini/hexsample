@@ -177,6 +177,8 @@ class CalibrationMatrix:
         file_path : str
             The path of the file on the disk.
         """
+        if file_path is None:
+            raise ValueError("No file path provided for the calibration matrix.")
         # pylint: disable=protected-access
         with h5py.File(file_path, "r") as h5file:
             # Load the attributes from the header.
@@ -313,6 +315,8 @@ class CalibrateGain:
     def fit(self) -> None:
         """Perform the least squares fit to determine the gain of each pixel.
         """
+        if self._event_count == 0:
+            raise ValueError("No events have been analyzed, cannot perform the fit.")
         nrows, ncols = self._shape
         # Create the sparse matrix for the least squares fit. This object allows to store
         # and use efficiently the large and sparse matrix that we need for the fit.

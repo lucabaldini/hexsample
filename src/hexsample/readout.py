@@ -193,14 +193,14 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         # In case of rectangular readout, we have a RegionOfInterest, otherwise we have a list with
         # the coordinates of the pixels to be read out.
         if isinstance(coords, RegionOfInterest):
-            cols, rows = coords.readout_slice()
+            rows, cols = coords.readout_slice()
         else:
             cols, rows = np.array(coords).T
         # Add the noise
-        noise = rng.generator.normal(0., scale=self.enc(rows, cols))
+        noise = rng.generator.normal(0., scale=self.enc(cols, rows))
         pha = pha + noise
         # Apply the conversion between electrons and ADC counts
-        pha = pha * self.gain(rows, cols)
+        pha = pha * self.gain(cols, rows)
         # Round to the nearest integer
         pha = np.round(pha).astype(int)
         # Add the offset
@@ -239,13 +239,14 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # ... creating a 7-elements array containing the PHA of the ADC channels from 0 to 6
         # in increasing order and filling it with PHAs of the highest px and its neigbors...
         pha = np.empty(self.NUM_PIXELS)
+        coords = np.empty((self.NUM_PIXELS, 2), dtype=int)
         pha[adc_max] = sparse_signal[coord_max]
+        coords[adc_max] = coord_max
         # ... identifying the 6 neighbors of the central pixel and saving the signal pixels
         # prepending the coordinates of the highest one...
-        coords = [coord_max]
         for _coords in self.neighbors(*coord_max):
             pha[self.adc_channel(*_coords)] = sparse_signal[_coords]
-            coords.append(_coords)
+            coords[self.adc_channel(*_coords)] = _coords
         # Not sure the trigger is needed, the highest px passed
         # necessarily the trigger or there is no event
         # trigger_mask = self.discriminate(pha, self.trg_threshold)

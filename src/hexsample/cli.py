@@ -118,6 +118,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         # Eta function calibration
         eta = calibrate_subparsers.add_parser("eta", help="calibrate the eta function")
         self.add_input_file(eta)
+        self.add_cal_files(eta)
         self.add_num_bins(eta, default=tasks.CalibrationEtaDefaults.num_bins)
         self.add_zero_sup_threshold(eta, default=tasks.CalibrationEtaDefaults.zero_sup_threshold)
         self.add_logging_level(eta)
@@ -133,7 +134,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_energy(gain)
         self.add_num_events(gain, default=tasks.CalibrationGainDefaults.num_events,
                             intent="used for the gain calibration")
-        self.add_enc(gain, default=tasks.CalibrationGainDefaults.enc)
+        self.add_cal_dark_files(gain)
         self.add_zero_sup_threshold(gain, default=tasks.CalibrationGainDefaults.zero_sup_threshold)
         self.add_logging_level(gain)
         gain.set_defaults(runner=pipeline.calibrate_gain)
@@ -150,8 +151,8 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="run the single-event display",
             formatter_class=self._FORMATTER_CLASS)
         self.add_input_file(display)
+        self.add_cal_files(display)
         self.add_logging_level(display)
-        self.add_display_options(display)
         display.set_defaults(runner=pipeline.display)
 
         # Run the quicklook?
@@ -228,13 +229,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                             help="line energy in eV")
 
     @staticmethod
-    def add_enc(parser: argparse.ArgumentParser, default: int) -> None:
-        """Add an option for the equivalent noise charge of the readout.
-        """
-        parser.add_argument("--enc", type=int, default=default,
-                            help="equivalent noise charge in electrons")
-
-    @staticmethod
     def add_num_bins(parser: argparse.ArgumentParser, default: int) -> None:
         """Add an option for the number of bins to be used in the eta function calibration.
         """
@@ -247,6 +241,21 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--zero_sup_threshold", type=int, default=default,
                             help="zero-suppression threshold in ADC counts")
+
+    @staticmethod
+    def add_cal_dark_files(parser: argparse.ArgumentParser) -> None:
+        """Add options for the noise and pedestal calibration files.
+        """
+        parser.add_argument("--cal_file_enc", type=str, required=True,
+                            help="path to a file containing the noise map.")
+
+    @staticmethod
+    def add_cal_files(parser: argparse.ArgumentParser) -> None:
+        """Add options for the calibration files.
+        """
+        CliArgumentParser.add_cal_dark_files(parser)
+        parser.add_argument("--cal_file_gain", type=str, required=True,
+                            help="path to a file containing the gain map.")
 
     @staticmethod
     def add_feature(parser: argparse.ArgumentParser) -> None:
@@ -331,12 +340,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of rows in the readout chip")
         group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
-        group.add_argument("--cal_file_enc", type=str, default=None,
-                           help="path to a file containing the noise map. If not specified, the" \
-                           " noise value of the --enc argument is used for all the pixels.")
-        group.add_argument("--cal_file_gain", type=str, default=None,
-                           help="path to a file containing the gain map. If not specified, the" \
-                           " gain value of the --gain argument is used for all the pixels.")
+        CliArgumentParser.add_cal_files(group)
         group.add_argument("--offset", type=int, default=readout.HexagonalReadoutBase.offset,
                            help="offset in ADC counts to be applied before the zero suppression")
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
@@ -367,14 +371,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="maximum number of neighbors to be considered")
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta"],
                            type=str, default="centroid", help="How to reconstruct position")
-        group.add_argument("--cal_file_enc", type=str, default=None,
-                           help="path to a file containing the noise map. If not specified, the" \
-                           " noise value stored in the DigiFile header will be used for all" \
-                           " the pixels.")
-        group.add_argument("--cal_file_gain", type=str, default=None,
-                           help="path to a file containing the gain matrix. If not specified, the" \
-                           " gain value stored in the DigiFile header will be used for all" \
-                           " the pixels.")
+        CliArgumentParser.add_cal_files(group)
         group.add_argument("--eta_2pix_rad_sigma", default=defaults.eta_2pix_rad_sigma, type=float,
                            help="probit function sigma parameter for two pixel" \
                            "events eta reconstruction")
@@ -393,16 +390,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
                            type=float, help="probit function sigma parameter for three pixel " \
                            "events angular component eta reconstruction")
-
-    def add_display_options(self, parser: argparse.ArgumentParser) -> None:
-        """Add an option group for the event display.
-        """
-        group = parser.add_argument_group("display", "Event display configuration")
-        CliArgumentParser.add_zero_sup_threshold(group,
-                           default=tasks.DisplayDefaults.zero_sup_threshold)
-        group.add_argument("--event_id", type=int,
-                           default=tasks.DisplayDefaults.event_id,
-                           help="ID of the event to display")
 
     def add_create_cal_file_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group to create calibration files.
