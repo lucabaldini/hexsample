@@ -23,7 +23,7 @@
 import inspect
 import pathlib
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
@@ -218,12 +218,12 @@ class ReconstructionDefaults:
     eta_3pix_rad_sigma: float = 0.141
     eta_3pix_rad_pivot: float = 0.05
     eta_3pix_theta_sigma: float = 0.104
-    gain_matrix: Optional[CalibrationMatrix] = None
-    noise_matrix: Optional[CalibrationMatrix] = None
 
 
 def reconstruct(
         input_file_path: str,
+        gain_matrix: CalibrationMatrix,
+        noise_matrix: CalibrationMatrix,
         suffix: str = ReconstructionDefaults.suffix,
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
@@ -235,8 +235,6 @@ def reconstruct(
         eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
         eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
         eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
-        gain_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.gain_matrix,
-        noise_matrix: Optional[CalibrationMatrix] = ReconstructionDefaults.noise_matrix,
         header_kwargs: dict = None,
         ) -> str:
     """Run the reconstruction.
@@ -251,6 +249,12 @@ def reconstruct(
     ----------
     input_file_path : str
         The path to the input file.
+
+    gain_matrix : CalibrationMatrix
+        The gain matrix to use for the reconstruction.
+
+    noise_matrix : CalibrationMatrix
+        The noise matrix to use for the reconstruction.
 
     suffix : str
         The suffix to append to the output file name.
@@ -285,12 +289,6 @@ def reconstruct(
 
     eta_3pix_theta_sigma : float
         The sigma parameter for the angular component of the eta function for three pixel events.
-
-    gain_matrix : CalibrationMatrix
-        The gain matrix to use for the reconstruction.
-
-    noise_matrix : CalibrationMatrix
-        The noise matrix to use for the reconstruction.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -361,8 +359,10 @@ class CalibrationEtaDefaults:
 
 def calibrate_eta(
         input_file_path: str,
-        num_bins: int,
-        zero_sup_threshold: int
+        gain_matrix: CalibrationMatrix,
+        noise_matrix: CalibrationMatrix,
+        num_bins: int = CalibrationEtaDefaults.num_bins,
+        zero_sup_threshold: int = CalibrationEtaDefaults.zero_sup_threshold
         ) -> None:
     """Calibrate the eta function using the events from a digi file.
 
@@ -379,7 +379,7 @@ def calibrate_eta(
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, header.get("offset", 0)
     readout = create_readout(readout_mode, header, *args)
     clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
@@ -470,8 +470,9 @@ def calibrate_gain(
         input_file_path: str,
         energy: float,
         noise_matrix: CalibrationMatrix,
-        num_events: int,
-        zero_sup_threshold: int) -> str:
+        num_events: int = CalibrationGainDefaults.num_events,
+        zero_sup_threshold: int = CalibrationGainDefaults.zero_sup_threshold
+        ) -> str:
     """Calibrate gain of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
 
@@ -518,8 +519,12 @@ def calibrate_gain(
     # it's faster to simulate.
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
     gain_sim.matrix = gain_matrix.matrix
-    gain_sim.fill(gain_sim.mean())
-    simulation_readout = HexagonalReadoutRectangular(enc=noise_matrix, gain=gain_sim)
+    gain_sim.set_value(gain_sim.mean())
+    simulation_readout = HexagonalReadoutRectangular(
+        HexagonalLayout(header["layout"]),
+        header["num_cols"], header["num_rows"], header["pitch"],
+        enc=noise_matrix, gain=gain_sim
+        )
     plt.imshow(gain_matrix.matrix, origin="lower")
     plt.show()
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"

@@ -39,9 +39,10 @@ def simulate(**kwargs) -> str:
     # We need to update the kwargs to pass the gain and noise matrices to the readout.
     kwargs.update({"gain": gain_matrix, "enc": enc_matrix})
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
-    # Update the kwargs with the path of the calibration files, otherwise we get an error when
-    # updating the header of the output file.
-    kwargs.update({"enc": kwargs["cal_file_enc"], "gain": kwargs["cal_file_gain"]})
+    # Remove the enc and gain kwargs from the header, maybe we could save the calibration
+    # file names
+    kwargs.pop("enc")
+    kwargs.pop("gain")
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
@@ -54,6 +55,8 @@ def reconstruct(**kwargs) -> str:
     """
     defaults = tasks.ReconstructionDefaults()
     input_file_path = kwargs["input_file"]
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
@@ -65,12 +68,10 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
     eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
-    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
-    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
                   eta_3pix_rad_pivot, eta_3pix_theta_sigma)
-    args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, *recon_args, gain_matrix, noise_matrix
+    args = input_file_path, gain_matrix, noise_matrix, suffix, zero_sup_threshold, num_neighbors, \
+            max_neighbors, pos_recon_algorithm, *recon_args
     return tasks.reconstruct(*args, kwargs)
 
 
@@ -78,10 +79,13 @@ def calibrate_eta(**kwargs) -> None:
     """Calibrate the eta function using the events from a digi file.
     """
     input_file_path = kwargs["input_file"]
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationEtaDefaults.zero_sup_threshold)
-    return tasks.calibrate_eta(input_file_path, num_bins, zero_sup_threshold)
+    args = input_file_path, gain_matrix, noise_matrix, num_bins, zero_sup_threshold
+    return tasks.calibrate_eta(*args)
 
 
 def calibrate_noise(**kwargs) -> str:

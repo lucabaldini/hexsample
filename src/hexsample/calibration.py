@@ -177,6 +177,8 @@ class CalibrationMatrix:
         file_path : str
             The path of the file on the disk.
         """
+        if file_path is None:
+            raise ValueError("No file path provided for the calibration matrix.")
         # pylint: disable=protected-access
         with h5py.File(file_path, "r") as h5file:
             # Load the attributes from the header.
