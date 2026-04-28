@@ -200,24 +200,6 @@ class ClusteringBase:
     readout: HexagonalReadoutBase
     zero_sup_threshold: float
 
-    def __post_init__(self) -> None:
-        """Check if the readout gain is a scalar or an array.
-        """
-        self._scalar_gain = isinstance(self.readout.gain, (int, float))
-
-    def _gain(self, row: np.ndarray, col: np.ndarray) -> np.ndarray:
-        """Return the correct gain value for the given row and column indexes.
-
-        This method is necessary to handle both the case of a scalar gain and the case of a gain
-        map. It would be a mess to handle the two cases in the run method, so we check the type
-        in the constructor and then we return the gain value in a unified way here.
-        """
-        if self._scalar_gain is None:
-            return 1.
-        if self._scalar_gain:
-            return self.readout.gain
-        return self.readout.gain[row, col]
-
     def zero_suppress(self, array: np.ndarray) -> np.ndarray:
         """Zero suppress a generic array.
         """
@@ -318,38 +300,37 @@ class ClusteringNN(ClusteringBase):
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
+        readout = self.readout
         if isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
             # Trailing -1 is bc the central px is already considered.
             self.num_neighbors = 6 #HexagonalReadoutCircular.NUM_PIXELS - 1
             col = [event.column]
             row = [event.row]
-            adc_channel_order = [self.readout.adc_channel(event.column, event.row)]
+            adc_channel_order = [readout.adc_channel(event.column, event.row)]
             # Taking the NN in logical coordinates ...
-            gain_array = [self._gain(event.row, event.column)]
-            for _col, _row in self.readout.neighbors(event.column, event.row):
+            for _col, _row in readout.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 # ... transforming the coordinates of the NN in its corresponding ADC channel ...
-                adc_channel_order.append(self.readout.adc_channel(_col, _row))
-                gain_array.append(self._gain(_row, _col))
-            # ... reordering the pha array for the correspondence (col[i], row[i]) with pha[i].
-            pha = (event.pha[adc_channel_order] - self.readout.offset) / np.array(gain_array)
-            # Converting lists into numpy arrays
+                adc_channel_order.append(readout.adc_channel(_col, _row))
+            # Converting lists into numpy arrays.
+            pha = np.array(event.pha[adc_channel_order])
             col = np.array(col)
             row = np.array(row)
-            pha = np.array(pha)
+            # Applying the pedestal subtraction and gain correction.
+            pha = (pha - readout.offset) / readout.gain(col, row)
         # pylint: disable = invalid-name
         elif isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
             col = [seed_col]
             row = [seed_row]
-            for _col, _row in self.readout.neighbors(seed_col, seed_row):
+            for _col, _row in readout.neighbors(seed_col, seed_row):
                 col.append(_col)
                 row.append(_row)
             col = np.array(col)
             row = np.array(row)
-            pha = np.array([(event(_col, _row) - self.readout.offset) / self._gain(_row, _col)
+            pha = np.array([(event(_col, _row) - readout.offset) / readout.gain(_col, _row)
                             for _col, _row in zip(col, row)])
         # Zero suppressing the event (whatever the readout type)...
         pha = self.zero_suppress(pha)

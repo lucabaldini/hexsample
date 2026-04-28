@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -33,6 +33,10 @@ from .base import TypeProxy
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .roi import Padding, RegionOfInterest
+
+if TYPE_CHECKING:
+    from hexsample.calibration import CalibrationMatrix
+
 
 
 class AbstractReadout(ABC):
@@ -75,13 +79,13 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
 
     Arguments
     ---------
-    enc : float
+    enc : CalibrationMatrix
         The equivalent noise charge in electrons.
 
-    gain : float
+    gain : CalibrationMatrix
         The readout gain in ADC counts per electron (default 1, which means that
         the PHA you get out are the electrons collected).
-    
+
     offset : int
         Optional offset in ADC counts to be applied before the zero suppression.
 
@@ -93,8 +97,8 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         Zero suppression threshold in ADC counts.
     """
 
-    enc: float = 30.
-    gain: Union[float, np.ndarray] = 1.
+    enc: Optional["CalibrationMatrix"] = None
+    gain: Optional["CalibrationMatrix"] = None
     offset: int = 0
     trg_threshold: float = 500.
     zero_sup_threshold: int = 0
@@ -103,6 +107,8 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         """Post-initialization.
         """
         HexagonalGrid.__post_init__(self)
+        if self.enc is None or self.gain is None:
+            raise TypeError("enc and gain are mandatory and cannot be None")
         self.trigger_id = -1
 
     @staticmethod
@@ -174,56 +180,34 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         livetime = 0
         return int(seconds), int(1000000 * microseconds), livetime
 
-    def digitize(self, pha: np.ndarray, roi: Optional[RegionOfInterest] = None,
-                 coords: Optional[Sequence[Optional[Tuple[int, int]]]] = None) -> np.ndarray:
+    def digitize(self, pha: np.ndarray,
+                 coords: Union[RegionOfInterest, Sequence[Tuple[int, int]]]) -> np.ndarray:
         """Digitize the actual signal.
 
         Arguments
         ---------
         pha : array_like
             The input array of pixel signals to be digitized.
-        roi : RegionOfInterest, optional
-            The region of interest to be read out, used to digitize rectangular readout events.
-        coords : sequence of (col, row) tuples or None, optional
-            The coordinates of the pixels to be read out, used to digitize circular readout events.
         """
-        # Note that the array type of the input pha argument is not guaranteed, here.
-        # Over the course of the calculation the pha is bound to be a float (the noise
-        # and the gain are floating-point numbere) before it is rounded to the nearest
-        # integer. In order to take advantage of the automatic type casting that
-        # numpy implements in multiplication and addition, we use the pha = pha +/*
-        # over the pha +/*= form.
-        # See https://stackoverflow.com/questions/38673531
-        #
-        # Add the noise.
-        if self.enc > 0:
-            pha = pha + rng.generator.normal(0., self.enc, size=pha.shape)
-        # ... apply the conversion between electrons and ADC counts, using the gain matrix if
-        # provied, otherwise using the same gain parameter for all the pixels...
-        if isinstance(self.gain, float):
-            pha = pha * self.gain
+        # Create cols and rows arrays from the input coordinates, depending on the readout mode.
+        # In case of rectangular readout, we have a RegionOfInterest, otherwise we have a list with
+        # the coordinates of the pixels to be read out.
+        if isinstance(coords, RegionOfInterest):
+            rows, cols = coords.readout_slice()
         else:
-            # If we are digitizing circular readout events, create the gain array to apply to
-            # the pha by accessing the gain matrix at the coordinates of the pixels to be read out.
-            if coords is not None:
-                gain_array = np.empty_like(pha, dtype=float)
-                for i, coord in enumerate(coords):
-                    col, row = coord
-                    gain_array[i] = self.gain[row, col]
-                pha = pha * gain_array
-            # If we are digitizing rectangular readout events, use the roi slices to access the
-            # gain matrix and create the gain array to apply to the pha.
-            elif roi is not None:
-                row_slice, col_slice = roi.readout_slice()
-                gain_array = self.gain[row_slice, col_slice]
-                pha = pha * gain_array
-        # ... round to the nearest integer...
+            cols, rows = np.array(coords).T
+        # Add the noise
+        noise = rng.generator.normal(0., scale=self.enc(cols, rows))
+        pha = pha + noise
+        # Apply the conversion between electrons and ADC counts
+        pha = pha * self.gain(cols, rows)
+        # Round to the nearest integer
         pha = np.round(pha).astype(int)
-        # ... if necessary, add the offset...
+        # Add the offset
         pha += self.offset
-        # ... zero suppress the thing...
+        # Zero suppress the thing.
         self.zero_suppress(pha, self.zero_sup_threshold)
-        # ... flatten the array to simulate the serial readout and return the
+        # Flatten the array to simulate the serial readout and return the
         # array as the BEE would have.
         return pha.flatten()
 
@@ -244,7 +228,6 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
     def read(self, timestamp: float, x: np.ndarray, y: np.ndarray) -> DigiEventCircular:
         """Overloaded method.
         """
-        # pylint: disable=unused-argument
         # Sample the input positions over the readout...
         sparse_signal = Counter((col, row) for col, row in zip(*self.world_to_pixel(x, y)))
         # ...sampling the input position of the highest PHA pixel over the readout...
@@ -256,20 +239,19 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # ... creating a 7-elements array containing the PHA of the ADC channels from 0 to 6
         # in increasing order and filling it with PHAs of the highest px and its neigbors...
         pha = np.empty(self.NUM_PIXELS)
+        coords = np.empty((self.NUM_PIXELS, 2), dtype=int)
         pha[adc_max] = sparse_signal[coord_max]
+        coords[adc_max] = coord_max
         # ... identifying the 6 neighbors of the central pixel and saving the signal pixels
         # prepending the coordinates of the highest one...
-        adc_coords: list[Optional[Tuple[int, int]]] = [None] * self.NUM_PIXELS
-        adc_coords[adc_max] = coord_max
-        for coords in self.neighbors(*coord_max):
-            adc_index = self.adc_channel(*coords)
-            pha[adc_index] = sparse_signal[coords]
-            adc_coords[adc_index] = coords
+        for _coords in self.neighbors(*coord_max):
+            pha[self.adc_channel(*_coords)] = sparse_signal[_coords]
+            coords[self.adc_channel(*_coords)] = _coords
         # Not sure the trigger is needed, the highest px passed
         # necessarily the trigger or there is no event
         # trigger_mask = self.discriminate(pha, self.trg_threshold)
         # .. and digitize the pha values.
-        pha = self.digitize(pha, coords=adc_coords)
+        pha = self.digitize(pha, coords)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
@@ -400,7 +382,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
         roi, pha = self.trigger(signal, min_col, min_row)
-        pha = self.digitize(pha, roi=roi)
+        pha = self.digitize(pha, roi)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
 

@@ -21,7 +21,7 @@
 """
 
 from . import legacy, tasks
-from .calibration import CalibrationMatrixGain
+from .calibration import CalibrationMatrix
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
@@ -33,11 +33,16 @@ def simulate(**kwargs) -> str:
     defaults = tasks.SimulationDefaults
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
-    # If a gain response file is provided, load the gain matrix and update the kwargs
-    if kwargs.get("map_gain_file") is not None:
-        gain_file = CalibrationMatrixGain.from_hdf5(kwargs.get("map_gain_file"))
-        kwargs.update({"gain": gain_file.matrix})
+    # Open the gain and noise calibration files.
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_gain"])
+    enc_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_enc"])
+    # We need to update the kwargs to pass the gain and noise matrices to the readout.
+    kwargs.update({"gain": gain_matrix, "enc": enc_matrix})
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
+    # Remove the enc and gain kwargs from the header, maybe we could save the calibration
+    # file names
+    kwargs.pop("enc")
+    kwargs.pop("gain")
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
@@ -50,6 +55,8 @@ def reconstruct(**kwargs) -> str:
     """
     defaults = tasks.ReconstructionDefaults()
     input_file_path = kwargs["input_file"]
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
@@ -61,15 +68,10 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
     eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
-    map_gain_file = kwargs.get("map_gain_file")
-    if map_gain_file is not None:
-        gain_map = CalibrationMatrixGain.from_hdf5(map_gain_file).matrix
-    else:
-        gain_map = None
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
                   eta_3pix_rad_pivot, eta_3pix_theta_sigma)
-    args = input_file_path, suffix, zero_sup_threshold, num_neighbors, max_neighbors, \
-           pos_recon_algorithm, *recon_args, gain_map
+    args = input_file_path, gain_matrix, noise_matrix, suffix, zero_sup_threshold, num_neighbors, \
+            max_neighbors, pos_recon_algorithm, *recon_args
     return tasks.reconstruct(*args, kwargs)
 
 
@@ -77,10 +79,13 @@ def calibrate_eta(**kwargs) -> None:
     """Calibrate the eta function using the events from a digi file.
     """
     input_file_path = kwargs["input_file"]
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationEtaDefaults.zero_sup_threshold)
-    return tasks.calibrate_eta(input_file_path, num_bins, zero_sup_threshold)
+    args = input_file_path, gain_matrix, noise_matrix, num_bins, zero_sup_threshold
+    return tasks.calibrate_eta(*args)
 
 
 def calibrate_noise(**kwargs) -> str:
@@ -96,18 +101,21 @@ def calibrate_gain(**kwargs) -> str:
     input_file_path = kwargs["input_file"]
     energy = kwargs["energy"]
     num_events = kwargs.get("num_events", tasks.CalibrationGainDefaults.num_events)
-    enc = kwargs.get("enc", tasks.CalibrationGainDefaults.enc)
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationGainDefaults.zero_sup_threshold)
-    return tasks.calibrate_gain(input_file_path, energy, num_events, enc, zero_sup_threshold)
+    args = input_file_path, energy, noise_matrix, num_events, zero_sup_threshold
+    return tasks.calibrate_gain(*args)
 
 
 def display(**kwargs) -> None:
     """Display events from a digi or recon file.
     """
     input_file_path = kwargs["input_file"]
-    zero_sup_threshold = kwargs.get("zero_sup_threshold", tasks.DisplayDefaults.zero_sup_threshold)
-    return tasks.display(input_file_path, zero_sup_threshold)
+    gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    args = input_file_path, gain_matrix, noise_matrix
+    return tasks.display(*args)
 
 
 def quicklook(**kwargs) -> None:
