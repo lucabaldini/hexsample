@@ -18,12 +18,16 @@
 
 import numpy as np
 
+from hexsample import rng
 from hexsample.calibration import CalibrationMatrix
 from hexsample.digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from hexsample.hexagon import HexagonalLayout
 from hexsample.logging_ import logger
 from hexsample.readout import HexagonalReadoutCircular, HexagonalReadoutRectangular
 from hexsample.roi import Padding, RegionOfInterest
+
+
+rng.initialize(seed=0)
 
 
 def test_digi_event_base():
