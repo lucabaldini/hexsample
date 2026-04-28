@@ -41,9 +41,9 @@ class CalibrationMetadata(str, Enum):
     NUM_COLS = "num_cols"
     NUM_ROWS = "num_rows"
     NUM_EVENTS = "num_events"
-    NUM_EVENTS_AVG = "num_events_avg"
-    NUM_EVENTS_MIN = "num_events_min"
-    NUM_EVENTS_MAX = "num_events_max"
+    ENTRIES_AVG = "entries_avg"
+    ENTRIES_MIN = "entries_min"
+    ENTRIES_MAX = "entries_max"
     NUM_CALIBRATED_PIXELS = "num_calibrated_pixels"
     VERSION = "version"
     KIND = "kind"
@@ -148,16 +148,16 @@ class CalibrationMatrix:
         # If there are no pixels with events, we can set the average, minimum and maximum number of
         # events to zero.
         if np.any(mask):
-            num_events_avg = int(self._entries[mask].mean())
-            num_events_min = min(self._entries[mask])
-            num_events_max = max(self._entries[mask])
+            entries_avg = int(self._entries[mask].mean())
+            entries_min = min(self._entries[mask])
+            entries_max = max(self._entries[mask])
         else:
-            num_events_avg = num_events_min = num_events_max = 0
+            entries_avg = entries_min = entries_max = 0
         # Setting the metadata values.
         self._metadata[CalibrationMetadata.NUM_EVENTS] = self._num_events
-        self._metadata[CalibrationMetadata.NUM_EVENTS_AVG] = num_events_avg
-        self._metadata[CalibrationMetadata.NUM_EVENTS_MIN] = num_events_min
-        self._metadata[CalibrationMetadata.NUM_EVENTS_MAX] = num_events_max
+        self._metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
+        self._metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
+        self._metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
         self._metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
         return self._metadata
 
