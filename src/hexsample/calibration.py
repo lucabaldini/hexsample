@@ -47,7 +47,7 @@ class CalibrationMetadata(str, Enum):
     ENTRIES_MAX = "entries_max"
     NUM_CALIBRATED_PIXELS = "num_calibrated_pixels"
     VERSION = "version"
-    KIND = "kind"
+    CALIBRATION_TYPE = "calibration_type"
     IS_SYNTHETIC = "is_synthetic"
 
 
@@ -200,15 +200,15 @@ class CalibrationMatrix:
             return np.nan
         return self._values[self._entries >= min_hits].mean()
 
-    def to_hdf5(self, file_path: str, kind: str, is_synthetic: bool) -> str:
+    def to_hdf5(self, file_path: str, calibration_type: str, is_synthetic: bool) -> str:
         """Save the calibration matrix to an HDF5 file at the given path.
 
         Arguments
         ---------
         file_path : str
             The path of the file on the disk.
-        kind : str
-            The kind of calibration for which the matrix is being saved.
+        calibration_type : str
+            The type of calibration for which the matrix is being saved.
         is_synthetic : bool
             Whether the calibration data is synthetic or not.
         """
@@ -224,7 +224,7 @@ class CalibrationMatrix:
             h5file.create_dataset(self.ENTRIES, data=self.entries, **compression_pars)
             h5file.create_dataset(self.ERRORS, data=self.errors, **compression_pars)
             # Update the header with the relevant information and metadata.
-            self._metadata[CalibrationMetadata.KIND] = kind
+            self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type
             self._metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
             for key, val in self.metadata.items():
                 h5file.attrs[key] = val
