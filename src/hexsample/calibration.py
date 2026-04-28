@@ -415,20 +415,24 @@ class CalibrateDark:
         pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
         return pha
 
-    def _bad_event(self, event: DigiEventRectangular) -> bool:
+    def _bad_event(self, event: DigiEventRectangular, max_size: int = 200) -> bool:
         """Determine if an event is a bad event, i.e. if it is not suitable for the calibration
         analysis. This is done by applying a cut on the size of the region of interest of the
         event.
+
+        This is done because in real data we occasionally have large events with
+        lots of pixels well above the pedestals, and we don't want to use them
+        for the analysis. The default threshold of 200 pixels is chosen because
+        cuts out about 5% of the events.
 
         Arguments
         ---------
         event : DigiEventRectangular
             The event to be analyzed.
+        max_size : int
+            The maximum size of the region of interest for a valid event.
         """
-        # Currently we are selecting only events with a roi size smaller than 200 pixels, which
-        # cuts out about 5% of the events. We may choose another criterion in the future.
-        roi_shape = event.roi.shape()
-        return roi_shape[0] * roi_shape[1] > 200
+        return event.roi.size > max_size
 
     def update_hist(self) -> None:
         """Fill the histogram with the accumulated data and update the hits for the pixels that
