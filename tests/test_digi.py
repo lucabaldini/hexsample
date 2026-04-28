@@ -26,7 +26,6 @@ from hexsample.logging_ import logger
 from hexsample.readout import HexagonalReadoutCircular, HexagonalReadoutRectangular
 from hexsample.roi import Padding, RegionOfInterest
 
-
 rng.initialize(seed=0)
 
 
