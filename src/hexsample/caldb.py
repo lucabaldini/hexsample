@@ -25,13 +25,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
 
-import numpy as np
-
+from . import rng
 from .tasks import HEXSAMPLE_DATA
 from .calibration import CalibrationMatrix
+from .xpol import XPOL_CHIP_DICT, XPOL
 
 
-class CalibrationType(Enum, str):
+class CalibrationType(str, Enum):
 
     """Enum class expressing the possible calibration types.
     """
@@ -87,56 +87,52 @@ class CalDB:
         return self._open(CalibrationType.GAIN, designator)
 
 
+@dataclass(frozen=True)
+class GenerateCalibrationDefaults:
 
-@dataclass
-class MapCalibration:
-
-    """Class to manage the calibration files.
+    """Default values for the generate_calibration_file task.
     """
 
-    intent: str
-    loc: int
-    chip: str = "xpol3"
-    pattern: str = "uniform"
-    distibution: str = "gauss"
-    scale_ratio: float = 1.0
-    sim: bool = False
+    rms: int = 0
+    output_dir: str = HEXSAMPLE_DATA
+    chip_name: str = XPOL.XPOL3.value
     version: int = 1
-
-    def filename(self) -> str:
-        """Return the file name for the calibration file.
-        """
-        if self.sim:
-            filename = "sim"
-        else:
-            filename = f"proto"
-        filename += f"_{self.intent}_{self.chip}_"
+    random_seed: int = None
 
 
-def generate_calibration_file(calibration_type: CalibrationType, chip_name: str,
-    mean: float, rms: float, version: int = 1) -> None:
+def generate_calibration_file(
+        calibration_type: CalibrationType,
+        mean: float,
+        rms: int = GenerateCalibrationDefaults.rms,
+        chip_name: str = GenerateCalibrationDefaults.chip_name,
+        output_dir: str = GenerateCalibrationDefaults.output_dir,
+        version: int = GenerateCalibrationDefaults.version,
+        random_seed: int = GenerateCalibrationDefaults.random_seed
+        ) -> str:
     """Generate a calibration file for the given calibration type and chip name.
     """
-    # This might be something along the lines of
-    # sim_xpol3_enc-20_uniform_v001.h5
-    # sim_xpol3_enc-20_gauss-p10_v001.h5
-    file_name = f"sim_{chip_name}.h5"
-
-
-def create_response_file(feature: str, loc: float, distribution: str, scale: float, num_cols: int, num_rows: int):
-    """Create a response file for a given feature and value.
-    """
-    # Create the instance to store the calibration matrix.
-    cal_matrix = CalibrationMatrix(num_cols, num_rows)
-    # Create the matrix with the given distribution and location.
-    if distribution == "uniform":
-        matrix = np.full((num_rows, num_cols), loc)
-    elif distribution == "gaussian":
-        matrix = np.random.normal(loc, scale, (num_rows, num_cols))
+    # Initialize the random number generator with the given seed
+    rng.initialize(seed=random_seed)
+    # Check the validity of the input chip name
+    if chip_name not in XPOL.values():
+        raise ValueError(f"Unsupported chip: {chip_name}. Choose from {list(XPOL.values())}")
+    # Generate the file name
+    file_name = f"sim_{chip_name}_{calibration_type}-{mean:g}".replace(".", "p")
+    # Append the RMS information to the file name
+    if rms > 0:
+        file_name += f"_gauss-p{rms:02d}".replace(".", "p")
+    elif rms == 0:
+        file_name += "_uniform"
     else:
-        raise ValueError(f"Unsupported distribution: {distribution}")
-    # Store the matrix in the calibration matrix instance.
-    cal_matrix.matrix = matrix
-    # Define the file name and save the calibration matrix to an HDF5 file.
-    output_file_path = f"{HEXSAMPLE_DATA}/cal_{feature}.hdf5"    # Just a momentary placeholder
-    cal_matrix.to_hdf5(output_file_path, feature, True)
+        raise ValueError("RMS must be non-negative")
+    # Append the version number to the file name
+    file_name += f"_v{version:03d}.h5"
+    # Generate the calibration matrix with the appropriate size and values 
+    num_cols, num_rows = XPOL_CHIP_DICT[chip_name]
+    calibration_matrix = CalibrationMatrix(num_cols, num_rows)
+    calibration_matrix.values = rng.generator.normal(mean, scale=mean*rms/100,
+                                                     size=(num_rows, num_cols))
+    # Save the calibration matrix to the output directory
+    output_path = pathlib.Path(output_dir) / file_name
+    calibration_matrix.to_hdf5(output_path, calibration_type, True)
+    return str(output_path)
