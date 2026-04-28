@@ -35,11 +35,8 @@ def simulate(**kwargs) -> str:
     sensor = Sensor.from_filtered_kwargs(**kwargs)
     # Open the gain and noise calibration files.
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
-    # Remove the enc and gain kwargs from the header, maybe we could save the calibration
-    # file names
-    kwargs.pop("enc")
-    kwargs.pop("gain")
-    kwargs.pop("pedestal")
+    # Remove the enc, gain and pedestal kwargs from the header.
+    for k in ["enc", "gain", "pedestal"]: kwargs.pop(k, None)
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
@@ -55,6 +52,8 @@ def reconstruct(**kwargs) -> str:
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
     gain_matrix = kwargs["gain"]
+    # Remove the gain, noise and pedestal kwargs from the header.
+    for k in ["noise", "pedestal", "gain"]: kwargs.pop(k, None)
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)

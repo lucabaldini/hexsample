@@ -242,9 +242,10 @@ class CalibrationMatrix:
         file_path : str
             The path of the file on the disk.
         """
-        if file_path is None:
-            raise ValueError("No file path provided for the calibration matrix.")
         # pylint: disable=protected-access
+        # Check if the file exists before trying to open it.
+        if not pathlib.Path(file_path).is_file():
+            raise FileNotFoundError(f"File {file_path} does not exist.")
         with h5py.File(file_path, "r") as h5file:
             # Load the attributes from the header.
             attrs = dict(h5file.attrs)
