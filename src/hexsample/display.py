@@ -165,7 +165,6 @@ class HexagonalGridDisplay:
             # Draw the pixel values
             fmt = dict(ha="center", va="center", fontsize="small")
             for x, y, value in zip(collection.x, collection.y, event.pha.flatten()):
-                value -= self._grid.offset
                 if value > zero_sup_threshold:
                     self.axes.text(x, y, f"{value}", color="black", **fmt)
         return collection
@@ -201,7 +200,6 @@ class HexagonalGridDisplay:
             # Draw the pixel values
             fmt = dict(ha="center", va="center", fontsize="small")
             for x, y, value in zip(collection.x, collection.y, pha.flatten()):
-                value -= self._grid.offset
                 if value > zero_sup_threshold:
                     self.axes.text(x, y, f"{value}", color="black", **fmt)
         self.axes.add_collection(collection)

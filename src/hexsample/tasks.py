@@ -32,7 +32,7 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
-from .calibration import CalibrateGain, CalibrateNoise, CalibrationMatrix
+from .calibration import CalibrateDark, CalibrateGain, CalibrateNoise, CalibrationMatrix
 from .clustering import ClusteringNN
 from .display import EventDisplay
 from .eta import (
@@ -222,6 +222,7 @@ def reconstruct(
         input_file_path: str,
         gain_matrix: CalibrationMatrix,
         noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
         suffix: str = ReconstructionDefaults.suffix,
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
@@ -253,6 +254,9 @@ def reconstruct(
 
     noise_matrix : CalibrationMatrix
         The noise matrix to use for the reconstruction.
+
+    pedestal_matrix : CalibrationMatrix
+        The pedestal matrix to use for the reconstruction.
 
     suffix : str
         The suffix to append to the output file name.
@@ -292,7 +296,7 @@ def reconstruct(
     input_file, header, readout_mode = open_file(input_file_path)
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_matrix, header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
@@ -458,6 +462,45 @@ def calibrate_noise(
 
 
 @dataclass(frozen=True)
+class CalibrationDarkDefaults:
+    """Default parameters for the dark calibration task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    has_source: bool = True
+    batch_size: int = 5000000
+
+
+def calibrate_dark(
+        input_file_path: str,
+        has_source: bool = CalibrationDarkDefaults.has_source,
+        batch_size: int = CalibrationDarkDefaults.batch_size
+        ) -> str:
+    # Open the input file and extract the readout information.
+    input_file, header, readout_mode = open_file(input_file_path)
+    # The analysis is only supported for rectangular readout.
+    if readout_mode is not HexagonalReadoutMode.RECTANGULAR:
+        raise RuntimeError("Noise calibration is only supported for rectangular readout")
+    # Create the calibration matrix
+    dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"])
+    # Loop over the events and analyze the noise.
+    for _, event in tqdm(enumerate(input_file)):
+        dark_calibration.analyze_event(event, has_source, batch_size)
+    # Update the histogram with the last batch of events and fit the data.
+    dark_calibration.update_hist()
+    noise_matrix, pedestal_matrix = dark_calibration.fit()
+    # Close the input file and save the noise matrix to a HDF5 file.
+    noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
+    pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")
+    noise_matrix.to_hdf5(noise_output_file_path, "noise", False)
+    pedestal_matrix.to_hdf5(pedestal_output_file_path, "pedestal", False)
+    input_file.close()
+    return noise_output_file_path
+
+
+@dataclass(frozen=True)
 class CalibrationGainDefaults:
     """Default parameters for the gain calibration task.
 
@@ -465,7 +508,7 @@ class CalibrationGainDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    num_events: int = 50000
+    num_events: int = 100000
     zero_sup_threshold: int = 20
 
 
@@ -473,6 +516,7 @@ def calibrate_gain(
         input_file_path: str,
         energy: float,
         noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
         num_events: int = CalibrationGainDefaults.num_events,
         zero_sup_threshold: int = CalibrationGainDefaults.zero_sup_threshold
         ) -> str:
@@ -491,6 +535,9 @@ def calibrate_gain(
     noise_matrix : CalibrationMatrix
         The calibration noise matrix to use for the gain calibration.
 
+    pedestal_matrix : CalibrationMatrix
+        The pedestal matrix to use for the gain calibration.
+
     num_events : int
         The number of events to simulate to correct the bias.
 
@@ -504,7 +551,7 @@ def calibrate_gain(
     unit_gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
     unit_gain_map.set_value(1.)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, unit_gain_map, header.get("offset", 0)
+        header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
     gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
@@ -528,12 +575,11 @@ def calibrate_gain(
     simulation_readout = HexagonalReadoutRectangular(
         HexagonalLayout(header["layout"]),
         header["num_cols"], header["num_rows"], header["pitch"],
-        enc=noise_matrix, gain=gain_sim
-        )
+        enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
     # Simulate events with the best-fit gain matrix to correct the bias.
     simulate(
-        source=Source(Line(energy), DiskBeam(radius=0.05)),
+        source=Source(Line(energy), DiskBeam(radius=0.02)),
         sensor=Sensor(),
         readout=simulation_readout,
         num_events=num_events,
@@ -565,7 +611,8 @@ def calibrate_gain(
 def display(
         input_file_path: str,
         gain_matrix: CalibrationMatrix,
-        noise_matrix: CalibrationMatrix
+        noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
         ) -> None:
     """Display events from a digi file.
 
@@ -589,7 +636,7 @@ def display(
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_matrix, header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     recon_defaults = ReconstructionDefaults
     recon_pars = dict(

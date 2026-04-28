@@ -25,6 +25,7 @@ from typing import Tuple
 
 import h5py
 import numpy as np
+from aptapy.hist import Histogram3d
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
 
@@ -363,6 +364,176 @@ class CalibrateNoise(CalibrateBase):
         self.cal_matrix.values = values
         self.cal_matrix.errors = error
         return self.cal_matrix
+
+
+class CalibrateDark:
+
+    """Calibrate the noise and the pedestal of the detector by analyzing the events in a DigiFile.
+    Ideally, this operation should be performed on a dataset without any source signal with a scan
+    over the entire readout chip. In case of a dataset with source signal, the signal pixels are
+    masked out by setting them to zero, and only the remaining pixels are used for the calibration.
+
+    The calibration is performed by estimating the mean and the standard deviation of the pixel
+    value distribution for each pixel, and using these values as the pedestal and noise values.
+
+    Arguments
+    ---------
+    noise_matrix : CalibrationMatrix
+        Calibration matrix to be updated with the noise values calculated from the data.
+    pedestal_matrix : CalibrationMatrix
+        Calibration matrix to be updated with the pedestal values calculated from the data.
+    """
+
+    def __init__(self, num_cols: int, num_rows: int) -> None:
+        """Class constructor.
+        """
+        self.noise_cal = CalibrationMatrix(num_cols, num_rows)
+        self.pedestal_cal = CalibrationMatrix(num_cols, num_rows)
+        # Check if the noise and pedestal calibration matrices have the same shape.
+        num_rows, num_cols = self.noise_cal.shape
+        xedges = np.linspace(0, num_cols, num_cols + 1)
+        yedges = np.linspace(0, num_rows, num_rows + 1)
+        # For now just use a fixed number, but we need to fix this
+        zedges = np.linspace(0, 2048, 2049)
+        self._histogram = Histogram3d(xedges, yedges, zedges)
+        # Batch analysis
+        self._pha = []
+        self._cols = []
+        self._rows = []
+
+    def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
+        """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3
+        region around the highest pixel to zero.
+
+        Arguments
+        ---------
+        event : DigiEventRectangular
+            The event to be analyzed.
+        """
+        seed_col, seed_row = event.highest_pixel(absolute=False)
+        pha = event.pha.copy()
+        pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
+        return pha
+
+    def _bad_event(self, event: DigiEventRectangular, max_size: int = 200) -> bool:
+        """Determine if an event is a bad event, i.e. if it is not suitable for the calibration
+        analysis. This is done by applying a cut on the size of the region of interest of the
+        event.
+
+        This is done because in real data we occasionally have large events with
+        lots of pixels well above the pedestals, and we don't want to use them
+        for the analysis. The default threshold of 200 pixels is chosen because
+        cuts out about 5% of the events.
+
+        Arguments
+        ---------
+        event : DigiEventRectangular
+            The event to be analyzed.
+        max_size : int
+            The maximum size of the region of interest for a valid event.
+        """
+        return event.roi.size > max_size
+
+    def update_hist(self) -> None:
+        """Fill the histogram with the accumulated data and update the hits for the pixels that
+        have been filled in the histogram.
+        """
+        if len(self._pha) > 0:
+            pha = np.array(self._pha)
+            cols = np.array(self._cols)
+            rows = np.array(self._rows)
+            # Fill the histogram with the accumulated data.
+            self._histogram.fill(cols, rows, pha)
+            # Update the hits for the pixels that have been filled in the histogram.
+            # This operation cannot be done with ar[rows, cols] += 1 because it only updates
+            # the value once for repeated indexes.
+            np.add.at(self.noise_cal.entries, (rows, cols), 1)
+            np.add.at(self.pedestal_cal.entries, (rows, cols), 1)
+            # Reset the batch arrays
+            self._pha = []
+            self._cols = []
+            self._rows = []
+
+    def analyze_event(self, event: DigiEventRectangular, has_source: bool,
+                      batch_size: int = 5000000) -> None:
+        """Analyze an event to accumulate the ADC counts of noise pixels to calibrate the noise
+        and the pedestal.
+
+        Arguments
+        ---------
+        event : DigiEventRectangular
+            The event to be analyzed.
+        has_source : bool
+            Whether the event has a source signal.
+        batch_size : int
+            The size of the batch to be analyzed.
+        """
+        if self._bad_event(event):
+            return
+        pha = self._remove_signal(event) if has_source else event.pha
+        # Find the coordinates of the pixels with pha > 0 in the event.
+        local_rows, local_cols = np.nonzero(pha > 0)
+        pha_values = pha[local_rows, local_cols]
+        # Traslate the local coordinates to global coordinates.
+        row_slice, col_slice = event.roi.readout_slice()
+        global_rows = local_rows + row_slice.start
+        global_cols = local_cols + col_slice.start
+        # Accumulate the data to fill the histogram in batch.
+        self._pha.extend(pha_values)
+        self._cols.extend(global_cols)
+        self._rows.extend(global_rows)
+        # If the size of the accumulated data is large enough, fill the histogram.
+        if len(self._pha) >= batch_size:
+            self.update_hist()
+
+    # def fit(self) -> None:
+    #     noise = self.noise_cal.matrix.copy()
+    #     pedestal = self.pedestal_cal.matrix.copy()
+    #     model = Gaussian()
+    #     print("Fitting noise and pedestal for each pixel...")
+    #     # Should try to think about a more efficient way to perform 10^5 fits
+    #     for col in range(self.noise_cal.shape[1]):
+    #         print(f"Fitting column {col}...")
+    #         for row in range(self.noise_cal.shape[0]):
+    #             slice_ = self._histogram.slice1d(col, row)
+    #             entries = slice_.content.sum()
+    #             if entries > 0:
+    #                 model.fit(slice_)
+    #                 noise[row, col] = model.sigma
+    #                 pedestal[row, col] = model.mu
+
+    def fit(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
+        """Analyze the histogram to calculate the noise and pedestal values for each pixel, and
+        update the calibration matrices.
+
+        At the moment, the pedestal and noise values are estimated as the mean and the standard
+        deviation of the pixel value distribution for each pixel.
+
+        Returns
+        -------
+        noise_cal : CalibrationMatrix
+             Updated calibration matrices for the noise.
+        pedestal_cal : CalibrationMatrix
+             Updated calibration matrices for the pedestal.
+        """
+        # Calculate the mean and the standard deviation of the pixel value distribution for
+        # each pixel.
+        histo_mean, histo_sigma = self._histogram.project_statistics(axis=2)
+        mu = histo_mean.content.T
+        sigma = histo_sigma.content.T
+        # Update the noise and pedestal matrices with the calculated values for the pixels that
+        # have at least one hit.
+        noise_matrix = np.where(self.noise_cal.entries > 0, sigma, self.noise_cal.values)
+        pedestal_matrix = np.where(self.pedestal_cal.entries > 0, mu, self.pedestal_cal.values)
+        # Write the matrices
+        self.noise_cal.values = noise_matrix
+        mask = self.noise_cal.entries > 1
+        # The error on the estimate of the standard deviation is given by sigma / sqrt(2 * (N - 1))
+        self.noise_cal.errors[mask] = sigma[mask] / np.sqrt(2 * (self.noise_cal.entries[mask] - 1))
+        self.pedestal_cal.values = pedestal_matrix
+        # The error on the estimate of the mean is given by sigma / sqrt(N - 1)
+        self.pedestal_cal.errors[mask] = sigma[mask] / np.sqrt(self.pedestal_cal.entries[mask] - 1)
+        return self.noise_cal, self.pedestal_cal
 
 
 class CalibrateGain(CalibrateBase):
