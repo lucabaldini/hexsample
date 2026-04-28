@@ -29,17 +29,17 @@ def test_initialization_matrix():
     cal_matrix = CalibrationMatrix(*shape)
     # Check initial state of the matrix and hits
     assert cal_matrix.shape == shape
-    assert np.array_equal(cal_matrix.matrix, np.full(shape, np.nan), equal_nan=True)
-    assert np.array_equal(cal_matrix.hits, np.zeros(shape, dtype=int))
+    assert np.array_equal(cal_matrix.values, np.full(shape, np.nan), equal_nan=True)
+    assert np.array_equal(cal_matrix.entries, np.zeros(shape, dtype=int))
     # Now test the matrix setters
     new_matrix = np.full(shape, 1.)
-    cal_matrix.matrix = new_matrix
-    assert np.array_equal(cal_matrix.matrix, new_matrix)
+    cal_matrix.values = new_matrix
+    assert np.array_equal(cal_matrix.values, new_matrix)
     # Test hits modification
-    cal_matrix.hits[0, 0] += 1
-    assert cal_matrix.hits[0, 0] == 1
+    cal_matrix.entries[0, 0] += 1
+    assert cal_matrix.entries[0, 0] == 1
     # Test the __call__ method
-    assert cal_matrix(0, 0) == cal_matrix.matrix[0, 0]
+    assert cal_matrix(0, 0) == cal_matrix.values[0, 0]
     cols = np.array([0, 1])
     rows = np.array([0, 1])
     assert np.array_equal(cal_matrix(cols, rows), np.array([1., 1.]))
@@ -51,7 +51,7 @@ def test_set_value_matrix():
     value = 2.
     cal_matrix = CalibrationMatrix(*shape)
     cal_matrix.set_value(value)
-    assert np.array_equal(cal_matrix.matrix, np.full(shape, 2.))
+    assert np.array_equal(cal_matrix.values, np.full(shape, 2.))
 
 def test_fill_matrix():
     """Test the fill method of the CalibrationMatrix class.
@@ -60,6 +60,6 @@ def test_fill_matrix():
     value = 1.
     cal_matrix = CalibrationMatrix(*shape)
     cal_matrix.set_value(value)
-    cal_matrix.hits[0, :] = 10
+    cal_matrix.entries[0, :] = 10
     cal_matrix.fill(2., max_hits=5)
-    assert np.array_equal(cal_matrix.matrix[1:, :], np.full((4, 5), 2.))
+    assert np.array_equal(cal_matrix.values[1:, :], np.full((4, 5), 2.))
