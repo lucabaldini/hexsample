@@ -475,8 +475,12 @@ class CalibrateDark:
         pedestal_matrix = np.where(self.pedestal_cal.hits > 0, mu, pedestal)
         # Write the matrices
         self.noise_cal.matrix = noise_matrix
+        mask = self.noise_cal.hits > 1
+        # The error on the estimate of the standard deviation is given by sigma / sqrt(2 * (N - 1))
+        self.noise_cal.error[mask] = sigma[mask] / np.sqrt(2 * (self.noise_cal.hits[mask] - 1))
         self.pedestal_cal.matrix = pedestal_matrix
-
+        # The error on the estimate of the mean is given by sigma / sqrt(N - 1)
+        self.pedestal_cal.error[mask] = sigma[mask] / np.sqrt(self.pedestal_cal.hits[mask] - 1)
 
 class CalibrateGain:
 
