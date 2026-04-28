@@ -20,6 +20,7 @@
 """Calibration database facilities.
 """
 
+import pathlib
 from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
@@ -30,20 +31,61 @@ from .tasks import HEXSAMPLE_DATA
 from .calibration import CalibrationMatrix
 
 
-class CalibrationIntent(Enum):
+class CalibrationType(Enum, str):
 
-    """Enum class expressing the possible calibration intents.
+    """Enum class expressing the possible calibration types.
     """
 
-    GAIN = "gain"
-    NOISE = "noise"
+    ENC = "enc"
     PEDESTAL = "pedestal"
+    NOISE = "noise"
+    GAIN = "gain"
 
     @classmethod
     def values(cls) -> Tuple[str, ...]:
         """Return a tuple with all the enum values.
         """
         return tuple(item.value for item in cls)
+
+
+class CalDB:
+
+    """Simple calibration database implementation.
+    """
+
+    DEFAULT_DIR = pathlib.Path(__file__).parent.parent / "caldb"
+
+    def __init__(self, root_dir: pathlib.Path = DEFAULT_DIR):
+        self.root_dir = root_dir
+
+    def _open(self, calibration_type: CalibrationType, designator: str) -> CalibrationMatrix:
+        """Open the calibration file for the given designation and intent.
+        """
+        if pathlib.Path(designator).is_file():
+            return CalibrationMatrix.from_hdf5(designator)
+        file_path = self.root_dir / calibration_type / f"{designator}.h5"
+        return CalibrationMatrix.from_hdf5(file_path)
+
+    def open_enc(self, designator: str) -> CalibrationMatrix:
+        """Open the ENC calibration file for the given designation.
+        """
+        return self._open(CalibrationType.ENC, designator)
+
+    def open_pedestal(self, designator: str) -> CalibrationMatrix:
+        """Open the pedestal calibration file for the given designation.
+        """
+        return self._open(CalibrationType.PEDESTAL, designator)
+
+    def open_noise(self, designator: str) -> CalibrationMatrix:
+        """Open the noise calibration file for the given designation.
+        """
+        return self._open(CalibrationType.NOISE, designator)
+
+    def open_gain(self, designator: str) -> CalibrationMatrix:
+        """Open the gain calibration file for the given designation.
+        """
+        return self._open(CalibrationType.GAIN, designator)
+
 
 
 @dataclass
@@ -69,6 +111,16 @@ class MapCalibration:
         else:
             filename = f"proto"
         filename += f"_{self.intent}_{self.chip}_"
+
+
+def generate_calibration_file(calibration_type: CalibrationType, chip_name: str,
+    mean: float, rms: float, version: int = 1) -> None:
+    """Generate a calibration file for the given calibration type and chip name.
+    """
+    # This might be something along the lines of
+    # sim_xpol3_enc-20_uniform.h5
+    # sim_xpol3_enc-20_gauss-p10.h5
+    file_name = f"sim_{chip_name}.h5"
 
 
 def create_response_file(feature: str, loc: float, distribution: str, scale: float, num_cols: int, num_rows: int):
