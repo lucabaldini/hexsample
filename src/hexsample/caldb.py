@@ -51,7 +51,7 @@ def create_response_file(feature: str, loc: float, distribution: str, scale: flo
     # Create the instance to store the calibration matrix.
     cal_matrix = CalibrationMatrix(num_cols, num_rows)
     # Create the matrix with the given distribution and location.
-    if distribution == "scalar":
+    if distribution == "uniform":
         matrix = np.full((num_rows, num_cols), loc)
     elif distribution == "gaussian":
         matrix = np.random.normal(loc, scale, (num_rows, num_cols))

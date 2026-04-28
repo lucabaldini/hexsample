@@ -413,8 +413,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group to create calibration files.
         """
         group = parser.add_argument_group("create", "Create calibration files")
-        group.add_argument("--distribution", type=str, default="scalar",
-                           choices=["gaussian", "scalar"],
+        group.add_argument("--distribution", type=str, default="uniform",
+                           choices=["gaussian", "uniform"],
                            help="distribution from which the feature valuesare extracted")
         group.add_argument("--scale", type=float, default=1.,
                            help="scale factor for the feature values")
