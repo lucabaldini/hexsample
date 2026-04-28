@@ -37,7 +37,7 @@ def simulate(**kwargs) -> str:
     sensor = Sensor.from_filtered_kwargs(**kwargs)
     # Open the gain and noise calibration files.
     gain_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_gain"])
-    enc_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_enc"])
+    enc_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_noise"])
     pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_pedestal"])
     kwargs.update({"gain": gain_matrix, "enc": enc_matrix, "pedestal": pedestal_matrix})
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
@@ -59,7 +59,7 @@ def reconstruct(**kwargs) -> str:
     defaults = tasks.ReconstructionDefaults()
     input_file_path = kwargs["input_file"]
     gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
-    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_noise"))
     pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_pedestal"))
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
@@ -84,7 +84,7 @@ def calibrate_eta(**kwargs) -> None:
     """
     input_file_path = kwargs["input_file"]
     gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
-    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_noise"))
     num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationEtaDefaults.zero_sup_threshold)
@@ -115,7 +115,7 @@ def calibrate_gain(**kwargs) -> str:
     input_file_path = kwargs["input_file"]
     energy = kwargs["energy"]
     num_events = kwargs.get("num_events", tasks.CalibrationGainDefaults.num_events)
-    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_noise"))
     pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_pedestal"))
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationGainDefaults.zero_sup_threshold)
@@ -141,7 +141,7 @@ def display(**kwargs) -> None:
     """
     input_file_path = kwargs["input_file"]
     gain_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_gain"))
-    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_enc"))
+    noise_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_noise"))
     pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs.get("cal_file_pedestal"))
     args = input_file_path, gain_matrix, noise_matrix, pedestal_matrix
     return tasks.display(*args)

@@ -252,7 +252,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_cal_dark_files(parser: argparse.ArgumentParser) -> None:
         """Add options for the noise and pedestal calibration files.
         """
-        parser.add_argument("--cal_file_enc", type=str, required=True,
+        parser.add_argument("--cal_file_noise", type=str, required=True,
                             help="path to a file containing the noise map.")
         parser.add_argument("--cal_file_pedestal", type=str, required=True,
                             help="path to a file containing the pedestal map.")
