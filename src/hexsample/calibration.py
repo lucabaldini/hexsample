@@ -115,13 +115,21 @@ class CalibrationMatrix:
         """Return the metadata of the calibration matrix.
         """
         mask = self._hits > 0
+        if not np.any(mask):
+            num_events_avg = 0
+            num_events_min = 0
+            num_events_max = 0
+        else:
+            num_events_avg = int(self._hits[mask].mean())
+            num_events_min = min(self._hits[mask])
+            num_events_max = max(self._hits[mask])
         _metadata = dict(
             num_cols=self._shape[1],
             num_rows=self._shape[0],
             num_events=self._num_events,
-            num_events_avg=int(self._hits[mask].mean()),
-            num_events_min=min(self._hits[mask]),
-            num_events_max=max(self._hits[mask]),
+            num_events_avg=num_events_avg,
+            num_events_min=num_events_min,
+            num_events_max=num_events_max,
             num_calibrated_pixels=mask.sum(),
             version=__version__,
             feature=self._feature,
