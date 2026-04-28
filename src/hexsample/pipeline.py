@@ -21,8 +21,7 @@
 """
 
 
-from . import legacy, tasks, caldb
-from .calibration import CalibrationMatrix
+from . import caldb, legacy, tasks
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source

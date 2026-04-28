@@ -20,8 +20,8 @@
 """Calibration facilities.
 """
 
-from enum import Enum
 import pathlib
+from enum import Enum
 from typing import Tuple
 
 import h5py
@@ -275,6 +275,8 @@ class CalibrationMatrix:
         """
         if CalibrationMetadata.FILE_NAME in self._metadata:
             return self._metadata[CalibrationMetadata.FILE_NAME]
+        return f"CalibrationMatrix(num_cols={self._metadata[CalibrationMetadata.NUM_COLS]}, " \
+                f"num_rows={self._metadata[CalibrationMetadata.NUM_ROWS]})"
 
 
 class CalibrateBase:

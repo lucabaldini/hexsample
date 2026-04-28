@@ -26,9 +26,9 @@ from enum import Enum
 from typing import Tuple
 
 from . import rng
-from .tasks import HEXSAMPLE_DATA
 from .calibration import CalibrationMatrix
-from .xpol import XPOL_CHIP_DICT, XPOL
+from .tasks import HEXSAMPLE_DATA
+from .xpol import XPOL, XPOL_CHIP_DICT
 
 
 class CalibrationType(str, Enum):
@@ -127,7 +127,7 @@ def generate_calibration_file(
         raise ValueError("RMS must be non-negative")
     # Append the version number to the file name
     file_name += f"_v{version:03d}.h5"
-    # Generate the calibration matrix with the appropriate size and values 
+    # Generate the calibration matrix with the appropriate size and values
     num_cols, num_rows = XPOL_CHIP_DICT[chip_name]
     calibration_matrix = CalibrationMatrix(num_cols, num_rows)
     calibration_matrix.values = rng.generator.normal(mean, scale=mean*rms/100,

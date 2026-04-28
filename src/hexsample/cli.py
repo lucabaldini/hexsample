@@ -33,7 +33,7 @@ from hexsample import (
     roi,
     sensor,
     source,
-    tasks
+    tasks,
 )
 
 
@@ -379,7 +379,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                            "for two pixel events eta reconstruction")
         group.add_argument("--eta_3pix_rad_offset", default=defaults.eta_3pix_rad_offset,
                            type=float, help="probit function offset parameter for three pixel" \
-                           "events radial component eta reconstruction")
+                           " events radial component eta reconstruction")
         group.add_argument("--eta_3pix_rad_sigma", default=defaults.eta_3pix_rad_sigma, type=float,
                            help="probit function sigma parameter for three pixel " \
                            "events radial component eta reconstruction")
@@ -400,7 +400,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--batch_size", type=int,
                            default=tasks.CalibrationDarkDefaults.batch_size,
                            help="number of events to be analyzed in a batch for the dark" \
-                           "calibration")
+                           " calibration")
 
     def add_generate_calibration_file_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group to generate calibration files.
@@ -412,17 +412,22 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="mean value of the calibration parameter.")
         group.add_argument("--rms", type=int, default=caldb.GenerateCalibrationDefaults.rms,
                            help="relative RMS (as percentage of the mean) of the gaussian" \
-                           "distribution. A value of 0 generates a uniform distribution.")
+                           " distribution. A value of 0 generates a uniform distribution.")
         group.add_argument("--chip_name", type=str, choices=caldb.XPOL.values(),
                             default=caldb.GenerateCalibrationDefaults.chip_name,
-                            help="XPOL chip name for which the calibration file is generated. This" \
-                            "parameter is used to determine the size of the calibration matrix.")
-        group.add_argument("--output_dir", type=str, default=caldb.GenerateCalibrationDefaults.output_dir,
-                            help="directory where the generated calibration file will be saved")
-        group.add_argument("--version", type=int, default=caldb.GenerateCalibrationDefaults.version,
-                            help="version number to be included in the generated calibration file name")
-        group.add_argument("--random_seed", type=int, default=caldb.GenerateCalibrationDefaults.random_seed,
-                            help="random seed for the generation of the calibration values")
+                            help="XPOL chip name for which the calibration file is generated." \
+                            " This parameter is used to determine the size of the calibration" \
+                            " matrix.")
+        group.add_argument("--output_dir", type=str,
+                           default=caldb.GenerateCalibrationDefaults.output_dir,
+                           help="directory where the generated calibration file will be saved")
+        group.add_argument("--version", type=int,
+                           default=caldb.GenerateCalibrationDefaults.version,
+                           help="version number to be included in the generated calibration" \
+                           " file name")
+        group.add_argument("--random_seed", type=int,
+                           default=caldb.GenerateCalibrationDefaults.random_seed,
+                           help="random seed for the generation of the calibration values")
 
 
 

@@ -39,7 +39,7 @@ class XPOL(str, Enum):
     def values(cls) -> Tuple[str, ...]:
         """Return a tuple with all the enum values.
         """
-        return tuple(item.value for item in cls)    
+        return tuple(item.value for item in cls)
 
 
 # Chip size for the two generations.
