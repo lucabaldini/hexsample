@@ -20,8 +20,27 @@
 """Quantities related to the XPOL readout chip.
 """
 
+from enum import Enum
+from typing import Tuple
+
 from .hexagon import HexagonalLayout
 from .roi import Padding
+
+
+class XPOL(str, Enum):
+
+    """Enum class expressing the possible XPOL readout chip models.
+    """
+
+    XPOL1 = "xpol1"
+    XPOL3 = "xpol3"
+
+    @classmethod
+    def values(cls) -> Tuple[str, ...]:
+        """Return a tuple with all the enum values.
+        """
+        return tuple(item.value for item in cls)    
+
 
 # Chip size for the two generations.
 XPOL1_SIZE = (300, 352)
@@ -36,3 +55,9 @@ XPOL_PITCH = 0.005
 # Convenience constants for the XPOL1 default paddings.
 XPOL1_SMALL_PADDING = Padding(10, 8, 10, 8)
 XPOL1_LARGE_PADDING = Padding(20, 16, 20, 16)
+
+
+XPOL_CHIP_DICT = {
+    XPOL.XPOL1: XPOL1_SIZE,
+    XPOL.XPOL3: XPOL3_SIZE,
+}
