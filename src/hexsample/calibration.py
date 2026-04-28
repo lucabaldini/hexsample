@@ -21,6 +21,7 @@
 """
 
 from enum import Enum
+import pathlib
 from typing import Tuple
 
 import h5py
@@ -39,6 +40,7 @@ class CalibrationMetadata(str, Enum):
     """Enum to store the metadata keys for the calibration matrix.
     """
 
+    FILE_NAME = "file_name"
     NUM_COLS = "num_cols"
     NUM_ROWS = "num_rows"
     NUM_EVENTS = "num_events"
@@ -81,10 +83,10 @@ class CalibrationMatrix:
         self._errors = np.full(self._shape, np.nan)
         # Other useful information for the metadata
         self._num_events = 0
-        self._metadata = dict(
-            num_cols=num_cols,
-            num_rows=num_rows
-            )
+        self._metadata = {
+            CalibrationMetadata.NUM_COLS: num_cols,
+            CalibrationMetadata.NUM_ROWS: num_rows
+            }
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -226,6 +228,7 @@ class CalibrationMatrix:
             # Update the header with the relevant information and metadata.
             self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type
             self._metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
+            self._metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
             for key, val in self.metadata.items():
                 h5file.attrs[key] = val
         return file_path
@@ -266,6 +269,12 @@ class CalibrationMatrix:
             The row coordinates of the pixels to access.
         """
         return self.values[row, col]
+
+    def __str__(self) -> str:
+        """Return a string representation of the calibration matrix.
+        """
+        if CalibrationMetadata.FILE_NAME in self._metadata:
+            return self._metadata[CalibrationMetadata.FILE_NAME]
 
 
 class CalibrateBase:
