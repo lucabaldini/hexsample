@@ -42,9 +42,9 @@ class CalibrationMetadata(str, Enum):
     NUM_COLS = "num_cols"
     NUM_ROWS = "num_rows"
     NUM_EVENTS = "num_events"
-    NUM_EVENTS_AVG = "num_events_avg"
-    NUM_EVENTS_MIN = "num_events_min"
-    NUM_EVENTS_MAX = "num_events_max"
+    ENTRIES_AVG = "entries_avg"
+    ENTRIES_MIN = "entries_min"
+    ENTRIES_MAX = "entries_max"
     NUM_CALIBRATED_PIXELS = "num_calibrated_pixels"
     VERSION = "version"
     KIND = "kind"
@@ -149,16 +149,16 @@ class CalibrationMatrix:
         # If there are no pixels with events, we can set the average, minimum and maximum number of
         # events to zero.
         if np.any(mask):
-            num_events_avg = int(self._entries[mask].mean())
-            num_events_min = min(self._entries[mask])
-            num_events_max = max(self._entries[mask])
+            entries_avg = int(self._entries[mask].mean())
+            entries_min = min(self._entries[mask])
+            entries_max = max(self._entries[mask])
         else:
-            num_events_avg = num_events_min = num_events_max = 0
+            entries_avg = entries_min = entries_max = 0
         # Setting the metadata values.
         self._metadata[CalibrationMetadata.NUM_EVENTS] = self._num_events
-        self._metadata[CalibrationMetadata.NUM_EVENTS_AVG] = num_events_avg
-        self._metadata[CalibrationMetadata.NUM_EVENTS_MIN] = num_events_min
-        self._metadata[CalibrationMetadata.NUM_EVENTS_MAX] = num_events_max
+        self._metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
+        self._metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
+        self._metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
         self._metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
         return self._metadata
 
@@ -415,20 +415,24 @@ class CalibrateDark:
         pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
         return pha
 
-    def _bad_event(self, event: DigiEventRectangular) -> bool:
+    def _bad_event(self, event: DigiEventRectangular, max_size: int = 200) -> bool:
         """Determine if an event is a bad event, i.e. if it is not suitable for the calibration
         analysis. This is done by applying a cut on the size of the region of interest of the
         event.
+
+        This is done because in real data we occasionally have large events with
+        lots of pixels well above the pedestals, and we don't want to use them
+        for the analysis. The default threshold of 200 pixels is chosen because
+        cuts out about 5% of the events.
 
         Arguments
         ---------
         event : DigiEventRectangular
             The event to be analyzed.
+        max_size : int
+            The maximum size of the region of interest for a valid event.
         """
-        # Currently we are selecting only events with a roi size smaller than 200 pixels, which
-        # cuts out about 5% of the events. We may choose another criterion in the future.
-        roi_shape = event.roi.shape()
-        return roi_shape[0] * roi_shape[1] > 200
+        return event.roi.size > max_size
 
     def update_hist(self) -> None:
         """Fill the histogram with the accumulated data and update the hits for the pixels that

@@ -199,8 +199,9 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         # Add the noise
         noise = rng.generator.normal(0., scale=self.enc(cols, rows))
         pha = pha + noise
-        # Apply the conversion between electrons and ADC counts
-        # Add the pedestal
+        # Apply the gain
+        pha = pha * self.gain(cols, rows)
+        # Apply the conversion between electrons and ADC counts: add the pedestal
         pha = pha + self.pedestal(cols, rows)
         # Round to the nearest integer
         pha = np.round(pha).astype(int)
