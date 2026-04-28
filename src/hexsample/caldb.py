@@ -20,6 +20,7 @@
 """Calibration database facilities.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
 
@@ -29,9 +30,9 @@ from .tasks import HEXSAMPLE_DATA
 from .calibration import CalibrationMatrix
 
 
-class CalibrationFeatures(Enum):
+class CalibrationIntent(Enum):
 
-    """Enum class expressing the possible calibration features.
+    """Enum class expressing the possible calibration intents.
     """
 
     GAIN = "gain"
@@ -43,6 +44,31 @@ class CalibrationFeatures(Enum):
         """Return a tuple with all the enum values.
         """
         return tuple(item.value for item in cls)
+
+
+@dataclass
+class MapCalibration:
+
+    """Class to manage the calibration files.
+    """
+
+    intent: str
+    loc: int
+    chip: str = "xpol3"
+    pattern: str = "uniform"
+    distibution: str = "gauss"
+    scale_ratio: float = 1.0
+    sim: bool = False
+    version: int = 1
+
+    def filename(self) -> str:
+        """Return the file name for the calibration file.
+        """
+        if self.sim:
+            filename = "sim"
+        else:
+            filename = f"proto"
+        filename += f"_{self.intent}_{self.chip}_"
 
 
 def create_response_file(feature: str, loc: float, distribution: str, scale: float, num_cols: int, num_rows: int):

@@ -269,7 +269,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_feature(parser: argparse.ArgumentParser) -> None:
         """Add an option for the feature to be calibrated.
         """
-        parser.add_argument("feature", type=str, choices=caldb.CalibrationFeatures.values(),
+        parser.add_argument("feature", type=str, choices=caldb.CalibrationIntent.values(),
                             help="feature to be calibrated")
 
     @staticmethod
