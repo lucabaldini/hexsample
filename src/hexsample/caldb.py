@@ -118,8 +118,8 @@ def generate_calibration_file(calibration_type: CalibrationType, chip_name: str,
     """Generate a calibration file for the given calibration type and chip name.
     """
     # This might be something along the lines of
-    # sim_xpol3_enc-20_uniform.h5
-    # sim_xpol3_enc-20_gauss-p10.h5
+    # sim_xpol3_enc-20_uniform_v001.h5
+    # sim_xpol3_enc-20_gauss-p10_v001.h5
     file_name = f"sim_{chip_name}.h5"
 
 
