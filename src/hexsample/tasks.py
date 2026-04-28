@@ -32,19 +32,16 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
-from .calibration import (
-    CalibrateDark,
-    CalibrateGain,
-    CalibrateNoise,
-    CalibrationMatrix,
+from .calibration import CalibrateDark, CalibrateGain, CalibrateNoise, CalibrationMatrix
+from .clustering import ClusteringNN
+from .display import EventDisplay
+from .eta import (
     angle,
     calibrate_dr_2pix,
     calibrate_dr_3pix,
     calibrate_theta_3pix,
     distance,
 )
-from .clustering import ClusteringNN
-from .display import EventDisplay
 from .fileio import (
     DigiInputFileBase,
     ReconOutputFile,
@@ -451,13 +448,12 @@ def calibrate_noise(
     # The analysis is only supported for rectangular readout.
     if readout_mode is not HexagonalReadoutMode.RECTANGULAR:
         raise RuntimeError("Noise calibration is only supported for rectangular readout")
-    # Create the calibration matrix
-    noise_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    noise_calibration = CalibrateNoise(noise_matrix)
+    # Create the object to calibrate the noise and run the analysis.
+    noise_calibration = CalibrateNoise(header["num_cols"], header["num_rows"])
     # Loop over the events and analyze the noise.
     for _, event in tqdm(enumerate(input_file)):
         noise_calibration.analyze_event(event)
-    noise_calibration.update()
+    noise_matrix = noise_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     noise_matrix.to_hdf5(output_file_path, "noise", False)
@@ -488,15 +484,13 @@ def calibrate_dark(
     if readout_mode is not HexagonalReadoutMode.RECTANGULAR:
         raise RuntimeError("Noise calibration is only supported for rectangular readout")
     # Create the calibration matrix
-    noise_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    pedestal_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    dark_calibration = CalibrateDark(noise_matrix, pedestal_matrix)
+    dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"])
     # Loop over the events and analyze the noise.
     for _, event in tqdm(enumerate(input_file)):
         dark_calibration.analyze_event(event, has_source, batch_size)
     # Update the histogram with the last batch of events and fit the data.
     dark_calibration.update_hist()
-    dark_calibration.fit()
+    noise_matrix, pedestal_matrix = dark_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")
@@ -560,8 +554,7 @@ def calibrate_gain(
         header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
-    gain_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    gain_calibration = CalibrateGain(gain_matrix, energy)
+    gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
     for _, event in tqdm(enumerate(input_file)):
@@ -570,8 +563,8 @@ def calibrate_gain(
         except IndexError:
             continue
         gain_calibration.analyze_cluster(cluster)
-    gain_calibration.fit()
-    if not np.any(gain_matrix.hits > 0):
+    gain_matrix = gain_calibration.fit()
+    if not np.any(gain_matrix.entries > 0):
         raise RuntimeError("No valid gain values found during the first step of calibration," \
         "cannot proceed further. The possible reason could be a small number of events over " \
         "the analyzed chip region.")
@@ -592,8 +585,7 @@ def calibrate_gain(
         num_events=num_events,
         output_file_path=output)
     tmp_input_file = digi_input_file_class("rectangular")(output)
-    tmp_gain_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    tmp_gain_calibration = CalibrateGain(tmp_gain_matrix, energy)
+    tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
     # Re-run the gain calibration on the simulated events to calculate the correction factor.
     for _, event in tqdm(enumerate(tmp_input_file)):
         try:
@@ -601,13 +593,13 @@ def calibrate_gain(
         except IndexError:
             continue
         tmp_gain_calibration.analyze_cluster(cluster)
-    tmp_gain_calibration.fit()
+    tmp_gain_matrix = tmp_gain_calibration.fit()
     # Calculate the correction factor from the simulation.
-    mask = tmp_gain_matrix.hits > 0
-    residuals = (tmp_gain_matrix.matrix[mask] - gain_sim.matrix[mask]) / gain_sim.matrix[mask]
+    mask = tmp_gain_matrix.entries > 0
+    residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
     # Apply the correction factor to the gain matrix and save it to a HDF5 file.
-    mask_gain = gain_matrix.hits > 0
-    gain_matrix.matrix[mask_gain] = gain_matrix.matrix[mask_gain] / (1 + np.mean(residuals))
+    mask_gain = gain_matrix.entries > 0
+    gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + np.mean(residuals))
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
     gain_matrix.to_hdf5(output_file_path, "gain", False)
     # Close the input files.
