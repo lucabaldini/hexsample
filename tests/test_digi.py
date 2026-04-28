@@ -60,8 +60,10 @@ def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     enc_matrix.set_value(enc)
     gain_matrix = CalibrationMatrix(num_cols, num_rows)
     gain_matrix.set_value(gain)
+    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
+    pedestal_matrix.set_value(offset)
     readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc_matrix, gain_matrix,
-                                       offset)
+                                       pedestal_matrix)
     # Pick out some particular pixels, we expect only the one with higher PHA
     # to be saved in the DigiEventCircular.
     col1, row1 = 2, 4
@@ -116,8 +118,10 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     enc_matrix.set_value(enc)
     gain_matrix = CalibrationMatrix(num_cols, num_rows)
     gain_matrix.set_value(gain)
+    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
+    pedestal_matrix.set_value(offset)
     readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc_matrix,
-                                          gain_matrix, offset, trg_threshold, 0, padding)
+                                          gain_matrix, pedestal_matrix, trg_threshold, 0, padding)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f"Testing pixel ({col}, {row})...")
