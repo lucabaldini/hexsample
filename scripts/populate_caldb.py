@@ -26,7 +26,7 @@ from hexsample.caldb import (
     CalDB,
     CalibrationType,
     GenerateCalibrationDefaults,
-    generate_calibration_file
+    generate_calibration_file,
 )
 
 ENC_VALS = [20, 30, 40, 50, 75, 100]
