@@ -21,8 +21,7 @@
 """
 
 
-from . import legacy, tasks
-from .caldb import create_response_file
+from . import legacy, tasks, caldb
 from .calibration import CalibrationMatrix
 from .readout import ReadoutProxy
 from .sensor import Sensor
@@ -36,10 +35,10 @@ def simulate(**kwargs) -> str:
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
     # Open the gain and noise calibration files.
-    gain_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_gain"])
-    enc_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_noise"])
-    pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_pedestal"])
-    kwargs.update({"gain": gain_matrix, "enc": enc_matrix, "pedestal": pedestal_matrix})
+    # gain_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_gain"])
+    # enc_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_noise"])
+    # pedestal_matrix = CalibrationMatrix.from_hdf5(kwargs["cal_file_pedestal"])
+    # kwargs.update({"gain": gain_matrix, "enc": enc_matrix, "pedestal": pedestal_matrix})
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
     # Remove the enc and gain kwargs from the header, maybe we could save the calibration
     # file names
@@ -123,17 +122,19 @@ def calibrate_gain(**kwargs) -> str:
     return tasks.calibrate_gain(*args)
 
 
-def create_cal_file(**kwargs) -> str:
-    """Create a calibration file for a given feature.
+def generate_calibration_file(**kwargs) -> str:
+    """Generate a calibration file of a given type.
     """
-    feature = kwargs["feature"]
-    loc = kwargs["loc"]
-    distribution = kwargs["distribution"]
-    scale = kwargs["scale"]
-    num_cols = kwargs["num_cols"]
-    num_rows = kwargs["num_rows"]
-    args = feature, loc, distribution, scale, num_cols, num_rows
-    return create_response_file(*args)
+    defaults = caldb.GenerateCalibrationDefaults
+    calibration_type = kwargs["calibration_type"]
+    mean = kwargs["mean"]
+    rms = kwargs.get("rms", defaults.rms)
+    chip_name = kwargs.get("chip_name", defaults.chip_name)
+    output_dir = kwargs.get("output_dir", defaults.output_dir)
+    version = kwargs.get("version", defaults.version)
+    random_seed = kwargs.get("random_seed", defaults.random_seed)
+    args = calibration_type, mean, rms, chip_name, output_dir, version, random_seed
+    return caldb.generate_calibration_file(*args)
 
 
 def display(**kwargs) -> None:

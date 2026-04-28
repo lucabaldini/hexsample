@@ -145,12 +145,10 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(gain)
         gain.set_defaults(runner=pipeline.calibrate_gain)
         # Create calibration files
-        create_cal = calibrate_subparsers.add_parser("create", help="create calibration files")
-        self.add_feature(create_cal)
-        self.add_location(create_cal)
-        self.add_create_cal_file_options(create_cal)
+        create_cal = calibrate_subparsers.add_parser("generate", help="generate calibration files")
+        self.add_generate_calibration_file_options(create_cal)
         self.add_logging_level(create_cal)
-        create_cal.set_defaults(runner=pipeline.create_cal_file)
+        create_cal.set_defaults(runner=pipeline.generate_calibration_file)
 
         # Run the single-event display?
         display = subparsers.add_parser("display",
@@ -252,9 +250,10 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_cal_dark_files(parser: argparse.ArgumentParser) -> None:
         """Add options for the noise and pedestal calibration files.
         """
-        parser.add_argument("--cal_file_noise", type=str, required=True,
+        cal_db = caldb.CalDB()
+        parser.add_argument("--noise", type=cal_db.open_noise, required=True,
                             help="path to a file containing the noise map.")
-        parser.add_argument("--cal_file_pedestal", type=str, required=True,
+        parser.add_argument("--pedestal", type=cal_db.open_pedestal, required=True,
                             help="path to a file containing the pedestal map.")
 
     @staticmethod
@@ -262,23 +261,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add options for the calibration files.
         """
         CliArgumentParser.add_cal_dark_files(parser)
-        parser.add_argument("--cal_file_gain", type=str, required=True,
+        parser.add_argument("--gain", type=caldb.CalDB().open_gain, required=True,
                             help="path to a file containing the gain map.")
-
-    @staticmethod
-    def add_feature(parser: argparse.ArgumentParser) -> None:
-        """Add an option for the feature to be calibrated.
-        """
-        parser.add_argument("feature", type=str, choices=caldb.CalibrationIntent.values(),
-                            help="feature to be calibrated")
-
-    @staticmethod
-    def add_location(parser: argparse.ArgumentParser) -> None:
-        """Add an option for the location of the feature to be calibrated.
-        """
-        parser.add_argument("loc", type=float,
-                            help="mean of the distribution from which the feature values" \
-                            "are extracted")
 
     @staticmethod
     def add_source_options(parser: argparse.ArgumentParser) -> None:
@@ -339,6 +323,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the readout properties.
         """
         group = parser.add_argument_group("readout", "Redout configuration")
+        cal_db = caldb.CalDB()
+        group.add_argument("--enc", type=cal_db.open_enc, required=True,
+                           help="path to a file containing the ENC map.")
+        group.add_argument("--pedestal", type=cal_db.open_pedestal, required=True,
+                           help="path to a file containing the pedestal map.")
+        group.add_argument("--gain", type=cal_db.open_gain, required=True,
+                           help="path to a file containing the gain map.")
         group.add_argument("--layout", type=str, choices=hexagon.HexagonalLayout.values(),
                            default=hexagon.HexagonalGrid.layout,
                            help="chip layout")
@@ -348,7 +339,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of rows in the readout chip")
         group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
-        CliArgumentParser.add_cal_files(group)
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
                            choices=readout.ReadoutProxy.choices(),
                            default=readout.ReadoutProxy.default(),
@@ -409,19 +399,29 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of events to be analyzed in a batch for the dark" \
                            "calibration")
 
-    def add_create_cal_file_options(self, parser: argparse.ArgumentParser) -> None:
-        """Add an option group to create calibration files.
+    def add_generate_calibration_file_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group to generate calibration files.
         """
-        group = parser.add_argument_group("create", "Create calibration files")
-        group.add_argument("--distribution", type=str, default="uniform",
-                           choices=["gaussian", "uniform"],
-                           help="distribution from which the feature valuesare extracted")
-        group.add_argument("--scale", type=float, default=1.,
-                           help="scale factor for the feature values")
-        group.add_argument("--num_cols", type=int, default=hexagon.HexagonalGrid.num_cols,
-                           help="number of colums in the readout chip")
-        group.add_argument("--num_rows", type=int, default=hexagon.HexagonalGrid.num_rows,
-                           help="number of rows in the readout chip")
+        group = parser.add_argument_group("generate", "Generate calibration files")
+        group.add_argument("calibration_type", type=str, choices=caldb.CalibrationType.values(),
+                           help="type of calibration file to be generated")
+        group.add_argument("mean", type=float,
+                           help="mean value of the calibration parameter.")
+        group.add_argument("--rms", type=int, default=caldb.GenerateCalibrationDefaults.rms,
+                           help="relative RMS (as percentage of the mean) of the gaussian" \
+                           "distribution. A value of 0 generates a uniform distribution.")
+        group.add_argument("--chip_name", type=str, choices=caldb.XPOL.values(),
+                            default=caldb.GenerateCalibrationDefaults.chip_name,
+                            help="XPOL chip name for which the calibration file is generated. This" \
+                            "parameter is used to determine the size of the calibration matrix.")
+        group.add_argument("--output_dir", type=str, default=caldb.GenerateCalibrationDefaults.output_dir,
+                            help="directory where the generated calibration file will be saved")
+        group.add_argument("--version", type=int, default=caldb.GenerateCalibrationDefaults.version,
+                            help="version number to be included in the generated calibration file name")
+        group.add_argument("--random_seed", type=int, default=caldb.GenerateCalibrationDefaults.random_seed,
+                            help="random seed for the generation of the calibration values")
+
+
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
