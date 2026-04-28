@@ -53,7 +53,7 @@ class CalDB:
     """Simple calibration database implementation.
     """
 
-    DEFAULT_DIR = pathlib.Path(__file__).parent.parent / "caldb"
+    DEFAULT_DIR = pathlib.Path(__file__).parent.parent.parent / "caldb"
 
     def __init__(self, root_dir: pathlib.Path = DEFAULT_DIR):
         self.root_dir = root_dir
