@@ -60,12 +60,11 @@ class CalibrationMatrix:
         # Create the arrays to store the calibration data and the number of events for each pixel.
         self._matrix = np.full(self._shape, np.nan)
         self._hits = np.zeros(self._shape, dtype=int)
-        # Store the metadata of the calibration matrix
-        self._metadata = dict(
-            num_cols=num_cols,
-            num_rows=num_rows,
-            version=__version__
-        )
+        self._error = np.full(self._shape, np.nan)
+        # Other useful information for the metadata
+        self._num_events = 0
+        self._feature = None
+        self._is_synthetic = False
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -96,10 +95,39 @@ class CalibrationMatrix:
         return self._hits
 
     @property
+    def error(self) -> np.ndarray:
+        """Return the error of the calibration matrix for each pixel.
+        """
+        return self._error
+
+    @error.setter
+    def error(self, new_error: np.ndarray) -> None:
+        """Set the value of the error of the calibration matrix to a new value.
+        """
+        # Check the consistency of the shape of the new error matrix.
+        if new_error.shape != self._shape:
+            raise ValueError(f"Input error matrix has shape {new_error.shape}, but expected shape "
+                             f"is {self._shape}.")
+        self._error = new_error
+
+    @property
     def metadata(self) -> dict:
         """Return the metadata of the calibration matrix.
         """
-        return self._metadata
+        mask = self._hits > 0
+        _metadata = dict(
+            num_cols=self._shape[1],
+            num_rows=self._shape[0],
+            num_events=self._num_events,
+            num_events_avg=int(self._hits[mask].mean()),
+            num_events_min=min(self._hits[mask]),
+            num_events_max=max(self._hits[mask]),
+            num_calibrated_pixels=mask.sum(),
+            version=__version__,
+            feature=self._feature,
+            is_synthetic=self._is_synthetic
+        )
+        return _metadata
 
     def set_value(self, value: float) -> None:
         """Set a value for all the pixels in the calibration matrix.
@@ -161,10 +189,11 @@ class CalibrationMatrix:
             # Save the matrix and the hits matrices as arrays in the HDF5 file.
             h5file.create_dataset("matrix", data=self.matrix, **compression_pars)
             h5file.create_dataset("hits", data=self.hits, **compression_pars)
+            h5file.create_dataset("error", data=self.error, **compression_pars)
             # Update the header with the relevant information and metadata.
-            h5file.attrs["feature"] = feature
-            h5file.attrs["is_synthetic"] = is_synthetic
-            for key, val in self._metadata.items():
+            self._feature = feature
+            self._is_synthetic = is_synthetic
+            for key, val in self.metadata.items():
                 h5file.attrs[key] = val
         return file_path
 
@@ -185,10 +214,12 @@ class CalibrationMatrix:
             attrs = dict(h5file.attrs)
             # Instantiate the object with the attributes loaded from the header.
             obj = cls(num_cols=attrs["num_cols"], num_rows=attrs["num_rows"])
-            obj._metadata.update(attrs)
+            for key, val in attrs.items():
+                setattr(obj, f"_{key}", val)
             # Load the matrix and the hits matrices from the HDF5 file.
             obj._matrix = h5file["matrix"][:]
             obj._hits = h5file["hits"][:]
+            obj._error = h5file["error"][:]
         return obj
 
     def __call__(self, col: np.ndarray, row: np.ndarray) -> float:
@@ -268,6 +299,7 @@ class CalibrateNoise:
             row_slice, col_slice = event.roi.readout_slice()
             self._sum2[row_slice, col_slice] += noise_pha**2
             self.cal_matrix.hits[row_slice, col_slice][noise_pha > 0] += 1
+            self.cal_matrix._num_events += 1
 
     def update(self):
         """Update the calibration matrix with the noise values calculated from the data.
@@ -280,8 +312,10 @@ class CalibrateNoise:
             raise ValueError("No events have been analyzed, cannot update the calibration matrix.")
         with np.errstate(divide='ignore', invalid='ignore'):
             matrix = np.where(hits > 0, np.sqrt(self._sum2 / hits), matrix)
+            error = np.where(hits > 1, matrix / np.sqrt(2 * (hits - 1)), self.cal_matrix.error)
         # Write back through the setter so updates persist on the shared object.
         self.cal_matrix.matrix = matrix
+        self.cal_matrix.error = error
 
 
 class CalibrateDark:
@@ -511,6 +545,7 @@ class CalibrateGain:
         hits[~mask] = 0
         # Write back through the setter so updates persist on the shared object.
         self.cal_matrix.matrix = matrix
+        self.cal_matrix.error = np.where(mask, sigma_g_rel * matrix, self.cal_matrix.error)
 
     def analyze_cluster(self, cluster: Cluster) -> None:
         """Analyze the event cluster to update the calibration matrix.
@@ -529,6 +564,7 @@ class CalibrateGain:
             self.cal_matrix.hits[row, col] += 1
         # Update the event count
         self._event_count += 1
+        self.cal_matrix._num_events += 1
 
 
 def profile(xdata: np.ndarray, ydata: np.ndarray, xbins: int, ybins: int
