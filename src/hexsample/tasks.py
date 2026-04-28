@@ -484,15 +484,13 @@ def calibrate_dark(
     if readout_mode is not HexagonalReadoutMode.RECTANGULAR:
         raise RuntimeError("Noise calibration is only supported for rectangular readout")
     # Create the calibration matrix
-    noise_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    pedestal_matrix = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    dark_calibration = CalibrateDark(noise_matrix, pedestal_matrix)
+    dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"])
     # Loop over the events and analyze the noise.
     for _, event in tqdm(enumerate(input_file)):
         dark_calibration.analyze_event(event, has_source, batch_size)
     # Update the histogram with the last batch of events and fit the data.
     dark_calibration.update_hist()
-    dark_calibration.fit()
+    noise_matrix, pedestal_matrix = dark_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")

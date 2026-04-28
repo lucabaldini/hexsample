@@ -366,7 +366,7 @@ class CalibrateNoise(CalibrateBase):
         return self.cal_matrix
 
 
-class CalibrateDark(CalibrateBase):
+class CalibrateDark:
 
     """Calibrate the noise and the pedestal of the detector by analyzing the events in a DigiFile.
     Ideally, this operation should be performed on a dataset without any source signal with a scan
@@ -384,18 +384,13 @@ class CalibrateDark(CalibrateBase):
         Calibration matrix to be updated with the pedestal values calculated from the data.
     """
 
-    def __init__(self, noise_matrix: CalibrationMatrix, pedestal_matrix: CalibrationMatrix
-                 ) -> None:
+    def __init__(self, num_cols: int, num_rows: int) -> None:
         """Class constructor.
         """
-        self.noise_cal = noise_matrix
-        self.pedestal_cal = pedestal_matrix
+        self.noise_cal = CalibrationMatrix(num_cols, num_rows)
+        self.pedestal_cal = CalibrationMatrix(num_cols, num_rows)
         # Check if the noise and pedestal calibration matrices have the same shape.
-        if noise_matrix.shape != pedestal_matrix.shape:
-            raise ValueError(f"Noise and pedestal calibration matrices have different shapes: "
-                             f"{noise_matrix.shape} and {pedestal_matrix.shape}.")
-        # Create the histogram to store the pixel values.
-        num_rows, num_cols = noise_matrix.shape
+        num_rows, num_cols = self.noise_cal.shape
         xedges = np.linspace(0, num_cols, num_cols + 1)
         yedges = np.linspace(0, num_rows, num_rows + 1)
         # For now just use a fixed number, but we need to fix this
@@ -448,8 +443,8 @@ class CalibrateDark(CalibrateBase):
             # Update the hits for the pixels that have been filled in the histogram.
             # This operation cannot be done with ar[rows, cols] += 1 because it only updates
             # the value once for repeated indexes.
-            np.add.at(self.noise_cal.hits, (rows, cols), 1)
-            np.add.at(self.pedestal_cal.hits, (rows, cols), 1)
+            np.add.at(self.noise_cal.entries, (rows, cols), 1)
+            np.add.at(self.pedestal_cal.entries, (rows, cols), 1)
             # Reset the batch arrays
             self._pha = []
             self._cols = []
@@ -503,15 +498,20 @@ class CalibrateDark(CalibrateBase):
     #                 noise[row, col] = model.sigma
     #                 pedestal[row, col] = model.mu
 
-    def fit(self) -> CalibrationMatrix:
+    def fit(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
         """Analyze the histogram to calculate the noise and pedestal values for each pixel, and
         update the calibration matrices.
 
         At the moment, the pedestal and noise values are estimated as the mean and the standard
         deviation of the pixel value distribution for each pixel.
+
+        Returns
+        -------
+        noise_cal : CalibrationMatrix
+             Updated calibration matrices for the noise.
+        pedestal_cal : CalibrationMatrix
+             Updated calibration matrices for the pedestal.
         """
-        noise = self.noise_cal.matrix.copy()
-        pedestal = self.pedestal_cal.matrix.copy()
         # Calculate the mean and the standard deviation of the pixel value distribution for
         # each pixel.
         histo_mean, histo_sigma = self._histogram.project_statistics(axis=2)
@@ -519,17 +519,18 @@ class CalibrateDark(CalibrateBase):
         sigma = histo_sigma.content.T
         # Update the noise and pedestal matrices with the calculated values for the pixels that
         # have at least one hit.
-        noise_matrix = np.where(self.noise_cal.hits > 0, sigma, noise)
-        pedestal_matrix = np.where(self.pedestal_cal.hits > 0, mu, pedestal)
+        noise_matrix = np.where(self.noise_cal.entries > 0, sigma, self.noise_cal.values)
+        pedestal_matrix = np.where(self.pedestal_cal.entries > 0, mu, self.pedestal_cal.values)
         # Write the matrices
-        self.noise_cal.matrix = noise_matrix
-        mask = self.noise_cal.hits > 1
+        self.noise_cal.values = noise_matrix
+        mask = self.noise_cal.entries > 1
         # The error on the estimate of the standard deviation is given by sigma / sqrt(2 * (N - 1))
-        self.noise_cal.error[mask] = sigma[mask] / np.sqrt(2 * (self.noise_cal.hits[mask] - 1))
-        self.pedestal_cal.matrix = pedestal_matrix
+        self.noise_cal.errors[mask] = sigma[mask] / np.sqrt(2 * (self.noise_cal.entries[mask] - 1))
+        self.pedestal_cal.values = pedestal_matrix
         # The error on the estimate of the mean is given by sigma / sqrt(N - 1)
-        self.pedestal_cal.error[mask] = sigma[mask] / np.sqrt(self.pedestal_cal.hits[mask] - 1)
+        self.pedestal_cal.errors[mask] = sigma[mask] / np.sqrt(self.pedestal_cal.entries[mask] - 1)
         return self.noise_cal, self.pedestal_cal
+
 
 class CalibrateGain(CalibrateBase):
 
