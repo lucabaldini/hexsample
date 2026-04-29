@@ -447,8 +447,10 @@ class DigiOutputFileCircular(OutputFileBase):
             The Monte Carlo event contribution.
         """
         # pylint: disable=arguments-differ
-        _fill_digi_row_circular(self.digi_table.row, digi_event)
-        _fill_mc_row(self.mc_table.row, mc_event)
+        if digi_event is not None:
+            _fill_digi_row_circular(self.digi_table.row, digi_event)
+            if mc_event is not None:
+                _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.

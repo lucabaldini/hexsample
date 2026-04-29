@@ -233,6 +233,10 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # ...sampling the input position of the highest PHA pixel over the readout...
         # See: https://stackoverflow.com/questions/70094914/max-on-collections-counter
         coord_max = max(sparse_signal, key=sparse_signal.get)
+        # If the highest pixel is at the border of the chip or outside the chip bounds,
+        # we cannot digitize the event, so we return None.
+        if self.is_at_border(*coord_max) or not self.is_in_bounds(*coord_max):
+            return None
         # col_max, row_max = coord_max
         #... and converting it in ADC channel coordinates (value from 0 to 6)...
         adc_max = self.adc_channel(*coord_max)
