@@ -34,10 +34,6 @@ def simulate(**kwargs) -> str:
     source = Source.from_filtered_kwargs(**kwargs)
     sensor = Sensor.from_filtered_kwargs(**kwargs)
     readout = ReadoutProxy.from_filtered_kwargs(**kwargs)
-    # Update the header with the calibration file names
-    kwargs.update({"enc": str(kwargs["enc"]),
-                   "gain": str(kwargs["gain"]),
-                   "pedestal": str(kwargs["pedestal"])})
     num_events = kwargs.get("num_events", defaults.num_events)
     output_file_path = kwargs.get("output_file", defaults.output_file_path)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
@@ -53,10 +49,6 @@ def reconstruct(**kwargs) -> str:
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
     gain_matrix = kwargs["gain"]
-    # Update the header with the calibration file names
-    kwargs.update({"enc": str(kwargs["enc"]),
-                   "gain": str(kwargs["gain"]),
-                   "pedestal": str(kwargs["pedestal"])})
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
