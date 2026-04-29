@@ -114,7 +114,7 @@ def generate_calibration_file(
     Arguments
     ---------
     calibration_type : CalibrationType
-        The type of calibration to generate (e.g., "enc", "pedestal", "noise", "gain").
+        The type of calibration to generate.
     
     mean : float
         The mean value of the sample distribution.
