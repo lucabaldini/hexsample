@@ -29,7 +29,6 @@ from typing import Any
 import numpy as np
 import tables
 
-
 from . import __version__
 from .calibration import CalibrationMatrix
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
