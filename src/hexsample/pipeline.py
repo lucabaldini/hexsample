@@ -73,10 +73,12 @@ def calibrate_eta(**kwargs) -> None:
     input_file_path = kwargs["input_file"]
     gain_matrix = kwargs["gain"]
     noise_matrix = kwargs["noise"]
+    pedestal_matrix = kwargs["pedestal"]
     num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationEtaDefaults.zero_sup_threshold)
-    args = input_file_path, gain_matrix, noise_matrix, num_bins, zero_sup_threshold
+    args = input_file_path, gain_matrix, noise_matrix, pedestal_matrix, num_bins, \
+            zero_sup_threshold
     return tasks.calibrate_eta(*args)
 
 

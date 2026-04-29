@@ -363,6 +363,7 @@ def calibrate_eta(
         input_file_path: str,
         gain_matrix: CalibrationMatrix,
         noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
         num_bins: int = CalibrationEtaDefaults.num_bins,
         zero_sup_threshold: int = CalibrationEtaDefaults.zero_sup_threshold
         ) -> None:
@@ -379,6 +380,9 @@ def calibrate_eta(
     noise_matrix : CalibrationMatrix
         The noise calibration matrix to use for the analysis.
 
+    pedestal_matrix : CalibrationMatrix
+        The pedestal calibration matrix to use for the analysis.
+
     num_bins : int
         The number of bins to be used in the calibration.
 
@@ -387,7 +391,7 @@ def calibrate_eta(
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_matrix, header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
