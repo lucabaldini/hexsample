@@ -110,6 +110,29 @@ def generate_calibration_file(
         random_seed: int = GenerateCalibrationDefaults.random_seed
         ) -> str:
     """Generate a calibration file for the given calibration type and chip name.
+
+    Arguments
+    ---------
+    calibration_type : CalibrationType
+        The type of calibration to generate (e.g., "enc", "pedestal", "noise", "gain").
+    
+    mean : float
+        The mean value of the sample distribution.
+    
+    rms : int, optional
+        The root mean square of the sample distribution, expressed as a percentage of the mean.
+
+    chip_name : str, optional
+        The name of the chip for which to generate the calibration file.
+
+    output_dir : str, optional
+        The directory where to save the generated calibration file.
+    
+    version : int, optional
+        The version number the generated calibration file.
+    
+    random_seed : int, optional
+        The seed for the random number generator.
     """
     # Initialize the random number generator with the given seed
     rng.initialize(seed=random_seed)

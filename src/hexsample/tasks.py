@@ -481,7 +481,7 @@ def calibrate_dark(
         input_file_path: str,
         has_source: bool = CalibrationDarkDefaults.has_source,
         batch_size: int = CalibrationDarkDefaults.batch_size
-        ) -> str:
+        ) -> Tuple[str, str]:
     # Open the input file and extract the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     # The analysis is only supported for rectangular readout.
@@ -501,7 +501,7 @@ def calibrate_dark(
     noise_matrix.to_hdf5(noise_output_file_path, "noise", False)
     pedestal_matrix.to_hdf5(pedestal_output_file_path, "pedestal", False)
     input_file.close()
-    return noise_output_file_path
+    return noise_output_file_path, pedestal_output_file_path
 
 
 @dataclass(frozen=True)
@@ -631,11 +631,8 @@ def display(
     noise_matrix : CalibrationMatrix
         The noise calibration matrix to use for the display.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold to use when displaying the digi event.
-
-    event_id : int
-        The ID of the event to display. If None, display all events.
+    pedestal_matrix : CalibrationMatrix
+        The pedestal calibration matrix to use for the display.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
