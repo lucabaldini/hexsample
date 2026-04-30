@@ -327,9 +327,9 @@ class CalibrateNoise(CalibrateBase):
         event : DigiEventRectangular
             The event to be analyzed.
         """
-        seed_col, seed_row = event.highest_pixel(absolute=False)
+        outer_mask = event.roi.outer_mask(margin=1)
         pha = event.pha.copy()
-        pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
+        pha[~outer_mask] = 0
         return pha
 
     def _bad_event(self, event: DigiEventRectangular) -> bool:
@@ -425,9 +425,9 @@ class CalibrateDark:
         event : DigiEventRectangular
             The event to be analyzed.
         """
-        seed_col, seed_row = event.highest_pixel(absolute=False)
+        outer_mask = event.roi.outer_mask(margin=1)
         pha = event.pha.copy()
-        pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
+        pha[~outer_mask] = 0
         return pha
 
     def _bad_event(self, event: DigiEventRectangular, max_size: int = 200) -> bool:

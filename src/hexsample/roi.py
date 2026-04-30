@@ -189,3 +189,20 @@ class RegionOfInterest:
 
     def readout_slice(self) -> Tuple[slice, slice]:
         return slice(self.min_row, self.max_row + 1), slice(self.min_col, self.max_col + 1)
+
+    def outer_mask(self, margin: int = 0) -> np.array:
+        """Return a two-dimensional, boolean array mask, with the same dimensions of the region
+        of interest, that is True in the outer area and False in the inner area.
+
+        The outer area is defined as the complement of the ROT, with an optional additional margin
+        that makes it smaller when positive. For zero margin, this returns the logical complement
+        of the ROT mask. When margin is large enough, this returns a mask full of False. When the
+        margin is negative enough, this returns a mask full of True.
+        """
+        row_slice = slice(max(0, self.padding.top - margin),
+                          self.num_rows - self.padding.bottom + margin)
+        col_slice = slice(max(0, self.padding.left - margin),
+                          self.num_cols - self.padding.right + margin)
+        mask = np.ones(self.shape(), dtype=bool)
+        mask[row_slice, col_slice] = False
+        return mask

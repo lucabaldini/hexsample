@@ -394,7 +394,7 @@ class HexagonalGrid:
         row : array_like
             The row pixel coordinate(s).
         """
-        return (0 <= col) & (col < self.num_cols) & (0 <= row) & (row < self.num_rows)
+        return (col >= 0) & (col < self.num_cols) & (row >= 0) & (row < self.num_rows)
     
     def is_at_border(self, col: np.array, row: np.array) -> np.array:
         """Check if the given pixels are at the border of the hexagonal grid.
