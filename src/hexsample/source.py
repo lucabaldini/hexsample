@@ -183,6 +183,21 @@ class PointBeam(AbstractBeam):
         x = np.full(size, self.x0)
         y = np.full(size, self.y0)
         return x, y
+    
+
+class FlatBeam(HexagonalGrid, AbstractBeam):
+    
+    """Flat beam that illuminates uniformly the entire chip.
+    """
+
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+        """Overloaded method.
+        """
+        x_min, y_max = self.pixel_to_world(0, 0)
+        x_max, y_min = self.pixel_to_world(self.num_cols - 1, self.num_rows - 1)
+        x = rng.generator.uniform(x_min, x_max, size=size)
+        y = rng.generator.uniform(y_min, y_max, size=size)
+        return x, y
 
 
 @dataclass
@@ -384,6 +399,7 @@ BeamProxy.register("gaussian", GaussianBeam, default=True)
 BeamProxy.register("slit", SlitBeam)
 BeamProxy.register("triangular", TriangularBeam)
 BeamProxy.register("hexagonal", HexagonalBeam)
+BeamProxy.register("flat", FlatBeam)
 
 
 @dataclass

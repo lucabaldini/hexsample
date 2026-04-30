@@ -25,6 +25,7 @@ from hexsample import rng
 from hexsample.logging_ import logger
 from hexsample.source import (
     DiskBeam,
+    FlatBeam,
     GaussianBeam,
     HexagonalBeam,
     Line,
@@ -154,6 +155,24 @@ def test_slit_beam(num_photons: int = 10000):
     setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 
 
+def test_flat_beam(num_photons: int = 1000000):
+    """Test for FlatBeam class
+    """
+    beam = FlatBeam()
+    x, y = beam.rvs(num_photons)
+    xmin, ymax = beam.pixel_to_world(0, 0)
+    xmax, ymin = beam.pixel_to_world(beam.num_cols - 1, beam.num_rows - 1)
+    binning_x = np.linspace(xmin, xmax, beam.num_cols)
+    binning_y = np.linspace(ymin, ymax, beam.num_rows)
+    plt.figure("Flat beam")
+    Histogram2d(binning_x, binning_y).fill(x, y).plot()
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+    assert np.isclose(min(x), xmin, atol=0.0005)
+    assert np.isclose(max(x), xmax, atol=0.0005)
+    assert np.isclose(min(y), ymin, atol=0.0005)
+    assert np.isclose(max(y), ymax, atol=0.0005)
+
+    
 def test_triangular_beam(num_photons: int = 10000):
     """Test for TriangularBeam class
     """
