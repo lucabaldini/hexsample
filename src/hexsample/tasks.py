@@ -492,7 +492,7 @@ def synthesize_calibration_file(
     rng.initialize(seed=random_seed)
     num_cols, num_rows = chip_descriptor(chip_name).size
     # Generate the file name
-    file_name = f"sim_{chip_name}_{calibration_type}-{mean:g}".replace(".", "p")
+    file_name = f"sim_{chip_name}_{calibration_type.value}-{mean:g}".replace(".", "p")
     # Append the RMS information to the file name
     if percent_rms > 0:
         file_name += f"_gauss-p{percent_rms:02d}".replace(".", "p")

@@ -229,7 +229,7 @@ class CalibrationMatrix:
             h5file.create_dataset(self.ERRORS, data=self.errors, dtype=np.float32,
                                   **compression_pars)
             # Update the header with the relevant information and metadata.
-            self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type
+            self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type.value
             self._metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
             self._metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
             for key, val in self.metadata.items():

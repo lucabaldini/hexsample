@@ -330,15 +330,15 @@ class CliArgumentParser(argparse.ArgumentParser):
         group = parser.add_argument_group("readout", "Redout configuration")
         cal_db = caldb.CalDB()
         group.add_argument("--enc", type=cal_db.open_enc,
-                           default=cal_db.open_enc("sim_xpol3_enc-20_uniform_v001"),
+                           default="sim_xpol3_enc-20_uniform_v001",
                            help="path to a file containing the ENC calibration data or name of a" \
                            " calibration file inside the caldb/enc folder.")
         group.add_argument("--pedestal", type=cal_db.open_pedestal,
-                           default=cal_db.open_pedestal("sim_xpol3_pedestal-1000_uniform_v001"),
+                           default="sim_xpol3_pedestal-1000_uniform_v001",
                            help="path to a file containing the pedestal calibration data or name" \
                            "of acalibration file inside the caldb/pedestal folder.")
         group.add_argument("--gain", type=cal_db.open_gain,
-                           default=cal_db.open_gain("sim_xpol3_gain-1_uniform_v001"),
+                           default="sim_xpol3_gain-1_uniform_v001",
                            help="path to a file containing the gain calibration data or name of" \
                            "a calibration file inside the caldb/gain folder.")
         group.add_argument("--layout", type=str, choices=hexagon.HexagonalLayout.values(),
