@@ -27,7 +27,6 @@ import numpy as np
 from hexsample.caldb import CalDB, CalibrationType
 from hexsample.tasks import SynthesizeCalibrationDefaults, synthesize_calibration_file
 
-
 DEFAULT_GAIN = 0.1
 RMS_VALS = (0, 10)
 ENC_VALS = np.array((20., 30., 40., 50., 75., 100.))
