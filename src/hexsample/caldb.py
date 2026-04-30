@@ -21,14 +21,10 @@
 """
 
 import pathlib
-from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
 
-from . import rng
 from .calibration import CalibrationMatrix
-from .tasks import HEXSAMPLE_DATA
-from .xpol import XPOL, XPOL_CHIP_DICT
 
 
 class CalibrationType(str, Enum):
@@ -85,77 +81,3 @@ class CalDB:
         """Open the gain calibration file for the given designation.
         """
         return self._open(CalibrationType.GAIN, designator)
-
-
-@dataclass(frozen=True)
-class GenerateCalibrationDefaults:
-
-    """Default values for the generate_calibration_file task.
-    """
-
-    rms: int = 0
-    output_dir: str = HEXSAMPLE_DATA
-    chip_name: str = XPOL.XPOL3.value
-    version: int = 1
-    random_seed: int = None
-
-
-def generate_calibration_file(
-        calibration_type: CalibrationType,
-        mean: float,
-        rms: int = GenerateCalibrationDefaults.rms,
-        chip_name: str = GenerateCalibrationDefaults.chip_name,
-        output_dir: str = GenerateCalibrationDefaults.output_dir,
-        version: int = GenerateCalibrationDefaults.version,
-        random_seed: int = GenerateCalibrationDefaults.random_seed
-        ) -> str:
-    """Generate a calibration file for the given calibration type and chip name.
-
-    Arguments
-    ---------
-    calibration_type : CalibrationType
-        The type of calibration to generate.
-    
-    mean : float
-        The mean value of the sample distribution.
-    
-    rms : int, optional
-        The root mean square of the sample distribution, expressed as a percentage of the mean.
-
-    chip_name : str, optional
-        The name of the chip for which to generate the calibration file.
-
-    output_dir : str, optional
-        The directory where to save the generated calibration file.
-    
-    version : int, optional
-        The version number the generated calibration file.
-    
-    random_seed : int, optional
-        The seed for the random number generator.
-    """
-    # Initialize the random number generator with the given seed
-    rng.initialize(seed=random_seed)
-    # Check the validity of the input chip name
-    if chip_name not in XPOL.values():
-        raise ValueError(f"Unsupported chip: {chip_name}. Choose from {list(XPOL.values())}")
-    # Generate the file name
-    file_name = f"sim_{chip_name}_{calibration_type}-{mean:g}".replace(".", "p")
-    # Append the RMS information to the file name
-    if rms > 0:
-        file_name += f"_gauss-p{rms:02d}".replace(".", "p")
-    elif rms == 0:
-        file_name += "_uniform"
-    else:
-        raise ValueError("RMS must be non-negative")
-    # Append the version number to the file name
-    file_name += f"_v{version:03d}.h5"
-    # Generate the calibration matrix with the appropriate size and values
-    num_cols, num_rows = XPOL_CHIP_DICT[chip_name]
-    calibration_matrix = CalibrationMatrix(num_cols, num_rows)
-    calibration_matrix.values = rng.generator.normal(mean, scale=mean*rms/100,
-                                                     size=(num_rows, num_cols))
-    # Save the calibration matrix to the output directory
-    output_path = pathlib.Path(output_dir) / file_name
-    calibration_matrix.to_hdf5(output_path, calibration_type, True)
-    return str(output_path)
