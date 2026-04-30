@@ -222,9 +222,12 @@ class CalibrationMatrix:
         )
         with h5py.File(file_path, "w") as h5file:
             # Save the matrix and the hits matrices as arrays in the HDF5 file.
-            h5file.create_dataset(self.VALUES, data=self.values, dtype=np.float32, **compression_pars)
-            h5file.create_dataset(self.ENTRIES, data=self.entries, dtype=np.int32, **compression_pars)
-            h5file.create_dataset(self.ERRORS, data=self.errors, dtype=np.float32, **compression_pars)
+            h5file.create_dataset(self.VALUES, data=self.values, dtype=np.float32,
+                                  **compression_pars)
+            h5file.create_dataset(self.ENTRIES, data=self.entries, dtype=np.int32,
+                                  **compression_pars)
+            h5file.create_dataset(self.ERRORS, data=self.errors, dtype=np.float32,
+                                  **compression_pars)
             # Update the header with the relevant information and metadata.
             self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type
             self._metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic

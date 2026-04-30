@@ -21,7 +21,7 @@
 """
 
 
-from . import caldb, legacy, tasks
+from . import legacy, tasks
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
