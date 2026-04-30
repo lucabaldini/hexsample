@@ -22,60 +22,49 @@
 """Script to populate the calibration database with some calibration files.
 """
 
-from hexsample.caldb import (
-    CalDB,
-    CalibrationType,
-    GenerateCalibrationDefaults,
-    generate_calibration_file,
-)
+import numpy as np
 
-ENC_VALS = [20, 30, 40, 50, 75, 100]
-ENC_RMS = [0, 10, 20]
+from hexsample.caldb import CalDB, CalibrationType
+from hexsample.tasks import SynthesizeCalibrationDefaults, synthesize_calibration_file
 
-NOISE_VALS = [20, 30, 40, 50, 75, 100]
-NOISE_RMS = [0, 10, 20]
 
-PEDESTAL_VALS = [0, 1000]
-PEDESTAL_RMS = [0]
-
-GAIN_VALS = [1]
-GAIN_RMS = [0, 10, 20]
+DEFAULT_GAIN = 0.1
+RMS_VALS = (0, 10)
+ENC_VALS = np.array((20., 30., 40., 50., 75., 100.))
+PEDESTAL_VALS = (0, 1000)
 
 default_kwargs = dict(
-    chip_name=GenerateCalibrationDefaults.chip_name,
-    version=GenerateCalibrationDefaults.version,
-    random_seed=GenerateCalibrationDefaults.random_seed,
+    chip_name=SynthesizeCalibrationDefaults.chip_name,
+    version=SynthesizeCalibrationDefaults.version,
+    random_seed=SynthesizeCalibrationDefaults.random_seed,
 )
 
 root_dir = CalDB.DEFAULT_DIR
-
 
 def generate_files(
         calibration_type: str,
         mean_vals: list,
         rms_vals: list
         ) -> None:
+    output_dir = root_dir / calibration_type
+    output_dir.mkdir(parents=True, exist_ok=True)
     for mean in mean_vals:
         for rms in rms_vals:
-            generate_calibration_file(
+            synthesize_calibration_file(
                 calibration_type=calibration_type,
                 mean=mean,
-                rms=rms,
-                output_dir=root_dir / calibration_type,
+                percent_rms=rms,
+                output_dir=output_dir,
                 **default_kwargs
             )
 
 
+def populate_caldb() -> None:
+    generate_files(CalibrationType.ENC, ENC_VALS, RMS_VALS)
+    generate_files(CalibrationType.NOISE, ENC_VALS * DEFAULT_GAIN, RMS_VALS)
+    generate_files(CalibrationType.GAIN, [DEFAULT_GAIN], RMS_VALS)
+    generate_files(CalibrationType.PEDESTAL, PEDESTAL_VALS, RMS_VALS)
+
+
 if __name__ == "__main__":
-    # generate_files(CalibrationType.ENC,
-    #                ENC_VALS,
-    #                ENC_RMS)
-    # generate_files(CalibrationType.NOISE,
-    #                NOISE_VALS,
-    #                NOISE_RMS)
-    generate_files(CalibrationType.PEDESTAL,
-                   PEDESTAL_VALS,
-                   PEDESTAL_RMS)
-    # generate_files(CalibrationType.GAIN,
-    #                GAIN_VALS,
-    #                GAIN_RMS)
+    populate_caldb()

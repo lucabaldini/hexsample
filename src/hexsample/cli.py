@@ -34,6 +34,7 @@ from hexsample import (
     sensor,
     source,
     tasks,
+    xpol,
 )
 
 
@@ -110,8 +111,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         recon.set_defaults(runner=pipeline.reconstruct)
 
         # Run the chip calibration?
-        calibrate = subparsers.add_parser("calibrate",
-            help="run chip calibration tasks",
+        calibrate = subparsers.add_parser("calibgen",
+            help="generate detector calibration files",
             formatter_class=self._FORMATTER_CLASS)
 
         calibrate_subparsers = calibrate.add_subparsers(required=True, help="calibration mode")
@@ -144,11 +145,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_zero_sup_threshold(gain, default=tasks.CalibrationGainDefaults.zero_sup_threshold)
         self.add_logging_level(gain)
         gain.set_defaults(runner=pipeline.calibrate_gain)
-        # Create calibration files
-        create_cal = calibrate_subparsers.add_parser("generate", help="generate calibration files")
-        self.add_generate_calibration_file_options(create_cal)
-        self.add_logging_level(create_cal)
-        create_cal.set_defaults(runner=pipeline.generate_calibration_file)
+        # Synthesize calibration files
+        synthesize = calibrate_subparsers.add_parser("synthesize",
+            help="generate synthetic calibration files")
+        self.add_synthesize_calibration_file_options(synthesize)
+        self.add_logging_level(synthesize)
+        synthesize.set_defaults(runner=pipeline.synthesize_calibration_file)
 
         # Run the single-event display?
         display = subparsers.add_parser("display",
@@ -328,15 +330,15 @@ class CliArgumentParser(argparse.ArgumentParser):
         group = parser.add_argument_group("readout", "Redout configuration")
         cal_db = caldb.CalDB()
         group.add_argument("--enc", type=cal_db.open_enc,
-                           default=cal_db.open_enc("sim_xpol3_enc-20_uniform_v001"),
+                           default="sim_xpol3_enc-20_uniform_v001",
                            help="path to a file containing the ENC calibration data or name of a" \
                            " calibration file inside the caldb/enc folder.")
         group.add_argument("--pedestal", type=cal_db.open_pedestal,
-                           default=cal_db.open_pedestal("sim_xpol3_pedestal-1000_uniform_v001"),
+                           default="sim_xpol3_pedestal-1000_uniform_v001",
                            help="path to a file containing the pedestal calibration data or name" \
                            "of acalibration file inside the caldb/pedestal folder.")
         group.add_argument("--gain", type=cal_db.open_gain,
-                           default=cal_db.open_gain("sim_xpol3_gain-1_uniform_v001"),
+                           default="sim_xpol3_gain-1_uniform_v001",
                            help="path to a file containing the gain calibration data or name of" \
                            "a calibration file inside the caldb/gain folder.")
         group.add_argument("--layout", type=str, choices=hexagon.HexagonalLayout.values(),
@@ -399,41 +401,37 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the dark calibration properties.
         """
-        group = parser.add_argument_group("dark_calibration", "Dark calibration configuration")
-        group.add_argument("--has_source", type=bool,
-                           default=tasks.CalibrationDarkDefaults.has_source,
-                           help="specify if the dataset contains events with a source on")
-        group.add_argument("--batch_size", type=int,
-                           default=tasks.CalibrationDarkDefaults.batch_size,
-                           help="number of events to be analyzed in a batch for the dark" \
-                           " calibration")
+        parser.add_argument("--has_source", type=bool,
+                            default=tasks.CalibrationDarkDefaults.has_source,
+                            help="specify if the dataset contains events with a source on")
+        parser.add_argument("--batch_size", type=int,
+                            default=tasks.CalibrationDarkDefaults.batch_size,
+                            help="number of events to be analyzed in a batch for the dark" \
+                            " calibration")
 
-    def add_generate_calibration_file_options(self, parser: argparse.ArgumentParser) -> None:
+    def add_synthesize_calibration_file_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group to generate calibration files.
         """
-        group = parser.add_argument_group("generate", "Generate calibration files")
-        group.add_argument("calibration_type", type=str, choices=caldb.CalibrationType.values(),
-                           help="type of calibration file to be generated")
-        group.add_argument("mean", type=float,
-                           help="mean value of the calibration parameter.")
-        group.add_argument("--rms", type=int, default=caldb.GenerateCalibrationDefaults.rms,
-                           help="relative RMS (as percentage of the mean) of the gaussian" \
-                           " distribution. A value of 0 generates a uniform distribution.")
-        group.add_argument("--chip_name", type=str, choices=caldb.XPOL.values(),
-                            default=caldb.GenerateCalibrationDefaults.chip_name,
+        defaults = tasks.SynthesizeCalibrationDefaults
+        parser.add_argument("calibration_type", type=str, choices=caldb.CalibrationType.values(),
+                            help="type of calibration file to be generated")
+        parser.add_argument("mean", type=float,
+                            help="mean value of the calibration parameter.")
+        parser.add_argument("--percent_rms", type=int, default=defaults.percent_rms,
+                            help="relative RMS (as percentage of the mean) of the gaussian" \
+                            " distribution. A value of 0 generates a uniform distribution.")
+        parser.add_argument("--chip_name", type=str, choices=xpol.chip_names(),
+                            default=defaults.chip_name,
                             help="XPOL chip name for which the calibration file is generated." \
                             " This parameter is used to determine the size of the calibration" \
                             " matrix.")
-        group.add_argument("--output_dir", type=str,
-                           default=caldb.GenerateCalibrationDefaults.output_dir,
-                           help="directory where the generated calibration file will be saved")
-        group.add_argument("--version", type=int,
-                           default=caldb.GenerateCalibrationDefaults.version,
-                           help="version number to be included in the generated calibration" \
-                           " file name")
-        group.add_argument("--random_seed", type=int,
-                           default=caldb.GenerateCalibrationDefaults.random_seed,
-                           help="random seed for the generation of the calibration values")
+        parser.add_argument("--output_dir", type=str, default=defaults.output_dir,
+                            help="directory where the generated calibration file will be saved")
+        parser.add_argument("--version", type=int, default=defaults.version,
+                            help="version number to be included in the generated calibration" \
+                            " file name")
+        parser.add_argument("--random_seed", type=int, default=defaults.random_seed,
+                            help="random seed for the generation of the calibration values")
 
 
 

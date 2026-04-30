@@ -32,6 +32,7 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
+from .caldb import CalibrationType
 from .calibration import CalibrateDark, CalibrateGain, CalibrateNoise, CalibrationMatrix
 from .clustering import ClusteringNN
 from .display import EventDisplay
@@ -62,6 +63,7 @@ from .readout import (
 from .recon import ReconEvent
 from .sensor import Sensor
 from .source import DiskBeam, Line, Source
+from .xpol import chip_descriptor
 
 # Make room for the output data.
 HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"
@@ -373,10 +375,10 @@ def calibrate_eta(
     ---------
     input_file_path : str
         The path to the input file.
-    
+
     gain_matrix : CalibrationMatrix
         The gain calibration matrix to use for the analysis.
-    
+
     noise_matrix : CalibrationMatrix
         The noise calibration matrix to use for the analysis.
 
@@ -434,6 +436,80 @@ def calibrate_eta(
     calibrate_dr_3pix(eta_3pix, dr_3pix, nbins=num_bins)
     calibrate_theta_3pix(eta_3pix, dr_3pix, theta_3pix, nbins=num_bins)
     plt.show()
+
+
+@dataclass(frozen=True)
+class SynthesizeCalibrationDefaults:
+
+    """Default values for the generate_calibration_file task.
+    """
+
+    percent_rms: int = 0
+    output_dir: str = HEXSAMPLE_DATA
+    chip_name: str = "xpol3"
+    version: int = 1
+    random_seed: int = None
+
+
+def synthesize_calibration_file(
+        calibration_type: CalibrationType,
+        mean: float,
+        percent_rms: int = SynthesizeCalibrationDefaults.percent_rms,
+        chip_name: str = SynthesizeCalibrationDefaults.chip_name,
+        output_dir: str = SynthesizeCalibrationDefaults.output_dir,
+        version: int = SynthesizeCalibrationDefaults.version,
+        random_seed: int = SynthesizeCalibrationDefaults.random_seed
+        ) -> str:
+    """Generate a synthetic calibration file for the given calibration type and
+    chip name.
+
+    Arguments
+    ---------
+    calibration_type : CalibrationType
+        The type of calibration to generate.
+
+    mean : float
+        The mean value of the sample distribution.
+
+    percent_rms : int, optional
+        The root mean square of the sample distribution, expressed as a percentage
+        of the mean. note we treat this as an integer, assuming that we shall
+        never be in the situation where we need a very precise fine tuning.
+
+    chip_name : str, optional
+        The name of the chip for which to generate the calibration file.
+
+    output_dir : str, optional
+        The directory where to save the generated calibration file.
+
+    version : int, optional
+        The version number the generated calibration file.
+
+    random_seed : int, optional
+        The seed for the random number generator.
+    """
+    # Initialize the random number generator with the given seed
+    rng.initialize(seed=random_seed)
+    num_cols, num_rows = chip_descriptor(chip_name).size
+    # Generate the file name
+    file_name = f"sim_{chip_name}_{calibration_type.value}-{mean:g}".replace(".", "p")
+    # Append the RMS information to the file name
+    if percent_rms > 0:
+        file_name += f"_gauss-p{percent_rms:02d}".replace(".", "p")
+    elif percent_rms == 0:
+        file_name += "_uniform"
+    else:
+        raise ValueError("Percent RMS must be non-negative")
+    # Append the version number to the file name
+    file_name += f"_v{version:03d}.h5"
+    # Generate the calibration matrix with the appropriate size and values
+    calibration_matrix = CalibrationMatrix(num_cols, num_rows)
+    rms = mean * percent_rms / 100
+    calibration_matrix.values = rng.generator.normal(mean, scale=rms, size=(num_rows, num_cols))
+    # Save the calibration matrix to the output directory
+    output_path = pathlib.Path(output_dir) / file_name
+    calibration_matrix.to_hdf5(output_path, calibration_type, True)
+    return str(output_path)
 
 
 def calibrate_noise(

@@ -21,7 +21,7 @@
 """
 
 
-from . import caldb, legacy, tasks
+from . import legacy, tasks
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
@@ -113,19 +113,19 @@ def calibrate_gain(**kwargs) -> str:
     return tasks.calibrate_gain(*args)
 
 
-def generate_calibration_file(**kwargs) -> str:
+def synthesize_calibration_file(**kwargs) -> str:
     """Generate a calibration file of a given type.
     """
-    defaults = caldb.GenerateCalibrationDefaults
+    defaults = tasks.SynthesizeCalibrationDefaults
     calibration_type = kwargs["calibration_type"]
     mean = kwargs["mean"]
-    rms = kwargs.get("rms", defaults.rms)
+    rms = kwargs.get("percent_rms", defaults.percent_rms)
     chip_name = kwargs.get("chip_name", defaults.chip_name)
     output_dir = kwargs.get("output_dir", defaults.output_dir)
     version = kwargs.get("version", defaults.version)
     random_seed = kwargs.get("random_seed", defaults.random_seed)
     args = calibration_type, mean, rms, chip_name, output_dir, version, random_seed
-    return caldb.generate_calibration_file(*args)
+    return tasks.synthesize_calibration_file(*args)
 
 
 def display(**kwargs) -> None:
