@@ -99,6 +99,16 @@ def calibrate_dark(**kwargs) -> str:
     return tasks.calibrate_dark(*args)
 
 
+def calibrate_enc(**kwargs) -> str:
+    """Calibrate the ENC of the chip.
+    """
+    input_file_path = kwargs["input_file"]
+    noise_matrix = kwargs["noise"]
+    gain_matrix = kwargs["gain"]
+    args = input_file_path, noise_matrix, gain_matrix
+    return tasks.calibrate_enc(*args)
+
+
 def calibrate_gain(**kwargs) -> str:
     """Calibrate the gain of the chip.
     """

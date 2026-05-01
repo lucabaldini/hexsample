@@ -656,3 +656,49 @@ class CalibrateGain(CalibrateBase):
         self.cal_matrix.errors = np.where(mask, sigma_g_rel * values, self.cal_matrix.errors)
         self.cal_matrix.entries = entries
         return self.cal_matrix
+
+
+class CalibrateENC:
+    """Class for calibrating the equivalent noise charge (ENC) of the readout chip.
+
+    This class provides methods to calculate the ENC values based on the noise and gain
+    matrices.
+    """
+
+    def __init__(self, noise_matrix: CalibrationMatrix, gain_matrix: CalibrationMatrix) -> None:
+        """Class constructor
+        """
+        if noise_matrix.shape != gain_matrix.shape:
+            raise ValueError("Noise and gain matrices must have the same shape.")
+        _num_rows, _num_cols = noise_matrix.shape
+        self.cal_matrix = CalibrationMatrix(_num_cols, _num_rows)
+        self.noise_matrix = noise_matrix
+        self.gain_matrix = gain_matrix
+
+    def fit(self) -> CalibrationMatrix:
+        """Calculate the ENC values based on the noise and gain matrices, and update the
+        calibration matrix with the calculated values.
+        """
+        # Calculate the ENC values as the ratio of the noise and gain values for each pixel.
+        # If we have a NaN in a pixel, the result will be NaN. If we divide by zero, we set
+        # the result to NaN as well.
+        enc_values = np.divide(
+            self.noise_matrix.values, 
+            self.gain_matrix.values, 
+            out=np.full_like(self.noise_matrix.values, np.nan),
+            where=self.gain_matrix.values > 0
+        )
+        # Calculate the uncertainty with the same logic.
+        rel_noise_sq = np.divide(self.noise_matrix.errors, self.noise_matrix.values, 
+                                out=np.zeros_like(self.noise_matrix.values), 
+                                where=self.noise_matrix.values > 0)**2
+        
+        rel_gain_sq = np.divide(self.gain_matrix.errors, self.gain_matrix.values, 
+                                out=np.zeros_like(self.gain_matrix.values), 
+                                where=self.gain_matrix.values > 0)**2
+        enc_errors = enc_values * np.sqrt(rel_noise_sq + rel_gain_sq)
+        # Update the calibration matrix with the calculated values.
+        self.cal_matrix.values = enc_values
+        self.cal_matrix.errors = enc_errors
+        self.cal_matrix._num_events = self.noise_matrix._num_events
+        return self.cal_matrix
