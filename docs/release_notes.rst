@@ -22,8 +22,12 @@ Release notes
   needed for every feature of the readout chip.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/121
   - https://github.com/lucabaldini/hexsample/pull/118
   - https://github.com/lucabaldini/hexsample/pull/111
+  - https://github.com/lucabaldini/hexsample/issues/117
+  - https://github.com/lucabaldini/hexsample/issues/116
+  - https://github.com/lucabaldini/hexsample/issues/115
   - https://github.com/lucabaldini/hexsample/issues/113
   - https://github.com/lucabaldini/hexsample/issues/112
   - https://github.com/lucabaldini/hexsample/issues/99
