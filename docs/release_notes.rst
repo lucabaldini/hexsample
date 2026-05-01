@@ -3,14 +3,19 @@
 Release notes
 =============
 
-* Added new CLI command `calibrate dark` to create noise and pedestal calibration files from event
-  files.
-* Support for scalar properties in the readout chip (e.g., gain, noise, pedestal) has been removed
+* New dataclasses in `xpol.py` to store properties of the readout chips (XPOL1 and XPOL3).
+* Introduced the CalibrationDataBase (CalDB) to store and manage calibration files, along wit the
+  dedicated module `caldb.py` to handle operations on the CalDB.
+* New `calibgen synthesize` command to generate synthetic calibration files with user-defined
+  properties for testing and simulation purposes.
+* Refactoring of the calibration CLI commands, with the introduction of the `calibgen` command and
+  the respective subcommands to produce calibration files from event files.
+* Support for scalar properties in the readout chip (ENC, noise, pedestal, gain) has been removed
   in favor of the calibration files that store this information. All the CLI commands that need
   readout chip properties now require the corresponding calibration files to be passed as
   arguments.
-* Added classes `CalibrateGain` and `CalibrateDark` to create gain, noise and pedestal calibration
-  files from event files.
+* Added classes `CalibrateGain`, `CalibrateDark` and `CalibrateENC` to create gain, noise, pedestal
+  and ENC calibration files.
 * Refactoring of the calibration matrices classes, with the introduction of a new unified
   `CalibrationMatrix` class, and the deprecation of the old `CalibrationMatrixGain` and
   `CalibrationMatrixNoise` classes. This class is intended to store all the calibration information

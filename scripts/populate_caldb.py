@@ -27,7 +27,7 @@ import numpy as np
 from hexsample.caldb import CalDB, CalibrationType
 from hexsample.tasks import SynthesizeCalibrationDefaults, synthesize_calibration_file
 
-DEFAULT_GAIN = 0.1
+DEFAULT_GAIN = 1.
 RMS_VALS = (0, 10)
 ENC_VALS = np.array((20., 30., 40., 50., 75., 100.))
 PEDESTAL_VALS = (0, 1000)
@@ -38,7 +38,7 @@ default_kwargs = dict(
     random_seed=SynthesizeCalibrationDefaults.random_seed,
 )
 
-root_dir = CalDB.DEFAULT_DIR
+root_dir = CalDB.ROOT_DIR
 
 def generate_files(
         calibration_type: str,
