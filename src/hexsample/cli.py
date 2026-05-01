@@ -26,6 +26,7 @@ from hexsample import __name__ as __package_name__
 from hexsample import (
     __version__,
     caldb,
+    calibration,
     hexagon,
     logging_,
     pipeline,
@@ -411,7 +412,8 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group to generate calibration files.
         """
         defaults = tasks.SynthesizeCalibrationDefaults
-        parser.add_argument("calibration_type", type=str, choices=caldb.CalibrationType.values(),
+        parser.add_argument("calibration_type", type=calibration.CalibrationType,
+                            choices=calibration.CalibrationType.values(),
                             help="type of calibration file to be generated")
         parser.add_argument("mean", type=float,
                             help="mean value of the calibration parameter.")

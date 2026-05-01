@@ -35,6 +35,23 @@ from .digi import DigiEventRectangular
 from .recon import DEFAULT_IONIZATION_POTENTIAL
 
 
+class CalibrationType(str, Enum):
+
+    """Enum class expressing the possible calibration types.
+    """
+
+    ENC = "enc"
+    PEDESTAL = "pedestal"
+    NOISE = "noise"
+    GAIN = "gain"
+
+    @classmethod
+    def values(cls) -> Tuple[str, ...]:
+        """Return a tuple with all the enum values.
+        """
+        return tuple(item.value for item in cls)
+
+
 class CalibrationMetadata(str, Enum):
 
     """Enum to store the metadata keys for the calibration matrix.
@@ -202,14 +219,14 @@ class CalibrationMatrix:
             return np.nan
         return self._values[self._entries >= min_hits].mean()
 
-    def to_hdf5(self, file_path: str, calibration_type: str, is_synthetic: bool) -> str:
+    def to_hdf5(self, file_path: str, calibration_type: CalibrationType, is_synthetic: bool) -> str:
         """Save the calibration matrix to an HDF5 file at the given path.
 
         Arguments
         ---------
         file_path : str
             The path of the file on the disk.
-        calibration_type : str
+        calibration_type : CalibrationType
             The type of calibration for which the matrix is being saved.
         is_synthetic : bool
             Whether the calibration data is synthetic or not.

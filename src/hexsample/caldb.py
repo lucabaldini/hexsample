@@ -21,27 +21,8 @@
 """
 
 import pathlib
-from enum import Enum
-from typing import Tuple
 
-from .calibration import CalibrationMatrix
-
-
-class CalibrationType(str, Enum):
-
-    """Enum class expressing the possible calibration types.
-    """
-
-    ENC = "enc"
-    PEDESTAL = "pedestal"
-    NOISE = "noise"
-    GAIN = "gain"
-
-    @classmethod
-    def values(cls) -> Tuple[str, ...]:
-        """Return a tuple with all the enum values.
-        """
-        return tuple(item.value for item in cls)
+from .calibration import CalibrationMatrix, CalibrationType
 
 
 class CalDB:
