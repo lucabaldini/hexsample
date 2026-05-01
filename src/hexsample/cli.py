@@ -252,11 +252,10 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_cal_dark_files(parser: argparse.ArgumentParser) -> None:
         """Add options for the noise and pedestal calibration files.
         """
-        cal_db = caldb.CalDB()
-        parser.add_argument("--noise", type=cal_db.open_noise, required=True,
+        parser.add_argument("--noise", type=caldb.CalDB.open_noise, required=True,
                             help="path to a file containing the noise calibration data or name" \
                             " of a calibration file inside the caldb/noise folder.")
-        parser.add_argument("--pedestal", type=cal_db.open_pedestal, required=True,
+        parser.add_argument("--pedestal", type=caldb.CalDB.open_pedestal, required=True,
                             help="path to a file containing the pedestal calibration data or" \
                             " name of a calibration file inside the caldb/pedestal folder.")
 
@@ -265,7 +264,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add options for the calibration files.
         """
         CliArgumentParser.add_cal_dark_files(parser)
-        parser.add_argument("--gain", type=caldb.CalDB().open_gain, required=True,
+        parser.add_argument("--gain", type=caldb.CalDB.open_gain, required=True,
                             help="path to a file containing the gain calibration data or name of" \
                             " a calibration file inside the caldb/gain folder.")
 
@@ -328,16 +327,15 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the readout properties.
         """
         group = parser.add_argument_group("readout", "Redout configuration")
-        cal_db = caldb.CalDB()
-        group.add_argument("--enc", type=cal_db.open_enc,
+        group.add_argument("--enc", type=caldb.CalDB.open_enc,
                            default="sim_xpol3_enc-20_uniform_v001",
                            help="path to a file containing the ENC calibration data or name of a" \
                            " calibration file inside the caldb/enc folder.")
-        group.add_argument("--pedestal", type=cal_db.open_pedestal,
+        group.add_argument("--pedestal", type=caldb.CalDB.open_pedestal,
                            default="sim_xpol3_pedestal-1000_uniform_v001",
                            help="path to a file containing the pedestal calibration data or name" \
                            "of acalibration file inside the caldb/pedestal folder.")
-        group.add_argument("--gain", type=cal_db.open_gain,
+        group.add_argument("--gain", type=caldb.CalDB.open_gain,
                            default="sim_xpol3_gain-1_uniform_v001",
                            help="path to a file containing the gain calibration data or name of" \
                            "a calibration file inside the caldb/gain folder.")
