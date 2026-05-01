@@ -451,7 +451,7 @@ class SynthesizeCalibrationDefaults:
     """
 
     percent_rms: int = 0
-    output_dir: str | pathlib.Path = HEXSAMPLE_DATA
+    output_dir: Union[str, pathlib.Path] = HEXSAMPLE_DATA
     chip_name: str = "xpol3"
     version: int = 1
     random_seed: int = None
@@ -462,7 +462,7 @@ def synthesize_calibration_file(
         mean: float,
         percent_rms: int = SynthesizeCalibrationDefaults.percent_rms,
         chip_name: str = SynthesizeCalibrationDefaults.chip_name,
-        output_dir: str | pathlib.Path = SynthesizeCalibrationDefaults.output_dir,
+        output_dir: Union[str, pathlib.Path] = SynthesizeCalibrationDefaults.output_dir,
         version: int = SynthesizeCalibrationDefaults.version,
         random_seed: int = SynthesizeCalibrationDefaults.random_seed
         ) -> str:
@@ -594,13 +594,13 @@ class CalibrationEncDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    output_dir: str | pathlib.Path = HEXSAMPLE_DATA
+    output_dir: Union[str, pathlib.Path] = HEXSAMPLE_DATA
 
 
 def calibrate_enc(
         noise_matrix: CalibrationMatrix,
         gain_matrix: CalibrationMatrix,
-        output_dir: str | pathlib.Path = CalibrationEncDefaults.output_dir
+        output_dir: Union[str, pathlib.Path] = CalibrationEncDefaults.output_dir
     ) -> str:
     """Calibrate the equivalent noise charge (ENC) of the readout chip using the noise and gain
     matrices. The results are stored as a matrix in a HDF5 file.
