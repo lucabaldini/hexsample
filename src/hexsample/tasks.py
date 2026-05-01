@@ -32,6 +32,7 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
+from .caldb import CalDB
 from .calibration import (
     CalibrateDark,
     CalibrateENC,

@@ -292,12 +292,12 @@ class CliArgumentParser(argparse.ArgumentParser):
                             " a calibration file inside the caldb/gain folder.")
 
     @staticmethod
-    def add_cal_files(parser: argparse.ArgumentParser) -> None:
+    def add_cal_files(parser: argparse.ArgumentParser, required: bool = True) -> None:
         """Add options for all the calibration files.
         """
-        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
-        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
-        CliArgumentParser.add_cal_gain_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=required)
+        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=required)
+        CliArgumentParser.add_cal_gain_file(parser, default=None, required=required)
 
     @staticmethod
     def add_source_options(parser: argparse.ArgumentParser) -> None:
