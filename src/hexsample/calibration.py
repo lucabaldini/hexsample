@@ -646,7 +646,7 @@ class CalibrateGain(CalibrateBase):
         # electrons for each event affect the gain estimation, and even if the final gain
         # distribution is peaked around the true gain value, the uncertainty of the single pixel
         # can be large, even 100%.
-        mask = (np.abs(weight) > 1e-10) & (sigma_g_rel < 2.0)
+        mask = (np.abs(weight) > 1e-10) # & (sigma_g_rel < 2.0)
         values = self.cal_matrix.values.copy()
         entries = self.cal_matrix.entries
         # Set the gain value for the pixels that pass the quality cut.

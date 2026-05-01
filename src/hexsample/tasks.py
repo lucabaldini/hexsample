@@ -23,7 +23,7 @@
 import inspect
 import pathlib
 from dataclasses import dataclass
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
@@ -678,42 +678,43 @@ def calibrate_gain(
         raise RuntimeError("No valid gain values found during the first step of calibration," \
         "cannot proceed further. The possible reason could be a small number of events over " \
         "the analyzed chip region.")
+    # gain_matrix.to_hdf5(input_file_path.replace(".h5", "_matrix_gain_biased.h5"), CalibrationType.GAIN, False)
     # Create the readout object for the simulation. We are using rectangular readout just because
     # it's faster to simulate.
-    gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    gain_sim.set_value(gain_matrix.mean())
-    simulation_readout = HexagonalReadoutRectangular(
-        HexagonalLayout(header["layout"]),
-        header["num_cols"], header["num_rows"], header["pitch"],
-        enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
-    output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
-    # Simulate events with the best-fit gain matrix to correct the bias.
-    simulate(
-        source=Source(Line(energy), DiskBeam(radius=0.02)),
-        sensor=Sensor(),
-        readout=simulation_readout,
-        num_events=num_events,
-        output_file_path=output)
-    tmp_input_file = digi_input_file_class("rectangular")(output)
-    tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
-    # Re-run the gain calibration on the simulated events to calculate the correction factor.
-    for _, event in tqdm(enumerate(tmp_input_file)):
-        try:
-            cluster = clustering.run(event)
-        except IndexError:
-            continue
-        tmp_gain_calibration.analyze_cluster(cluster)
-    tmp_gain_matrix = tmp_gain_calibration.fit()
-    # Calculate the correction factor from the simulation.
-    mask = tmp_gain_matrix.entries > 0
-    residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
-    # Apply the correction factor to the gain matrix and save it to a HDF5 file.
-    mask_gain = gain_matrix.entries > 0
-    gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + np.mean(residuals))
+    # gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    # gain_sim.set_value(gain_matrix.mean(min_hits=100))
+    # simulation_readout = HexagonalReadoutRectangular(
+    #     HexagonalLayout(header["layout"]),
+    #     header["num_cols"], header["num_rows"], header["pitch"],
+    #     enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
+    # output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
+    # # Simulate events with the best-fit gain matrix to correct the bias.
+    # simulate(
+    #     source=Source(Line(energy), DiskBeam(radius=0.02)),
+    #     sensor=Sensor(),
+    #     readout=simulation_readout,
+    #     num_events=num_events,
+    #     output_file_path=output)
+    # tmp_input_file = digi_input_file_class("rectangular")(output)
+    # tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
+    # # Re-run the gain calibration on the simulated events to calculate the correction factor.
+    # for _, event in tqdm(enumerate(tmp_input_file)):
+    #     try:
+    #         cluster = clustering.run(event)
+    #     except IndexError:
+    #         continue
+    #     tmp_gain_calibration.analyze_cluster(cluster)
+    # tmp_gain_matrix = tmp_gain_calibration.fit()
+    # # Calculate the correction factor from the simulation.
+    # mask = tmp_gain_matrix.entries > 0
+    # residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
+    # # Apply the correction factor to the gain matrix and save it to a HDF5 file.
+    # mask_gain = gain_matrix.entries > 0
+    # gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + np.mean(residuals))
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
     gain_matrix.to_hdf5(output_file_path, CalibrationType.GAIN, False)
     # Close the input files.
-    tmp_input_file.close()
+    # tmp_input_file.close()
     input_file.close()
     return output_file_path
 
@@ -814,3 +815,36 @@ def quicklook(input_file_path: str) -> None:
     histy.plot()
     input_file.close()
     plt.show()
+
+
+def inspect_matrix(
+        matrix1: CalibrationMatrix,
+        matrix2: Optional[CalibrationMatrix] = None,
+        ) -> None:
+    matrix1 = CalibrationMatrix.from_hdf5(matrix1)
+    if matrix2 is not None:
+        matrix2 = CalibrationMatrix.from_hdf5(matrix2)
+    mask = matrix1.entries > 10
+    vals = matrix1.values.flatten()
+    lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
+    plt.figure(matrix1.metadata["file_name"])
+    plt.imshow(matrix1.values, origin="lower", vmin=lower_bound, vmax=upper_bound)
+    plt.colorbar()
+    if matrix2 is not None:
+        plt.figure(matrix2.metadata["file_name"])
+        plt.imshow(matrix2.values, origin="lower", vmin=lower_bound, vmax=upper_bound)
+    
+    plt.figure("distribution")
+    edges = np.linspace(lower_bound, upper_bound, 100)
+    hist = Histogram1d(edges, label=matrix1.metadata["file_name"])
+    hist.fill(vals)
+    hist.plot(statistics=True)
+    plt.legend()
+
+    if matrix2 is not None:
+        plt.figure("correlation")
+        plt.scatter(matrix1.values[mask].flatten(), matrix2.values[mask].flatten(), alpha=0.5)
+        plt.xlabel(matrix1.metadata["file_name"])
+        plt.ylabel(matrix2.metadata["file_name"])   
+    plt.show()
+

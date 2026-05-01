@@ -188,6 +188,15 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(convert)
         convert.set_defaults(runner=pipeline.mdat3_to_digi)
 
+        # Inspect a calibration matrix?
+        inspect = subparsers.add_parser("inspect",
+            help="inspect a calibration matrix",
+            formatter_class=self._FORMATTER_CLASS)
+        inspect.add_argument("matrix1", type=str)
+        inspect.add_argument("--matrix2", type=str, required=False,)
+        self.add_logging_level(inspect)
+        inspect.set_defaults(runner=pipeline.inspect_matrix)
+
     @staticmethod
     def add_input_file(parser: argparse.ArgumentParser) -> None:
         """Add an option for the input file.

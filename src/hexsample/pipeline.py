@@ -161,3 +161,11 @@ def mdat3_to_digi(**kwargs) -> None:
     file_path = kwargs["input_file"]
     num_events = kwargs.get("num_events")
     return legacy.mdat3_to_digi(file_path, num_events)
+
+
+def inspect_matrix(**kwargs) -> None:
+    """Inspect a calibration matrix.
+    """
+    matrix1 = kwargs["matrix1"]
+    matrix2 = kwargs.get("matrix2")
+    return tasks.inspect_matrix(matrix1, matrix2)
