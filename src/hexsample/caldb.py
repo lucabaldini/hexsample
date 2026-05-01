@@ -21,27 +21,8 @@
 """
 
 import pathlib
-from enum import Enum
-from typing import Tuple
 
-from .calibration import CalibrationMatrix
-
-
-class CalibrationType(str, Enum):
-
-    """Enum class expressing the possible calibration types.
-    """
-
-    ENC = "enc"
-    PEDESTAL = "pedestal"
-    NOISE = "noise"
-    GAIN = "gain"
-
-    @classmethod
-    def values(cls) -> Tuple[str, ...]:
-        """Return a tuple with all the enum values.
-        """
-        return tuple(item.value for item in cls)
+from .calibration import CalibrationMatrix, CalibrationType
 
 
 class CalDB:
@@ -49,35 +30,37 @@ class CalDB:
     """Simple calibration database implementation.
     """
 
-    DEFAULT_DIR = pathlib.Path(__file__).parent.parent.parent / "caldb"
+    ROOT_DIR = pathlib.Path(__file__).parent.parent.parent / "caldb"
 
-    def __init__(self, root_dir: pathlib.Path = DEFAULT_DIR):
-        self.root_dir = root_dir
-
-    def _open(self, calibration_type: CalibrationType, designator: str) -> CalibrationMatrix:
+    @classmethod
+    def _open(cls, calibration_type: CalibrationType, designator: str) -> CalibrationMatrix:
         """Open the calibration file for the given designation and intent.
         """
         if pathlib.Path(designator).is_file():
             return CalibrationMatrix.from_hdf5(designator)
-        file_path = self.root_dir / calibration_type / f"{designator}.h5"
+        file_path = cls.ROOT_DIR / calibration_type.value / f"{designator}.h5"
         return CalibrationMatrix.from_hdf5(file_path)
 
-    def open_enc(self, designator: str) -> CalibrationMatrix:
+    @classmethod
+    def open_enc(cls, designator: str) -> CalibrationMatrix:
         """Open the ENC calibration file for the given designation.
         """
-        return self._open(CalibrationType.ENC, designator)
+        return cls._open(CalibrationType.ENC, designator)
 
-    def open_pedestal(self, designator: str) -> CalibrationMatrix:
+    @classmethod
+    def open_pedestal(cls, designator: str) -> CalibrationMatrix:
         """Open the pedestal calibration file for the given designation.
         """
-        return self._open(CalibrationType.PEDESTAL, designator)
+        return cls._open(CalibrationType.PEDESTAL, designator)
 
-    def open_noise(self, designator: str) -> CalibrationMatrix:
+    @classmethod
+    def open_noise(cls, designator: str) -> CalibrationMatrix:
         """Open the noise calibration file for the given designation.
         """
-        return self._open(CalibrationType.NOISE, designator)
+        return cls._open(CalibrationType.NOISE, designator)
 
-    def open_gain(self, designator: str) -> CalibrationMatrix:
+    @classmethod
+    def open_gain(cls, designator: str) -> CalibrationMatrix:
         """Open the gain calibration file for the given designation.
         """
-        return self._open(CalibrationType.GAIN, designator)
+        return cls._open(CalibrationType.GAIN, designator)

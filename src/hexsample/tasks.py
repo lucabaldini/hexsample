@@ -32,8 +32,14 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
-from .caldb import CalibrationType
-from .calibration import CalibrateDark, CalibrateGain, CalibrateNoise, CalibrationMatrix
+from .calibration import (
+    CalibrateDark,
+    CalibrateENC,
+    CalibrateGain,
+    CalibrateNoise,
+    CalibrationMatrix,
+    CalibrationType,
+)
 from .clustering import ClusteringNN
 from .display import EventDisplay
 from .eta import (
@@ -536,7 +542,7 @@ def calibrate_noise(
     noise_matrix = noise_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
-    noise_matrix.to_hdf5(output_file_path, "noise", False)
+    noise_matrix.to_hdf5(output_file_path, CalibrationType.NOISE, False)
     input_file.close()
     return output_file_path
 
@@ -574,10 +580,34 @@ def calibrate_dark(
     # Close the input file and save the noise matrix to a HDF5 file.
     noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")
-    noise_matrix.to_hdf5(noise_output_file_path, "noise", False)
-    pedestal_matrix.to_hdf5(pedestal_output_file_path, "pedestal", False)
+    noise_matrix.to_hdf5(noise_output_file_path, CalibrationType.NOISE, False)
+    pedestal_matrix.to_hdf5(pedestal_output_file_path, CalibrationType.PEDESTAL, False)
     input_file.close()
     return noise_output_file_path, pedestal_output_file_path
+
+
+def calibrate_enc(
+        noise_matrix: CalibrationMatrix,
+        gain_matrix: CalibrationMatrix,
+    ) -> str:
+    """Calibrate the equivalent noise charge (ENC) of the readout chip using the noise and gain
+    matrices. The results are stored as a matrix in a HDF5 file.
+
+    Arguments
+    ---------
+    noise_matrix : CalibrationMatrix
+        The noise calibration matrix to use for the ENC calibration.
+
+    gain_matrix : CalibrationMatrix
+        The gain calibration matrix to use for the ENC calibration.
+    """
+    name, args = current_call(num_backward_steps=1)
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    enc_calibration = CalibrateENC(noise_matrix, gain_matrix)
+    enc_matrix = enc_calibration.fit()
+    output_file_path = "matrix_enc.h5"
+    enc_matrix.to_hdf5(output_file_path, CalibrationType.ENC, False)
+    return output_file_path
 
 
 @dataclass(frozen=True)
@@ -681,7 +711,7 @@ def calibrate_gain(
     mask_gain = gain_matrix.entries > 0
     gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + np.mean(residuals))
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
-    gain_matrix.to_hdf5(output_file_path, "gain", False)
+    gain_matrix.to_hdf5(output_file_path, CalibrationType.GAIN, False)
     # Close the input files.
     tmp_input_file.close()
     input_file.close()
