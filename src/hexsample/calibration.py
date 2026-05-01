@@ -514,6 +514,8 @@ class CalibrateDark:
         self._pha.extend(pha_values)
         self._cols.extend(global_cols)
         self._rows.extend(global_rows)
+        self.noise_cal._num_events += 1
+        self.pedestal_cal._num_events += 1
         # If the size of the accumulated data is large enough, fill the histogram.
         if len(self._pha) >= batch_size:
             self.update_hist()
