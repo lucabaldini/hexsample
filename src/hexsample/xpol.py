@@ -58,7 +58,7 @@ _XPOL_DICT = {
 }
 
 
-def chip_names() -> Tuple[str]:
+def chip_names() -> Tuple[str, ...]:
     """Return a tuple containing all the possible XPOL chip names.
     """
     return tuple(_XPOL_DICT.keys())

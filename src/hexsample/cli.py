@@ -126,8 +126,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         dark.set_defaults(runner=pipeline.calibrate_dark)
         # ENC calibration
         enc = calibrate_subparsers.add_parser("enc", help="calibrate the chip ENC")
-        self.add_cal_noise_file(enc, default=None, required=True)
-        self.add_cal_gain_file(enc, default=None, required=True)
+        self.add_enc_calibration_options(enc)
         self.add_logging_level(enc)
         enc.set_defaults(runner=pipeline.calibrate_enc)
         # Eta function calibration
@@ -410,9 +409,9 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the dark calibration properties.
         """
-        parser.add_argument("--has_source", type=bool,
+        parser.add_argument("--no_source", action="store_false", dest="has_source",
                             default=tasks.CalibrationDarkDefaults.has_source,
-                            help="specify if the dataset contains events with a source on")
+                            help="if specified, events are considered to be without source")
         parser.add_argument("--batch_size", type=int,
                             default=tasks.CalibrationDarkDefaults.batch_size,
                             help="number of events to be analyzed in a batch for the dark" \
@@ -442,6 +441,16 @@ class CliArgumentParser(argparse.ArgumentParser):
         parser.add_argument("--zero_sup_threshold", type=int,
                             default=tasks.CalibrationEtaDefaults.zero_sup_threshold,
                             help="zero-suppression threshold in ADC counts")
+
+    def add_enc_calibration_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the ENC calibration properties.
+        """
+        defaults = tasks.CalibrationEncDefaults
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_gain_file(parser, default=None, required=True)
+        parser.add_argument("--output_dir", type=str, default=defaults.output_dir,
+                            help="directory where the generated ENC calibration file" \
+                            " will be saved")
 
     def add_synthesize_calibration_file_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group to generate calibration files.

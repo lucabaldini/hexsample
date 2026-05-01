@@ -21,6 +21,8 @@
 """
 
 
+from typing import Tuple
+
 from . import legacy, tasks
 from .readout import ReadoutProxy
 from .sensor import Sensor
@@ -89,7 +91,7 @@ def calibrate_noise(**kwargs) -> str:
     return tasks.calibrate_noise(input_file_path)
 
 
-def calibrate_dark(**kwargs) -> str:
+def calibrate_dark(**kwargs) -> Tuple[str, str]:
     """Calibrate the dark of the chip.
     """
     input_file_path = kwargs["input_file"]
@@ -104,7 +106,8 @@ def calibrate_enc(**kwargs) -> str:
     """
     noise_matrix = kwargs["noise"]
     gain_matrix = kwargs["gain"]
-    args = noise_matrix, gain_matrix
+    output_dir = kwargs.get("output_dir", tasks.CalibrationEncDefaults.output_dir)
+    args = noise_matrix, gain_matrix, output_dir
     return tasks.calibrate_enc(*args)
 
 

@@ -451,7 +451,7 @@ class SynthesizeCalibrationDefaults:
     """
 
     percent_rms: int = 0
-    output_dir: str = HEXSAMPLE_DATA
+    output_dir: str | pathlib.Path = HEXSAMPLE_DATA
     chip_name: str = "xpol3"
     version: int = 1
     random_seed: int = None
@@ -462,7 +462,7 @@ def synthesize_calibration_file(
         mean: float,
         percent_rms: int = SynthesizeCalibrationDefaults.percent_rms,
         chip_name: str = SynthesizeCalibrationDefaults.chip_name,
-        output_dir: str = SynthesizeCalibrationDefaults.output_dir,
+        output_dir: str | pathlib.Path = SynthesizeCalibrationDefaults.output_dir,
         version: int = SynthesizeCalibrationDefaults.version,
         random_seed: int = SynthesizeCalibrationDefaults.random_seed
         ) -> str:
@@ -586,9 +586,21 @@ def calibrate_dark(
     return noise_output_file_path, pedestal_output_file_path
 
 
+@dataclass(frozen=True)
+class CalibrationEncDefaults:
+    """Default parameters for the ENC calibration task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    output_dir: str | pathlib.Path = HEXSAMPLE_DATA
+
+
 def calibrate_enc(
         noise_matrix: CalibrationMatrix,
         gain_matrix: CalibrationMatrix,
+        output_dir: str | pathlib.Path = CalibrationEncDefaults.output_dir
     ) -> str:
     """Calibrate the equivalent noise charge (ENC) of the readout chip using the noise and gain
     matrices. The results are stored as a matrix in a HDF5 file.
@@ -606,7 +618,8 @@ def calibrate_enc(
     enc_calibration = CalibrateENC(noise_matrix, gain_matrix)
     enc_matrix = enc_calibration.fit()
     noise_file_name = noise_matrix.metadata["file_name"]
-    output_file_path = noise_file_name.replace("_matrix_noise", "_matrix_enc.h5")
+    enc_file_name = noise_file_name.replace("_matrix_noise", "_matrix_enc.h5")
+    output_file_path = pathlib.Path(output_dir) / enc_file_name
     enc_matrix.to_hdf5(output_file_path, CalibrationType.ENC, False)
     return output_file_path
 

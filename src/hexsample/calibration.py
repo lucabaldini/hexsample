@@ -263,6 +263,8 @@ class CalibrationMatrix:
             The path of the file on the disk.
         """
         # pylint: disable=protected-access
+        if file_path is None:
+            raise ValueError("No file path provided for the calibration matrix.")
         # Check if the file exists before trying to open it.
         if not pathlib.Path(file_path).is_file():
             raise FileNotFoundError(f"File {file_path} does not exist.")
