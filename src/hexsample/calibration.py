@@ -35,6 +35,23 @@ from .digi import DigiEventRectangular
 from .recon import DEFAULT_IONIZATION_POTENTIAL
 
 
+class CalibrationType(str, Enum):
+
+    """Enum class expressing the possible calibration types.
+    """
+
+    ENC = "enc"
+    PEDESTAL = "pedestal"
+    NOISE = "noise"
+    GAIN = "gain"
+
+    @classmethod
+    def values(cls) -> Tuple[str, ...]:
+        """Return a tuple with all the enum values.
+        """
+        return tuple(item.value for item in cls)
+
+
 class CalibrationMetadata(str, Enum):
 
     """Enum to store the metadata keys for the calibration matrix.
@@ -82,7 +99,7 @@ class CalibrationMatrix:
         self._entries = np.zeros(self._shape, dtype=int)
         self._errors = np.full(self._shape, np.nan)
         # Other useful information for the metadata
-        self._num_events = 0
+        self.num_events = 0
         self._metadata = {
             CalibrationMetadata.NUM_COLS: num_cols,
             CalibrationMetadata.NUM_ROWS: num_rows
@@ -157,7 +174,7 @@ class CalibrationMatrix:
         else:
             entries_avg = entries_min = entries_max = 0
         # Setting the metadata values.
-        self._metadata[CalibrationMetadata.NUM_EVENTS] = self._num_events
+        self._metadata[CalibrationMetadata.NUM_EVENTS] = self.num_events
         self._metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
         self._metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
         self._metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
@@ -202,14 +219,14 @@ class CalibrationMatrix:
             return np.nan
         return self._values[self._entries >= min_hits].mean()
 
-    def to_hdf5(self, file_path: str, calibration_type: str, is_synthetic: bool) -> str:
+    def to_hdf5(self, file_path: str, calibration_type: CalibrationType, is_synthetic: bool) -> str:
         """Save the calibration matrix to an HDF5 file at the given path.
 
         Arguments
         ---------
         file_path : str
             The path of the file on the disk.
-        calibration_type : str
+        calibration_type : CalibrationType
             The type of calibration for which the matrix is being saved.
         is_synthetic : bool
             Whether the calibration data is synthetic or not.
@@ -361,7 +378,7 @@ class CalibrateNoise(CalibrateBase):
             row_slice, col_slice = event.roi.readout_slice()
             self._sum2[row_slice, col_slice] += noise_pha**2
             self.cal_matrix.entries[row_slice, col_slice][noise_pha > 0] += 1
-            self.cal_matrix._num_events += 1
+            self.cal_matrix.num_events += 1
 
     def fit(self) -> CalibrationMatrix:
         """Update the calibration matrix with the noise values calculated from the data.
@@ -497,6 +514,8 @@ class CalibrateDark:
         self._pha.extend(pha_values)
         self._cols.extend(global_cols)
         self._rows.extend(global_rows)
+        self.noise_cal.num_events += 1
+        self.pedestal_cal.num_events += 1
         # If the size of the accumulated data is large enough, fill the histogram.
         if len(self._pha) >= batch_size:
             self.update_hist()
@@ -595,7 +614,7 @@ class CalibrateGain(CalibrateBase):
             self.cal_matrix.entries[row, col] += 1
         # Update the event count
         self._event_count += 1
-        self.cal_matrix._num_events += 1
+        self.cal_matrix.num_events += 1
 
     def fit(self) -> CalibrationMatrix:
         """Perform the least squares fit to determine the gain of each pixel.
@@ -638,4 +657,50 @@ class CalibrateGain(CalibrateBase):
         self.cal_matrix.values = values
         self.cal_matrix.errors = np.where(mask, sigma_g_rel * values, self.cal_matrix.errors)
         self.cal_matrix.entries = entries
+        return self.cal_matrix
+
+
+class CalibrateENC:
+    """Class for calibrating the equivalent noise charge (ENC) of the readout chip.
+
+    This class provides methods to calculate the ENC values based on the noise and gain
+    matrices.
+    """
+
+    def __init__(self, noise_matrix: CalibrationMatrix, gain_matrix: CalibrationMatrix) -> None:
+        """Class constructor
+        """
+        if noise_matrix.shape != gain_matrix.shape:
+            raise ValueError("Noise and gain matrices must have the same shape.")
+        num_rows, num_cols = noise_matrix.shape
+        self.cal_matrix = CalibrationMatrix(num_cols, num_rows)
+        self.noise_matrix = noise_matrix
+        self.gain_matrix = gain_matrix
+
+    def fit(self) -> CalibrationMatrix:
+        """Calculate the ENC values based on the noise and gain matrices, and update the
+        calibration matrix with the calculated values.
+        """
+        # Calculate the ENC values as the ratio of the noise and gain values for each pixel.
+        # If we have a NaN in a pixel, the result will be NaN. If we divide by zero, we set
+        # the result to NaN as well.
+        enc_values = np.divide(
+            self.noise_matrix.values,
+            self.gain_matrix.values,
+            out=np.full_like(self.noise_matrix.values, np.nan),
+            where=self.gain_matrix.values > 0
+        )
+        # Calculate the uncertainty with the same logic.
+        rel_noise_sq = np.divide(self.noise_matrix.errors, self.noise_matrix.values,
+                                out=np.zeros_like(self.noise_matrix.values),
+                                where=self.noise_matrix.values > 0)**2
+
+        rel_gain_sq = np.divide(self.gain_matrix.errors, self.gain_matrix.values,
+                                out=np.zeros_like(self.gain_matrix.values),
+                                where=self.gain_matrix.values > 0)**2
+        enc_errors = enc_values * np.sqrt(rel_noise_sq + rel_gain_sq)
+        # Update the calibration matrix with the calculated values.
+        self.cal_matrix.values = enc_values
+        self.cal_matrix.errors = enc_errors
+        self.cal_matrix.num_events = self.noise_matrix.num_events
         return self.cal_matrix
