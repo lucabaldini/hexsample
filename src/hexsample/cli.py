@@ -68,6 +68,7 @@ class _Formatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaults
     """
 
 
+# pylint: disable=too-many-public-methods
 class CliArgumentParser(argparse.ArgumentParser):
 
     """Application-wide argument parser.
@@ -265,17 +266,20 @@ class CliArgumentParser(argparse.ArgumentParser):
         parser.add_argument("--enc", type=caldb.CalDB.open_enc, default=default, required=required,
                             help="path to a file containing the ENC calibration data or name of" \
                             " a calibration file inside the caldb/enc folder.")
-    
+
     @staticmethod
-    def add_cal_noise_file(parser: argparse.ArgumentParser, default: str, required: bool = False) -> None:
+    def add_cal_noise_file(parser: argparse.ArgumentParser, default: str,
+                           required: bool = False) -> None:
         """Add an option for the noise calibration file.
         """
-        parser.add_argument("--noise", type=caldb.CalDB.open_noise, default=default, required=required,
+        parser.add_argument("--noise", type=caldb.CalDB.open_noise, default=default,
+                            required=required,
                             help="path to a file containing the noise calibration data or name" \
                             " of a calibration file inside the caldb/noise folder.")
-    
+
     @staticmethod
-    def add_cal_pedestal_file(parser: argparse.ArgumentParser, default: str, required: bool = False) -> None:
+    def add_cal_pedestal_file(parser: argparse.ArgumentParser, default: str,
+                              required: bool = False) -> None:
         """Add an option for the pedestal calibration file.
         """
         parser.add_argument("--pedestal", type=caldb.CalDB.open_pedestal, default=default,
@@ -284,10 +288,12 @@ class CliArgumentParser(argparse.ArgumentParser):
                             " of a calibration file inside the caldb/pedestal folder.")
 
     @staticmethod
-    def add_cal_gain_file(parser: argparse.ArgumentParser, default: str, required: bool = False) -> None:
+    def add_cal_gain_file(parser: argparse.ArgumentParser, default: str,
+                          required: bool = False) -> None:
         """Add an option for the gain calibration file.
         """
-        parser.add_argument("--gain", type=caldb.CalDB.open_gain, default=default, required=required,
+        parser.add_argument("--gain", type=caldb.CalDB.open_gain, default=default,
+                            required=required,
                             help="path to a file containing the gain calibration data or name of" \
                             " a calibration file inside the caldb/gain folder.")
 
@@ -358,9 +364,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the readout properties.
         """
         group = parser.add_argument_group("readout", "Redout configuration")
-        CliArgumentParser.add_cal_enc_file(group, default="sim_xpol3_enc-20_uniform_v001", required=False)
-        CliArgumentParser.add_cal_pedestal_file(group, default="sim_xpol3_pedestal-1000_uniform_v001", required=False)
-        CliArgumentParser.add_cal_gain_file(group, default="sim_xpol3_gain-1_uniform_v001", required=False)
+        CliArgumentParser.add_cal_enc_file(group, default="sim_xpol3_enc-20_uniform_v001",
+                                           required=False)
+        CliArgumentParser.add_cal_pedestal_file(group,
+                                                default="sim_xpol3_pedestal-1000_uniform_v001",
+                                                required=False)
+        CliArgumentParser.add_cal_gain_file(group, default="sim_xpol3_gain-1_uniform_v001",
+                                            required=False)
         group.add_argument("--layout", type=str, choices=hexagon.HexagonalLayout.values(),
                            default=hexagon.HexagonalGrid.layout,
                            help="chip layout")

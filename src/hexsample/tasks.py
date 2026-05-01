@@ -32,7 +32,6 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
-from .caldb import CalDB
 from .calibration import (
     CalibrateDark,
     CalibrateENC,
@@ -606,7 +605,7 @@ def calibrate_enc(
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     enc_calibration = CalibrateENC(noise_matrix, gain_matrix)
     enc_matrix = enc_calibration.fit()
-    output_file_path = f"matrix_enc.h5"
+    output_file_path = "matrix_enc.h5"
     enc_matrix.to_hdf5(output_file_path, CalibrationType.ENC, False)
     return output_file_path
 
