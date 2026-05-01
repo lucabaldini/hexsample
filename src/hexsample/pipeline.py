@@ -62,7 +62,7 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
                   eta_3pix_rad_pivot, eta_3pix_theta_sigma)
-    args = input_file_path, gain_matrix, noise_matrix, pedestal_matrix, suffix, \
+    args = input_file_path, noise_matrix, pedestal_matrix, gain_matrix, suffix, \
             zero_sup_threshold,num_neighbors, max_neighbors, pos_recon_algorithm, *recon_args
     return tasks.reconstruct(*args, kwargs)
 
@@ -77,7 +77,7 @@ def calibrate_eta(**kwargs) -> None:
     num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationEtaDefaults.zero_sup_threshold)
-    args = input_file_path, gain_matrix, noise_matrix, pedestal_matrix, num_bins, \
+    args = input_file_path, noise_matrix, pedestal_matrix, gain_matrix, num_bins, \
             zero_sup_threshold
     return tasks.calibrate_eta(*args)
 
@@ -144,7 +144,7 @@ def display(**kwargs) -> None:
     gain_matrix = kwargs["gain"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
-    args = input_file_path, gain_matrix, noise_matrix, pedestal_matrix
+    args = input_file_path, noise_matrix, pedestal_matrix, gain_matrix
     return tasks.display(*args)
 
 

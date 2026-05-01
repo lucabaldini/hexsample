@@ -228,9 +228,9 @@ class ReconstructionDefaults:
 
 def reconstruct(
         input_file_path: str,
-        gain_matrix: CalibrationMatrix,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
+        gain_matrix: CalibrationMatrix,
         suffix: str = ReconstructionDefaults.suffix,
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
@@ -257,14 +257,14 @@ def reconstruct(
     input_file_path : str
         The path to the input file.
 
-    gain_matrix : CalibrationMatrix
-        The gain matrix to use for the reconstruction.
-
     noise_matrix : CalibrationMatrix
         The noise matrix to use for the reconstruction.
 
     pedestal_matrix : CalibrationMatrix
         The pedestal matrix to use for the reconstruction.
+
+    gain_matrix : CalibrationMatrix
+        The gain matrix to use for the reconstruction.
 
     suffix : str
         The suffix to append to the output file name.
@@ -369,9 +369,9 @@ class CalibrationEtaDefaults:
 
 def calibrate_eta(
         input_file_path: str,
-        gain_matrix: CalibrationMatrix,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
+        gain_matrix: CalibrationMatrix,
         num_bins: int = CalibrationEtaDefaults.num_bins,
         zero_sup_threshold: int = CalibrationEtaDefaults.zero_sup_threshold
         ) -> None:
@@ -382,14 +382,14 @@ def calibrate_eta(
     input_file_path : str
         The path to the input file.
 
-    gain_matrix : CalibrationMatrix
-        The gain calibration matrix to use for the analysis.
-
     noise_matrix : CalibrationMatrix
         The noise calibration matrix to use for the analysis.
 
     pedestal_matrix : CalibrationMatrix
         The pedestal calibration matrix to use for the analysis.
+
+    gain_matrix : CalibrationMatrix
+        The gain calibration matrix to use for the analysis.
 
     num_bins : int
         The number of bins to be used in the calibration.
@@ -605,7 +605,8 @@ def calibrate_enc(
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     enc_calibration = CalibrateENC(noise_matrix, gain_matrix)
     enc_matrix = enc_calibration.fit()
-    output_file_path = "matrix_enc.h5"
+    noise_file_name = noise_matrix.metadata["file_name"]
+    output_file_path = noise_file_name.replace("_matrix_noise", "_matrix_enc.h5")
     enc_matrix.to_hdf5(output_file_path, CalibrationType.ENC, False)
     return output_file_path
 
@@ -720,9 +721,9 @@ def calibrate_gain(
 
 def display(
         input_file_path: str,
-        gain_matrix: CalibrationMatrix,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
+        gain_matrix: CalibrationMatrix,
         ) -> None:
     """Display events from a digi file.
 
@@ -731,14 +732,14 @@ def display(
     file_path : str
         The path to the digi file.
 
-    gain_matrix : CalibrationMatrix
-        The gain calibration matrix to use for the display.
-
     noise_matrix : CalibrationMatrix
         The noise calibration matrix to use for the display.
 
     pedestal_matrix : CalibrationMatrix
         The pedestal calibration matrix to use for the display.
+
+    gain_matrix : CalibrationMatrix
+        The gain calibration matrix to use for the display.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
