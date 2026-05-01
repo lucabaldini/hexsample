@@ -167,7 +167,7 @@ def test_borders_rectangular_digi(num_cols: int = 304, num_rows: int = 352, pitc
     x0, y0 = readout.pixel_to_world(num_cols - 1, num_rows // 2)
     x0 += 3 * pitch
     # Create the x and y arrays of the pair positions from a gaussian distribution.
-    x, y = np.random.normal(loc=(x0, y0), scale=0.0007, size=(num_pairs, 2)).T
+    x, y = rng.generator.normal(loc=(x0, y0), scale=0.0007, size=(num_pairs, 2)).T
     # Sample the signal
     min_col, min_row, signal = readout.sample(x, y)
     assert min_col == 0
