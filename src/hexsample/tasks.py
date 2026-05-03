@@ -494,6 +494,8 @@ def synthesize_calibration_file(
     random_seed : int, optional
         The seed for the random number generator.
     """
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
     # Initialize the random number generator with the given seed
     rng.initialize(seed=random_seed)
     num_cols, num_rows = chip_descriptor(chip_name).size
@@ -511,10 +513,13 @@ def synthesize_calibration_file(
     # Generate the calibration matrix with the appropriate size and values
     calibration_matrix = CalibrationMatrix(num_cols, num_rows)
     rms = mean * percent_rms / 100
+    logger.info(f"Generating {calibration_type.value} calibration matrix with mean {mean:g} and RMS {rms:g}...")
     calibration_matrix.values = rng.generator.normal(mean, scale=rms, size=(num_rows, num_cols))
     # Save the calibration matrix to the output directory
     output_path = pathlib.Path(output_dir) / file_name
+    logger.info(f"Saving to {output_path}...")
     calibration_matrix.to_hdf5(output_path, calibration_type, True)
+    logger.info(f"Done!")
     return str(output_path)
 
 
@@ -537,13 +542,17 @@ def calibrate_noise(
     # Create the object to calibrate the noise and run the analysis.
     noise_calibration = CalibrateNoise(header["num_cols"], header["num_rows"])
     # Loop over the events and analyze the noise.
+    logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         noise_calibration.analyze_event(event)
+    logger.info("Calculating the noise matrix...")
     noise_matrix = noise_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
+    logger.info(f"Saving to {output_file_path}...")
     noise_matrix.to_hdf5(output_file_path, CalibrationType.NOISE, False)
     input_file.close()
+    logger.info("Done!")
     return output_file_path
 
 
@@ -572,17 +581,22 @@ def calibrate_dark(
     # Create the calibration matrix
     dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"])
     # Loop over the events and analyze the noise.
+    logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         dark_calibration.analyze_event(event, has_source, batch_size)
     # Update the histogram with the last batch of events and fit the data.
     dark_calibration.update_hist()
+    logger.info("Calculating the noise and pedestal matrices...")
     noise_matrix, pedestal_matrix = dark_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")
+    logger.info(f"Saving noise matrix to {noise_output_file_path}...")
+    logger.info(f"Saving pedestal matrix to {pedestal_output_file_path}...")
     noise_matrix.to_hdf5(noise_output_file_path, CalibrationType.NOISE, False)
     pedestal_matrix.to_hdf5(pedestal_output_file_path, CalibrationType.PEDESTAL, False)
     input_file.close()
+    logger.info("Done!")
     return noise_output_file_path, pedestal_output_file_path
 
 
@@ -681,12 +695,14 @@ def calibrate_gain(
     gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
+    logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
         except IndexError:
             continue
         gain_calibration.analyze_cluster(cluster)
+    logger.info("Calculating the gain matrix...")
     gain_matrix = gain_calibration.fit()
     if not np.any(gain_matrix.entries > 0):
         raise RuntimeError("No valid gain values found during the first step of calibration," \
