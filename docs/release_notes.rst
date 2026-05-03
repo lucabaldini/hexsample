@@ -3,25 +3,42 @@
 Release notes
 =============
 
-* Added new CLI command `calibrate dark` to create noise and pedestal calibration files from event
-  files.
-* Support for scalar properties in the readout chip (e.g., gain, noise, pedestal) has been removed
+* New beam shapes added: `SquareBeam` and `RectangleBeam`.
+* Fixed a bug in digitization of events outside and at the border of the readout chip. For
+  rectangular readout, this problem is solved by masking out all the electrons that fall outside
+  the readout chip during the propagation in the sensor. For circular readout, we also exclude
+  events with the seed pixel at the border of the readout chip. 
+* New dataclasses in `xpol.py` to store properties of the readout chips (XPOL1 and XPOL3).
+* Introduced the CalibrationDataBase (CalDB) to store and manage calibration files, along wit the
+  dedicated module `caldb.py` to handle operations on the CalDB.
+* New `calibgen synthesize` command to generate synthetic calibration files with user-defined
+  properties for testing and simulation purposes.
+* Refactoring of the calibration CLI commands, with the introduction of the `calibgen` command and
+  the respective subcommands to produce calibration files from event files.
+* Support for scalar properties in the readout chip (ENC, noise, pedestal, gain) has been removed
   in favor of the calibration files that store this information. All the CLI commands that need
   readout chip properties now require the corresponding calibration files to be passed as
   arguments.
-* Added classes `CalibrateGain` and `CalibrateDark` to create gain, noise and pedestal calibration
-  files from event files.
+* Added classes `CalibrateGain`, `CalibrateDark` and `CalibrateENC` to create gain, noise, pedestal
+  and ENC calibration files.
 * Refactoring of the calibration matrices classes, with the introduction of a new unified
   `CalibrationMatrix` class, and the deprecation of the old `CalibrationMatrixGain` and
   `CalibrationMatrixNoise` classes. This class is intended to store all the calibration information
   needed for every feature of the readout chip.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/122
+  - https://github.com/lucabaldini/hexsample/pull/121
   - https://github.com/lucabaldini/hexsample/pull/118
   - https://github.com/lucabaldini/hexsample/pull/111
+  - https://github.com/lucabaldini/hexsample/issues/120
+  - https://github.com/lucabaldini/hexsample/issues/117
+  - https://github.com/lucabaldini/hexsample/issues/116
+  - https://github.com/lucabaldini/hexsample/issues/115
   - https://github.com/lucabaldini/hexsample/issues/113
   - https://github.com/lucabaldini/hexsample/issues/112
   - https://github.com/lucabaldini/hexsample/issues/99
+  - https://github.com/lucabaldini/hexsample/issues/7
 
 
 Version 0.15.0 (2026-04-23)
