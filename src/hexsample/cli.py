@@ -315,6 +315,12 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="y-coordinate of the beam centroid in cm")
         group.add_argument("--radius", type=float, default=source.DiskBeam.radius,
                            help="radius of the disk beam in cm")
+        group.add_argument("--side", type=float, default=source.SquareBeam.side,
+                           help="side of the square beam in cm")
+        group.add_argument("--width", type=float, default=source.RectangleBeam.width,
+                           help="width of the rectangle beam in cm")
+        group.add_argument("--height", type=float, default=source.RectangleBeam.height,
+                           help="height of the rectangle beam in cm")
         group.add_argument("--sigma", type=float, default=source.GaussianBeam.sigma,
                            help="standard deviation of the gaussian beam in cm")
         # ... and overall rate.
