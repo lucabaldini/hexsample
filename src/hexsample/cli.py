@@ -501,7 +501,7 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_calibview_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the calibration view properties.
         """
-        defaults = tasks.CalibViewDefaults
+        defaults = tasks.CalibviewDefaults
         parser.add_argument("matrix", type=calibration.CalibrationMatrix.from_hdf5,
                             help="path to a calibration matrix to be analyzed")
         parser.add_argument("--mc_matrix", type=calibration.CalibrationMatrix.from_hdf5,

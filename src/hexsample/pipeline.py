@@ -171,9 +171,9 @@ def calibview(**kwargs) -> None:
     """
     matrix = kwargs["matrix"]
     mc_matrix = kwargs.get("mc_matrix")
-    min_hits = kwargs.get("min_hits", tasks.CalibViewDefaults.min_hits)
-    rel_error = kwargs.get("rel_error", tasks.CalibViewDefaults.rel_error)
-    lower_quantile = kwargs.get("lower_quantile", tasks.CalibViewDefaults.lower_quantile)
-    upper_quantile = kwargs.get("upper_quantile", tasks.CalibViewDefaults.upper_quantile)
+    min_hits = kwargs.get("min_hits", tasks.CalibviewDefaults.min_hits)
+    rel_error = kwargs.get("rel_error", tasks.CalibviewDefaults.rel_error)
+    lower_quantile = kwargs.get("lower_quantile", tasks.CalibviewDefaults.lower_quantile)
+    upper_quantile = kwargs.get("upper_quantile", tasks.CalibviewDefaults.upper_quantile)
     args = matrix, mc_matrix, min_hits, rel_error, lower_quantile, upper_quantile
     return tasks.calibview(*args)

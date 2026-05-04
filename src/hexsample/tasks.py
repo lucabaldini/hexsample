@@ -873,7 +873,7 @@ def quicklook(input_file_path: str) -> None:
 
 
 @dataclass(frozen=True)
-class CalibViewDefaults:
+class CalibviewDefaults:
     """Default parameters for the calibview task.
 
     This is a small helper dataclass to help ensure consistency between the main task
@@ -889,11 +889,11 @@ class CalibViewDefaults:
 
 def calibview(
         matrix: CalibrationMatrix,
-        mc_matrix: Optional[CalibrationMatrix] = CalibViewDefaults.mc_matrix,
-        min_hits: int = CalibViewDefaults.min_hits,
-        rel_error: float = CalibViewDefaults.rel_error,
-        lower_quantile: float = CalibViewDefaults.lower_quantile,
-        upper_quantile: float = CalibViewDefaults.upper_quantile
+        mc_matrix: Optional[CalibrationMatrix] = CalibviewDefaults.mc_matrix,
+        min_hits: int = CalibviewDefaults.min_hits,
+        rel_error: float = CalibviewDefaults.rel_error,
+        lower_quantile: float = CalibviewDefaults.lower_quantile,
+        upper_quantile: float = CalibviewDefaults.upper_quantile
         ) -> None:
     """Display a calibration matrix and plot some basic statistics about it. If the
     Monte Carlo truth matrix is provided, the correlation between the two matrices
