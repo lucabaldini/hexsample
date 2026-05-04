@@ -918,6 +918,7 @@ def calibview(matrix: CalibrationMatrix,
     upper_quantile : float, optional
         The upper quantile of the values in the matrix to be included in the statistics.
     """
+    # pylint: disable=too-many-statements
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     logger.info("Matrix metadata:")
@@ -933,6 +934,9 @@ def calibview(matrix: CalibrationMatrix,
     mask = rel_error_mask & hits_mask
     lower_bound, upper_bound = np.nanpercentile(matrix.values.flatten()[mask.flatten()],
                                                 [lower_quantile, upper_quantile])
+    logger.info(f"Quality cuts: min_hits={min_hits}, rel_error<{rel_error}, " \
+                f"lower_quantile={lower_quantile}, upper_quantile={upper_quantile}")
+    logger.info(f"Number of calibrated pixels after quality cuts: {np.sum(mask)}")
     # Plot the values matrix.
     plt.figure(f"Calibrated matrix: {matrix.metadata['file_name']}")
     plt.imshow(matrix.values, origin="upper", vmin=lower_bound, vmax=upper_bound)
@@ -948,7 +952,7 @@ def calibview(matrix: CalibrationMatrix,
     plt.legend()
     # If the Monte Carlo truth matrix is provided, plot the matrix and its distribution.
     if mc_matrix is not None:
-        mc_vals = mc_matrix.values.flatten()[mask.flatten()]
+        mc_vals = mc_matrix.values.flatten()
         mc_unit = CALIBRATION_UNITS.get(mc_matrix.metadata["calibration_type"]).value
         if mc_unit != unit:
             logger.warning(f"Unit of the Monte Carlo matrix ({mc_unit}) is different from" \
@@ -968,8 +972,23 @@ def calibview(matrix: CalibrationMatrix,
         # Plot the correlation between the calibrated values and the Monte Carlo truth values.
         x = np.linspace(mc_edges[0], mc_edges[-1], 2)
         plt.figure("Correlation between calibrated values and Monte Carlo truth values")
-        plt.scatter(vals, mc_vals, alpha=0.1, s=10)
+        plt.scatter(vals, mc_vals[mask.flatten()], alpha=0.1, s=10)
         plt.plot(x, x, color="k", linestyle="--")
         plt.xlabel(f"Calibrated values [{unit}]")
         plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
+        # Plot the residuals distribution.
+        residuals = (vals - mc_vals[mask.flatten()]) / mc_vals[mask.flatten()]
+        residual_edges = np.linspace(np.nanmin(residuals), np.nanmax(residuals), 100)
+        residual_hist = Histogram1d(residual_edges, label="Residuals",
+                                    xlabel="Relative Residual").fill(residuals)
+        plt.figure("Relative residuals distribution")
+        residual_hist.plot(statistics=True)
+        plt.legend()
+        # Plot the pull distribution.
+        pull = (vals - mc_vals[mask.flatten()]) / matrix.errors.flatten()[mask.flatten()]
+        pull_edges = np.linspace(np.nanmin(pull), np.nanmax(pull), 100)
+        pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
+        plt.figure("Pull distribution")
+        pull_hist.plot(statistics=True)
+        plt.legend()
     plt.show()
