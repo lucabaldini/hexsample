@@ -22,6 +22,7 @@
 
 import inspect
 import pathlib
+import os
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 
@@ -630,11 +631,14 @@ def calibrate_enc(
     name, args = current_call(num_backward_steps=1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     enc_calibration = CalibrateENC(noise_matrix, gain_matrix)
+    logger.info("Calculating the ENC matrix...")
     enc_matrix = enc_calibration.fit()
     noise_file_name = noise_matrix.metadata["file_name"]
     enc_file_name = noise_file_name.replace("_matrix_noise", "_matrix_enc.h5")
     output_file_path = pathlib.Path(output_dir) / enc_file_name
+    logger.info(f"Saving to {output_file_path}...")
     enc_matrix.to_hdf5(output_file_path, CalibrationType.ENC, False)
+    logger.info("Done!")
     return output_file_path
 
 
@@ -646,7 +650,7 @@ class CalibrationGainDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    num_events: int = 100000
+    num_events: int = 200000
     zero_sup_threshold: int = 20
 
 
@@ -708,44 +712,59 @@ def calibrate_gain(
         raise RuntimeError("No valid gain values found during the first step of calibration," \
         "cannot proceed further. The possible reason could be a small number of events over " \
         "the analyzed chip region.")
-    # gain_matrix.to_hdf5(input_file_path.replace(".h5", "_matrix_gain_biased.h5"), CalibrationType.GAIN, False)
     # Create the readout object for the simulation. We are using rectangular readout just because
-    # it's faster to simulate.
-    # gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    # gain_sim.set_value(gain_matrix.mean(min_hits=100))
-    # simulation_readout = HexagonalReadoutRectangular(
-    #     HexagonalLayout(header["layout"]),
-    #     header["num_cols"], header["num_rows"], header["pitch"],
-    #     enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
-    # output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
-    # # Simulate events with the best-fit gain matrix to correct the bias.
-    # simulate(
-    #     source=Source(Line(energy), DiskBeam(radius=0.02)),
-    #     sensor=Sensor(),
-    #     readout=simulation_readout,
-    #     num_events=num_events,
-    #     output_file_path=output)
-    # tmp_input_file = digi_input_file_class("rectangular")(output)
-    # tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
-    # # Re-run the gain calibration on the simulated events to calculate the correction factor.
-    # for _, event in tqdm(enumerate(tmp_input_file)):
-    #     try:
-    #         cluster = clustering.run(event)
-    #     except IndexError:
-    #         continue
-    #     tmp_gain_calibration.analyze_cluster(cluster)
-    # tmp_gain_matrix = tmp_gain_calibration.fit()
-    # # Calculate the correction factor from the simulation.
-    # mask = tmp_gain_matrix.entries > 0
-    # residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
-    # # Apply the correction factor to the gain matrix and save it to a HDF5 file.
-    # mask_gain = gain_matrix.entries > 0
-    # gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + np.mean(residuals))
+    # it's faster to simulate, and using a uniform gain matrix with the mean value of the first
+    # calibration to correct the bias in the gain matrix. 
+    # To calculate the mean value, we are excluding the outliers by considering only the values
+    # between the 1st and the 99th percentile.
+    gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    lower_bound, upper_bound = np.nanpercentile(gain_matrix.values, [1, 99])
+    vals = gain_matrix.values
+    gain_sim.set_value(np.mean(vals[(vals > lower_bound) & (vals < upper_bound)]))
+    simulation_readout = HexagonalReadoutRectangular(HexagonalLayout(header["layout"]),
+        header["num_cols"], header["num_rows"], header["pitch"],
+        enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
+    output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
+    # Simulate events with the best-fit gain matrix to correct the bias.
+    logger.info("Simulating file to correct the bias...")
+    simulate(
+        source=Source(Line(energy), DiskBeam(radius=0.15)),
+        sensor=Sensor(),
+        readout=simulation_readout,
+        num_events=num_events,
+        output_file_path=output)
+    tmp_input_file = digi_input_file_class("rectangular")(output)
+    tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
+    # Re-run the gain calibration on the simulated events to calculate the correction factor.
+    logger.info("Starting the event loop for the simulated file...")
+    for _, event in tqdm(enumerate(tmp_input_file)):
+        try:
+            cluster = clustering.run(event)
+        except IndexError:
+            continue
+        tmp_gain_calibration.analyze_cluster(cluster)
+    logger.info("Calculating the gain matrix from the simulation...")
+    tmp_gain_matrix = tmp_gain_calibration.fit()
+    # Calculate the correction factor from the simulation.
+    logger.info("Calculating the correction factor...")
+    mask = tmp_gain_matrix.entries > 0
+    # Calculate the residuals between the MC and calibrated gain matrices from the simulation
+    # and calculate the mean residual to be used as a correction factor.
+    residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
+    # Exclude the outliers by considering only the values between the 1st and the 99th percentile.
+    lower_bound, upper_bound = np.percentile(residuals, [1, 99])
+    mean_residual = np.mean(residuals[(residuals > lower_bound) & (residuals < upper_bound)])
+    # Apply the correction factor to the gain matrix and save it to a HDF5 file.
+    mask_gain = gain_matrix.entries > 0
+    gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + mean_residual)
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
+    logger.info(f"Saving corrected gain matrix to {output_file_path}...")
     gain_matrix.to_hdf5(output_file_path, CalibrationType.GAIN, False)
     # Close the input files.
-    # tmp_input_file.close()
+    tmp_input_file.close()
+    os.remove(output)
     input_file.close()
+    logger.info("Done!")
     return output_file_path
 
 
@@ -854,7 +873,9 @@ def inspect_matrix(
     matrix1 = CalibrationMatrix.from_hdf5(matrix1)
     if matrix2 is not None:
         matrix2 = CalibrationMatrix.from_hdf5(matrix2)
-    mask = matrix1.entries > 10
+    mask_error = matrix1.errors / matrix1.values < 0.1
+    mask = matrix1.entries >= 0
+    # mask = mask_error
     vals = matrix1.values.flatten()
     lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
     plt.figure(matrix1.metadata["file_name"])
@@ -867,14 +888,17 @@ def inspect_matrix(
     plt.figure("distribution")
     edges = np.linspace(lower_bound, upper_bound, 100)
     hist = Histogram1d(edges, label=matrix1.metadata["file_name"])
-    hist.fill(vals)
+    hist.fill(vals[mask.flatten()])
     hist.plot(statistics=True)
     plt.legend()
 
     if matrix2 is not None:
         plt.figure("correlation")
-        plt.scatter(matrix1.values[mask].flatten(), matrix2.values[mask].flatten(), alpha=0.5)
+        plt.scatter(matrix1.values[mask].flatten(), matrix2.values[mask].flatten(), alpha=0.1, s=10)
         plt.xlabel(matrix1.metadata["file_name"])
-        plt.ylabel(matrix2.metadata["file_name"])   
+        plt.ylabel(matrix2.metadata["file_name"])
+        x = np.linspace(matrix2.values.min(), matrix2.values.max(), 100)
+        plt.plot(x, x, color="red", linestyle="--")   
+
     plt.show()
 
