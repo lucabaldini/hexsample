@@ -717,6 +717,7 @@ class CalibrateENC:
         enc_errors = enc_values * np.sqrt(rel_noise_sq + rel_gain_sq)
         # Update the calibration matrix with the calculated values.
         self.cal_matrix.values = enc_values
+        self.cal_matrix.entries = np.minimum(self.cal_matrix.entries, self.gain_matrix.entries)
         self.cal_matrix.errors = enc_errors
         self.cal_matrix.num_events = self.noise_matrix.num_events
         return self.cal_matrix
