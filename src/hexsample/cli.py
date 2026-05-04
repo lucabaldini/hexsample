@@ -502,8 +502,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the calibration view properties.
         """
         defaults = tasks.CalibViewDefaults
-        parser.add_argument("matrix", type=calibration.CalibrationMatrix.from_hdf5,)
-        parser.add_argument("--mc_matrix", type=calibration.CalibrationMatrix.from_hdf5)
+        parser.add_argument("matrix", type=calibration.CalibrationMatrix.from_hdf5,
+                            help="path to a calibration matrix to be analyzed")
+        parser.add_argument("--mc_matrix", type=calibration.CalibrationMatrix.from_hdf5,
+                            default=defaults.mc_matrix,
+                            help="path to a calibration matrix containing the Monte Carlo truth" \
+                            " matrix to be compared with the main matrix")
         parser.add_argument("--min_hits", type=int, default=defaults.min_hits,
                             help="minimum number of entries for a pixel to be included in" \
                             " the statistics")
