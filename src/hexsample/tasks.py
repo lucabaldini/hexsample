@@ -52,6 +52,7 @@ from .eta import (
 )
 from .fileio import (
     DigiInputFileBase,
+    ReconInputFile,
     ReconOutputFile,
     digi_input_file_class,
     digi_output_file_class,
@@ -829,7 +830,9 @@ def quicklook(input_file_path: str) -> None:
         The path to the input recon file.
     """
     # Open the input file
-    input_file, _, _ = open_file(input_file_path)
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    input_file = ReconInputFile(input_file_path)
     # Plotting the reconstructed energy and the true energy
     histo = create_histogram(input_file, "energy", mc=False)
     mc_histo = create_histogram(input_file, "energy", mc=True, binning=histo.bin_edges())
