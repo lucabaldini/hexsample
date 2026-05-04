@@ -887,13 +887,14 @@ class CalibViewDefaults:
     upper_quantile: float = 100.
 
 
-def calibview(matrix: CalibrationMatrix,
-              mc_matrix: Optional[CalibrationMatrix] = CalibViewDefaults.mc_matrix,
-              min_hits: int = CalibViewDefaults.min_hits,
-              rel_error: float = CalibViewDefaults.rel_error,
-              lower_quantile: float = CalibViewDefaults.lower_quantile,
-              upper_quantile: float = CalibViewDefaults.upper_quantile
-              ) -> None:
+def calibview(
+        matrix: CalibrationMatrix,
+        mc_matrix: Optional[CalibrationMatrix] = CalibViewDefaults.mc_matrix,
+        min_hits: int = CalibViewDefaults.min_hits,
+        rel_error: float = CalibViewDefaults.rel_error,
+        lower_quantile: float = CalibViewDefaults.lower_quantile,
+        upper_quantile: float = CalibViewDefaults.upper_quantile
+        ) -> None:
     """Display a calibration matrix and plot some basic statistics about it. If the
     Monte Carlo truth matrix is provided, the correlation between the two matrices
     is also presented.
