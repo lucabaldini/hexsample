@@ -166,9 +166,14 @@ def mdat3_to_digi(**kwargs) -> None:
     return legacy.mdat3_to_digi(file_path, num_events)
 
 
-def inspect_matrix(**kwargs) -> None:
+def calibview(**kwargs) -> None:
     """Inspect a calibration matrix.
     """
-    matrix1 = kwargs["matrix1"]
-    matrix2 = kwargs.get("matrix2")
-    return tasks.inspect_matrix(matrix1, matrix2)
+    matrix = kwargs["matrix"]
+    mc_matrix = kwargs.get("mc_matrix")
+    min_hits = kwargs.get("min_hits", tasks.CalibViewDefaults.min_hits)
+    rel_error = kwargs.get("rel_error", tasks.CalibViewDefaults.rel_error)
+    lower_quantile = kwargs.get("lower_quantile", tasks.CalibViewDefaults.lower_quantile)
+    upper_quantile = kwargs.get("upper_quantile", tasks.CalibViewDefaults.upper_quantile)
+    args = matrix, mc_matrix, min_hits, rel_error, lower_quantile, upper_quantile
+    return tasks.calibview(*args)

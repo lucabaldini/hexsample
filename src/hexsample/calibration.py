@@ -70,6 +70,25 @@ class CalibrationMetadata(str, Enum):
     IS_SYNTHETIC = "is_synthetic"
 
 
+class CalibrationUnits(str, Enum):
+
+    """Enum to store the possible units for the calibration matrix values.
+    """
+
+    ENC = "Electrons"
+    NOISE = "ADC counts"
+    PEDESTAL = "ADC counts"
+    GAIN = "Electrons/ADC count"
+
+
+CALIBRATION_UNITS = {
+    CalibrationType.ENC: CalibrationUnits.ENC,
+    CalibrationType.NOISE: CalibrationUnits.NOISE,
+    CalibrationType.PEDESTAL: CalibrationUnits.PEDESTAL,
+    CalibrationType.GAIN: CalibrationUnits.GAIN
+}
+
+
 class CalibrationMatrix:
 
     """Class to store and use calibration matrices for the detector readout.
@@ -643,7 +662,7 @@ class CalibrateGain(CalibrateBase):
         with np.errstate(divide='ignore', invalid='ignore'):
             sigma_g_rel = sigma_w / np.abs(weight)
         # Mask for the pixels that have a weight value close to zero (no events)
-        mask = (np.abs(weight) > 1e-10)
+        mask = np.abs(weight) > 1e-10
         values = self.cal_matrix.values.copy()
         entries = self.cal_matrix.entries
         # Set the gain value for the pixels that pass the quality cut.
