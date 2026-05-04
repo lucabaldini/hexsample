@@ -218,7 +218,7 @@ class ReconstructionDefaults:
     """
 
     suffix: str = "recon"
-    zero_sup_threshold: int = 0
+    zero_sup_threshold: float = 0.
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
@@ -236,7 +236,7 @@ def reconstruct(
         pedestal_matrix: CalibrationMatrix,
         gain_matrix: CalibrationMatrix,
         suffix: str = ReconstructionDefaults.suffix,
-        zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
+        zero_sup_threshold: float = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
@@ -273,8 +273,8 @@ def reconstruct(
     suffix : str
         The suffix to append to the output file name.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold.
+    zero_sup_threshold : float
+        The zero-suppression threshold as a multiple of the noise.
 
     num_neighbors : int
         The number of neighbor pixels to be used for the clustering.
@@ -368,7 +368,7 @@ class CalibrationEtaDefaults:
     """
 
     num_bins: int = 50
-    zero_sup_threshold: int = 30
+    zero_sup_threshold: float = 1.
 
 
 def calibrate_eta(
@@ -377,7 +377,7 @@ def calibrate_eta(
         pedestal_matrix: CalibrationMatrix,
         gain_matrix: CalibrationMatrix,
         num_bins: int = CalibrationEtaDefaults.num_bins,
-        zero_sup_threshold: int = CalibrationEtaDefaults.zero_sup_threshold
+        zero_sup_threshold: float = CalibrationEtaDefaults.zero_sup_threshold
         ) -> None:
     """Calibrate the eta function using the events from a digi file.
 
@@ -398,8 +398,8 @@ def calibrate_eta(
     num_bins : int
         The number of bins to be used in the calibration.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold to be used for the clustering in the calibration.
+    zero_sup_threshold : float
+        The zero-suppression threshold as a multiple of the noise.
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
@@ -655,7 +655,7 @@ class CalibrationGainDefaults:
     """
 
     num_events: int = 200000
-    zero_sup_threshold: int = 20
+    zero_sup_threshold: float = 1.
 
 
 def calibrate_gain(
@@ -664,7 +664,7 @@ def calibrate_gain(
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
         num_events: int = CalibrationGainDefaults.num_events,
-        zero_sup_threshold: int = CalibrationGainDefaults.zero_sup_threshold
+        zero_sup_threshold: float = CalibrationGainDefaults.zero_sup_threshold
         ) -> str:
     """Calibrate gain of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
@@ -687,8 +687,8 @@ def calibrate_gain(
     num_events : int
         The number of events to simulate to correct the bias.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold to use for the clustering in the gain calibration.
+    zero_sup_threshold : float
+        The zero-suppression threshold as a multiple of the noise.
     """
     # Open the input file and extract the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -701,7 +701,7 @@ def calibrate_gain(
     readout = create_readout(readout_mode, header, *args)
     # Initialize the gain matrix and run the calibration.
     gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
-    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
+    clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
     logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
