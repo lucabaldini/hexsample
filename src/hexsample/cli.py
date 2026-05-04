@@ -495,9 +495,9 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the single-event display properties.
         """
-        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
-        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
-        CliArgumentParser.add_cal_gain_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=False)
+        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=False)
+        CliArgumentParser.add_cal_gain_file(parser, default=None, required=False)
 
 
     def run(self) -> None:

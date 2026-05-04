@@ -58,7 +58,7 @@ from .fileio import (
     digi_output_file_class,
     peek_readout_type,
 )
-from .hexagon import HexagonalLayout
+from .hexagon import HexagonalLayout, HexagonalGrid
 from .logging_ import logger
 from .mc import PhotonList
 from .readout import (
@@ -793,20 +793,28 @@ def display(
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
-    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
-    readout = create_readout(readout_mode, header, *args)
-    recon_defaults = ReconstructionDefaults
-    recon_pars = dict(
-        eta_2pix_rad_sigma=recon_defaults.eta_2pix_rad_sigma,
-        eta_2pix_rad_pivot=recon_defaults.eta_2pix_rad_pivot,
-        eta_3pix_rad_offset=recon_defaults.eta_3pix_rad_offset,
-        eta_3pix_rad_sigma=recon_defaults.eta_3pix_rad_sigma,
-        eta_3pix_rad_pivot=recon_defaults.eta_3pix_rad_pivot,
-        eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
-        pitch=header["pitch"]
-    )
-    _ = EventDisplay(input_file, readout, recon_pars=recon_pars)
+    array = np.array([noise_matrix, pedestal_matrix, gain_matrix])
+    if np.any(array == None) and not np.all(array == None):
+        logger.warning("At least one of the matrixes is missing!")
+
+    if np.any(array == None):
+        grid = HexagonalGrid(HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"], header["pitch"])
+        _ = EventDisplay(input_file, grid, recon_pars=None)
+    else:
+        args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+            header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
+        readout = create_readout(readout_mode, header, *args)
+        recon_defaults = ReconstructionDefaults
+        recon_pars = dict(
+            eta_2pix_rad_sigma=recon_defaults.eta_2pix_rad_sigma,
+            eta_2pix_rad_pivot=recon_defaults.eta_2pix_rad_pivot,
+            eta_3pix_rad_offset=recon_defaults.eta_3pix_rad_offset,
+            eta_3pix_rad_sigma=recon_defaults.eta_3pix_rad_sigma,
+            eta_3pix_rad_pivot=recon_defaults.eta_3pix_rad_pivot,
+            eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
+            pitch=header["pitch"]
+        )
+        _ = EventDisplay(input_file, readout, recon_pars=recon_pars)
     input_file.close()
 
 

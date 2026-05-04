@@ -271,8 +271,9 @@ class EventDisplay(HexagonalGridDisplay):
         self.axes.set_aspect("equal")
         initial_event = self._input_file.pick_event(int(self.event_id))
         self.draw_digi_event(initial_event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), initial_event,
-                            self._grid, self.zero_sup_threshold)
+        if isinstance(self._grid, HexagonalReadoutBase): 
+            self.draw_positions(self._input_file.current_mc_event(), initial_event,
+                                self._grid, self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
         self.prev_button.on_clicked(self.prev)
@@ -303,7 +304,8 @@ class EventDisplay(HexagonalGridDisplay):
         """
         self.axes.clear()
         self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
+        if isinstance(self._grid, HexagonalReadoutBase): 
+           self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
                             self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
