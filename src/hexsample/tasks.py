@@ -21,8 +21,8 @@
 """
 
 import inspect
-import pathlib
 import os
+import pathlib
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 
@@ -58,7 +58,7 @@ from .fileio import (
     digi_output_file_class,
     peek_readout_type,
 )
-from .hexagon import HexagonalLayout, HexagonalGrid
+from .hexagon import HexagonalGrid, HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
 from .readout import (
@@ -515,13 +515,14 @@ def synthesize_calibration_file(
     # Generate the calibration matrix with the appropriate size and values
     calibration_matrix = CalibrationMatrix(num_cols, num_rows)
     rms = mean * percent_rms / 100
-    logger.info(f"Generating {calibration_type.value} calibration matrix with mean {mean:g} and RMS {rms:g}...")
+    logger.info(f"Generating {calibration_type.value} calibration matrix with mean {mean:g}" 
+                f"and RMS {rms:g}...")
     calibration_matrix.values = rng.generator.normal(mean, scale=rms, size=(num_rows, num_cols))
     # Save the calibration matrix to the output directory
     output_path = pathlib.Path(output_dir) / file_name
     logger.info(f"Saving to {output_path}...")
     calibration_matrix.to_hdf5(output_path, calibration_type, True)
-    logger.info(f"Done!")
+    logger.info("Done!")
     return str(output_path)
 
 
@@ -798,7 +799,8 @@ def display(
         logger.warning("At least one of the matrixes is missing!")
 
     if np.any(array == None):
-        grid = HexagonalGrid(HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"], header["pitch"])
+        grid = HexagonalGrid(HexagonalLayout(header["layout"]), header["num_cols"],
+                              header["num_rows"], header["pitch"])
         _ = EventDisplay(input_file, grid, recon_pars=None)
     else:
         args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
