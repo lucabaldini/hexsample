@@ -3,6 +3,8 @@
 Release notes
 =============
 
+* `display` command modified to plot just the events when no calibration files are provided,
+  otherwise the reconstructed and Monte Carlo positions are calculated and plotted.
 * Minor changes to `CalibrateDark` and `CalibrateNoise` signal removal.
 * New `calibview` command to visualize calibration files and compare them with Montecarlo truth.
 * New beam shapes added: `SquareBeam` and `RectangleBeam`.
@@ -29,6 +31,7 @@ Release notes
   needed for every feature of the readout chip.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/128
   - https://github.com/lucabaldini/hexsample/pull/127
   - https://github.com/lucabaldini/hexsample/pull/124
   - https://github.com/lucabaldini/hexsample/pull/122
