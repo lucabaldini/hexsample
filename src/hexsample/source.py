@@ -186,6 +186,64 @@ class PointBeam(AbstractBeam):
 
 
 @dataclass
+class SquareBeam(AbstractBeam):
+
+    """Square uniform X-ray beam.
+
+    Arguments
+    ---------
+    x0 : float
+        The x-coordinate of the beam centroid in cm.
+
+    y0 : float
+        The y-coordinate of the beam centroid in cm.
+
+    side : float
+        The square width in cm.
+    """
+
+    side: float = 1.52
+
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+        """Overloaded method.
+        """
+        x = rng.generator.uniform(self.x0 - self.side/2., self.x0 + self.side/2., size=size)
+        y = rng.generator.uniform(self.y0 - self.side/2., self.y0 + self.side/2., size=size)
+        return x, y
+
+
+@dataclass
+class RectangleBeam(AbstractBeam):
+
+    """Rectangle uniform X-ray beam.
+
+    Arguments
+    ---------
+    x0 : float
+        The x-coordinate of the beam centroid in cm.
+
+    y0 : float
+        The y-coordinate of the beam centroid in cm.
+    
+    width : float
+        The rectangle width in cm.
+    
+    height : float
+        The rectangle height in cm.
+    """
+
+    width: float = 1.52
+    height: float = 1.52
+
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+        """Overloaded method.
+        """
+        x = rng.generator.uniform(self.x0 - self.width/2., self.x0 + self.width/2., size=size)
+        y = rng.generator.uniform(self.y0 - self.height/2., self.y0 + self.height/2., size=size)
+        return x, y
+
+
+@dataclass
 class DiskBeam(AbstractBeam):
 
     """Uniform disk X-ray beam.
@@ -384,6 +442,8 @@ BeamProxy.register("gaussian", GaussianBeam, default=True)
 BeamProxy.register("slit", SlitBeam)
 BeamProxy.register("triangular", TriangularBeam)
 BeamProxy.register("hexagonal", HexagonalBeam)
+BeamProxy.register("square", SquareBeam)
+BeamProxy.register("rectangle", RectangleBeam)
 
 
 @dataclass

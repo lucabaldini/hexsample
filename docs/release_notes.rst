@@ -3,6 +3,7 @@
 Release notes
 =============
 
+* New beam shapes added: `SquareBeam` and `RectangleBeam`.
 * Fixed a bug in digitization of events outside and at the border of the readout chip. For
   rectangular readout, this problem is solved by masking out all the electrons that fall outside
   the chip during the readout. For circular readout, we also exclude events with the seed pixel
