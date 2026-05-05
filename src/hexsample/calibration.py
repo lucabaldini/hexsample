@@ -427,33 +427,43 @@ class CalibrateDark:
     over the entire readout chip. In case of a dataset with source signal, the signal pixels are
     masked out by setting them to zero, and only the remaining pixels are used for the calibration.
 
-    The calibration is performed by estimating the mean and the standard deviation of the pixel
-    value distribution for each pixel, and using these values as the pedestal and noise values.
-
     Arguments
     ---------
-    noise_matrix : CalibrationMatrix
-        Calibration matrix to be updated with the noise values calculated from the data.
-    pedestal_matrix : CalibrationMatrix
-        Calibration matrix to be updated with the pedestal values calculated from the data.
+    num_cols : int
+        The number of columns of the detector readout chip.
+    num_rows : int
+        The number of rows of the detector readout chip.
+    algorithm : str
+        The algorithm to be used for the calculation of the noise and pedestal values. The options
+        are "histogram" and "welford".    
     """
 
-    def __init__(self, num_cols: int, num_rows: int) -> None:
+    def __init__(self, num_cols: int, num_rows: int, algorithm: str = "welford") -> None:
         """Class constructor.
         """
         self.noise_cal = CalibrationMatrix(num_cols, num_rows)
         self.pedestal_cal = CalibrationMatrix(num_cols, num_rows)
+        self._algorithm = algorithm
         # Check if the noise and pedestal calibration matrices have the same shape.
         num_rows, num_cols = self.noise_cal.shape
-        xedges = np.linspace(0, num_cols, num_cols + 1)
-        yedges = np.linspace(0, num_rows, num_rows + 1)
-        # For now just use a fixed number, but we need to fix this
-        zedges = np.linspace(0, 2048, 2049)
-        self._histogram = Histogram3d(xedges, yedges, zedges)
-        # Batch analysis
-        self._pha = []
-        self._cols = []
-        self._rows = []
+        if algorithm == "histogram":
+            xedges = np.linspace(0, num_cols, num_cols + 1)
+            yedges = np.linspace(0, num_rows, num_rows + 1)
+            # For now just use a fixed number, but we need to fix this
+            zedges = np.linspace(0, 2048, 2049)
+            self._histogram = Histogram3d(xedges, yedges, zedges)
+            # Batch analysis
+            self._pha = []
+            self._cols = []
+            self._rows = []
+        # Welford arrays
+        elif algorithm == "welford":
+            self._mean = np.zeros((num_rows, num_cols))
+            self._counts = np.zeros((num_rows, num_cols), dtype=int)
+            self._m2 = np.zeros((num_rows, num_cols))
+        else:
+            raise ValueError(f"Invalid algorithm {algorithm} for the dark calibration. "
+                             f"Valid options are 'histogram' and 'welford'.")
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
         """Remove the signal pixels from the event pha array.
@@ -489,7 +499,7 @@ class CalibrateDark:
         """
         return event.roi.size > max_size
 
-    def update_hist(self) -> None:
+    def _fill_hist(self) -> None:
         """Fill the histogram with the accumulated data and update the hits for the pixels that
         have been filled in the histogram.
         """
@@ -508,6 +518,30 @@ class CalibrateDark:
             self._pha = []
             self._cols = []
             self._rows = []
+
+    def _update_hist(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray,
+                     batch_size: int) -> None:
+        """Accumulate values to fill the histogram in batch and update it when the batch
+        size is large enough.
+        """
+        # Accumulate the data to fill the histogram in batch.
+        self._pha.extend(pha)
+        self._cols.extend(col)
+        self._rows.extend(row)
+        # If the size of the accumulated data is large enough, fill the histogram.
+        if len(self._pha) >= batch_size:
+            self._fill_hist()
+
+    def _update_welford(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray) -> None:
+        """Use the Welford's online algorithm to update the mean and the variance of the
+        pixel value distribution for each pixel with pha > 0 in the event.
+        """
+        # Update the counts for the pixels with pha > 0 in the event.
+        self._counts[row, col] += 1
+        # Update the mean and M2 arrays
+        delta_old = pha - self._mean[row, col]
+        self._mean[row, col] += delta_old / self._counts[row, col]
+        self._m2[row, col] += delta_old * (pha - self._mean[row, col])
 
     def analyze_event(self, event: DigiEventRectangular, has_source: bool,
                       batch_size: int = 5000000) -> None:
@@ -533,15 +567,12 @@ class CalibrateDark:
         row_slice, col_slice = event.roi.readout_slice()
         global_rows = local_rows + row_slice.start
         global_cols = local_cols + col_slice.start
-        # Accumulate the data to fill the histogram in batch.
-        self._pha.extend(pha_values)
-        self._cols.extend(global_cols)
-        self._rows.extend(global_rows)
+        if self._algorithm == "welford":
+            self._update_welford(pha_values, global_cols, global_rows)
+        elif self._algorithm == "histogram":
+            self._update_hist(pha_values, global_cols, global_rows, batch_size)
         self.noise_cal.num_events += 1
         self.pedestal_cal.num_events += 1
-        # If the size of the accumulated data is large enough, fill the histogram.
-        if len(self._pha) >= batch_size:
-            self.update_hist()
 
     # def fit(self) -> None:
     #     noise = self.noise_cal.matrix.copy()
@@ -559,20 +590,15 @@ class CalibrateDark:
     #                 noise[row, col] = model.sigma
     #                 pedestal[row, col] = model.mu
 
-    def fit(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
+    def _fit_histogram(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
         """Analyze the histogram to calculate the noise and pedestal values for each pixel, and
         update the calibration matrices.
 
         At the moment, the pedestal and noise values are estimated as the mean and the standard
         deviation of the pixel value distribution for each pixel.
-
-        Returns
-        -------
-        noise_cal : CalibrationMatrix
-             Updated calibration matrices for the noise.
-        pedestal_cal : CalibrationMatrix
-             Updated calibration matrices for the pedestal.
         """
+        # Fill the histogram with the last batch of accumulated data, if there is any.
+        self._fill_hist()
         # Calculate the mean and the standard deviation of the pixel value distribution for
         # each pixel.
         histo_mean, histo_sigma = self._histogram.project_statistics(axis=2)
@@ -591,6 +617,44 @@ class CalibrateDark:
         # The error on the estimate of the mean is given by sigma / sqrt(N - 1)
         self.pedestal_cal.errors[mask] = sigma[mask] / np.sqrt(self.pedestal_cal.entries[mask] - 1)
         return self.noise_cal, self.pedestal_cal
+
+    def _fit_welford(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
+        """Update the noise and pedestal calibration matrices with the values calculated from the
+        Welford's algorithm for the pixels that have at least one hit, calulate the errors and
+        update the entries.
+        """
+        # Calculate the noise and pedestal values for the pixels with at least two events.
+        mask = self._counts > 1
+        noise_values = np.divide(self._m2, self._counts - 1,
+                                 out=np.full_like(self._m2, np.nan), where=mask)
+        pedestal_values = np.where(mask, self._mean, self.pedestal_cal.values)
+        # Write back the values to the calibration matrices.
+        self.noise_cal.values = noise_values
+        self.pedestal_cal.values = pedestal_values
+        # Update the entries.
+        self.noise_cal.entries = self._counts
+        self.pedestal_cal.entries = self._counts
+        # The error on the estimate of the standard deviation is given by sigma / sqrt(2 * (N - 1))
+        self.noise_cal.errors[mask] = noise_values[mask] / np.sqrt(2 * (self._counts[mask] - 1))
+        # The error on the estimate of the mean is given by sigma / sqrt(N - 1)
+        self.pedestal_cal.errors[mask] = noise_values[mask] / np.sqrt(self._counts[mask] - 1)
+        return self.noise_cal, self.pedestal_cal
+
+    def fit(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
+        """Calculate the noise and pedestal calibration matrices.
+
+        Returns
+        -------
+        noise_cal : CalibrationMatrix
+            Updated calibration matrices for the noise.
+        pedestal_cal : CalibrationMatrix
+            Updated calibration matrices for the pedestal.
+        """
+        if self._algorithm == "welford":
+            return self._fit_welford()
+        if self._algorithm == "histogram":
+            return self._fit_histogram()
+        raise ValueError(f"Invalid algorithm {self._algorithm} for the dark calibration.")
 
 
 class CalibrateGain(CalibrateBase):
