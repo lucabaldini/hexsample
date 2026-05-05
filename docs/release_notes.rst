@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.16.0 (2026-05-05)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * `display` command modified to plot just the events when no calibration files are provided,
   otherwise the reconstructed and Monte Carlo positions are calculated and plotted.
 * Minor changes to `CalibrateDark` and `CalibrateNoise` signal removal.
