@@ -377,7 +377,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         roi_max_col = min(min_col + trg_cols.max() + 1 + self.padding.right, self.num_cols - 1)
         roi_min_row = max(0, min_row + trg_rows.min() - self.padding.top)
         roi_max_row = min(min_row + trg_rows.max() + 1 + self.padding.bottom, self.num_rows - 1)
-        # If nececssary, we need to trim the initial padding to match the actual
+        # If necessary, we need to trim the initial padding to match the actual
         # borders of the ROI.
         trimmed_padding = Padding(
             left=min(self.padding.left, min_col + trg_cols.min()),
