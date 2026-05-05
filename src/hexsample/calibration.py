@@ -78,7 +78,7 @@ class CalibrationUnits(str, Enum):
     ENC = "Electrons"
     NOISE = "ADC counts"
     PEDESTAL = "ADC counts"
-    GAIN = "Electrons/ADC count"
+    GAIN = "ADC counts / electron"
 
 
 CALIBRATION_UNITS = {
