@@ -24,7 +24,6 @@ import pathlib
 from enum import Enum
 from itertools import product
 from typing import Tuple
-from tqdm import tqdm
 
 import h5py
 import numpy as np
@@ -32,6 +31,7 @@ from aptapy.hist import Histogram3d
 from aptapy.models import Gaussian
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
+from tqdm import tqdm
 
 from .clustering import Cluster
 from .digi import DigiEventRectangular
