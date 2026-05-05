@@ -3,6 +3,8 @@
 Release notes
 =============
 
+* `display` command modified to plot just the events when no calibration files are provided,
+  otherwise the reconstructed and Monte Carlo positions are calculated and plotted.
 * Minor changes to `CalibrateDark` and `CalibrateNoise` signal removal.
 * New `calibview` command to visualize calibration files and compare them with Montecarlo truth.
 * New beam shapes added: `SquareBeam` and `RectangleBeam`.
