@@ -357,8 +357,9 @@ class CalibrateNoise(CalibrateBase):
         self._sum2 = np.zeros(self.cal_matrix.shape)
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
-        """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3
-        region around the highest pixel to zero.
+        """Remove the signal pixels from the event pha array.
+         
+        This is done by setting to zero all the pixels in the ROT and their neighbors.
 
         Arguments
         ---------
@@ -455,8 +456,9 @@ class CalibrateDark:
         self._rows = []
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
-        """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3
-        region around the highest pixel to zero.
+        """Remove the signal pixels from the event pha array.
+         
+        This is done by setting to zero all the pixels in the ROT and their neighbors.
 
         Arguments
         ---------

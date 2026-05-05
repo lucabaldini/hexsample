@@ -722,8 +722,8 @@ def calibrate_gain(
     # To calculate the mean value, we are excluding the outliers by considering only the values
     # between the 1st and the 99th percentile.
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    lower_bound, upper_bound = np.nanpercentile(gain_matrix.values, [1, 99])
     vals = gain_matrix.values
+    lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
     gain_sim.set_value(np.mean(vals[(vals > lower_bound) & (vals < upper_bound)]))
     simulation_readout = HexagonalReadoutRectangular(HexagonalLayout(header["layout"]),
         header["num_cols"], header["num_rows"], header["pitch"],
@@ -933,6 +933,8 @@ def calibview(
     rel_error_mask = matrix.errors / matrix.values < rel_error
     hits_mask = matrix.entries >= min_hits
     mask = rel_error_mask & hits_mask
+    if not np.any(mask):
+        raise RuntimeError("No valid pixels found with the given quality cuts.")
     lower_bound, upper_bound = np.nanpercentile(matrix.values.flatten()[mask.flatten()],
                                                 [lower_quantile, upper_quantile])
     logger.info(f"Quality cuts: min_hits={min_hits}, rel_error<{rel_error}, " \

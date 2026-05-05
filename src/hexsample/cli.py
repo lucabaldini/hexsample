@@ -513,7 +513,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                             " the statistics")
         parser.add_argument("--rel_error", type=float, default=defaults.rel_error,
                             help="maximum relative error threshold for a pixel to be included"
-                            "in the statistics")
+                            " in the statistics")
         parser.add_argument("--lower_quantile", type=float, default=defaults.lower_quantile,
                             help="lower quantile for a pixel to be included in the statistics")
         parser.add_argument("--upper_quantile", type=float, default=defaults.upper_quantile,
