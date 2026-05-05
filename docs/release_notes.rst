@@ -6,8 +6,8 @@ Release notes
 * New beam shapes added: `SquareBeam` and `RectangleBeam`.
 * Fixed a bug in digitization of events outside and at the border of the readout chip. For
   rectangular readout, this problem is solved by masking out all the electrons that fall outside
-  the readout chip during the propagation in the sensor. For circular readout, we also exclude
-  events with the seed pixel at the border of the readout chip. 
+  the chip during the readout. For circular readout, we also exclude events with the seed pixel
+  at the border of the readout chip.
 * New dataclasses in `xpol.py` to store properties of the readout chips (XPOL1 and XPOL3).
 * Introduced the CalibrationDataBase (CalDB) to store and manage calibration files, along wit the
   dedicated module `caldb.py` to handle operations on the CalDB.
