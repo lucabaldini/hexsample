@@ -3,11 +3,13 @@
 Release notes
 =============
 
+* Minor changes to `CalibrateDark` and `CalibrateNoise` signal removal.
+* New `calibview` command to visualize calibration files and compare them with Montecarlo truth.
 * New beam shapes added: `SquareBeam` and `RectangleBeam`.
 * Fixed a bug in digitization of events outside and at the border of the readout chip. For
   rectangular readout, this problem is solved by masking out all the electrons that fall outside
-  the readout chip during the propagation in the sensor. For circular readout, we also exclude
-  events with the seed pixel at the border of the readout chip. 
+  the chip during the readout. For circular readout, we also exclude events with the seed pixel
+  at the border of the readout chip.
 * New dataclasses in `xpol.py` to store properties of the readout chips (XPOL1 and XPOL3).
 * Introduced the CalibrationDataBase (CalDB) to store and manage calibration files, along wit the
   dedicated module `caldb.py` to handle operations on the CalDB.
@@ -27,10 +29,13 @@ Release notes
   needed for every feature of the readout chip.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/127
+  - https://github.com/lucabaldini/hexsample/pull/124
   - https://github.com/lucabaldini/hexsample/pull/122
   - https://github.com/lucabaldini/hexsample/pull/121
   - https://github.com/lucabaldini/hexsample/pull/118
   - https://github.com/lucabaldini/hexsample/pull/111
+  - https://github.com/lucabaldini/hexsample/pull/123
   - https://github.com/lucabaldini/hexsample/issues/120
   - https://github.com/lucabaldini/hexsample/issues/117
   - https://github.com/lucabaldini/hexsample/issues/116

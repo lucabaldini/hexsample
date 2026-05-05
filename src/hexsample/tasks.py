@@ -24,6 +24,7 @@ import inspect
 import os
 import pathlib
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional, Tuple, Union
 
 import numpy as np
@@ -34,6 +35,7 @@ from tqdm import tqdm
 from . import rng
 from .analysis import create_histogram
 from .calibration import (
+    CALIBRATION_UNITS,
     CalibrateDark,
     CalibrateENC,
     CalibrateGain,
@@ -515,8 +517,8 @@ def synthesize_calibration_file(
     # Generate the calibration matrix with the appropriate size and values
     calibration_matrix = CalibrationMatrix(num_cols, num_rows)
     rms = mean * percent_rms / 100
-    logger.info(f"Generating {calibration_type.value} calibration matrix with mean {mean:g}" 
-                f"and RMS {rms:g}...")
+    logger.info(f"Generating {calibration_type.value} calibration matrix with "
+                f"mean {mean:g} and RMS {rms:g}...")
     calibration_matrix.values = rng.generator.normal(mean, scale=rms, size=(num_rows, num_cols))
     # Save the calibration matrix to the output directory
     output_path = pathlib.Path(output_dir) / file_name
@@ -716,12 +718,12 @@ def calibrate_gain(
         "the analyzed chip region.")
     # Create the readout object for the simulation. We are using rectangular readout just because
     # it's faster to simulate, and using a uniform gain matrix with the mean value of the first
-    # calibration to correct the bias in the gain matrix. 
+    # calibration to correct the bias in the gain matrix.
     # To calculate the mean value, we are excluding the outliers by considering only the values
     # between the 1st and the 99th percentile.
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    lower_bound, upper_bound = np.nanpercentile(gain_matrix.values, [1, 99])
     vals = gain_matrix.values
+    lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
     gain_sim.set_value(np.mean(vals[(vals > lower_bound) & (vals < upper_bound)]))
     simulation_readout = HexagonalReadoutRectangular(HexagonalLayout(header["layout"]),
         header["num_cols"], header["num_rows"], header["pitch"],
@@ -879,39 +881,126 @@ def quicklook(input_file_path: str) -> None:
     plt.show()
 
 
-def inspect_matrix(
-        matrix1: CalibrationMatrix,
-        matrix2: Optional[CalibrationMatrix] = None,
+@dataclass(frozen=True)
+class CalibviewDefaults:
+    """Default parameters for the calibview task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    mc_matrix: Optional[CalibrationMatrix] = None
+    min_hits: int = 0
+    rel_error: float = np.inf
+    lower_quantile: float = 0.
+    upper_quantile: float = 100.
+
+
+def calibview(
+        matrix: CalibrationMatrix,
+        mc_matrix: Optional[CalibrationMatrix] = CalibviewDefaults.mc_matrix,
+        min_hits: int = CalibviewDefaults.min_hits,
+        rel_error: float = CalibviewDefaults.rel_error,
+        lower_quantile: float = CalibviewDefaults.lower_quantile,
+        upper_quantile: float = CalibviewDefaults.upper_quantile
         ) -> None:
-    matrix1 = CalibrationMatrix.from_hdf5(matrix1)
-    if matrix2 is not None:
-        matrix2 = CalibrationMatrix.from_hdf5(matrix2)
-    mask_error = matrix1.errors / matrix1.values < 0.1
-    mask = matrix1.entries >= 0
-    # mask = mask_error
-    vals = matrix1.values.flatten()
-    lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
-    plt.figure(matrix1.metadata["file_name"])
-    plt.imshow(matrix1.values, origin="lower", vmin=lower_bound, vmax=upper_bound)
-    plt.colorbar()
-    if matrix2 is not None:
-        plt.figure(matrix2.metadata["file_name"])
-        plt.imshow(matrix2.values, origin="lower", vmin=lower_bound, vmax=upper_bound)
-    
-    plt.figure("distribution")
+    """Display a calibration matrix and plot some basic statistics about it. If the
+    Monte Carlo truth matrix is provided, the correlation between the two matrices
+    is also presented.
+
+    Arguments
+    ---------
+    matrix : CalibrationMatrix
+        The calibration matrix to display.
+
+    mc_matrix : CalibrationMatrix, optional
+        The Monte Carlo truth calibration matrix to compare with.
+
+    min_hits : int, optional
+        The minimum number of hits in a pixel to be included in the statistics.
+
+    rel_error : float, optional
+        The maximum relative error in a pixel to be included in the statistics.
+
+    lower_quantile : float, optional
+        The lower quantile of the values in the matrix to be included in the statistics.
+
+    upper_quantile : float, optional
+        The upper quantile of the values in the matrix to be included in the statistics.
+    """
+    # pylint: disable=too-many-statements
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    logger.info("Matrix metadata:")
+    # Log the metadata of the matrix.
+    for key, value in matrix.metadata.items():
+        if isinstance(key, Enum):
+            key = key.value
+        logger.info(f"  {key}: {value}")
+    unit = CALIBRATION_UNITS.get(matrix.metadata["calibration_type"]).value
+    # Calculate the quantiles of the values in the matrix to set the limits for the plots.
+    rel_error_mask = matrix.errors / matrix.values < rel_error
+    hits_mask = matrix.entries >= min_hits
+    mask = rel_error_mask & hits_mask
+    if not np.any(mask):
+        raise RuntimeError("No valid pixels found with the given quality cuts.")
+    lower_bound, upper_bound = np.nanpercentile(matrix.values.flatten()[mask.flatten()],
+                                                [lower_quantile, upper_quantile])
+    logger.info(f"Quality cuts: min_hits={min_hits}, rel_error<{rel_error}, " \
+                f"lower_quantile={lower_quantile}, upper_quantile={upper_quantile}")
+    logger.info(f"Number of calibrated pixels after quality cuts: {np.sum(mask)}")
+    # Plot the values matrix.
+    plt.figure(f"Calibrated matrix: {matrix.metadata['file_name']}")
+    plt.imshow(matrix.values, origin="upper", vmin=lower_bound, vmax=upper_bound)
+    plt.xlabel("Column")
+    plt.ylabel("Row")
+    plt.colorbar(label=unit)
+    # Plot the distribution of the calibrated values.
+    vals = matrix.values.flatten()[mask.flatten()]
     edges = np.linspace(lower_bound, upper_bound, 100)
-    hist = Histogram1d(edges, label=matrix1.metadata["file_name"])
-    hist.fill(vals[mask.flatten()])
-    hist.plot(statistics=True)
+    vals_hist = Histogram1d(edges, label="Distribution", xlabel=unit).fill(vals)
+    plt.figure("Distribution of calibrated values")
+    vals_hist.plot(statistics=True)
     plt.legend()
-
-    if matrix2 is not None:
-        plt.figure("correlation")
-        plt.scatter(matrix1.values[mask].flatten(), matrix2.values[mask].flatten(), alpha=0.1, s=10)
-        plt.xlabel(matrix1.metadata["file_name"])
-        plt.ylabel(matrix2.metadata["file_name"])
-        x = np.linspace(matrix2.values.min(), matrix2.values.max(), 100)
-        plt.plot(x, x, color="red", linestyle="--")   
-
+    # If the Monte Carlo truth matrix is provided, plot the matrix and its distribution.
+    if mc_matrix is not None:
+        mc_vals = mc_matrix.values.flatten()
+        mc_unit = CALIBRATION_UNITS.get(mc_matrix.metadata["calibration_type"]).value
+        if mc_unit != unit:
+            logger.warning(f"Unit of the Monte Carlo matrix ({mc_unit}) is different from" \
+            f" the unit of the calibrated matrix ({unit}).")
+        # Plot the Monte Carlo truth matrix.
+        plt.figure(f"Monte Carlo truth matrix: {mc_matrix.metadata['file_name']}")
+        plt.imshow(mc_matrix.values, origin="upper")
+        plt.xlabel("Column")
+        plt.ylabel("Row")
+        plt.colorbar(label=mc_unit)
+        # Plot the distribution of the Monte Carlo truth values.
+        mc_edges = np.linspace(np.nanmin(mc_vals), np.nanmax(mc_vals), 100)
+        mc_vals_hist = Histogram1d(mc_edges, label="MC Distribution", xlabel=mc_unit).fill(mc_vals)
+        plt.figure("Distribution of Monte Carlo truth values")
+        mc_vals_hist.plot(statistics=True)
+        plt.legend()
+        # Plot the correlation between the calibrated values and the Monte Carlo truth values.
+        x = np.linspace(mc_edges[0], mc_edges[-1], 2)
+        plt.figure("Correlation between calibrated values and Monte Carlo truth values")
+        plt.scatter(vals, mc_vals[mask.flatten()], alpha=0.1, s=10)
+        plt.plot(x, x, color="k", linestyle="--")
+        plt.xlabel(f"Calibrated values [{unit}]")
+        plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
+        # Plot the residuals distribution.
+        residuals = (vals - mc_vals[mask.flatten()]) / mc_vals[mask.flatten()]
+        residual_edges = np.linspace(np.nanmin(residuals), np.nanmax(residuals), 100)
+        residual_hist = Histogram1d(residual_edges, label="Residuals",
+                                    xlabel="Relative Residual").fill(residuals)
+        plt.figure("Relative residuals distribution")
+        residual_hist.plot(statistics=True)
+        plt.legend()
+        # Plot the pull distribution.
+        pull = (vals - mc_vals[mask.flatten()]) / matrix.errors.flatten()[mask.flatten()]
+        pull_edges = np.linspace(np.nanmin(pull), np.nanmax(pull), 100)
+        pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
+        plt.figure("Pull distribution")
+        pull_hist.plot(statistics=True)
+        plt.legend()
     plt.show()
-

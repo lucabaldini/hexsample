@@ -153,6 +153,14 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(synthesize)
         synthesize.set_defaults(runner=pipeline.synthesize_calibration_file)
 
+        # Inspect a calibration matrix?
+        calibview = subparsers.add_parser("calibview",
+            help="inspect a calibration matrix",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_calibview_options(calibview)
+        self.add_logging_level(calibview)
+        calibview.set_defaults(runner=pipeline.calibview)
+
         # Run the single-event display?
         display = subparsers.add_parser("display",
             help="run the single-event display",
@@ -178,15 +186,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_num_events(convert, default=None, intent="converted")
         self.add_logging_level(convert)
         convert.set_defaults(runner=pipeline.mdat3_to_digi)
-
-        # Inspect a calibration matrix?
-        inspect = subparsers.add_parser("inspect",
-            help="inspect a calibration matrix",
-            formatter_class=self._FORMATTER_CLASS)
-        inspect.add_argument("matrix1", type=str)
-        inspect.add_argument("--matrix2", type=str, required=False,)
-        self.add_logging_level(inspect)
-        inspect.set_defaults(runner=pipeline.inspect_matrix)
 
     @staticmethod
     def add_input_file(parser: argparse.ArgumentParser) -> None:
@@ -499,6 +498,26 @@ class CliArgumentParser(argparse.ArgumentParser):
         CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=False)
         CliArgumentParser.add_cal_gain_file(parser, default=None, required=False)
 
+    def add_calibview_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the calibration view properties.
+        """
+        defaults = tasks.CalibviewDefaults
+        parser.add_argument("matrix", type=calibration.CalibrationMatrix.from_hdf5,
+                            help="path to a calibration matrix to be analyzed")
+        parser.add_argument("--mc_matrix", type=calibration.CalibrationMatrix.from_hdf5,
+                            default=defaults.mc_matrix,
+                            help="path to a calibration matrix containing the Monte Carlo truth" \
+                            " matrix to be compared with the main matrix")
+        parser.add_argument("--min_hits", type=int, default=defaults.min_hits,
+                            help="minimum number of entries for a pixel to be included in" \
+                            " the statistics")
+        parser.add_argument("--rel_error", type=float, default=defaults.rel_error,
+                            help="maximum relative error threshold for a pixel to be included"
+                            " in the statistics")
+        parser.add_argument("--lower_quantile", type=float, default=defaults.lower_quantile,
+                            help="lower quantile for a pixel to be included in the statistics")
+        parser.add_argument("--upper_quantile", type=float, default=defaults.upper_quantile,
+                            help="upper quantile for a pixel to be included in the statistics")
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.
