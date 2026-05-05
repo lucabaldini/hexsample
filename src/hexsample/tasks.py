@@ -795,7 +795,7 @@ def display(
 
     Arguments
     ---------
-    file_path : str
+    input_file_path : str
         The path to the digi file.
 
     noise_matrix : CalibrationMatrix, optional
@@ -824,7 +824,7 @@ def display(
     # If there are no missing calibration matrices, we can also reconstruct the incident photon
     # position and show it in the event display.
     else:
-        readout_args = *grid_args, *cal_matrices
+        readout_args = (*grid_args, *cal_matrices)
         grid = create_readout(readout_mode, header, *readout_args)
         recon_defaults = ReconstructionDefaults
         recon_pars = dict(

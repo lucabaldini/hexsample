@@ -258,10 +258,6 @@ class EventDisplay(HexagonalGridDisplay):
     
     grid: HexagonalGrid
         The grid to use for the display.
-
-    zero_sup_threshold: int
-    
-
     """
 
     def __init__(self, input_file: DigiInputFileBase, grid: HexagonalGrid, **kwargs):
