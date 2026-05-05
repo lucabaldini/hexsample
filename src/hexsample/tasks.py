@@ -32,7 +32,14 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
-from .calibration import CalibrateDark, CalibrateGain, CalibrateNoise, CalibrationMatrix
+from .calibration import (
+    CalibrateDark,
+    CalibrateENC,
+    CalibrateGain,
+    CalibrateNoise,
+    CalibrationMatrix,
+    CalibrationType,
+)
 from .clustering import ClusteringNN
 from .display import EventDisplay
 from .eta import (
@@ -62,6 +69,7 @@ from .readout import (
 from .recon import ReconEvent
 from .sensor import Sensor
 from .source import DiskBeam, Line, Source
+from .xpol import chip_descriptor
 
 # Make room for the output data.
 HEXSAMPLE_DATA = pathlib.Path.home() / "hexsampledata"
@@ -220,9 +228,9 @@ class ReconstructionDefaults:
 
 def reconstruct(
         input_file_path: str,
-        gain_matrix: CalibrationMatrix,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
+        gain_matrix: CalibrationMatrix,
         suffix: str = ReconstructionDefaults.suffix,
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
@@ -249,14 +257,14 @@ def reconstruct(
     input_file_path : str
         The path to the input file.
 
-    gain_matrix : CalibrationMatrix
-        The gain matrix to use for the reconstruction.
-
     noise_matrix : CalibrationMatrix
         The noise matrix to use for the reconstruction.
 
     pedestal_matrix : CalibrationMatrix
         The pedestal matrix to use for the reconstruction.
+
+    gain_matrix : CalibrationMatrix
+        The gain matrix to use for the reconstruction.
 
     suffix : str
         The suffix to append to the output file name.
@@ -361,8 +369,9 @@ class CalibrationEtaDefaults:
 
 def calibrate_eta(
         input_file_path: str,
-        gain_matrix: CalibrationMatrix,
         noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
+        gain_matrix: CalibrationMatrix,
         num_bins: int = CalibrationEtaDefaults.num_bins,
         zero_sup_threshold: int = CalibrationEtaDefaults.zero_sup_threshold
         ) -> None:
@@ -372,12 +381,15 @@ def calibrate_eta(
     ---------
     input_file_path : str
         The path to the input file.
-    
-    gain_matrix : CalibrationMatrix
-        The gain calibration matrix to use for the analysis.
-    
+
     noise_matrix : CalibrationMatrix
         The noise calibration matrix to use for the analysis.
+
+    pedestal_matrix : CalibrationMatrix
+        The pedestal calibration matrix to use for the analysis.
+
+    gain_matrix : CalibrationMatrix
+        The gain calibration matrix to use for the analysis.
 
     num_bins : int
         The number of bins to be used in the calibration.
@@ -387,7 +399,7 @@ def calibrate_eta(
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_matrix, header.get("offset", 0)
+        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
@@ -432,6 +444,80 @@ def calibrate_eta(
     plt.show()
 
 
+@dataclass(frozen=True)
+class SynthesizeCalibrationDefaults:
+
+    """Default values for the generate_calibration_file task.
+    """
+
+    percent_rms: int = 0
+    output_dir: Union[str, pathlib.Path] = HEXSAMPLE_DATA
+    chip_name: str = "xpol3"
+    version: int = 1
+    random_seed: int = None
+
+
+def synthesize_calibration_file(
+        calibration_type: CalibrationType,
+        mean: float,
+        percent_rms: int = SynthesizeCalibrationDefaults.percent_rms,
+        chip_name: str = SynthesizeCalibrationDefaults.chip_name,
+        output_dir: Union[str, pathlib.Path] = SynthesizeCalibrationDefaults.output_dir,
+        version: int = SynthesizeCalibrationDefaults.version,
+        random_seed: int = SynthesizeCalibrationDefaults.random_seed
+        ) -> str:
+    """Generate a synthetic calibration file for the given calibration type and
+    chip name.
+
+    Arguments
+    ---------
+    calibration_type : CalibrationType
+        The type of calibration to generate.
+
+    mean : float
+        The mean value of the sample distribution.
+
+    percent_rms : int, optional
+        The root mean square of the sample distribution, expressed as a percentage
+        of the mean. note we treat this as an integer, assuming that we shall
+        never be in the situation where we need a very precise fine tuning.
+
+    chip_name : str, optional
+        The name of the chip for which to generate the calibration file.
+
+    output_dir : str, optional
+        The directory where to save the generated calibration file.
+
+    version : int, optional
+        The version number the generated calibration file.
+
+    random_seed : int, optional
+        The seed for the random number generator.
+    """
+    # Initialize the random number generator with the given seed
+    rng.initialize(seed=random_seed)
+    num_cols, num_rows = chip_descriptor(chip_name).size
+    # Generate the file name
+    file_name = f"sim_{chip_name}_{calibration_type.value}-{mean:g}".replace(".", "p")
+    # Append the RMS information to the file name
+    if percent_rms > 0:
+        file_name += f"_gauss-p{percent_rms:02d}".replace(".", "p")
+    elif percent_rms == 0:
+        file_name += "_uniform"
+    else:
+        raise ValueError("Percent RMS must be non-negative")
+    # Append the version number to the file name
+    file_name += f"_v{version:03d}.h5"
+    # Generate the calibration matrix with the appropriate size and values
+    calibration_matrix = CalibrationMatrix(num_cols, num_rows)
+    rms = mean * percent_rms / 100
+    calibration_matrix.values = rng.generator.normal(mean, scale=rms, size=(num_rows, num_cols))
+    # Save the calibration matrix to the output directory
+    output_path = pathlib.Path(output_dir) / file_name
+    calibration_matrix.to_hdf5(output_path, calibration_type, True)
+    return str(output_path)
+
+
 def calibrate_noise(
         input_file_path: str
         ) -> str:
@@ -456,7 +542,7 @@ def calibrate_noise(
     noise_matrix = noise_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
-    noise_matrix.to_hdf5(output_file_path, "noise", False)
+    noise_matrix.to_hdf5(output_file_path, CalibrationType.NOISE, False)
     input_file.close()
     return output_file_path
 
@@ -477,7 +563,7 @@ def calibrate_dark(
         input_file_path: str,
         has_source: bool = CalibrationDarkDefaults.has_source,
         batch_size: int = CalibrationDarkDefaults.batch_size
-        ) -> str:
+        ) -> Tuple[str, str]:
     # Open the input file and extract the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     # The analysis is only supported for rectangular readout.
@@ -494,10 +580,48 @@ def calibrate_dark(
     # Close the input file and save the noise matrix to a HDF5 file.
     noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")
-    noise_matrix.to_hdf5(noise_output_file_path, "noise", False)
-    pedestal_matrix.to_hdf5(pedestal_output_file_path, "pedestal", False)
+    noise_matrix.to_hdf5(noise_output_file_path, CalibrationType.NOISE, False)
+    pedestal_matrix.to_hdf5(pedestal_output_file_path, CalibrationType.PEDESTAL, False)
     input_file.close()
-    return noise_output_file_path
+    return noise_output_file_path, pedestal_output_file_path
+
+
+@dataclass(frozen=True)
+class CalibrationEncDefaults:
+    """Default parameters for the ENC calibration task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    output_dir: Union[str, pathlib.Path] = HEXSAMPLE_DATA
+
+
+def calibrate_enc(
+        noise_matrix: CalibrationMatrix,
+        gain_matrix: CalibrationMatrix,
+        output_dir: Union[str, pathlib.Path] = CalibrationEncDefaults.output_dir
+    ) -> str:
+    """Calibrate the equivalent noise charge (ENC) of the readout chip using the noise and gain
+    matrices. The results are stored as a matrix in a HDF5 file.
+
+    Arguments
+    ---------
+    noise_matrix : CalibrationMatrix
+        The noise calibration matrix to use for the ENC calibration.
+
+    gain_matrix : CalibrationMatrix
+        The gain calibration matrix to use for the ENC calibration.
+    """
+    name, args = current_call(num_backward_steps=1)
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    enc_calibration = CalibrateENC(noise_matrix, gain_matrix)
+    enc_matrix = enc_calibration.fit()
+    noise_file_name = noise_matrix.metadata["file_name"]
+    enc_file_name = noise_file_name.replace("_matrix_noise", "_matrix_enc.h5")
+    output_file_path = pathlib.Path(output_dir) / enc_file_name
+    enc_matrix.to_hdf5(output_file_path, CalibrationType.ENC, False)
+    return output_file_path
 
 
 @dataclass(frozen=True)
@@ -601,7 +725,7 @@ def calibrate_gain(
     mask_gain = gain_matrix.entries > 0
     gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + np.mean(residuals))
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
-    gain_matrix.to_hdf5(output_file_path, "gain", False)
+    gain_matrix.to_hdf5(output_file_path, CalibrationType.GAIN, False)
     # Close the input files.
     tmp_input_file.close()
     input_file.close()
@@ -610,9 +734,9 @@ def calibrate_gain(
 
 def display(
         input_file_path: str,
-        gain_matrix: CalibrationMatrix,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
+        gain_matrix: CalibrationMatrix,
         ) -> None:
     """Display events from a digi file.
 
@@ -621,17 +745,14 @@ def display(
     file_path : str
         The path to the digi file.
 
-    gain_matrix : CalibrationMatrix
-        The gain calibration matrix to use for the display.
-
     noise_matrix : CalibrationMatrix
         The noise calibration matrix to use for the display.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold to use when displaying the digi event.
+    pedestal_matrix : CalibrationMatrix
+        The pedestal calibration matrix to use for the display.
 
-    event_id : int
-        The ID of the event to display. If None, display all events.
+    gain_matrix : CalibrationMatrix
+        The gain calibration matrix to use for the display.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
