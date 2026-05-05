@@ -147,3 +147,31 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     evt = readout.read(0., x, y)
     assert evt(col, row) == round(num_pairs * gain)
     print(evt.ascii())
+
+def test_borders_rectangular_digi(num_cols: int = 304, num_rows: int = 352, pitch: float = 0.005,
+                                  num_pairs: int = 1000) -> None:
+    """Test the digitization of events at the borders of the readout chip for
+    rectangular readout.
+    """
+    # Define the readout and its properties.
+    padding = Padding(7, 4, 4, 4)
+    enc_matrix = CalibrationMatrix(num_cols, num_rows)
+    enc_matrix.set_value(20.)
+    gain_matrix = CalibrationMatrix(num_cols, num_rows)
+    gain_matrix.set_value(1.)
+    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
+    pedestal_matrix.set_value(0.)
+    readout = HexagonalReadoutRectangular(HexagonalLayout.ODD_R, num_cols, num_rows, pitch,
+        enc_matrix, gain_matrix, pedestal_matrix, 500., 0, padding)
+    # Pick a particular pixel close to the right border of the chip
+    x0, y0 = readout.pixel_to_world(num_cols - 1, num_rows // 2)
+    x0 += 3 * pitch
+    # Create the x and y arrays of the pair positions from a gaussian distribution.
+    x, y = rng.generator.normal(loc=(x0, y0), scale=0.0007, size=(num_pairs, 2)).T
+    # Sample the signal
+    min_col, min_row, signal = readout.sample(x, y)
+    assert min_col == 0
+    assert min_row == 0
+    assert np.array_equal(signal, np.empty_like(signal))
+    _, pha = readout.trigger(signal, min_col, min_row)
+    assert np.array_equal(pha, np.empty_like(pha))

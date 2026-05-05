@@ -233,6 +233,10 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         # ...sampling the input position of the highest PHA pixel over the readout...
         # See: https://stackoverflow.com/questions/70094914/max-on-collections-counter
         coord_max = max(sparse_signal, key=sparse_signal.get)
+        # If the highest pixel is at the border of the chip or outside the chip bounds,
+        # we cannot digitize the event, so we return None.
+        if self.is_at_border(*coord_max) or not self.is_in_bounds(*coord_max):
+            return None
         # col_max, row_max = coord_max
         #... and converting it in ADC channel coordinates (value from 0 to 6)...
         adc_max = self.adc_channel(*coord_max)
@@ -283,7 +287,7 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         num_rows, num_cols = array.shape
         return array.reshape((num_rows // 2, 2, num_cols // 2, 2)).sum(-1).sum(1)
 
-    def sample(self, x: np.ndarray, y: np.ndarray) -> Tuple[Tuple[int, int], np.ndarray]:
+    def sample(self, x: np.ndarray, y: np.ndarray) -> Tuple[int, int, np.ndarray]:
         """Spatially sample a pair of arrays of x and y coordinates in physical
         space onto logical (hexagonal) coordinates in logical space.
 
@@ -314,7 +318,11 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
             signal itself, in electron equivalent.
         """
         # pylint: disable=invalid-name
-        col, row = self.world_to_pixel(x, y)
+        col, row = self.world_to_pixel(x, y, in_bounds=True)
+        # If the all the charge is outside the chip bounds, col and row are empty
+        # arrays, so we return a dummy rectangle and an empty signal array.
+        if not col.size:
+            return 0, 0, np.empty((0, 0))
         # Determine the corners of the relevant rectangle where the signal histogram
         # should be built. Reminder: in our trigger minicluster arrangement the minimum
         # column and row coordinates are always even and the maximum column and
@@ -358,19 +366,32 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         # of 2 serves the purpose of converting minicluster to pixel coordinates.
         trg_cols = 2 * np.nonzero(trg_signal.sum(axis=0))[0]
         trg_rows = 2 * np.nonzero(trg_signal.sum(axis=1))[0]
+        # If no minicluster is above threshold, because all the charge is outside the chip
+        # bounds or because just a small fraction is inside the chip bounds, we have no
+        # trigger, so we return a dummy ROI and an empty PHA array.
+        if not trg_cols.size or not trg_rows.size:
+            return RegionOfInterest(0, 0, 0, 0, self.padding), np.empty((0, 0))
         # Build the actual ROI in chip coordinates and initialize the RegionOfInterest
-        # object.
-        roi_min_col = min_col + trg_cols.min() - self.padding.left
-        roi_max_col = min_col + trg_cols.max() + 1 + self.padding.right
-        roi_min_row = min_row + trg_rows.min() - self.padding.top
-        roi_max_row = min_row + trg_rows.max() + 1 + self.padding.bottom
-        roi = RegionOfInterest(roi_min_col, roi_max_col, roi_min_row, roi_max_row, self.padding)
+        # object. We constrain the borders of the ROI to be within the chip bounds.
+        roi_min_col = max(0, min_col + trg_cols.min() - self.padding.left)
+        roi_max_col = min(min_col + trg_cols.max() + 1 + self.padding.right, self.num_cols - 1)
+        roi_min_row = max(0, min_row + trg_rows.min() - self.padding.top)
+        roi_max_row = min(min_row + trg_rows.max() + 1 + self.padding.bottom, self.num_rows - 1)
+        # If necessary, we need to trim the initial padding to match the actual
+        # borders of the ROI.
+        trimmed_padding = Padding(
+            left=min(self.padding.left, min_col + trg_cols.min()),
+            right=min(self.padding.right, self.num_cols - 2 - (min_col + trg_cols.max())),
+            top=min(self.padding.top, min_row + trg_rows.min()),
+            bottom=min(self.padding.bottom, self.num_rows - 2 - (min_row + trg_rows.max()))
+        )
+        roi = RegionOfInterest(roi_min_col, roi_max_col, roi_min_row, roi_max_row, trimmed_padding)
         # And now the actual PHA array: we start with all zeroes...
         pha = np.full(roi.shape(), 0.)
         # ...and then we patch the original signal array into the proper submask.
         num_rows, num_cols = signal.shape
-        start_row = self.padding.top - trg_rows.min()
-        start_col = self.padding.left - trg_cols.min()
+        start_row = trimmed_padding.top - trg_rows.min()
+        start_col = trimmed_padding.left - trg_cols.min()
         pha[start_row:start_row + num_rows, start_col:start_col + num_cols] = signal
         # And do not forget to increment the trigger identifier!
         self.trigger_id += 1
@@ -382,6 +403,9 @@ class HexagonalReadoutRectangular(HexagonalReadoutBase):
         # pylint: disable=invalid-name, too-many-arguments
         min_col, min_row, signal = self.sample(x, y)
         roi, pha = self.trigger(signal, min_col, min_row)
+        # If there is no trigger, we return None
+        if not pha.size:
+            return None
         pha = self.digitize(pha, roi)
         seconds, microseconds, livetime = self.latch_timestamp(timestamp)
         return DigiEventRectangular(self.trigger_id, seconds, microseconds, livetime, pha, roi)
