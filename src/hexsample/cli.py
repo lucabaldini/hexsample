@@ -424,7 +424,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the dark calibration properties.
         """
         defaults = tasks.CalibrationDarkDefaults
-        parser.add_argument("--algorithm", type=str, choices=["welford", "histogram"],
+        parser.add_argument("--algorithm", type=str, choices=["welford", "fit"],
                             default=defaults.algorithm,
                             help="algorithm to be used for the dark calibration")
         parser.add_argument("--no_source", action="store_false", dest="has_source",

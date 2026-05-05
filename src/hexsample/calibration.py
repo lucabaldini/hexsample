@@ -22,11 +22,14 @@
 
 import pathlib
 from enum import Enum
+from itertools import product
 from typing import Tuple
+from tqdm import tqdm
 
 import h5py
 import numpy as np
 from aptapy.hist import Histogram3d
+from aptapy.models import Gaussian
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
 
@@ -435,7 +438,7 @@ class CalibrateDark:
         The number of rows of the detector readout chip.
     algorithm : str
         The algorithm to be used for the calculation of the noise and pedestal values. The options
-        are "histogram" and "welford".    
+        are "welford" and "fit".    
     """
 
     def __init__(self, num_cols: int, num_rows: int, algorithm: str = "welford") -> None:
@@ -446,7 +449,7 @@ class CalibrateDark:
         self._algorithm = algorithm
         # Check if the noise and pedestal calibration matrices have the same shape.
         num_rows, num_cols = self.noise_cal.shape
-        if algorithm == "histogram":
+        if algorithm == "fit":
             xedges = np.linspace(0, num_cols, num_cols + 1)
             yedges = np.linspace(0, num_rows, num_rows + 1)
             # For now just use a fixed number, but we need to fix this
@@ -463,7 +466,7 @@ class CalibrateDark:
             self._m2 = np.zeros((num_rows, num_cols))
         else:
             raise ValueError(f"Invalid algorithm {algorithm} for the dark calibration. "
-                             f"Valid options are 'histogram' and 'welford'.")
+                             f"Valid options are 'fit' and 'welford'.")
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
         """Remove the signal pixels from the event pha array.
@@ -569,53 +572,55 @@ class CalibrateDark:
         global_cols = local_cols + col_slice.start
         if self._algorithm == "welford":
             self._update_welford(pha_values, global_cols, global_rows)
-        elif self._algorithm == "histogram":
+        elif self._algorithm == "fit":
             self._update_hist(pha_values, global_cols, global_rows, batch_size)
         self.noise_cal.num_events += 1
         self.pedestal_cal.num_events += 1
 
-    # def fit(self) -> None:
-    #     noise = self.noise_cal.matrix.copy()
-    #     pedestal = self.pedestal_cal.matrix.copy()
-    #     model = Gaussian()
-    #     print("Fitting noise and pedestal for each pixel...")
-    #     # Should try to think about a more efficient way to perform 10^5 fits
-    #     for col in range(self.noise_cal.shape[1]):
-    #         print(f"Fitting column {col}...")
-    #         for row in range(self.noise_cal.shape[0]):
-    #             slice_ = self._histogram.slice1d(col, row)
-    #             entries = slice_.content.sum()
-    #             if entries > 0:
-    #                 model.fit(slice_)
-    #                 noise[row, col] = model.sigma
-    #                 pedestal[row, col] = model.mu
-
     def _fit_histogram(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
-        """Analyze the histogram to calculate the noise and pedestal values for each pixel, and
-        update the calibration matrices.
-
-        At the moment, the pedestal and noise values are estimated as the mean and the standard
-        deviation of the pixel value distribution for each pixel.
+        """Calculate the noise and pedestal values for each pixel by fitting the counts
+        distribution with a Gaussian model.
         """
         # Fill the histogram with the last batch of accumulated data, if there is any.
         self._fill_hist()
-        # Calculate the mean and the standard deviation of the pixel value distribution for
-        # each pixel.
-        histo_mean, histo_sigma = self._histogram.project_statistics(axis=2)
-        mu = histo_mean.content.T
-        sigma = histo_sigma.content.T
-        # Update the noise and pedestal matrices with the calculated values for the pixels that
-        # have at least one hit.
-        noise_matrix = np.where(self.noise_cal.entries > 0, sigma, self.noise_cal.values)
-        pedestal_matrix = np.where(self.pedestal_cal.entries > 0, mu, self.pedestal_cal.values)
-        # Write the matrices
-        self.noise_cal.values = noise_matrix
-        mask = self.noise_cal.entries > 1
-        # The error on the estimate of the standard deviation is given by sigma / sqrt(2 * (N - 1))
-        self.noise_cal.errors[mask] = sigma[mask] / np.sqrt(2 * (self.noise_cal.entries[mask] - 1))
-        self.pedestal_cal.values = pedestal_matrix
-        # The error on the estimate of the mean is given by sigma / sqrt(N - 1)
-        self.pedestal_cal.errors[mask] = sigma[mask] / np.sqrt(self.pedestal_cal.entries[mask] - 1)
+        # Create copies of noise and pedestal matrices to be updated with the fitted values.
+        noise = self.noise_cal.values.copy()
+        pedestal = self.pedestal_cal.values.copy()
+        noise_err = self.noise_cal.errors.copy()
+        pedestal_err = self.pedestal_cal.errors.copy()
+        # Fit a Gaussian model to the pixel value distribution for each pixel with enough entries.
+        model = Gaussian()
+        bin_centers = self._histogram.bin_centers(axis=2)
+        cols = range(self.noise_cal.shape[1])
+        rows = range(self.noise_cal.shape[0])
+        # Calculate the mean and the standard deviation of the pixel value distribution for each
+        # pixel to use them as initial values for the fit. This is necessary to speed up the fit.
+        mean, std = self._histogram.project_statistics(axis=2)
+        for col, row in tqdm(product(cols, rows), total=len(cols)*len(rows), miniters=50):
+            counts = self._histogram.content[col, row, :]
+            # Check if there are enough entries to perform the fit.
+            if counts.sum() > 10:
+                # sigma = self._histogram.errors[col, row, :]
+                sigma = None
+                mu = mean.content[col, row]
+                s = std.content[col, row]
+                xmin = max(0, mu - 3 * s)
+                xmax = mu + 3 * s
+                p0 = (1., mu, s)
+                try:
+                    model.fit(bin_centers, counts, xmin=xmin, xmax=xmax, sigma=sigma, p0=p0)
+                except (RuntimeError, np.linalg.LinAlgError):
+                    continue
+                # Update the noise and pedestal matrices with the fitted values for the pixel.
+                noise[row, col] = model.sigma.value
+                pedestal[row, col] = model.mu.value
+                noise_err[row, col] = model.sigma.error
+                pedestal_err[row, col] = model.mu.error
+        # Write back the calibration matrices.
+        self.noise_cal.values = noise
+        self.pedestal_cal.values = pedestal
+        self.noise_cal.errors = noise_err
+        self.pedestal_cal.errors = pedestal_err
         return self.noise_cal, self.pedestal_cal
 
     def _fit_welford(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
@@ -652,7 +657,7 @@ class CalibrateDark:
         """
         if self._algorithm == "welford":
             return self._fit_welford()
-        if self._algorithm == "histogram":
+        if self._algorithm == "fit":
             return self._fit_histogram()
         raise ValueError(f"Invalid algorithm {self._algorithm} for the dark calibration.")
 
