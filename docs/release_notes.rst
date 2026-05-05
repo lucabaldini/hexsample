@@ -3,6 +3,8 @@
 Release notes
 =============
 
+* Minor changes to `CalibrateDark` and `CalibrateNoise` signal removal.
+* New `calibview` command to visualize calibration files and compare them with Montecarlo truth.
 * New beam shapes added: `SquareBeam` and `RectangleBeam`.
 * Fixed a bug in digitization of events outside and at the border of the readout chip. For
   rectangular readout, this problem is solved by masking out all the electrons that fall outside

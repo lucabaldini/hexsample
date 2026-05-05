@@ -70,6 +70,25 @@ class CalibrationMetadata(str, Enum):
     IS_SYNTHETIC = "is_synthetic"
 
 
+class CalibrationUnits(str, Enum):
+
+    """Enum to store the possible units for the calibration matrix values.
+    """
+
+    ENC = "Electrons"
+    NOISE = "ADC counts"
+    PEDESTAL = "ADC counts"
+    GAIN = "ADC counts / electron"
+
+
+CALIBRATION_UNITS = {
+    CalibrationType.ENC: CalibrationUnits.ENC,
+    CalibrationType.NOISE: CalibrationUnits.NOISE,
+    CalibrationType.PEDESTAL: CalibrationUnits.PEDESTAL,
+    CalibrationType.GAIN: CalibrationUnits.GAIN
+}
+
+
 class CalibrationMatrix:
 
     """Class to store and use calibration matrices for the detector readout.
@@ -338,17 +357,18 @@ class CalibrateNoise(CalibrateBase):
         self._sum2 = np.zeros(self.cal_matrix.shape)
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
-        """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3
-        region around the highest pixel to zero.
+        """Remove the signal pixels from the event pha array.
+         
+        This is done by setting to zero all the pixels in the ROT and their neighbors.
 
         Arguments
         ---------
         event : DigiEventRectangular
             The event to be analyzed.
         """
-        seed_col, seed_row = event.highest_pixel(absolute=False)
+        outer_mask = event.roi.outer_mask(margin=1)
         pha = event.pha.copy()
-        pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
+        pha[~outer_mask] = 0
         return pha
 
     def _bad_event(self, event: DigiEventRectangular) -> bool:
@@ -436,17 +456,18 @@ class CalibrateDark:
         self._rows = []
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
-        """Remove the signal pixels from the event pha array, by setting all the pixels in the 3x3
-        region around the highest pixel to zero.
+        """Remove the signal pixels from the event pha array.
+         
+        This is done by setting to zero all the pixels in the ROT and their neighbors.
 
         Arguments
         ---------
         event : DigiEventRectangular
             The event to be analyzed.
         """
-        seed_col, seed_row = event.highest_pixel(absolute=False)
+        outer_mask = event.roi.outer_mask(margin=1)
         pha = event.pha.copy()
-        pha[seed_row - 1: seed_row + 2, seed_col - 1: seed_col + 2] = 0
+        pha[~outer_mask] = 0
         return pha
 
     def _bad_event(self, event: DigiEventRectangular, max_size: int = 200) -> bool:
@@ -642,13 +663,8 @@ class CalibrateGain(CalibrateBase):
         sigma_w = np.sqrt(mse / (signal_power + 1e-15))
         with np.errstate(divide='ignore', invalid='ignore'):
             sigma_g_rel = sigma_w / np.abs(weight)
-        # Mask for the pixels that have a weight value close to zero (no events) and for the pixels
-        # with a large uncertainty. We are cutting out pixels with a relative uncertainty larger
-        # than 200%. This value is high because the statistical fluctuations of the number of
-        # electrons for each event affect the gain estimation, and even if the final gain
-        # distribution is peaked around the true gain value, the uncertainty of the single pixel
-        # can be large, even 100%.
-        mask = (np.abs(weight) > 1e-10) & (sigma_g_rel < 2.0)
+        # Mask for the pixels that have a weight value close to zero (no events)
+        mask = np.abs(weight) > 1e-10
         values = self.cal_matrix.values.copy()
         entries = self.cal_matrix.entries
         # Set the gain value for the pixels that pass the quality cut.
@@ -703,6 +719,7 @@ class CalibrateENC:
         enc_errors = enc_values * np.sqrt(rel_noise_sq + rel_gain_sq)
         # Update the calibration matrix with the calculated values.
         self.cal_matrix.values = enc_values
+        self.cal_matrix.entries = np.minimum(self.noise_matrix.entries, self.gain_matrix.entries)
         self.cal_matrix.errors = enc_errors
         self.cal_matrix.num_events = self.noise_matrix.num_events
         return self.cal_matrix

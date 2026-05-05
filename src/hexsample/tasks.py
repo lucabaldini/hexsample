@@ -21,9 +21,11 @@
 """
 
 import inspect
+import os
 import pathlib
 from dataclasses import dataclass
-from typing import Tuple, Union
+from enum import Enum
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
@@ -33,6 +35,7 @@ from tqdm import tqdm
 from . import rng
 from .analysis import create_histogram
 from .calibration import (
+    CALIBRATION_UNITS,
     CalibrateDark,
     CalibrateENC,
     CalibrateGain,
@@ -51,6 +54,7 @@ from .eta import (
 )
 from .fileio import (
     DigiInputFileBase,
+    ReconInputFile,
     ReconOutputFile,
     digi_input_file_class,
     digi_output_file_class,
@@ -494,6 +498,8 @@ def synthesize_calibration_file(
     random_seed : int, optional
         The seed for the random number generator.
     """
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
     # Initialize the random number generator with the given seed
     rng.initialize(seed=random_seed)
     num_cols, num_rows = chip_descriptor(chip_name).size
@@ -511,10 +517,14 @@ def synthesize_calibration_file(
     # Generate the calibration matrix with the appropriate size and values
     calibration_matrix = CalibrationMatrix(num_cols, num_rows)
     rms = mean * percent_rms / 100
+    logger.info(f"Generating {calibration_type.value} calibration matrix with "
+                f"mean {mean:g} and RMS {rms:g}...")
     calibration_matrix.values = rng.generator.normal(mean, scale=rms, size=(num_rows, num_cols))
     # Save the calibration matrix to the output directory
     output_path = pathlib.Path(output_dir) / file_name
+    logger.info(f"Saving to {output_path}...")
     calibration_matrix.to_hdf5(output_path, calibration_type, True)
+    logger.info("Done!")
     return str(output_path)
 
 
@@ -537,13 +547,17 @@ def calibrate_noise(
     # Create the object to calibrate the noise and run the analysis.
     noise_calibration = CalibrateNoise(header["num_cols"], header["num_rows"])
     # Loop over the events and analyze the noise.
+    logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         noise_calibration.analyze_event(event)
+    logger.info("Calculating the noise matrix...")
     noise_matrix = noise_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
+    logger.info(f"Saving to {output_file_path}...")
     noise_matrix.to_hdf5(output_file_path, CalibrationType.NOISE, False)
     input_file.close()
+    logger.info("Done!")
     return output_file_path
 
 
@@ -572,17 +586,22 @@ def calibrate_dark(
     # Create the calibration matrix
     dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"])
     # Loop over the events and analyze the noise.
+    logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         dark_calibration.analyze_event(event, has_source, batch_size)
     # Update the histogram with the last batch of events and fit the data.
     dark_calibration.update_hist()
+    logger.info("Calculating the noise and pedestal matrices...")
     noise_matrix, pedestal_matrix = dark_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
     noise_output_file_path = input_file_path.replace(".h5", "_matrix_noise.h5")
     pedestal_output_file_path = input_file_path.replace(".h5", "_matrix_pedestal.h5")
+    logger.info(f"Saving noise matrix to {noise_output_file_path}...")
+    logger.info(f"Saving pedestal matrix to {pedestal_output_file_path}...")
     noise_matrix.to_hdf5(noise_output_file_path, CalibrationType.NOISE, False)
     pedestal_matrix.to_hdf5(pedestal_output_file_path, CalibrationType.PEDESTAL, False)
     input_file.close()
+    logger.info("Done!")
     return noise_output_file_path, pedestal_output_file_path
 
 
@@ -616,11 +635,14 @@ def calibrate_enc(
     name, args = current_call(num_backward_steps=1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     enc_calibration = CalibrateENC(noise_matrix, gain_matrix)
+    logger.info("Calculating the ENC matrix...")
     enc_matrix = enc_calibration.fit()
     noise_file_name = noise_matrix.metadata["file_name"]
     enc_file_name = noise_file_name.replace("_matrix_noise", "_matrix_enc.h5")
     output_file_path = pathlib.Path(output_dir) / enc_file_name
+    logger.info(f"Saving to {output_file_path}...")
     enc_matrix.to_hdf5(output_file_path, CalibrationType.ENC, False)
+    logger.info("Done!")
     return output_file_path
 
 
@@ -632,7 +654,7 @@ class CalibrationGainDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    num_events: int = 100000
+    num_events: int = 200000
     zero_sup_threshold: int = 20
 
 
@@ -681,29 +703,36 @@ def calibrate_gain(
     gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
+    logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
         except IndexError:
             continue
         gain_calibration.analyze_cluster(cluster)
+    logger.info("Calculating the gain matrix...")
     gain_matrix = gain_calibration.fit()
     if not np.any(gain_matrix.entries > 0):
         raise RuntimeError("No valid gain values found during the first step of calibration," \
         "cannot proceed further. The possible reason could be a small number of events over " \
         "the analyzed chip region.")
     # Create the readout object for the simulation. We are using rectangular readout just because
-    # it's faster to simulate.
+    # it's faster to simulate, and using a uniform gain matrix with the mean value of the first
+    # calibration to correct the bias in the gain matrix.
+    # To calculate the mean value, we are excluding the outliers by considering only the values
+    # between the 1st and the 99th percentile.
     gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    gain_sim.set_value(gain_matrix.mean())
-    simulation_readout = HexagonalReadoutRectangular(
-        HexagonalLayout(header["layout"]),
+    vals = gain_matrix.values
+    lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
+    gain_sim.set_value(np.mean(vals[(vals > lower_bound) & (vals < upper_bound)]))
+    simulation_readout = HexagonalReadoutRectangular(HexagonalLayout(header["layout"]),
         header["num_cols"], header["num_rows"], header["pitch"],
         enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
     output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
     # Simulate events with the best-fit gain matrix to correct the bias.
+    logger.info("Simulating file to correct the bias...")
     simulate(
-        source=Source(Line(energy), DiskBeam(radius=0.02)),
+        source=Source(Line(energy), DiskBeam(radius=0.15)),
         sensor=Sensor(),
         readout=simulation_readout,
         num_events=num_events,
@@ -711,24 +740,35 @@ def calibrate_gain(
     tmp_input_file = digi_input_file_class("rectangular")(output)
     tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
     # Re-run the gain calibration on the simulated events to calculate the correction factor.
+    logger.info("Starting the event loop for the simulated file...")
     for _, event in tqdm(enumerate(tmp_input_file)):
         try:
             cluster = clustering.run(event)
         except IndexError:
             continue
         tmp_gain_calibration.analyze_cluster(cluster)
+    logger.info("Calculating the gain matrix from the simulation...")
     tmp_gain_matrix = tmp_gain_calibration.fit()
     # Calculate the correction factor from the simulation.
+    logger.info("Calculating the correction factor...")
     mask = tmp_gain_matrix.entries > 0
+    # Calculate the residuals between the MC and calibrated gain matrices from the simulation
+    # and calculate the mean residual to be used as a correction factor.
     residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
+    # Exclude the outliers by considering only the values between the 1st and the 99th percentile.
+    lower_bound, upper_bound = np.percentile(residuals, [1, 99])
+    mean_residual = np.mean(residuals[(residuals > lower_bound) & (residuals < upper_bound)])
     # Apply the correction factor to the gain matrix and save it to a HDF5 file.
     mask_gain = gain_matrix.entries > 0
-    gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + np.mean(residuals))
+    gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + mean_residual)
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
+    logger.info(f"Saving corrected gain matrix to {output_file_path}...")
     gain_matrix.to_hdf5(output_file_path, CalibrationType.GAIN, False)
     # Close the input files.
     tmp_input_file.close()
+    os.remove(output)
     input_file.close()
+    logger.info("Done!")
     return output_file_path
 
 
@@ -793,7 +833,9 @@ def quicklook(input_file_path: str) -> None:
         The path to the input recon file.
     """
     # Open the input file
-    input_file, _, _ = open_file(input_file_path)
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    input_file = ReconInputFile(input_file_path)
     # Plotting the reconstructed energy and the true energy
     histo = create_histogram(input_file, "energy", mc=False)
     mc_histo = create_histogram(input_file, "energy", mc=True, binning=histo.bin_edges())
@@ -827,4 +869,129 @@ def quicklook(input_file_path: str) -> None:
     histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y-y_mc)
     histy.plot()
     input_file.close()
+    plt.show()
+
+
+@dataclass(frozen=True)
+class CalibviewDefaults:
+    """Default parameters for the calibview task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    mc_matrix: Optional[CalibrationMatrix] = None
+    min_hits: int = 0
+    rel_error: float = np.inf
+    lower_quantile: float = 0.
+    upper_quantile: float = 100.
+
+
+def calibview(
+        matrix: CalibrationMatrix,
+        mc_matrix: Optional[CalibrationMatrix] = CalibviewDefaults.mc_matrix,
+        min_hits: int = CalibviewDefaults.min_hits,
+        rel_error: float = CalibviewDefaults.rel_error,
+        lower_quantile: float = CalibviewDefaults.lower_quantile,
+        upper_quantile: float = CalibviewDefaults.upper_quantile
+        ) -> None:
+    """Display a calibration matrix and plot some basic statistics about it. If the
+    Monte Carlo truth matrix is provided, the correlation between the two matrices
+    is also presented.
+
+    Arguments
+    ---------
+    matrix : CalibrationMatrix
+        The calibration matrix to display.
+
+    mc_matrix : CalibrationMatrix, optional
+        The Monte Carlo truth calibration matrix to compare with.
+
+    min_hits : int, optional
+        The minimum number of hits in a pixel to be included in the statistics.
+
+    rel_error : float, optional
+        The maximum relative error in a pixel to be included in the statistics.
+
+    lower_quantile : float, optional
+        The lower quantile of the values in the matrix to be included in the statistics.
+
+    upper_quantile : float, optional
+        The upper quantile of the values in the matrix to be included in the statistics.
+    """
+    # pylint: disable=too-many-statements
+    name, args = current_call()
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    logger.info("Matrix metadata:")
+    # Log the metadata of the matrix.
+    for key, value in matrix.metadata.items():
+        if isinstance(key, Enum):
+            key = key.value
+        logger.info(f"  {key}: {value}")
+    unit = CALIBRATION_UNITS.get(matrix.metadata["calibration_type"]).value
+    # Calculate the quantiles of the values in the matrix to set the limits for the plots.
+    rel_error_mask = matrix.errors / matrix.values < rel_error
+    hits_mask = matrix.entries >= min_hits
+    mask = rel_error_mask & hits_mask
+    if not np.any(mask):
+        raise RuntimeError("No valid pixels found with the given quality cuts.")
+    lower_bound, upper_bound = np.nanpercentile(matrix.values.flatten()[mask.flatten()],
+                                                [lower_quantile, upper_quantile])
+    logger.info(f"Quality cuts: min_hits={min_hits}, rel_error<{rel_error}, " \
+                f"lower_quantile={lower_quantile}, upper_quantile={upper_quantile}")
+    logger.info(f"Number of calibrated pixels after quality cuts: {np.sum(mask)}")
+    # Plot the values matrix.
+    plt.figure(f"Calibrated matrix: {matrix.metadata['file_name']}")
+    plt.imshow(matrix.values, origin="upper", vmin=lower_bound, vmax=upper_bound)
+    plt.xlabel("Column")
+    plt.ylabel("Row")
+    plt.colorbar(label=unit)
+    # Plot the distribution of the calibrated values.
+    vals = matrix.values.flatten()[mask.flatten()]
+    edges = np.linspace(lower_bound, upper_bound, 100)
+    vals_hist = Histogram1d(edges, label="Distribution", xlabel=unit).fill(vals)
+    plt.figure("Distribution of calibrated values")
+    vals_hist.plot(statistics=True)
+    plt.legend()
+    # If the Monte Carlo truth matrix is provided, plot the matrix and its distribution.
+    if mc_matrix is not None:
+        mc_vals = mc_matrix.values.flatten()
+        mc_unit = CALIBRATION_UNITS.get(mc_matrix.metadata["calibration_type"]).value
+        if mc_unit != unit:
+            logger.warning(f"Unit of the Monte Carlo matrix ({mc_unit}) is different from" \
+            f" the unit of the calibrated matrix ({unit}).")
+        # Plot the Monte Carlo truth matrix.
+        plt.figure(f"Monte Carlo truth matrix: {mc_matrix.metadata['file_name']}")
+        plt.imshow(mc_matrix.values, origin="upper")
+        plt.xlabel("Column")
+        plt.ylabel("Row")
+        plt.colorbar(label=mc_unit)
+        # Plot the distribution of the Monte Carlo truth values.
+        mc_edges = np.linspace(np.nanmin(mc_vals), np.nanmax(mc_vals), 100)
+        mc_vals_hist = Histogram1d(mc_edges, label="MC Distribution", xlabel=mc_unit).fill(mc_vals)
+        plt.figure("Distribution of Monte Carlo truth values")
+        mc_vals_hist.plot(statistics=True)
+        plt.legend()
+        # Plot the correlation between the calibrated values and the Monte Carlo truth values.
+        x = np.linspace(mc_edges[0], mc_edges[-1], 2)
+        plt.figure("Correlation between calibrated values and Monte Carlo truth values")
+        plt.scatter(vals, mc_vals[mask.flatten()], alpha=0.1, s=10)
+        plt.plot(x, x, color="k", linestyle="--")
+        plt.xlabel(f"Calibrated values [{unit}]")
+        plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
+        # Plot the residuals distribution.
+        residuals = (vals - mc_vals[mask.flatten()]) / mc_vals[mask.flatten()]
+        residual_edges = np.linspace(np.nanmin(residuals), np.nanmax(residuals), 100)
+        residual_hist = Histogram1d(residual_edges, label="Residuals",
+                                    xlabel="Relative Residual").fill(residuals)
+        plt.figure("Relative residuals distribution")
+        residual_hist.plot(statistics=True)
+        plt.legend()
+        # Plot the pull distribution.
+        pull = (vals - mc_vals[mask.flatten()]) / matrix.errors.flatten()[mask.flatten()]
+        pull_edges = np.linspace(np.nanmin(pull), np.nanmax(pull), 100)
+        pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
+        plt.figure("Pull distribution")
+        pull_hist.plot(statistics=True)
+        plt.legend()
     plt.show()
