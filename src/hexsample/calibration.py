@@ -630,8 +630,9 @@ class CalibrateDark:
         """
         # Calculate the noise and pedestal values for the pixels with at least two events.
         mask = self._counts > 1
-        noise_values = np.divide(self._m2, self._counts - 1,
+        variance = np.divide(self._m2, self._counts - 1,
                                  out=np.full_like(self._m2, np.nan), where=mask)
+        noise_values = np.sqrt(variance, out=variance, where=mask)
         pedestal_values = np.where(mask, self._mean, self.pedestal_cal.values)
         # Write back the values to the calibration matrices.
         self.noise_cal.values = noise_values
