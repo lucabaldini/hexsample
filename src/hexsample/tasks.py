@@ -772,11 +772,24 @@ def calibrate_gain(
     return output_file_path
 
 
+@dataclass(frozen=True)
+class DisplayDefaults:
+    """Default parameters for the display task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    noise_matrix: Optional[CalibrationMatrix] = None
+    pedestal_matrix: Optional[CalibrationMatrix] = None
+    gain_matrix: Optional[CalibrationMatrix] = None
+
+
 def display(
         input_file_path: str,
-        noise_matrix: CalibrationMatrix,
-        pedestal_matrix: CalibrationMatrix,
-        gain_matrix: CalibrationMatrix,
+        noise_matrix: Optional[CalibrationMatrix] = DisplayDefaults.noise_matrix,
+        pedestal_matrix: Optional[CalibrationMatrix] = DisplayDefaults.pedestal_matrix,
+        gain_matrix: Optional[CalibrationMatrix] = DisplayDefaults.gain_matrix,
         ) -> None:
     """Display events from a digi file.
 
@@ -785,29 +798,34 @@ def display(
     file_path : str
         The path to the digi file.
 
-    noise_matrix : CalibrationMatrix
+    noise_matrix : CalibrationMatrix, optional
         The noise calibration matrix to use for the display.
 
-    pedestal_matrix : CalibrationMatrix
+    pedestal_matrix : CalibrationMatrix, optional
         The pedestal calibration matrix to use for the display.
 
-    gain_matrix : CalibrationMatrix
+    gain_matrix : CalibrationMatrix, optional
         The gain calibration matrix to use for the display.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
-    array = np.array([noise_matrix, pedestal_matrix, gain_matrix])
-    if np.any(array == None) and not np.all(array == None):
-        logger.warning("At least one of the matrixes is missing!")
-
-    if np.any(array == None):
-        grid = HexagonalGrid(HexagonalLayout(header["layout"]), header["num_cols"],
-                              header["num_rows"], header["pitch"])
-        _ = EventDisplay(input_file, grid, recon_pars=None)
+    cal_matrices = [noise_matrix, gain_matrix, pedestal_matrix]
+    missing = [matrix for matrix in cal_matrices if matrix is None]
+    # Check if any of the calibration matrices is missing.
+    if 0 < len(missing) < len(cal_matrices):
+        logger.warning(f"{len(missing)} calibration matrices are missing.")
+    # Initialize the correct type of event display based on the input matrices.
+    grid_args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"], \
+        header["pitch"]
+    # If any of the calibration matrices is missing, we only show the grid with pixel values.
+    if len(missing) > 0:
+        grid = HexagonalGrid(*grid_args)
+        recon_pars = None
+    # If there are no missing calibration matrices, we can also reconstruct the incident photon
+    # position and show it in the event display.
     else:
-        args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-            header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
-        readout = create_readout(readout_mode, header, *args)
+        readout_args = *grid_args, *cal_matrices
+        grid = create_readout(readout_mode, header, *readout_args)
         recon_defaults = ReconstructionDefaults
         recon_pars = dict(
             eta_2pix_rad_sigma=recon_defaults.eta_2pix_rad_sigma,
@@ -818,7 +836,8 @@ def display(
             eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
             pitch=header["pitch"]
         )
-        _ = EventDisplay(input_file, readout, recon_pars=recon_pars)
+    # Create the event display and show the events.
+    EventDisplay(input_file, grid, recon_pars=recon_pars)
     input_file.close()
 
 
