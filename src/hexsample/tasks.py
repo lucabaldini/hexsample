@@ -958,7 +958,7 @@ def calibview(
         logger.info(f"  {key}: {value}")
     unit = CALIBRATION_UNITS.get(matrix.metadata["calibration_type"]).value
     # Calculate the quantiles of the values in the matrix to set the limits for the plots.
-    rel_error_mask = matrix.errors / matrix.values < rel_error
+    rel_error_mask = abs(matrix.errors / matrix.values) < rel_error
     hits_mask = matrix.entries >= min_hits
     mask = rel_error_mask & hits_mask
     if not np.any(mask):
@@ -996,6 +996,9 @@ def calibview(
         plt.colorbar(label=mc_unit)
         # Plot the distribution of the Monte Carlo truth values.
         mc_edges = np.linspace(np.nanmin(mc_vals), np.nanmax(mc_vals), 100)
+        # If Monte Carlo distribution is uniform, we need to modify the edges
+        if mc_edges[0] == mc_edges[-1]:
+            mc_edges = np.linspace(mc_edges[0] - mc_edges[0]*0.1, mc_edges[-1] + mc_edges[-1]*0.1, 100)
         mc_vals_hist = Histogram1d(mc_edges, label="MC Distribution", xlabel=mc_unit).fill(mc_vals)
         plt.figure("Distribution of Monte Carlo truth values")
         mc_vals_hist.plot(statistics=True)

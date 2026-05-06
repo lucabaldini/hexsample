@@ -24,6 +24,8 @@ import pathlib
 from enum import Enum
 from typing import Tuple
 from time import time
+from tqdm import tqdm
+from itertools import product
 
 import h5py
 import numpy as np
@@ -642,30 +644,42 @@ class CalibrateGain(CalibrateBase):
         self._event_count += 1
         self.cal_matrix.num_events += 1
 
-    def _fit_lh_cluster(self, a, col, row, mean):
-        t0 = time()
-        grid = HexagonalGrid()
-        neigh = grid.neighbors(col, row)
-        cols, rows = np.array(neigh).T
-        cols = np.insert(cols, 0, col)
-        rows = np.insert(rows, 0, row)
-        idxs = rows * 304 + cols
-        a_sub = a[:, idxs]
-        col_0 = a_sub[:, 0]
-        mask = col_0.nonzero()[0]
+    def fit_lh_large(self, a, cols, rows, mean):
+        idxs_sub = (rows * 304 + cols).astype(int)
+        total_event_sum = np.array(a.sum(axis=1)).flatten()
+        a_sub = a[:, idxs_sub]
+        sub_event_sum = np.array(a_sub.sum(axis=1)).flatten()
+        mask = (sub_event_sum == total_event_sum) & (sub_event_sum > 0)
         a_sub = a_sub[mask]
+        # Remove no active pixels
+        pixel_sum = np.array(a_sub.sum(axis=0)).flatten()
+        active_mask = pixel_sum > 0
+
+        active_idxs = np.where(active_mask)[0]
+        a_final = a_sub[:, active_idxs]
+
+        if a_final.nnz == 0 or a_final.shape[1] == 0:
+            return None
+
         def nll_mono(pars):
-            sum_energy = a_sub @ pars
+            sum_energy = a_final @ pars
             p = np.exp(- (sum_energy - mean)**2 / (2 * 20 **2))
             return -np.sum(np.log(p + 1e-10))
-        
-        m = Minuit(nll_mono, np.ones(7))
+        init = np.ones(len(active_idxs))
+        m = Minuit(nll_mono, init)
+        m.errordef = Minuit.LIKELIHOOD
         m.migrad()
-        t1 = time()
-        print(f"Fit time: {t1 - t0} seconds")
-        return m
 
-    
+        full_region_gain = np.full(len(idxs_sub), np.nan)
+        full_region_error = np.full(len(idxs_sub), np.nan)
+
+        if m.valid:
+            full_region_gain[active_idxs] = 1 / np.array(m.values)
+            full_region_error[active_idxs] = m.errors / np.array(m.values)**2
+        
+        return full_region_gain, full_region_error, idxs_sub
+
+
     def fit(self) -> CalibrationMatrix:
         """Perform the likelihood fit to determine the gain of each pixel.
         """
@@ -680,17 +694,54 @@ class CalibrateGain(CalibrateBase):
         a = csr_matrix((self._pha, (self._event_rows, self._coords)), shape=shape)
         # Calculate the mean to normalize the results
         MEAN = np.array(a.sum(axis=1)).flatten().mean()
-        
-        # Let's try to analyze a small region around the center
-        COL0, ROW0 = 152, 176
-        m = self._fit_lh_cluster(a, COL0, ROW0, MEAN)
-        # values = self.cal_matrix.values.copy()
-        # # values[rows, cols] = 1. / np.array(m.values)
-        # self.cal_matrix.values = values
 
-        print("Fit results:")
-        for i in range(7):
-            print(f"Pixel {i}: Gain = {1/m.values[i]:.2f} +/- {m.errors[i]/m.values[i]**2:.2f}")
+        values = self.cal_matrix.values.copy()
+        errors = self.cal_matrix.errors.copy()
+
+
+        NCOLS = 304
+        NROWS = 352
+        SIZE = 10
+        OVERLAP = 2
+        STRIDE = SIZE - OVERLAP
+        col_starts = np.arange(0, NCOLS - OVERLAP, STRIDE)
+        row_starts = np.arange(0, NROWS - OVERLAP, STRIDE)
+
+        weighted_gains = np.zeros((NROWS, NCOLS))
+        sum_weights = np.zeros((NROWS, NCOLS))
+
+        total_pixels = len(col_starts) * len(row_starts)
+        with tqdm(total=total_pixels, desc="Processing Pixels") as pbar:
+            for r_start in row_starts:
+                r_end = min(r_start + SIZE, NROWS)
+                actual_h = r_end - r_start
+                for c_start in col_starts:
+                    c_end = min(c_start + SIZE, NCOLS)
+                    actual_w = c_end - c_start
+                    pbar.update(actual_w * (actual_h if c_start == col_starts[0] else 0))
+                    cc, rr = np.meshgrid(np.arange(c_start, c_end), np.arange(r_start, r_end))
+
+                    cols_block = cc.flatten()
+                    rows_block = rr.flatten()
+
+                    results = self.fit_lh_large(a, cols_block, rows_block, MEAN)
+                    if results is not None:
+                        gain, error, _ = results
+
+                        weights = 1 / (error**2 + 1e-10)
+                        mask = ~np.isnan(gain)
+
+                        np.add.at(weighted_gains, (rows_block[mask], cols_block[mask]), gain[mask] * weights[mask])
+                        np.add.at(sum_weights, (rows_block[mask], cols_block[mask]), weights[mask])
+
+
+        values = np.divide(weighted_gains, sum_weights, out=np.full_like(weighted_gains, np.nan), where=sum_weights > 0)
+        errors = np.full_like(weighted_gains, np.nan)
+        np.sqrt(sum_weights, out=errors, where=sum_weights > 0)
+        np.divide(1, errors, out=errors, where=sum_weights > 0)
+
+        self.cal_matrix.values = values
+        self.cal_matrix.errors = errors
 
         return self.cal_matrix
 
