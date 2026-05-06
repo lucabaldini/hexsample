@@ -23,13 +23,16 @@
 import pathlib
 from enum import Enum
 from typing import Tuple
+from time import time
 
 import h5py
 import numpy as np
 from aptapy.hist import Histogram3d
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsmr
+from iminuit import Minuit
 
+from .hexagon import HexagonalGrid
 from .clustering import Cluster
 from .digi import DigiEventRectangular
 from .recon import DEFAULT_IONIZATION_POTENTIAL
@@ -78,7 +81,7 @@ class CalibrationUnits(str, Enum):
     ENC = "Electrons"
     NOISE = "ADC counts"
     PEDESTAL = "ADC counts"
-    GAIN = "ADC counts / electron"
+    GAIN = ""
 
 
 CALIBRATION_UNITS = {
@@ -639,43 +642,102 @@ class CalibrateGain(CalibrateBase):
         self._event_count += 1
         self.cal_matrix.num_events += 1
 
+    def _fit_lh_cluster(self, a, col, row, mean):
+        t0 = time()
+        grid = HexagonalGrid()
+        neigh = grid.neighbors(col, row)
+        cols, rows = np.array(neigh).T
+        cols = np.insert(cols, 0, col)
+        rows = np.insert(rows, 0, row)
+        idxs = rows * 304 + cols
+        a_sub = a[:, idxs]
+        col_0 = a_sub[:, 0]
+        mask = col_0.nonzero()[0]
+        a_sub = a_sub[mask]
+        def nll_mono(pars):
+            sum_energy = a_sub @ pars
+            p = np.exp(- (sum_energy - mean)**2 / (2 * 20 **2))
+            return -np.sum(np.log(p + 1e-10))
+        
+        m = Minuit(nll_mono, np.ones(7))
+        m.migrad()
+        t1 = time()
+        print(f"Fit time: {t1 - t0} seconds")
+        return m
+
+    
     def fit(self) -> CalibrationMatrix:
-        """Perform the least squares fit to determine the gain of each pixel.
+        """Perform the likelihood fit to determine the gain of each pixel.
         """
         if self._event_count == 0:
             raise ValueError("No events have been analyzed, cannot perform the fit.")
+        # Create the sparse matrix
         nrows, ncols = self.cal_matrix.shape
         # Create the sparse matrix for the least squares fit. This object allows to store
         # and use efficiently the large and sparse matrix that we need for the fit.
         shape = (self._event_count, nrows * ncols)
+
         a = csr_matrix((self._pha, (self._event_rows, self._coords)), shape=shape)
-        # Create the vector of the expected number of electrons.
-        b = np.full(self._event_count, self._energy / DEFAULT_IONIZATION_POTENTIAL)
-        # Perform the fit
-        results = lsmr(a, b)
-        # Get the best-fit weight vector and reshape it to the shape of the calibration matrix.
-        weight = results[0].reshape((nrows, ncols))
-        signal_power = np.array(a.multiply(a).sum(axis=0)).reshape((nrows, ncols))
-        # Calculate the number of degrees of freedom and the mean squared error.
-        dof = self._event_count - (ncols * nrows)
-        mse = results[3]**2 / max(dof, 1)
-        # Calculate the uncertainty of the gain best-fit values.
-        sigma_w = np.sqrt(mse / (signal_power + 1e-15))
-        with np.errstate(divide='ignore', invalid='ignore'):
-            sigma_g_rel = sigma_w / np.abs(weight)
-        # Mask for the pixels that have a weight value close to zero (no events)
-        mask = np.abs(weight) > 1e-10
-        values = self.cal_matrix.values.copy()
-        entries = self.cal_matrix.entries
-        # Set the gain value for the pixels that pass the quality cut.
-        values[mask] = 1 / weight[mask]
-        # Set the entries to zero for the pixels that don't pass the quality cut.
-        entries[~mask] = 0
-        # Write back through the setter so updates persist on the shared object.
-        self.cal_matrix.values = values
-        self.cal_matrix.errors = np.where(mask, sigma_g_rel * values, self.cal_matrix.errors)
-        self.cal_matrix.entries = entries
+        # Calculate the mean to normalize the results
+        MEAN = np.array(a.sum(axis=1)).flatten().mean()
+        
+        # Let's try to analyze a small region around the center
+        COL0, ROW0 = 152, 176
+        m = self._fit_lh_cluster(a, COL0, ROW0, MEAN)
+        # values = self.cal_matrix.values.copy()
+        # # values[rows, cols] = 1. / np.array(m.values)
+        # self.cal_matrix.values = values
+
+        print("Fit results:")
+        for i in range(7):
+            print(f"Pixel {i}: Gain = {1/m.values[i]:.2f} +/- {m.errors[i]/m.values[i]**2:.2f}")
+
         return self.cal_matrix
+
+        
+
+
+        
+
+
+
+    # def fit(self) -> CalibrationMatrix:
+    #     """Perform the least squares fit to determine the gain of each pixel.
+    #     """
+    #     if self._event_count == 0:
+    #         raise ValueError("No events have been analyzed, cannot perform the fit.")
+    #     nrows, ncols = self.cal_matrix.shape
+    #     # Create the sparse matrix for the least squares fit. This object allows to store
+    #     # and use efficiently the large and sparse matrix that we need for the fit.
+    #     shape = (self._event_count, nrows * ncols)
+    #     a = csr_matrix((self._pha, (self._event_rows, self._coords)), shape=shape)
+    #     # Create the vector of the expected number of electrons.
+    #     b = np.full(self._event_count, self._energy / DEFAULT_IONIZATION_POTENTIAL)
+    #     # Perform the fit
+    #     results = lsmr(a, b)
+    #     # Get the best-fit weight vector and reshape it to the shape of the calibration matrix.
+    #     weight = results[0].reshape((nrows, ncols))
+    #     signal_power = np.array(a.multiply(a).sum(axis=0)).reshape((nrows, ncols))
+    #     # Calculate the number of degrees of freedom and the mean squared error.
+    #     dof = self._event_count - (ncols * nrows)
+    #     mse = results[3]**2 / max(dof, 1)
+    #     # Calculate the uncertainty of the gain best-fit values.
+    #     sigma_w = np.sqrt(mse / (signal_power + 1e-15))
+    #     with np.errstate(divide='ignore', invalid='ignore'):
+    #         sigma_g_rel = sigma_w / np.abs(weight)
+    #     # Mask for the pixels that have a weight value close to zero (no events)
+    #     mask = np.abs(weight) > 1e-10
+    #     values = self.cal_matrix.values.copy()
+    #     entries = self.cal_matrix.entries
+    #     # Set the gain value for the pixels that pass the quality cut.
+    #     values[mask] = 1 / weight[mask]
+    #     # Set the entries to zero for the pixels that don't pass the quality cut.
+    #     entries[~mask] = 0
+    #     # Write back through the setter so updates persist on the shared object.
+    #     self.cal_matrix.values = values
+    #     self.cal_matrix.errors = np.where(mask, sigma_g_rel * values, self.cal_matrix.errors)
+    #     self.cal_matrix.entries = entries
+    #     return self.cal_matrix
 
 
 class CalibrateENC:

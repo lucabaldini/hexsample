@@ -721,52 +721,52 @@ def calibrate_gain(
     # calibration to correct the bias in the gain matrix.
     # To calculate the mean value, we are excluding the outliers by considering only the values
     # between the 1st and the 99th percentile.
-    gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    vals = gain_matrix.values
-    lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
-    gain_sim.set_value(np.mean(vals[(vals > lower_bound) & (vals < upper_bound)]))
-    simulation_readout = HexagonalReadoutRectangular(HexagonalLayout(header["layout"]),
-        header["num_cols"], header["num_rows"], header["pitch"],
-        enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
-    output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
-    # Simulate events with the best-fit gain matrix to correct the bias.
-    logger.info("Simulating file to correct the bias...")
-    simulate(
-        source=Source(Line(energy), DiskBeam(radius=0.15)),
-        sensor=Sensor(),
-        readout=simulation_readout,
-        num_events=num_events,
-        output_file_path=output)
-    tmp_input_file = digi_input_file_class("rectangular")(output)
-    tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
-    # Re-run the gain calibration on the simulated events to calculate the correction factor.
-    logger.info("Starting the event loop for the simulated file...")
-    for _, event in tqdm(enumerate(tmp_input_file)):
-        try:
-            cluster = clustering.run(event)
-        except IndexError:
-            continue
-        tmp_gain_calibration.analyze_cluster(cluster)
-    logger.info("Calculating the gain matrix from the simulation...")
-    tmp_gain_matrix = tmp_gain_calibration.fit()
-    # Calculate the correction factor from the simulation.
-    logger.info("Calculating the correction factor...")
-    mask = tmp_gain_matrix.entries > 0
-    # Calculate the residuals between the MC and calibrated gain matrices from the simulation
-    # and calculate the mean residual to be used as a correction factor.
-    residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
-    # Exclude the outliers by considering only the values between the 1st and the 99th percentile.
-    lower_bound, upper_bound = np.percentile(residuals, [1, 99])
-    mean_residual = np.mean(residuals[(residuals > lower_bound) & (residuals < upper_bound)])
-    # Apply the correction factor to the gain matrix and save it to a HDF5 file.
-    mask_gain = gain_matrix.entries > 0
-    gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + mean_residual)
+    # gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    # vals = gain_matrix.values
+    # lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
+    # gain_sim.set_value(np.mean(vals[(vals > lower_bound) & (vals < upper_bound)]))
+    # simulation_readout = HexagonalReadoutRectangular(HexagonalLayout(header["layout"]),
+    #     header["num_cols"], header["num_rows"], header["pitch"],
+    #     enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
+    # output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
+    # # Simulate events with the best-fit gain matrix to correct the bias.
+    # logger.info("Simulating file to correct the bias...")
+    # simulate(
+    #     source=Source(Line(energy), DiskBeam(radius=0.15)),
+    #     sensor=Sensor(),
+    #     readout=simulation_readout,
+    #     num_events=num_events,
+    #     output_file_path=output)
+    # tmp_input_file = digi_input_file_class("rectangular")(output)
+    # tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
+    # # Re-run the gain calibration on the simulated events to calculate the correction factor.
+    # logger.info("Starting the event loop for the simulated file...")
+    # for _, event in tqdm(enumerate(tmp_input_file)):
+    #     try:
+    #         cluster = clustering.run(event)
+    #     except IndexError:
+    #         continue
+    #     tmp_gain_calibration.analyze_cluster(cluster)
+    # logger.info("Calculating the gain matrix from the simulation...")
+    # tmp_gain_matrix = tmp_gain_calibration.fit()
+    # # Calculate the correction factor from the simulation.
+    # logger.info("Calculating the correction factor...")
+    # mask = tmp_gain_matrix.entries > 0
+    # # Calculate the residuals between the MC and calibrated gain matrices from the simulation
+    # # and calculate the mean residual to be used as a correction factor.
+    # residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
+    # # Exclude the outliers by considering only the values between the 1st and the 99th percentile.
+    # lower_bound, upper_bound = np.percentile(residuals, [1, 99])
+    # mean_residual = np.mean(residuals[(residuals > lower_bound) & (residuals < upper_bound)])
+    # # Apply the correction factor to the gain matrix and save it to a HDF5 file.
+    # mask_gain = gain_matrix.entries > 0
+    # gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + mean_residual)
     output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
-    logger.info(f"Saving corrected gain matrix to {output_file_path}...")
+    # logger.info(f"Saving corrected gain matrix to {output_file_path}...")
     gain_matrix.to_hdf5(output_file_path, CalibrationType.GAIN, False)
     # Close the input files.
-    tmp_input_file.close()
-    os.remove(output)
+    # tmp_input_file.close()
+    # os.remove(output)
     input_file.close()
     logger.info("Done!")
     return output_file_path
