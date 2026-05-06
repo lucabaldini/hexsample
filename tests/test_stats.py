@@ -68,11 +68,9 @@ def test_running_stats_2d(shape=(3, 3)):
     data = rng.generator.normal(size=(1000, *shape))
     # Tier 1: update all the indices in the underlying array.
     running_stats = RunningStats(shape)
-    rows, cols = np.nonzero(np.ones(shape))
+    i, j = np.nonzero(np.ones(shape))
     for val in data:
-        running_stats.update(val[rows, cols], cols, rows)
-    print(running_stats.mean())
-    print(np.mean(data, axis=0))
-    #assert np.allclose(running_stats.mean(), np.mean(data, axis=0))
-    #assert np.allclose(running_stats.var(), np.var(data, axis=0, ddof=1))
-    #assert np.allclose(running_stats.std(), np.std(data, axis=0, ddof=1))
+        running_stats.update(val, i, j)
+    assert np.allclose(running_stats.mean(), np.mean(data, axis=0))
+    assert np.allclose(running_stats.var(), np.var(data, axis=0, ddof=1))
+    assert np.allclose(running_stats.std(), np.std(data, axis=0, ddof=1))
