@@ -620,11 +620,11 @@ class CalibrateDark:
         self.noise_cal.values = self._stats.std()
         self.pedestal_cal.values = self._stats.mean()
         # Update the entries.
-        self.noise_cal.entries = self._stats._counts
-        self.pedestal_cal.entries = self._stats._counts
+        self.noise_cal.entries = self._stats.counts()
+        self.pedestal_cal.entries = self._stats.counts()
         # Calculate the errors, maybe we can write a method in RunningStats.
-        self.noise_cal.errors = self.noise_cal.values / np.sqrt(2 * (self._stats._counts - 1))
-        self.pedestal_cal.errors = self.noise_cal.values / np.sqrt(self._stats._counts - 1)
+        self.noise_cal.errors = self.noise_cal.values / np.sqrt(2 * (self._stats.counts() - 1))
+        self.pedestal_cal.errors = self.noise_cal.values / np.sqrt(self._stats.counts() - 1)
         return self.noise_cal, self.pedestal_cal
 
     def fit(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:

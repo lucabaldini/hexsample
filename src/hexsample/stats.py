@@ -80,3 +80,8 @@ class RunningStats:
 
         """
         return np.sqrt(self.var(ddof))
+
+    def counts(self) -> np.ndarray:
+        """Return the current value for the counts.
+        """
+        return self._counts
