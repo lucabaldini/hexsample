@@ -36,6 +36,7 @@ from tqdm import tqdm
 from .clustering import Cluster
 from .digi import DigiEventRectangular
 from .recon import DEFAULT_IONIZATION_POTENTIAL
+from .stats import RunningStats
 
 
 class CalibrationType(str, Enum):
@@ -461,9 +462,7 @@ class CalibrateDark:
             self._rows = []
         # Welford arrays
         elif algorithm == "welford":
-            self._mean = np.zeros((num_rows, num_cols))
-            self._counts = np.zeros((num_rows, num_cols), dtype=int)
-            self._m2 = np.zeros((num_rows, num_cols))
+            self._stats = RunningStats(shape=self.noise_cal.shape)
         else:
             raise ValueError(f"Invalid algorithm {algorithm} for the dark calibration. "
                              f"Valid options are 'fit' and 'welford'.")
@@ -535,17 +534,6 @@ class CalibrateDark:
         if len(self._pha) >= batch_size:
             self._fill_hist()
 
-    def _update_welford(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray) -> None:
-        """Use the Welford's online algorithm to update the mean and the variance of the
-        pixel value distribution for each pixel with pha > 0 in the event.
-        """
-        # Update the counts for the pixels with pha > 0 in the event.
-        self._counts[row, col] += 1
-        # Update the mean and M2 arrays
-        delta_old = pha - self._mean[row, col]
-        self._mean[row, col] += delta_old / self._counts[row, col]
-        self._m2[row, col] += delta_old * (pha - self._mean[row, col])
-
     def analyze_event(self, event: DigiEventRectangular, has_source: bool,
                       batch_size: int = 5000000) -> None:
         """Analyze an event to accumulate the ADC counts of noise pixels to calibrate the noise
@@ -571,7 +559,7 @@ class CalibrateDark:
         global_rows = local_rows + row_slice.start
         global_cols = local_cols + col_slice.start
         if self._algorithm == "welford":
-            self._update_welford(pha_values, global_cols, global_rows)
+            self._stats.update(pha_values, global_rows, global_cols)
         elif self._algorithm == "fit":
             self._update_hist(pha_values, global_cols, global_rows, batch_size)
         self.noise_cal.num_events += 1
@@ -628,22 +616,15 @@ class CalibrateDark:
         Welford's algorithm for the pixels that have at least one hit, calulate the errors and
         update the entries.
         """
-        # Calculate the noise and pedestal values for the pixels with at least two events.
-        mask = self._counts > 1
-        variance = np.divide(self._m2, self._counts - 1,
-                                 out=np.full_like(self._m2, np.nan), where=mask)
-        noise_values = np.sqrt(variance, out=variance, where=mask)
-        pedestal_values = np.where(mask, self._mean, self.pedestal_cal.values)
-        # Write back the values to the calibration matrices.
-        self.noise_cal.values = noise_values
-        self.pedestal_cal.values = pedestal_values
+        # Calculate the noise and pedestal values.
+        self.noise_cal.values = self._stats.std()
+        self.pedestal_cal.values = self._stats.mean()
         # Update the entries.
-        self.noise_cal.entries = self._counts
-        self.pedestal_cal.entries = self._counts
-        # The error on the estimate of the standard deviation is given by sigma / sqrt(2 * (N - 1))
-        self.noise_cal.errors[mask] = noise_values[mask] / np.sqrt(2 * (self._counts[mask] - 1))
-        # The error on the estimate of the mean is given by sigma / sqrt(N - 1)
-        self.pedestal_cal.errors[mask] = noise_values[mask] / np.sqrt(self._counts[mask] - 1)
+        self.noise_cal.entries = self._stats._counts
+        self.pedestal_cal.entries = self._stats._counts
+        # Calculate the errors, maybe we can write a method in RunningStats.
+        self.noise_cal.errors = self.noise_cal.values / np.sqrt(2 * (self._stats._counts - 1))
+        self.pedestal_cal.errors = self.noise_cal.values / np.sqrt(self._stats._counts - 1)
         return self.noise_cal, self.pedestal_cal
 
     def fit(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:

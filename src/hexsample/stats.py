@@ -50,7 +50,7 @@ class RunningStats:
             The indices of the elements to update. (Note the shape of the arguments
             must match that of the values for the update.)
         """
-        val = val[*indices]
+        # val = val[*indices]
         self._counts[*indices] += 1
         delta = val - self._mean[*indices]
         self._mean[*indices] += delta / self._counts[*indices]
