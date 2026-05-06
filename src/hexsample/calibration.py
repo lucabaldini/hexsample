@@ -683,8 +683,6 @@ class CalibrateGain(CalibrateBase):
     def fit(self) -> CalibrationMatrix:
         """Perform the likelihood fit to determine the gain of each pixel.
         """
-        if self._event_count == 0:
-            raise ValueError("No events have been analyzed, cannot perform the fit.")
         # Create the sparse matrix
         nrows, ncols = self.cal_matrix.shape
         # Create the sparse matrix for the least squares fit. This object allows to store
@@ -698,41 +696,35 @@ class CalibrateGain(CalibrateBase):
         values = self.cal_matrix.values.copy()
         errors = self.cal_matrix.errors.copy()
 
-
-        NCOLS = 304
-        NROWS = 352
+        ncols = 304
+        nrows = 352
         SIZE = 10
         OVERLAP = 2
         STRIDE = SIZE - OVERLAP
-        col_starts = np.arange(0, NCOLS - OVERLAP, STRIDE)
-        row_starts = np.arange(0, NROWS - OVERLAP, STRIDE)
+        col_starts = np.arange(0, ncols - OVERLAP, STRIDE)
+        row_starts = np.arange(0, nrows - OVERLAP, STRIDE)
 
-        weighted_gains = np.zeros((NROWS, NCOLS))
-        sum_weights = np.zeros((NROWS, NCOLS))
+        weighted_gains = np.zeros((nrows, ncols))
+        sum_weights = np.zeros((nrows, ncols))
 
-        total_pixels = len(col_starts) * len(row_starts)
-        with tqdm(total=total_pixels, desc="Processing Pixels") as pbar:
-            for r_start in row_starts:
-                r_end = min(r_start + SIZE, NROWS)
-                actual_h = r_end - r_start
-                for c_start in col_starts:
-                    c_end = min(c_start + SIZE, NCOLS)
-                    actual_w = c_end - c_start
-                    pbar.update(actual_w * (actual_h if c_start == col_starts[0] else 0))
-                    cc, rr = np.meshgrid(np.arange(c_start, c_end), np.arange(r_start, r_end))
+        for r_start in row_starts:
+            r_end = min(r_start + SIZE, nrows)
+            for c_start in col_starts:
+                c_end = min(c_start + SIZE, ncols)
+                cc, rr = np.meshgrid(np.arange(c_start, c_end), np.arange(r_start, r_end))
 
-                    cols_block = cc.flatten()
-                    rows_block = rr.flatten()
+                cols_block = cc.flatten()
+                rows_block = rr.flatten()
 
-                    results = self.fit_lh_large(a, cols_block, rows_block, MEAN)
-                    if results is not None:
-                        gain, error, _ = results
+                results = self.fit_lh_large(a, cols_block, rows_block, MEAN)
+                if results is not None:
+                    gain, error, _ = results
 
-                        weights = 1 / (error**2 + 1e-10)
-                        mask = ~np.isnan(gain)
+                    weights = 1 / (error**2 + 1e-10)
+                    mask = ~np.isnan(gain)
 
-                        np.add.at(weighted_gains, (rows_block[mask], cols_block[mask]), gain[mask] * weights[mask])
-                        np.add.at(sum_weights, (rows_block[mask], cols_block[mask]), weights[mask])
+                    np.add.at(weighted_gains, (rows_block[mask], cols_block[mask]), gain[mask] * weights[mask])
+                    np.add.at(sum_weights, (rows_block[mask], cols_block[mask]), weights[mask])
 
 
         values = np.divide(weighted_gains, sum_weights, out=np.full_like(weighted_gains, np.nan), where=sum_weights > 0)
@@ -744,10 +736,6 @@ class CalibrateGain(CalibrateBase):
         self.cal_matrix.errors = errors
 
         return self.cal_matrix
-
-        
-
-
         
 
 
