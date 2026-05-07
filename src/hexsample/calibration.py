@@ -548,20 +548,26 @@ class CalibrateDark:
         batch_size : int
             The size of the batch to be analyzed.
         """
+        # If the event is not good, skip the analysis for this event.
         if self._bad_event(event):
             return
-        pha = self._remove_signal(event) if has_source else event.pha
-        # Find the coordinates of the pixels with pha > 0 in the event.
-        local_rows, local_cols = np.nonzero(pha > 0)
-        pha_values = pha[local_rows, local_cols]
-        # Traslate the local coordinates to global coordinates.
-        row_slice, col_slice = event.roi.readout_slice()
-        global_rows = local_rows + row_slice.start
-        global_cols = local_cols + col_slice.start
         if self._algorithm == "welford":
-            self._stats.update(pha_values, global_rows, global_cols)
+            # Update the Welford statistics for the pixels in the event.
+            outer_mask = event.roi.outer_mask(margin=1)
+            offset = (event.roi.min_row, event.roi.min_col)
+            self._stats.update(event.pha, offset=offset, mask=outer_mask)
         elif self._algorithm == "fit":
+            # Flattened the PHA array with the signal pixels removed.
+            pha = self._remove_signal(event) if has_source else event.pha
+            # Find the coordinates of the pixels with pha > 0 in the event.
+            local_rows, local_cols = np.nonzero(pha > 0)
+            pha_values = pha[local_rows, local_cols]
+            # Traslate the local coordinates to global coordinates.
+            row_slice, col_slice = event.roi.readout_slice()
+            global_rows = local_rows + row_slice.start
+            global_cols = local_cols + col_slice.start
             self._update_hist(pha_values, global_cols, global_rows, batch_size)
+        # Update the number of events for the calibration matrices.
         self.noise_cal.num_events += 1
         self.pedestal_cal.num_events += 1
 
