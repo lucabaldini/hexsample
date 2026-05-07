@@ -154,6 +154,14 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(synthesize)
         synthesize.set_defaults(runner=pipeline.synthesize_calibration_file)
 
+        # Fit a spectrum to generate a PDF for the gain calibration?
+        calibspec = subparsers.add_parser("calibspec",
+            help="generate a pdf from a spectrum to use in the gain calibration",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_input_file(calibspec)
+        self.add_logging_level(calibspec)
+        calibspec.set_defaults(runner=pipeline.calibspec)
+        
         # Inspect a calibration matrix?
         calibview = subparsers.add_parser("calibview",
             help="inspect a calibration matrix",

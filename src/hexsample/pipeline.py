@@ -69,6 +69,14 @@ def reconstruct(**kwargs) -> str:
     return tasks.reconstruct(*args, kwargs)
 
 
+def calibspec(**kwargs) -> str:
+    """Create a probability density function from a reconstructed spectrum
+    to use in the gain calibration.
+    """
+    input_file_path = kwargs["input_file"]
+    return tasks.calibspec(input_file_path)
+
+
 def calibrate_eta(**kwargs) -> None:
     """Calibrate the eta function using the events from a digi file.
     """
