@@ -23,14 +23,14 @@
 import pathlib
 from enum import Enum
 from itertools import product
-from typing import Tuple, Optional
-from tqdm import tqdm
+from typing import Optional, Tuple
 
 import h5py
 import numpy as np
 from aptapy.hist import Histogram3d
-from scipy.sparse import csr_matrix
 from iminuit import Minuit
+from scipy.sparse import csr_matrix
+from tqdm import tqdm
 
 from .clustering import Cluster
 from .digi import DigiEventRectangular
@@ -620,7 +620,7 @@ class CalibrateGain(CalibrateBase):
         self._coords = []
         self._event_rows = []
         self._pdf = pdf
-        self._derivative = pdf.pdf.derivative(1)
+        self._pdf_derivative = pdf.derivative
 
     def analyze_cluster(self, cluster: Cluster) -> None:
         """Analyze the event cluster to update the calibration matrix.
@@ -703,36 +703,17 @@ class CalibrateGain(CalibrateBase):
             total_adc = data @ pars
             p = self._pdf(total_adc * conv_factor)
             return -np.sum(np.log(p + 1e-10))
-
-        def nll_with_grad(pars):
-            # kept for compatibility/testing: returns (val, grad) for an array input
-            energy = (data @ pars) * conv_factor
-            p = self._pdf(energy)
-            dp = self._derivative(energy)
-            p_safe = np.maximum(p, 1e-12)
-            val = -np.sum(np.log(p_safe))
-            common_term = -(dp / p_safe) * conv_factor
-            grad = np.asarray(data.T @ common_term).ravel()
-            return val, grad
-
-        # Create scalar-callable wrappers that accept positional params as required by
-        # iminuit. These convert to numpy arrays internally and return the scalar NLL
-        # and a tuple gradient respectively.
-        def nll_scalar(*params):
-            pars = np.asarray(params, dtype=float)
-            return nll(pars)
-
-        def grad_scalar(*params):
-            pars = np.asarray(params, dtype=float)
-            # reuse the analytic gradient computation
-            _, grad = nll_with_grad(pars)
-            return tuple(float(g) for g in grad)
-
+        # Define the gradient of the log-likelihood function for the fit.
+        def nll_grad(pars):
+            total_adc = data @ pars
+            p = self._pdf(total_adc * conv_factor)
+            dp = self._pdf_derivative(total_adc * conv_factor)
+            grad = -data.T @ (dp / (p + 1e-10)) * conv_factor
+            return np.asarray(grad).flatten()
         # Define the initial parameters for the fit.
         init_pars = np.ones(data.shape[1])
-        # Initialize the Minuit minimizer with an explicit gradient callable.
-        # Pass starting values as positional args (unpack the numpy array).
-        m = Minuit(nll_scalar, *init_pars.tolist(), grad=grad_scalar)
+        # Initialize the Minuit minimizer.
+        m = Minuit(nll, init_pars, grad=nll_grad)
         m.limits = [(1e-10, None) for _ in range(len(init_pars))]
         m.errordef = Minuit.LIKELIHOOD
         m.migrad()
@@ -753,7 +734,7 @@ class CalibrateGain(CalibrateBase):
         """
         # Create a sparse matrix where the rows correspond to the events and the columns
         # correspond to the pixels. In each row, the non-zero entries correspond to the
-        # pha values of the pixels that are hit in the event. 
+        # pha values of the pixels that are hit in the event.
         nrows, ncols = self.cal_matrix.shape
         shape = (self._event_count, nrows * ncols)
         data = csr_matrix((self._pha, (self._event_rows, self._coords)), shape=shape)
@@ -761,7 +742,7 @@ class CalibrateGain(CalibrateBase):
         # cuts in the fit, and to calculate the mean ADC count in an event.
         event_sum = np.array(data.sum(axis=1)).flatten()
         # Calculate the mean of the ADC counts in an event.
-        conv_factor = self._pdf.loc() / event_sum.mean()
+        conv_factor = self._pdf.mean() / event_sum.mean()
         # Define the size of the blocks to fit contemporarily.
         size = 10
         # Calculate the starting column and row indices for the blocks. We are using an
@@ -778,8 +759,8 @@ class CalibrateGain(CalibrateBase):
         # Start the loop over the blocks
         pbar = tqdm(block_indices, desc="Fitting chip subregions", miniters=5)
         for r_start, c_start in pbar:
-            # Calculate the end row and column indices, taking into account the possibility of being at
-            # the end of the chip.
+            # Calculate the end row and column indices, taking into account the possibility
+            # of being at the end of the chip.
             r_end = min(r_start + size, nrows)
             c_end = min(c_start + size, ncols)
             # Create a meshgrid to get all the coordinates of the pixels in the block.
