@@ -36,6 +36,8 @@ class AbstractRunningStats(ABC):
     concrete subclasses, which are instantiated by the factory function `RunningStats`
     based on the provided shape.
 
+    The thing uses the Welford algorithm to perform the computation.
+
     Arguments
     ---------
     shape : int or tuple of ints, optional
