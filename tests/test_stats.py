@@ -19,7 +19,7 @@
 import numpy as np
 
 from hexsample import rng
-from hexsample.stats import RunningStatsArray, RunningStatsScalar, RunningStats1d
+from hexsample.stats import RunningStats
 
 rng.initialize(seed=666)
 
@@ -27,7 +27,7 @@ rng.initialize(seed=666)
 def test_running_stats_scalar():
     """Test the scalar version of the running stats.
     """
-    running_stats = RunningStatsScalar()
+    running_stats = RunningStats()
     data = rng.generator.normal(size=1000)
     for val in data:
         running_stats.update(val)
@@ -43,7 +43,7 @@ def test_running_stats_1d(shape=10):
     data = rng.generator.normal(size=(1000, shape))
 
     # Tier 1: update all the indices in the underlying array.
-    running_stats = RunningStats1d(shape)
+    running_stats = RunningStats(shape)
     for val in data:
         running_stats.update(val)
     assert np.allclose(running_stats.mean(), np.mean(data, axis=0))
@@ -51,7 +51,7 @@ def test_running_stats_1d(shape=10):
     assert np.allclose(running_stats.std(), np.std(data, axis=0, ddof=1))
 
     # Tier 2: use a smaller array without offsets.
-    running_stats = RunningStats1d(shape)
+    running_stats = RunningStats(shape)
     lim = shape // 2
     for val in data:
          running_stats.update(val[:lim])
@@ -61,7 +61,7 @@ def test_running_stats_1d(shape=10):
     assert np.allclose(running_stats.var()[lim:], 0.)
 
     # Tier 3: use a smaller array with offsets.
-    running_stats = RunningStats1d(shape)
+    running_stats = RunningStats(shape)
     lim = shape // 2
     offset = shape - lim
     for val in data:
@@ -72,7 +72,7 @@ def test_running_stats_1d(shape=10):
     assert np.allclose(running_stats.var()[:lim], 0.)
 
     # Tier 4: full_array with mask.
-    running_stats = RunningStats1d(shape)
+    running_stats = RunningStats(shape)
     for val in data:
         running_stats.update(val, mask=val > 0)
     print(running_stats.counts())

@@ -112,7 +112,7 @@ class AbstractRunningStats(ABC):
         return np.sqrt(self.var(ddof))
 
 
-class RunningStatsScalar(AbstractRunningStats):
+class _RunningStatsScalar(AbstractRunningStats):
 
     def update(self, val: float) -> None:
         """Overloaded abstract method.
@@ -121,7 +121,7 @@ class RunningStatsScalar(AbstractRunningStats):
         self._update_scalar(val)
 
 
-class RunningStats1d(AbstractRunningStats):
+class _RunningStats1d(AbstractRunningStats):
 
     def update(self, val: np.ndarray, offset: int = 0, mask: np.ndarray = None) -> None:
         """Overloaded abstract method.
@@ -131,7 +131,7 @@ class RunningStats1d(AbstractRunningStats):
         self._update_array(val, region, mask)
 
 
-class RunningStatsArray(AbstractRunningStats):
+class _RunningStatsArray(AbstractRunningStats):
 
     def update(self, val: np.ndarray, offset: Tuple[int, ...] = None,
                mask: np.ndarray = None) -> None:
@@ -141,3 +141,14 @@ class RunningStatsArray(AbstractRunningStats):
         offset = offset or tuple(0 for _ in val.shape)
         region = tuple(slice(pos, pos + dim) for pos, dim in zip(offset, val.shape))
         self._update_array(val, region, mask)
+
+
+def RunningStats(shape: Union[int, Tuple[int, ...]] = ()) -> AbstractRunningStats:
+    """Factory function for the scalar version of the running stats.
+    """
+    if shape == ():
+        return _RunningStatsScalar(shape)
+    elif isinstance(shape, int) or len(shape) == 1:
+        return _RunningStats1d(shape)
+    else:
+        return _RunningStatsArray(shape)
