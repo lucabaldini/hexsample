@@ -144,6 +144,14 @@ class _RunningStatsScalar(AbstractRunningStats):
 
     def update(self, val: float) -> None:
         """Overloaded abstract method.
+
+        Note in the scalar case it does not make sense to support offsets or
+        masks.
+
+        Arguments
+        ---------
+        val : float
+            The new scalar value to incorporate.
         """
         self._check_rank(val)
         self._update_scalar(val)
@@ -151,9 +159,24 @@ class _RunningStatsScalar(AbstractRunningStats):
 
 class _RunningStatsArray(AbstractRunningStats):
 
-    def update(self, val: np.ndarray, offset: Tuple[int, ...] = None,
+    def update(self, val: np.ndarray, offset: Union[int, Tuple[int, ...]] = None,
                mask: np.ndarray = None) -> None:
         """Overloaded abstract method.
+
+        Arguments
+        ---------
+        val : array-like
+            The new array of values to incorporate. This can be a smaller array
+            than the underlying arrays, in which case the specific sub-region to
+            be updated is controlled by the `offset` argument.
+
+        offset : tuple of ints, optional
+            The offset of the input array with respect to the underlying arrays.
+
+        mask : array-like of bool, optional
+            A boolean mask to specify which elements of the input array should be
+            incorporated in the statistics. This should have the same shape as the
+            input `val` array.
         """
         self._check_rank(val)
         if offset is None:
