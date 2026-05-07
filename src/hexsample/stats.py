@@ -46,7 +46,7 @@ class AbstractRunningStats(ABC):
         """Update the running statistics with a new value.
         """
 
-    def _check_dimensions(self, val: np.ndarray) -> None:
+    def _check_rank(self, val: np.ndarray) -> None:
         """
         """
         val = np.asarray(val)
@@ -61,7 +61,7 @@ class AbstractRunningStats(ABC):
         self._mean += delta / self._counts
         self._m2 += delta * (val - self._mean)
 
-    def _update_array(self, val: np.ndarray, region: Tuple[slice, ...],
+    def _update_array(self, val: np.ndarray, region: Union[slice, Tuple[slice, ...]],
                       mask: np.ndarray = None) -> None:
         """
         """
@@ -117,7 +117,7 @@ class _RunningStatsScalar(AbstractRunningStats):
     def update(self, val: float) -> None:
         """Overloaded abstract method.
         """
-        self._check_dimensions(val)
+        self._check_rank(val)
         self._update_scalar(val)
 
 
@@ -126,7 +126,7 @@ class _RunningStats1d(AbstractRunningStats):
     def update(self, val: np.ndarray, offset: int = 0, mask: np.ndarray = None) -> None:
         """Overloaded abstract method.
         """
-        self._check_dimensions(val)
+        self._check_rank(val)
         region = slice(offset, offset + len(val))
         self._update_array(val, region, mask)
 
@@ -137,8 +137,9 @@ class _RunningStatsArray(AbstractRunningStats):
                mask: np.ndarray = None) -> None:
         """
         """
-        self._check_dimensions(val)
-        offset = offset or tuple(0 for _ in val.shape)
+        self._check_rank(val)
+        if offset is None:
+            offset = offset or tuple(0 for _ in val.shape)
         region = tuple(slice(pos, pos + dim) for pos, dim in zip(offset, val.shape))
         self._update_array(val, region, mask)
 
