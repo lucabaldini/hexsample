@@ -26,12 +26,20 @@ from typing import Tuple, Union
 import numpy as np
 
 
-
-
 class AbstractRunningStats(ABC):
 
     """Small convenience class to accumulate running statistics (mean and variance)
     of a stream of data.
+
+    This is a base abstract class designed to work both for scalar values and for
+    arrays of arbitrary shape. The actual implementation is delegated to the
+    concrete subclasses, which are instantiated by the factory function `RunningStats`
+    based on the provided shape.
+
+    Arguments
+    ---------
+    shape : int or tuple of ints, optional
+        The shape of the underlying arrays for accumulating the statistics.
     """
 
     def __init__(self, shape: Union[int, Tuple[int, ...]] = ()) -> None:
@@ -44,17 +52,32 @@ class AbstractRunningStats(ABC):
     @abstractmethod
     def update(self, val, *args, **kwargs) -> None:
         """Update the running statistics with a new value.
+
+        This needs to be implemented by the concrete subclasses.
         """
 
     def _check_rank(self, val: np.ndarray) -> None:
-        """
+        """Check that the input value(s) has the expected rank.
+
+        This raises a ValueError if the input value does not have the same number
+        of dimensions as the underlying arrays.
+
+        Arguments
+        ---------
+        val : array-like
+            The input value to check.
         """
         val = np.asarray(val)
         if val.ndim != self._counts.ndim:
             raise ValueError(f"Expected {self._counts.ndim}D array, got {val.ndim}D array.")
 
     def _update_scalar(self, val: float) -> None:
-        """
+        """Update the running statistics with a new scalar value.
+
+        Arguments
+        ---------
+        val : float
+            The new scalar value to incorporate.
         """
         self._counts += 1
         delta = val - self._mean
@@ -63,7 +86,12 @@ class AbstractRunningStats(ABC):
 
     def _update_array(self, val: np.ndarray, region: Union[slice, Tuple[slice, ...]],
                       mask: np.ndarray = None) -> None:
-        """
+        """Update the running statistics with a new array of values.
+
+        Arguments
+        ---------
+        val : array-like
+            The new array of values to incorporate.
         """
         # Cache the necessary views to avoid repeated indexing.
         counts = self._counts[region]
@@ -121,25 +149,17 @@ class _RunningStatsScalar(AbstractRunningStats):
         self._update_scalar(val)
 
 
-class _RunningStats1d(AbstractRunningStats):
-
-    def update(self, val: np.ndarray, offset: int = 0, mask: np.ndarray = None) -> None:
-        """Overloaded abstract method.
-        """
-        self._check_rank(val)
-        region = slice(offset, offset + len(val))
-        self._update_array(val, region, mask)
-
-
 class _RunningStatsArray(AbstractRunningStats):
 
     def update(self, val: np.ndarray, offset: Tuple[int, ...] = None,
                mask: np.ndarray = None) -> None:
-        """
+        """Overloaded abstract method.
         """
         self._check_rank(val)
         if offset is None:
             offset = offset or tuple(0 for _ in val.shape)
+        elif isinstance(offset, int):
+            offset = (offset,)
         region = tuple(slice(pos, pos + dim) for pos, dim in zip(offset, val.shape))
         self._update_array(val, region, mask)
 
@@ -149,7 +169,5 @@ def RunningStats(shape: Union[int, Tuple[int, ...]] = ()) -> AbstractRunningStat
     """
     if shape == ():
         return _RunningStatsScalar(shape)
-    elif isinstance(shape, int) or len(shape) == 1:
-        return _RunningStats1d(shape)
     else:
         return _RunningStatsArray(shape)
