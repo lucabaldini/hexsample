@@ -60,3 +60,18 @@ def test_bimodal_spectrum_pdf(size: int = 100000):
     plt.plot(xx, pdf(xx), label="PDF")
     plt.hist(vals, bins=50, density=True, alpha=0.5, label="Data")
     plt.legend()
+
+def test_derivative(size: int = 100000):
+    """Test the derivative of the PDF.
+    """
+    # Create a unimodal distribution.
+    vals = rng.generator.normal(loc=1.0, scale=0.1, size=size)
+    # Create the PDF and fit it to the data.
+    pdf = SpectrumPDF()
+    pdf.fit(vals)
+    derivative = pdf.derivative
+    # Check that the derivative of the PDF is close to zero at the mean of the data.
+    plt.figure("Derivative of a gaussian PDF")
+    xx = np.linspace(vals.min()*0.8, vals.max()*1.2, 10000)
+    plt.plot(xx, derivative(xx))
+    plt.legend()
