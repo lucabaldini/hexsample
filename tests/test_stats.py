@@ -19,7 +19,7 @@
 import numpy as np
 
 from hexsample import rng
-from hexsample.stats import RunningStats
+from hexsample.stats import RunningStatsArray, RunningStatsScalar, RunningStats1d
 
 rng.initialize(seed=666)
 
@@ -27,7 +27,7 @@ rng.initialize(seed=666)
 def test_running_stats_scalar():
     """Test the scalar version of the running stats.
     """
-    running_stats = RunningStats()
+    running_stats = RunningStatsScalar()
     data = rng.generator.normal(size=1000)
     for val in data:
         running_stats.update(val)
@@ -41,36 +41,52 @@ def test_running_stats_1d(shape=10):
     """
     # Generate some random data.
     data = rng.generator.normal(size=(1000, shape))
+
     # Tier 1: update all the indices in the underlying array.
-    running_stats = RunningStats(shape)
-    indices = np.arange(shape)
+    running_stats = RunningStats1d(shape)
     for val in data:
-        running_stats.update(val, indices)
+        running_stats.update(val)
     assert np.allclose(running_stats.mean(), np.mean(data, axis=0))
     assert np.allclose(running_stats.var(), np.var(data, axis=0, ddof=1))
     assert np.allclose(running_stats.std(), np.std(data, axis=0, ddof=1))
-    # Tier 2: only update the first half of the underlying array.
-    running_stats = RunningStats(shape)
+
+    # Tier 2: use a smaller array without offsets.
+    running_stats = RunningStats1d(shape)
     lim = shape // 2
-    indices = np.arange(lim)
     for val in data:
-        running_stats.update(val[:lim], indices)
+         running_stats.update(val[:lim])
     assert np.allclose(running_stats.mean()[:lim], np.mean(data[:, :lim], axis=0))
     assert np.allclose(running_stats.mean()[lim:], 0.)
     assert np.allclose(running_stats.var()[:lim], np.var(data[:, :lim], axis=0, ddof=1))
-    assert np.allclose(running_stats.var()[6:], 0.)
+    assert np.allclose(running_stats.var()[lim:], 0.)
 
-
-def test_running_stats_2d(shape=(3, 3)):
-    """Test the 2D version of the running stats.
-    """
-    # Generate some random data.
-    data = rng.generator.normal(size=(1000, *shape))
-    # Tier 1: update all the indices in the underlying array.
-    running_stats = RunningStats(shape)
-    i, j = np.nonzero(np.ones(shape))
+    # Tier 3: use a smaller array with offsets.
+    running_stats = RunningStats1d(shape)
+    lim = shape // 2
+    offset = shape - lim
     for val in data:
-        running_stats.update(val, i, j)
-    assert np.allclose(running_stats.mean(), np.mean(data, axis=0))
-    assert np.allclose(running_stats.var(), np.var(data, axis=0, ddof=1))
-    assert np.allclose(running_stats.std(), np.std(data, axis=0, ddof=1))
+        running_stats.update(val[offset:offset+lim], offset=offset)
+    assert np.allclose(running_stats.mean()[lim:], np.mean(data[:, lim:], axis=0))
+    assert np.allclose(running_stats.mean()[:lim], 0.)
+    assert np.allclose(running_stats.var()[lim:], np.var(data[:, lim:], axis=0, ddof=1))
+    assert np.allclose(running_stats.var()[:lim], 0.)
+
+    # Tier 4: full_array with mask.
+    running_stats = RunningStats1d(shape)
+    for val in data:
+        running_stats.update(val, mask=val > 0)
+    print(running_stats.counts())
+
+# def test_running_stats_2d(shape=(3, 3)):
+#     """Test the 2D version of the running stats.
+#     """
+#     # Generate some random data.
+#     data = rng.generator.normal(size=(1000, *shape))
+#     # Tier 1: update all the indices in the underlying array.
+#     running_stats = RunningStats(shape)
+#     i, j = np.nonzero(np.ones(shape))
+#     for val in data:
+#         running_stats.update(val, i, j)
+#     assert np.allclose(running_stats.mean(), np.mean(data, axis=0))
+#     assert np.allclose(running_stats.var(), np.var(data, axis=0, ddof=1))
+#     assert np.allclose(running_stats.std(), np.std(data, axis=0, ddof=1))

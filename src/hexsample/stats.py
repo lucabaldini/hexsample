@@ -20,12 +20,15 @@
 """Statistical tools.
 """
 
+from abc import ABC, abstractmethod
 from typing import Tuple, Union
 
 import numpy as np
 
 
-class RunningStats:
+
+
+class AbstractRunningStats(ABC):
 
     """Small convenience class to accumulate running statistics (mean and variance)
     of a stream of data.
@@ -34,27 +37,54 @@ class RunningStats:
     def __init__(self, shape: Union[int, Tuple[int, ...]] = ()) -> None:
         """Constructor.
         """
-        self._mean = np.zeros(shape, dtype=np.float64)
         self._counts = np.zeros(shape, dtype=np.int64)
+        self._mean = np.zeros(shape, dtype=np.float64)
         self._m2 = np.zeros(shape, dtype=np.float64)
 
-    def update(self, val: np.ndarray, *indices: np.ndarray) -> None:
-        """Update the running stats.
-
-        Arguments
-        ---------
-        val : array-like
-            The new value(s) to be included in the running stats.
-
-        *indices : array-like
-            The indices of the elements to update. (Note the shape of the arguments
-            must match that of the values for the update.)
+    @abstractmethod
+    def update(self, val, *args, **kwargs) -> None:
+        """Update the running statistics with a new value.
         """
-        # val = val[*indices]
-        self._counts[*indices] += 1
-        delta = val - self._mean[*indices]
-        self._mean[*indices] += delta / self._counts[*indices]
-        self._m2[*indices] += delta * (val - self._mean[*indices])
+
+    def _check_dimensions(self, val: np.ndarray) -> None:
+        """
+        """
+        val = np.asarray(val)
+        if val.ndim != self._counts.ndim:
+            raise ValueError(f"Expected {self._counts.ndim}D array, got {val.ndim}D array.")
+
+    def _update_scalar(self, val: float) -> None:
+        """
+        """
+        self._counts += 1
+        delta = val - self._mean
+        self._mean += delta / self._counts
+        self._m2 += delta * (val - self._mean)
+
+    def _update_array(self, val: np.ndarray, region: Tuple[slice, ...],
+                      mask: np.ndarray = None) -> None:
+        """
+        """
+        # Cache the necessary views to avoid repeated indexing.
+        counts = self._counts[region]
+        mean = self._mean[region]
+        m2 = self._m2[region]
+        # Do the actual calculation.
+        if mask is None:
+            counts += 1
+            delta = val - mean
+            mean += delta / counts
+            m2 += delta * (val - mean)
+        else:
+            counts[mask] += 1
+            delta = val[mask] - mean[mask]
+            mean[mask] += delta / counts[mask]
+            m2[mask] += delta * (val[mask] - mean[mask])
+
+    def counts(self) -> np.ndarray:
+        """Return the current value for the counts.
+        """
+        return self._counts
 
     def mean(self) -> np.ndarray:
         """Return the current value for the mean.
@@ -81,7 +111,33 @@ class RunningStats:
         """
         return np.sqrt(self.var(ddof))
 
-    def counts(self) -> np.ndarray:
-        """Return the current value for the counts.
+
+class RunningStatsScalar(AbstractRunningStats):
+
+    def update(self, val: float) -> None:
+        """Overloaded abstract method.
         """
-        return self._counts
+        self._check_dimensions(val)
+        self._update_scalar(val)
+
+
+class RunningStats1d(AbstractRunningStats):
+
+    def update(self, val: np.ndarray, offset: int = 0, mask: np.ndarray = None) -> None:
+        """Overloaded abstract method.
+        """
+        self._check_dimensions(val)
+        region = slice(offset, offset + len(val))
+        self._update_array(val, region, mask)
+
+
+class RunningStatsArray(AbstractRunningStats):
+
+    def update(self, val: np.ndarray, offset: Tuple[int, ...] = None,
+               mask: np.ndarray = None) -> None:
+        """
+        """
+        self._check_dimensions(val)
+        offset = offset or tuple(0 for _ in val.shape)
+        region = tuple(slice(pos, pos + dim) for pos, dim in zip(offset, val.shape))
+        self._update_array(val, region, mask)
