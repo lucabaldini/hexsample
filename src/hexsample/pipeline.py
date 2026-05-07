@@ -115,13 +115,12 @@ def calibrate_gain(**kwargs) -> str:
     """Calibrate the gain of the chip.
     """
     input_file_path = kwargs["input_file"]
-    energy = kwargs["energy"]
-    num_events = kwargs.get("num_events", tasks.CalibrationGainDefaults.num_events)
+    pdf = kwargs["pdf"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationGainDefaults.zero_sup_threshold)
-    args = input_file_path, energy, noise_matrix, pedestal_matrix, num_events, zero_sup_threshold
+    args = input_file_path, pdf, noise_matrix, pedestal_matrix, zero_sup_threshold
     return tasks.calibrate_gain(*args)
 
 

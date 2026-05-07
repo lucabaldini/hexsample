@@ -29,6 +29,7 @@ from hexsample import (
     calibration,
     hexagon,
     logging_,
+    pdf,
     pipeline,
     readout,
     roi,
@@ -435,13 +436,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the gain calibration properties.
         """
         defaults = tasks.CalibrationGainDefaults
-        parser.add_argument("energy", type=float, help="line energy in eV")
+        parser.add_argument("pdf", type=pdf.SpectrumPDF.from_file,
+                            help="path to the spectrum PDF file")
         CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
         CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
         CliArgumentParser.add_zero_sup_threshold(parser,
                             default=defaults.zero_sup_threshold)
-        CliArgumentParser.add_num_events(parser, default=defaults.num_events,
-                            intent="used for the gain calibration")
 
     def add_calibrate_eta_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the eta function calibration properties.

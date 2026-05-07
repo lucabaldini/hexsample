@@ -22,22 +22,19 @@
 
 import pathlib
 from enum import Enum
-from typing import Tuple
-from time import time
-from tqdm import tqdm
 from itertools import product
+from typing import Tuple, Optional
+from tqdm import tqdm
 
 import h5py
 import numpy as np
 from aptapy.hist import Histogram3d
 from scipy.sparse import csr_matrix
-from scipy.sparse.linalg import lsmr
 from iminuit import Minuit
 
-from .hexagon import HexagonalGrid
 from .clustering import Cluster
 from .digi import DigiEventRectangular
-from .recon import DEFAULT_IONIZATION_POTENTIAL
+from .pdf import SpectrumPDF
 
 
 class CalibrationType(str, Enum):
@@ -614,16 +611,16 @@ class CalibrateGain(CalibrateBase):
         The energy of the monochromatic source, in eV.
     """
 
-    def __init__(self, num_cols: int, num_rows: int, energy: float) -> None:
+    def __init__(self, num_cols: int, num_rows: int, pdf: SpectrumPDF) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows)
-        self._energy = energy
-
         self._event_count = 0
         self._pha = []
         self._coords = []
         self._event_rows = []
+        self._pdf = pdf
+        self._derivative = pdf.pdf.derivative(1)
 
     def analyze_cluster(self, cluster: Cluster) -> None:
         """Analyze the event cluster to update the calibration matrix.
@@ -644,139 +641,180 @@ class CalibrateGain(CalibrateBase):
         self._event_count += 1
         self.cal_matrix.num_events += 1
 
-    def fit_lh_large(self, a, cols, rows, mean):
-        idxs_sub = (rows * 304 + cols).astype(int)
-        total_event_sum = np.array(a.sum(axis=1)).flatten()
-        a_sub = a[:, idxs_sub]
-        sub_event_sum = np.array(a_sub.sum(axis=1)).flatten()
-        mask = (sub_event_sum == total_event_sum) & (sub_event_sum > 0)
-        a_sub = a_sub[mask]
-        # Remove no active pixels
-        pixel_sum = np.array(a_sub.sum(axis=0)).flatten()
+    def _cut_data(self, data: csr_matrix, cols: np.ndarray, rows: np.ndarray,
+                  event_sum: np.ndarray) -> Tuple[csr_matrix, np.ndarray]:
+        """Cut the data to select only the events that have all the charge contained
+        in the pixels of the subregion defined by the input column and row coordinates.
+        This is done to ensure that the fit is performed only on events that are fully
+        contained in the subregion.
+
+        Arguments
+        ---------
+        data : csr_matrix
+            The sparse matrix containing the pha values for the events in the entire detector.
+        cols : np.ndarray
+            The column coordinates of the pixels in the subregion.
+        rows : np.ndarray
+            The row coordinates of the pixels in the subregion.
+        event_sum : np.ndarray
+            The total ADC count for each event.
+
+        Returns
+        -------
+        data_active_pixels : csr_matrix
+            The sparse matrix containing the pha values for the events in the subregion, with
+            only the active pixels.
+        mask : np.ndarray
+            The boolean mask indicating which pixels in the subregion are active.
+        """
+        # Calculate the index of the pixels in the flattened array to select the
+        # correct columns of the sparse matrix.
+        pixels_idxs = (rows * self.cal_matrix.shape[1] + cols).astype(int)
+        # Select all the events but only the columns corresponding to the pixels
+        # in the subregion defined by the indices.
+        data_region = data[:, pixels_idxs]
+        # Select only the events in the subregion where all the charge is contained
+        # in the pixels of the subregion. Add also another cut to select only the
+        # events with total charge above 0 ADC, just to be sure to remove empty events.
+        sub_region_event_sum = np.array(data_region.sum(axis=1)).flatten()
+        mask = (sub_region_event_sum == event_sum) & (sub_region_event_sum > 0)
+        data_good_events = data_region[mask]
+        # We want to remove the pixels in the subregion that never got hit, since
+        # only pixels with signal can be fitted. This operation ensures that the
+        # number of fit parameters is equal to the number of active pixels.
+        pixel_sum = np.array(data_good_events.sum(axis=0)).flatten()
         active_mask = pixel_sum > 0
+        data_active_pixels = data_good_events[:, active_mask]
+        return data_active_pixels, active_mask
 
-        active_idxs = np.where(active_mask)[0]
-        a_final = a_sub[:, active_idxs]
+    def _likelihood_fit(self, data: csr_matrix, conv_factor: float
+                        ) -> Optional[Tuple[np.ndarray, np.ndarray]]:
+        """Perform the likelihood fit for a region of the detector.
 
-        if a_final.nnz == 0 or a_final.shape[1] == 0:
-            return None
-
-        def nll_mono(pars):
-            sum_energy = a_final @ pars
-            p = np.exp(- (sum_energy - mean)**2 / (2 * 20 **2))
+        Returns
+        -------
+        gain : np.ndarray
+            The gain values for the pixels in the region, calculated from the fit.
+        error : np.ndarray
+            The error on the gain values for the pixels in the region, calculated from the fit.
+        """
+        # Define the negative log-likelihood function for the fit.
+        def nll(pars):
+            total_adc = data @ pars
+            p = self._pdf(total_adc * conv_factor)
             return -np.sum(np.log(p + 1e-10))
-        init = np.ones(len(active_idxs))
-        m = Minuit(nll_mono, init)
+
+        def nll_with_grad(pars):
+            # kept for compatibility/testing: returns (val, grad) for an array input
+            energy = (data @ pars) * conv_factor
+            p = self._pdf(energy)
+            dp = self._derivative(energy)
+            p_safe = np.maximum(p, 1e-12)
+            val = -np.sum(np.log(p_safe))
+            common_term = -(dp / p_safe) * conv_factor
+            grad = np.asarray(data.T @ common_term).ravel()
+            return val, grad
+
+        # Create scalar-callable wrappers that accept positional params as required by
+        # iminuit. These convert to numpy arrays internally and return the scalar NLL
+        # and a tuple gradient respectively.
+        def nll_scalar(*params):
+            pars = np.asarray(params, dtype=float)
+            return nll(pars)
+
+        def grad_scalar(*params):
+            pars = np.asarray(params, dtype=float)
+            # reuse the analytic gradient computation
+            _, grad = nll_with_grad(pars)
+            return tuple(float(g) for g in grad)
+
+        # Define the initial parameters for the fit.
+        init_pars = np.ones(data.shape[1])
+        # Initialize the Minuit minimizer with an explicit gradient callable.
+        # Pass starting values as positional args (unpack the numpy array).
+        m = Minuit(nll_scalar, *init_pars.tolist(), grad=grad_scalar)
+        m.limits = [(1e-10, None) for _ in range(len(init_pars))]
         m.errordef = Minuit.LIKELIHOOD
         m.migrad()
-
-        full_region_gain = np.full(len(idxs_sub), np.nan)
-        full_region_error = np.full(len(idxs_sub), np.nan)
-
+        # If the fit is successful, return the gain values and their errors.
         if m.valid:
-            full_region_gain[active_idxs] = 1 / np.array(m.values)
-            full_region_error[active_idxs] = m.errors / np.array(m.values)**2
-        
-        return full_region_gain, full_region_error, idxs_sub
-
+            gain = 1 / np.array(m.values)
+            error = m.errors / np.array(m.values)**2
+            return gain, error
+        return None
 
     def fit(self) -> CalibrationMatrix:
-        """Perform the likelihood fit to determine the gain of each pixel.
+        """Fit the collected events to determine the gain of each pixel.
+
+        Returns
+        -------
+        cal_matrix : CalibrationMatrix
+            Updated calibration matrix with the gain values calculated from the data.
         """
-        # Create the sparse matrix
+        # Create a sparse matrix where the rows correspond to the events and the columns
+        # correspond to the pixels. In each row, the non-zero entries correspond to the
+        # pha values of the pixels that are hit in the event. 
         nrows, ncols = self.cal_matrix.shape
-        # Create the sparse matrix for the least squares fit. This object allows to store
-        # and use efficiently the large and sparse matrix that we need for the fit.
         shape = (self._event_count, nrows * ncols)
-
-        a = csr_matrix((self._pha, (self._event_rows, self._coords)), shape=shape)
-        # Calculate the mean to normalize the results
-        MEAN = np.array(a.sum(axis=1)).flatten().mean()
-
-        values = self.cal_matrix.values.copy()
-        errors = self.cal_matrix.errors.copy()
-
-        ncols = 304
-        nrows = 352
-        SIZE = 10
-        OVERLAP = 2
-        STRIDE = SIZE - OVERLAP
-        col_starts = np.arange(0, ncols - OVERLAP, STRIDE)
-        row_starts = np.arange(0, nrows - OVERLAP, STRIDE)
-
+        data = csr_matrix((self._pha, (self._event_rows, self._coords)), shape=shape)
+        # Calculate the sum of the ADC counts in each event, which is used for the data
+        # cuts in the fit, and to calculate the mean ADC count in an event.
+        event_sum = np.array(data.sum(axis=1)).flatten()
+        # Calculate the mean of the ADC counts in an event.
+        conv_factor = self._pdf.loc() / event_sum.mean()
+        # Define the size of the blocks to fit contemporarily.
+        size = 10
+        # Calculate the starting column and row indices for the blocks. We are using an
+        # overlap of 2 pixels between the blocks to ensure that pixels on the edges are
+        # correctly calibrated.
+        col_starts = np.arange(0, ncols - 2, size - 2)
+        row_starts = np.arange(0, nrows - 2, size - 2)
+        block_indices = list(product(row_starts, col_starts))
+        # Create the arrays to store the weighted gain values and the sum of the weights
+        # for each pixel. We will use these arrays to calculate a weighted average of the
+        # results, since some pixels are fitted multiple times due to the overlap.
         weighted_gains = np.zeros((nrows, ncols))
         sum_weights = np.zeros((nrows, ncols))
-
-        for r_start in row_starts:
-            r_end = min(r_start + SIZE, nrows)
-            for c_start in col_starts:
-                c_end = min(c_start + SIZE, ncols)
-                cc, rr = np.meshgrid(np.arange(c_start, c_end), np.arange(r_start, r_end))
-
-                cols_block = cc.flatten()
-                rows_block = rr.flatten()
-
-                results = self.fit_lh_large(a, cols_block, rows_block, MEAN)
-                if results is not None:
-                    gain, error, _ = results
-
-                    weights = 1 / (error**2 + 1e-10)
-                    mask = ~np.isnan(gain)
-
-                    np.add.at(weighted_gains, (rows_block[mask], cols_block[mask]), gain[mask] * weights[mask])
-                    np.add.at(sum_weights, (rows_block[mask], cols_block[mask]), weights[mask])
-
-
-        values = np.divide(weighted_gains, sum_weights, out=np.full_like(weighted_gains, np.nan), where=sum_weights > 0)
+        # Start the loop over the blocks
+        pbar = tqdm(block_indices, desc="Fitting chip subregions", miniters=5)
+        for r_start, c_start in pbar:
+            # Calculate the end row and column indices, taking into account the possibility of being at
+            # the end of the chip.
+            r_end = min(r_start + size, nrows)
+            c_end = min(c_start + size, ncols)
+            # Create a meshgrid to get all the coordinates of the pixels in the block.
+            cols, rows = np.meshgrid(np.arange(c_start, c_end), np.arange(r_start, r_end))
+            cols = cols.flatten()
+            rows = rows.flatten()
+            # Cut the data to select only the events that have signal in the block.
+            block_data, mask = self._cut_data(data, cols, rows, event_sum)
+            # Check on the data: if there are no good events or no active pixels,
+            # we cannot perform the fit, so we return None.
+            if block_data.nnz == 0 or block_data.shape[1] == 0:
+                continue
+            # Fit the data for the block.
+            results = self._likelihood_fit(block_data, conv_factor)
+            # If the fit is not successful, continue to the next block.
+            if results is None:
+                continue
+            gain, error = results
+            weights = 1 / (error**2 + 1e-10)
+            # Use the mask of the active pixels to update the weighted gains and the sum
+            # of the weights matrices for the pixels in the block that have been fitted.
+            np.add.at(weighted_gains, (rows[mask], cols[mask]), gain * weights)
+            np.add.at(sum_weights, (rows[mask], cols[mask]), weights)
+        pbar.close()
+        # Calculate the final values and errors as the weighted average of the fit results.
+        values = np.divide(weighted_gains, sum_weights,
+                           out=np.full_like(weighted_gains, np.nan),
+                           where=sum_weights > 0)
         errors = np.full_like(weighted_gains, np.nan)
         np.sqrt(sum_weights, out=errors, where=sum_weights > 0)
         np.divide(1, errors, out=errors, where=sum_weights > 0)
-
+        # Write the results back to the calibration matrix.
         self.cal_matrix.values = values
         self.cal_matrix.errors = errors
-
         return self.cal_matrix
-        
-
-
-
-    # def fit(self) -> CalibrationMatrix:
-    #     """Perform the least squares fit to determine the gain of each pixel.
-    #     """
-    #     if self._event_count == 0:
-    #         raise ValueError("No events have been analyzed, cannot perform the fit.")
-    #     nrows, ncols = self.cal_matrix.shape
-    #     # Create the sparse matrix for the least squares fit. This object allows to store
-    #     # and use efficiently the large and sparse matrix that we need for the fit.
-    #     shape = (self._event_count, nrows * ncols)
-    #     a = csr_matrix((self._pha, (self._event_rows, self._coords)), shape=shape)
-    #     # Create the vector of the expected number of electrons.
-    #     b = np.full(self._event_count, self._energy / DEFAULT_IONIZATION_POTENTIAL)
-    #     # Perform the fit
-    #     results = lsmr(a, b)
-    #     # Get the best-fit weight vector and reshape it to the shape of the calibration matrix.
-    #     weight = results[0].reshape((nrows, ncols))
-    #     signal_power = np.array(a.multiply(a).sum(axis=0)).reshape((nrows, ncols))
-    #     # Calculate the number of degrees of freedom and the mean squared error.
-    #     dof = self._event_count - (ncols * nrows)
-    #     mse = results[3]**2 / max(dof, 1)
-    #     # Calculate the uncertainty of the gain best-fit values.
-    #     sigma_w = np.sqrt(mse / (signal_power + 1e-15))
-    #     with np.errstate(divide='ignore', invalid='ignore'):
-    #         sigma_g_rel = sigma_w / np.abs(weight)
-    #     # Mask for the pixels that have a weight value close to zero (no events)
-    #     mask = np.abs(weight) > 1e-10
-    #     values = self.cal_matrix.values.copy()
-    #     entries = self.cal_matrix.entries
-    #     # Set the gain value for the pixels that pass the quality cut.
-    #     values[mask] = 1 / weight[mask]
-    #     # Set the entries to zero for the pixels that don't pass the quality cut.
-    #     entries[~mask] = 0
-    #     # Write back through the setter so updates persist on the shared object.
-    #     self.cal_matrix.values = values
-    #     self.cal_matrix.errors = np.where(mask, sigma_g_rel * values, self.cal_matrix.errors)
-    #     self.cal_matrix.entries = entries
-    #     return self.cal_matrix
 
 
 class CalibrateENC:
