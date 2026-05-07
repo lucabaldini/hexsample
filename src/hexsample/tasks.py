@@ -62,6 +62,7 @@ from .fileio import (
 from .hexagon import HexagonalGrid, HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
+from .pdf import SpectrumPDF
 from .readout import (
     AbstractReadout,
     HexagonalReadoutBase,
@@ -69,7 +70,6 @@ from .readout import (
     HexagonalReadoutMode,
     HexagonalReadoutRectangular,
 )
-from .pdf import SpectrumPDF
 from .recon import ReconEvent
 from .sensor import Sensor
 from .source import Source
@@ -355,6 +355,31 @@ def reconstruct(
     output_file.flush()
     input_file.close()
     output_file.close()
+    return output_file_path
+
+
+def calibspec(
+        input_file_path: str
+        ) -> str:
+    """Create a probability density function from a reconstructed spectrum to use in
+    the gain calibration.
+
+    Arguments
+    ----------
+    input_file_path : str
+        The path to the input recon file.
+    """
+    name, args = current_call(1)
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    input_file = ReconInputFile(input_file_path)
+    energy = input_file.column("energy")
+    input_file.close()
+    pdf = SpectrumPDF()
+    logger.info("Fitting the PDF to the energy distribution...")
+    pdf.fit(energy)
+    output_file_path = input_file_path.replace(".h5", ".npz")
+    logger.info(f"Saving the PDF to {output_file_path}...")
+    pdf.to_file(output_file_path)
     return output_file_path
 
 
@@ -803,7 +828,7 @@ def quicklook(input_file_path: str) -> None:
         The path to the input recon file.
     """
     # Open the input file
-    name, args = current_call()
+    name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     input_file = ReconInputFile(input_file_path)
     # Plotting the reconstructed energy and the true energy
@@ -890,7 +915,7 @@ def calibview(
         The upper quantile of the values in the matrix to be included in the statistics.
     """
     # pylint: disable=too-many-statements
-    name, args = current_call()
+    name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     logger.info("Matrix metadata:")
     # Log the metadata of the matrix.
@@ -940,7 +965,8 @@ def calibview(
         mc_edges = np.linspace(np.nanmin(mc_vals), np.nanmax(mc_vals), 100)
         # If Monte Carlo distribution is uniform, we need to modify the edges
         if mc_edges[0] == mc_edges[-1]:
-            mc_edges = np.linspace(mc_edges[0] - mc_edges[0]*0.1, mc_edges[-1] + mc_edges[-1]*0.1, 100)
+            val = mc_edges[0]
+            mc_edges = np.linspace(val*0.9, val*1.1, 100)
         mc_vals_hist = Histogram1d(mc_edges, label="MC Distribution", xlabel=mc_unit).fill(mc_vals)
         plt.figure("Distribution of Monte Carlo truth values")
         mc_vals_hist.plot(statistics=True)
