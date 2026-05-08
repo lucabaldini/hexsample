@@ -728,6 +728,8 @@ def calibrate_gain(
             cluster = clustering.run(event)
         except IndexError:
             continue
+        if cluster is None:
+            continue
         gain_calibration.analyze_cluster(cluster)
     logger.info("Calculating the gain matrix...")
     gain_matrix = gain_calibration.fit()

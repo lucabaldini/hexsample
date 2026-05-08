@@ -323,6 +323,8 @@ class ClusteringNN(ClusteringBase):
         # pylint: disable = invalid-name
         elif isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
+            if readout.is_at_border(seed_col, seed_row):
+                return None
             col = [seed_col]
             row = [seed_row]
             for _col, _row in readout.neighbors(seed_col, seed_row):
