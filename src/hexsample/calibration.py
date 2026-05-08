@@ -627,6 +627,15 @@ def _likelihood_fit(data: csr_matrix, conv_factor: float, pdf: SpectrumPDF,
     m.limits = [(1e-10, None) for _ in range(len(init_pars))]
     m.errordef = Minuit.LIKELIHOOD
     m.migrad()
+    # If the first fit is not successful, try to perform a second fit. We are not passing
+    # the gradient, because the fit should be more robust (but slower).
+    if not m.valid:
+        print("Retrying fit without gradient...")
+        m = Minuit(nll, init_pars)
+        m.limits = [(1e-10, None) for _ in range(len(init_pars))]
+        m.errordef = Minuit.LIKELIHOOD
+        m.migrad()
+        if m.valid: print("Fit successful without gradient.")
     # If the fit is successful, return the gain values and their errors, otherwise
     # return None.
     if m.valid:
@@ -685,16 +694,29 @@ def _cut_data(data: csc_matrix, ncols: int, cols: np.ndarray, rows: np.ndarray,
     return data_active_pixels, active_mask
 
 
-def worker_fit_block(r_start: int, c_start: int, size: int, nrows: int, ncols: int,
-                     data: csc_matrix, event_sum: np.ndarray, conv_factor: float,
-                     pdf: SpectrumPDF, pdf_derivative: callable
-                     ) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
+def _fit_block(
+        r_start: int, c_start: int, size: int, nrows: int, ncols: int, data: csc_matrix,
+        event_sum: np.ndarray, conv_factor: float, pdf: SpectrumPDF, pdf_derivative: callable
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
     """Method to perform the fit for a block of pixels in the detector.
     This method is meant to be used as a function to be executed in parallel for different
     blocks of pixels.
 
     .. note:: This function must be defined outside the class to be picklable and usable
             in parallel execution.
+
+    Returns
+    -------
+    gain : np.ndarray
+        The gain values for the pixels in the block, calculated from the fit.
+    error : np.ndarray
+        The error on the gain values for the pixels in the block, calculated from the fit.
+    rows : np.ndarray
+        The row coordinates of the active pixels in the block.
+    cols : np.ndarray
+        The column coordinates of the active pixels in the block.
+    num_events_per_pixel : np.ndarray
+        The number of events for each active pixel in the block.
     """
     # Calculate the end row and column indices, taking into account the possibility
     # of being at the end of the chip.
@@ -706,6 +728,7 @@ def worker_fit_block(r_start: int, c_start: int, size: int, nrows: int, ncols: i
     rows = rows.flatten()
     # Cut the data to select only the events that have signal in the block.
     data_fit, active_mask = _cut_data(data, ncols, cols, rows, event_sum)
+    num_events_per_pixel = np.asarray((data_fit > 0).sum(axis=0)).flatten()
     # Check on the data: if there are no good events or no active pixels,
     # we cannot perform the fit, so we return None.
     if data_fit.nnz == 0 or data_fit.shape[1] == 0:
@@ -717,7 +740,7 @@ def worker_fit_block(r_start: int, c_start: int, size: int, nrows: int, ncols: i
         return None
     # If the fit is successful, return the gain values and their errors and the
     # coordinates of the active pixels.
-    return result[0], result[1], rows[active_mask], cols[active_mask]
+    return result[0], result[1], rows[active_mask], cols[active_mask], num_events_per_pixel
 
 
 class CalibrateGain(CalibrateBase):
@@ -760,8 +783,6 @@ class CalibrateGain(CalibrateBase):
             # Calculate the index of the pixel in the flattened array
             self._coords.append(row * ncols + col)
             self._event_rows.append(self._event_count)
-            # Update the matrix with the number of events for each pixel
-            self.cal_matrix.entries[row, col] += 1
         # Update the event count
         self._event_count += 1
         self.cal_matrix.num_events += 1
@@ -807,6 +828,7 @@ class CalibrateGain(CalibrateBase):
         # results, since some pixels are fitted multiple times due to the overlap.
         weighted_gains = np.zeros((nrows, ncols))
         sum_weights = np.zeros((nrows, ncols))
+        entries = np.zeros((nrows, ncols), dtype=int)
         # Convert the CSR matrix to CSC format to optimize column slicing during data cuts.
         data_csc = data_csr.tocsc()
         # Free the memory used by the CSR matrix and temporary arrays.
@@ -817,7 +839,7 @@ class CalibrateGain(CalibrateBase):
                 self._pdf, self._pdf_derivative)
         bar_format = "{desc}: {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
         results = Parallel(n_jobs=-1, backend="loky")(
-            delayed(worker_fit_block)(
+            delayed(_fit_block)(
                 r_start, c_start, *args)
                 for r_start, c_start in tqdm(block_indices, total=len(block_indices),
                                              bar_format=bar_format)
@@ -828,12 +850,13 @@ class CalibrateGain(CalibrateBase):
             if _result is None:
                 continue
             # Unpack the results from the block fit.
-            gain, error, rows, cols = _result
+            gain, error, rows, cols, num_events_per_pixel = _result
             weights = 1 / (error**2 + 1e-10)
             # Use the mask of the active pixels to update the weighted gains and the sum
             # of the weights matrices for the pixels in the block that have been fitted.
             np.add.at(weighted_gains, (rows, cols), gain * weights)
             np.add.at(sum_weights, (rows, cols), weights)
+            np.maximum.at(entries, (rows, cols), num_events_per_pixel)
         # Calculate the final values and errors as the weighted average of the fit results.
         values = np.divide(weighted_gains, sum_weights,
                            out=np.full_like(weighted_gains, np.nan),
@@ -844,6 +867,7 @@ class CalibrateGain(CalibrateBase):
         # Write the results back to the calibration matrix.
         self.cal_matrix.values = values
         self.cal_matrix.errors = errors
+        self.cal_matrix.entries = entries
         return self.cal_matrix
 
 
