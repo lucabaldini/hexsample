@@ -818,7 +818,7 @@ class CalibrateGain(CalibrateBase):
         bar_format = "{desc}: {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
         results = Parallel(n_jobs=-1, backend="loky")(
             delayed(worker_fit_block)(
-                r_start, c_start, *args) 
+                r_start, c_start, *args)
                 for r_start, c_start in tqdm(block_indices, total=len(block_indices),
                                              bar_format=bar_format)
             )

@@ -96,7 +96,7 @@ class SpectrumPDF:
         instance = cls()
         instance.pdf = CubicSpline.construct_fast(data["c"], data["x"], extrapolate=True)
         return instance
-    
+
     def derivative(self, x: np.ndarray, order: int = 1) -> np.ndarray:
         """Evaluate the derivative of the PDF at the given points.
 

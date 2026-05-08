@@ -161,7 +161,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_input_file(calibspec)
         self.add_logging_level(calibspec)
         calibspec.set_defaults(runner=pipeline.calibspec)
-        
+
         # Inspect a calibration matrix?
         calibview = subparsers.add_parser("calibview",
             help="inspect a calibration matrix",
