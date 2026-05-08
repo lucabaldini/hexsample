@@ -50,12 +50,33 @@ class RunningStats:
         self._mean = np.zeros(shape, dtype=np.float64)
         self._m2 = np.zeros(shape, dtype=np.float64)
 
-    def update(self, val: np.ndarray, offset: Union[int, Tuple[int, ...]] = None,
-               mask: np.ndarray = None) -> None:
-        """Update the running statistics.
+    def size(self) -> int:
+        """Return the total number of samples accumulated across all indices.
         """
-        # Check the rank of the values for the update.
+        return self._counts.sum()
+
+    def update(self, val: np.ndarray, offset: Union[int, Tuple[int, ...]] = None,
+               mask: Union[bool, np.ndarray] = None) -> None:
+        """Update the running statistics.
+
+        Arguments
+        ---------
+        val : array-like
+            The new value(s) to incorporate into the running statistics. This is
+            a numpy array with the same rank of the running stats, but with a
+            a shape that can be smaller than the underlying arrays (in which case
+            the precise region to be updated is determined by the `offset` parameter).
+
+        offset : int or tuple of ints, optional
+            The offset for the update region in the underlying arrays.
+
+        mask : array-like of bool, optional
+            An optional boolean mask to specify which elements of `val` should be
+            included in the update. This should have the same shape as `val`.
+        """
         val = np.asarray(val)
+
+        # Check the rank of the values for the update.
         if val.ndim != self._rank:
             raise ValueError(f"Expected {self._rank}D array, got {val.ndim}D array.")
 
@@ -81,6 +102,9 @@ class RunningStats:
             mean += delta / counts
             m2 += delta * (val - mean)
         else:
+            mask = np.asarray(mask)
+            if mask.shape != val.shape:
+                raise ValueError(f"Mask has not the same shape as the input values {val.shape}.")
             counts[mask] += 1
             delta = val[mask] - mean[mask]
             mean[mask] += delta / counts[mask]
@@ -104,7 +128,13 @@ class RunningStats:
         ddof : int
             Delta degrees of freedom (default is 1 for the unbiased sample variance.)
         """
-        return self._m2 / (self._counts - ddof)
+        denom = self._counts - ddof
+        return np.divide(
+            self._m2,
+            denom,
+            out=np.full_like(self._m2, np.nan, dtype=np.float64),
+            where=denom > 0,
+        )
 
     def std(self, ddof: int = 1):
         """Return the current value for the standard deviation.

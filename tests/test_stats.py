@@ -18,6 +18,8 @@
 
 import numpy as np
 
+import pytest
+
 from hexsample import rng
 from hexsample.stats import RunningStats
 
@@ -34,6 +36,27 @@ def test_running_stats_scalar():
     assert np.isclose(running_stats.mean(), np.mean(data))
     assert np.isclose(running_stats.var(), np.var(data, ddof=1))
     assert np.isclose(running_stats.std(), np.std(data, ddof=1))
+
+    # Offset makes no sense for scalar stats, so it should raise an error.
+    with pytest.raises(ValueError):
+        running_stats.update(0., offset=1)
+
+    # And, for what it's worth, we still support masks for scalar stats.
+    running_stats.update(0., mask=True)
+    assert running_stats.size() == 1001
+    running_stats.update(0., mask=False)
+    assert running_stats.size() == 1001
+
+    # Make sure that a mask with the wrong shape raises an error.
+    with pytest.raises(ValueError):
+        running_stats.update(0., mask=np.array([True, False]))
+
+
+def test_zero_division():
+    """Test that we don't get NaNs when we have zero counts.
+    """
+    running_stats = RunningStats()
+    print(running_stats.std())
 
 
 def test_running_stats_1d(shape=10):
@@ -58,7 +81,7 @@ def test_running_stats_1d(shape=10):
     assert np.allclose(running_stats.mean()[:lim], np.mean(data[:, :lim], axis=0))
     assert np.allclose(running_stats.mean()[lim:], 0.)
     assert np.allclose(running_stats.var()[:lim], np.var(data[:, :lim], axis=0, ddof=1))
-    assert np.allclose(running_stats.var()[lim:], 0.)
+    assert np.isnan(running_stats.var()[lim:]).all()
 
     # Tier 3: use a smaller array with offsets.
     running_stats = RunningStats(shape)
@@ -69,7 +92,7 @@ def test_running_stats_1d(shape=10):
     assert np.allclose(running_stats.mean()[lim:], np.mean(data[:, lim:], axis=0))
     assert np.allclose(running_stats.mean()[:lim], 0.)
     assert np.allclose(running_stats.var()[lim:], np.var(data[:, lim:], axis=0, ddof=1))
-    assert np.allclose(running_stats.var()[:lim], 0.)
+    assert np.isnan(running_stats.var()[:lim]).all()
 
     # Tier 4: full_array with mask.
     running_stats = RunningStats(shape)
@@ -82,6 +105,7 @@ def test_running_stats_2d(shape=(3, 3)):
     """
     # Generate some random data.
     data = rng.generator.normal(size=(1000, *shape))
+
     # Tier 1: update all the indices in the underlying array.
     running_stats = RunningStats(shape)
     for val in data:
