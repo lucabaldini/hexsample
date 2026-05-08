@@ -296,6 +296,7 @@ class CalibrationMatrix:
             attrs = dict(h5file.attrs)
             # Instantiate the object with the attributes loaded from the header.
             obj = cls(num_cols=attrs["num_cols"], num_rows=attrs["num_rows"])
+            obj.num_events = attrs.get(CalibrationMetadata.NUM_EVENTS.value)
             for key, val in attrs.items():
                 obj._metadata[key] = val
             # Load the matrix and the hits matrices from the HDF5 file.
@@ -630,12 +631,10 @@ def _likelihood_fit(data: csr_matrix, conv_factor: float, pdf: SpectrumPDF,
     # If the first fit is not successful, try to perform a second fit. We are not passing
     # the gradient, because the fit should be more robust (but slower).
     if not m.valid:
-        print("Retrying fit without gradient...")
         m = Minuit(nll, init_pars)
         m.limits = [(1e-10, None) for _ in range(len(init_pars))]
         m.errordef = Minuit.LIKELIHOOD
         m.migrad()
-        if m.valid: print("Fit successful without gradient.")
     # If the fit is successful, return the gain values and their errors, otherwise
     # return None.
     if m.valid:
