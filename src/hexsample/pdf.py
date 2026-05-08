@@ -19,7 +19,10 @@
 
 """Facilities to create and use probability density functions from spectra."""
 
+from typing import Tuple
+
 import numpy as np
+from aptapy.plotting import plt
 from scipy.interpolate import CubicSpline
 from scipy.stats import gaussian_kde
 
@@ -107,6 +110,27 @@ class SpectrumPDF:
         if self.pdf is None:
             raise ValueError("The PDF is empty. Fit the PDF with data or load it from file.")
         return self.pdf(x, nu=order)
+
+    def plot(self, xlim: Tuple[float, float] = None, **kwargs) -> None:
+        """Plot the PDF in a given range.
+
+        Arguments
+        ---------
+        xlim : tuple[float, float], optional
+            The range of x values to plot (default is None, which means the fitting range
+            of the PDF).
+        """
+        plt.figure(kwargs.get("figname", "spectrum_pdf"))
+        if xlim is None:
+            xlim = (min(self.pdf.x), max(self.pdf.x))
+        x_grid = np.linspace(xlim[0], xlim[1], 1000)
+        y_grid = self.pdf(x_grid)
+        plt.plot(x_grid, y_grid, **kwargs)
+        plt.xlabel(kwargs.get("xlabel", "Energy [eV]"))
+        plt.ylabel(kwargs.get("ylabel", "PDF"))
+        plt.xlim(xlim)
+        plt.grid(visible=True, linestyle="--", alpha=0.5, color="gray")
+        plt.tight_layout()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Evaluate the PDF at the given points.
