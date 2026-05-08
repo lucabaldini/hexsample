@@ -20,23 +20,18 @@
 """Statistical tools.
 """
 
-from abc import ABC, abstractmethod
 from typing import Tuple, Union
 
 import numpy as np
 
 
-class AbstractRunningStats(ABC):
+class RunningStats:
 
     """Small convenience class to accumulate running statistics (mean and variance)
     of a stream of data.
 
-    This is a base abstract class designed to work both for scalar values and for
-    arrays of arbitrary shape. The actual implementation is delegated to the
-    concrete subclasses, which are instantiated by the factory function `RunningStats`
-    based on the provided shape.
-
-    The thing uses the Welford algorithm to perform the computation.
+    This is designed to work both for scalar values and for arrays of arbitrary
+    shape, and uses the Welford algorithm to perform the computation.
 
     Arguments
     ---------
@@ -47,59 +42,39 @@ class AbstractRunningStats(ABC):
     def __init__(self, shape: Union[int, Tuple[int, ...]] = ()) -> None:
         """Constructor.
         """
+        # Normalize the input shape to a tuple and initialize the internal arrays.
+        if isinstance(shape, int):
+            shape = (shape,)
+        self._rank = len(shape)
         self._counts = np.zeros(shape, dtype=np.int64)
         self._mean = np.zeros(shape, dtype=np.float64)
         self._m2 = np.zeros(shape, dtype=np.float64)
 
-    @abstractmethod
-    def update(self, val, *args, **kwargs) -> None:
-        """Update the running statistics with a new value.
-
-        This needs to be implemented by the concrete subclasses.
+    def update(self, val: np.ndarray, offset: Union[int, Tuple[int, ...]] = None,
+               mask: np.ndarray = None) -> None:
+        """Update the running statistics.
         """
-
-    def _check_rank(self, val: np.ndarray) -> None:
-        """Check that the input value(s) has the expected rank.
-
-        This raises a ValueError if the input value does not have the same number
-        of dimensions as the underlying arrays.
-
-        Arguments
-        ---------
-        val : array-like
-            The input value to check.
-        """
+        # Check the rank of the values for the update.
         val = np.asarray(val)
-        if val.ndim != self._counts.ndim:
-            raise ValueError(f"Expected {self._counts.ndim}D array, got {val.ndim}D array.")
+        if val.ndim != self._rank:
+            raise ValueError(f"Expected {self._rank}D array, got {val.ndim}D array.")
 
-    def _update_scalar(self, val: float) -> None:
-        """Update the running statistics with a new scalar value.
+        # Calculate the sub-region for the update based on the offset.
+        if offset is None:
+            region = ... if self._rank == 0 else tuple(slice(0, dim) for dim in val.shape)
+        else:
+            if self._rank == 0:
+                raise ValueError("Offset is not meaningful for scalar running stats.")
+            if isinstance(offset, int):
+                offset = (offset,)
+            if len(offset) != self._rank:
+                raise ValueError(f"Expected offset with rank {self._rank}.")
+            region = tuple(slice(pos, pos + dim) for pos, dim in zip(offset, val.shape))
 
-        Arguments
-        ---------
-        val : float
-            The new scalar value to incorporate.
-        """
-        self._counts += 1
-        delta = val - self._mean
-        self._mean += delta / self._counts
-        self._m2 += delta * (val - self._mean)
-
-    def _update_array(self, val: np.ndarray, region: Union[slice, Tuple[slice, ...]],
-                      mask: np.ndarray = None) -> None:
-        """Update the running statistics with a new array of values.
-
-        Arguments
-        ---------
-        val : array-like
-            The new array of values to incorporate.
-        """
-        # Cache the necessary views to avoid repeated indexing.
+        # Do the actual calculation.
         counts = self._counts[region]
         mean = self._mean[region]
         m2 = self._m2[region]
-        # Do the actual calculation.
         if mask is None:
             counts += 1
             delta = val - mean
@@ -137,62 +112,6 @@ class AbstractRunningStats(ABC):
         Arguments
         ---------
         ddof : int
-
+            Delta degrees of freedom (default is 1.)
         """
         return np.sqrt(self.var(ddof))
-
-
-class _RunningStatsScalar(AbstractRunningStats):
-
-    def update(self, val: float) -> None:
-        """Overloaded abstract method.
-
-        Note in the scalar case it does not make sense to support offsets or
-        masks.
-
-        Arguments
-        ---------
-        val : float
-            The new scalar value to incorporate.
-        """
-        self._check_rank(val)
-        self._update_scalar(val)
-
-
-class _RunningStatsArray(AbstractRunningStats):
-
-    def update(self, val: np.ndarray, offset: Union[int, Tuple[int, ...]] = None,
-               mask: np.ndarray = None) -> None:
-        """Overloaded abstract method.
-
-        Arguments
-        ---------
-        val : array-like
-            The new array of values to incorporate. This can be a smaller array
-            than the underlying arrays, in which case the specific sub-region to
-            be updated is controlled by the `offset` argument.
-
-        offset : tuple of ints, optional
-            The offset of the input array with respect to the underlying arrays.
-
-        mask : array-like of bool, optional
-            A boolean mask to specify which elements of the input array should be
-            incorporated in the statistics. This should have the same shape as the
-            input `val` array.
-        """
-        self._check_rank(val)
-        if offset is None:
-            offset = offset or tuple(0 for _ in val.shape)
-        elif isinstance(offset, int):
-            offset = (offset,)
-        region = tuple(slice(pos, pos + dim) for pos, dim in zip(offset, val.shape))
-        self._update_array(val, region, mask)
-
-
-def RunningStats(shape: Union[int, Tuple[int, ...]] = ()) -> AbstractRunningStats:
-    """Factory function for the scalar version of the running stats.
-    """
-    if shape == ():
-        return _RunningStatsScalar(shape)
-    else:
-        return _RunningStatsArray(shape)

@@ -75,18 +75,17 @@ def test_running_stats_1d(shape=10):
     running_stats = RunningStats(shape)
     for val in data:
         running_stats.update(val, mask=val > 0)
-    print(running_stats.counts())
 
-# def test_running_stats_2d(shape=(3, 3)):
-#     """Test the 2D version of the running stats.
-#     """
-#     # Generate some random data.
-#     data = rng.generator.normal(size=(1000, *shape))
-#     # Tier 1: update all the indices in the underlying array.
-#     running_stats = RunningStats(shape)
-#     i, j = np.nonzero(np.ones(shape))
-#     for val in data:
-#         running_stats.update(val, i, j)
-#     assert np.allclose(running_stats.mean(), np.mean(data, axis=0))
-#     assert np.allclose(running_stats.var(), np.var(data, axis=0, ddof=1))
-#     assert np.allclose(running_stats.std(), np.std(data, axis=0, ddof=1))
+
+def test_running_stats_2d(shape=(3, 3)):
+    """Test the 2D version of the running stats.
+    """
+    # Generate some random data.
+    data = rng.generator.normal(size=(1000, *shape))
+    # Tier 1: update all the indices in the underlying array.
+    running_stats = RunningStats(shape)
+    for val in data:
+        running_stats.update(val)
+    assert np.allclose(running_stats.mean(), np.mean(data, axis=0))
+    assert np.allclose(running_stats.var(), np.var(data, axis=0, ddof=1))
+    assert np.allclose(running_stats.std(), np.std(data, axis=0, ddof=1))
