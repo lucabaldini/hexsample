@@ -17,14 +17,12 @@
 """
 
 import numpy as np
-
 import pytest
 
 from hexsample import rng
 from hexsample.stats import RunningStats
 
 rng.initialize(seed=666)
-
 
 def test_running_stats_scalar():
     """Test the scalar version of the running stats.
