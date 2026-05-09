@@ -622,15 +622,21 @@ class CalibrateDark:
         Welford's algorithm for the pixels that have at least one hit, calulate the errors and
         update the entries.
         """
+        counts = self._stats.counts()
         # Calculate the noise and pedestal values.
         self.noise_cal.values = self._stats.std()
         self.pedestal_cal.values = self._stats.mean()
         # Update the entries.
-        self.noise_cal.entries = self._stats.counts()
-        self.pedestal_cal.entries = self._stats.counts()
-        # Calculate the errors, maybe we can write a method in RunningStats.
-        self.noise_cal.errors = self.noise_cal.values / np.sqrt(2 * (self._stats.counts() - 1))
-        self.pedestal_cal.errors = self.noise_cal.values / np.sqrt(self._stats.counts() - 1)
+        self.noise_cal.entries = counts
+        self.pedestal_cal.entries = counts
+        # Calculate the errors for the noise and pedestal values. 
+        mask = counts > 1
+        denominator = np.sqrt(counts - 1, where=mask,
+                              out=np.full_like(counts, np.nan, dtype=float))
+        np.divide(self.noise_cal.values, np.sqrt(2) * denominator, 
+                out=self.noise_cal.errors, where=mask)
+        np.divide(self.noise_cal.values, denominator, 
+                out=self.pedestal_cal.errors, where=mask)
         return self.noise_cal, self.pedestal_cal
 
     def fit(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
