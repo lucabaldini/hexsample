@@ -75,7 +75,7 @@ def test_running_stats_1d(shape=10):
     running_stats = RunningStats(shape)
     lim = shape // 2
     for val in data:
-         running_stats.update(val[:lim])
+        running_stats.update(val[:lim])
     assert np.allclose(running_stats.mean()[:lim], np.mean(data[:, :lim], axis=0))
     assert np.allclose(running_stats.mean()[lim:], 0.)
     assert np.allclose(running_stats.var()[:lim], np.var(data[:, :lim], axis=0, ddof=1))

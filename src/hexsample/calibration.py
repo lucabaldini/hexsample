@@ -629,13 +629,13 @@ class CalibrateDark:
         # Update the entries.
         self.noise_cal.entries = counts
         self.pedestal_cal.entries = counts
-        # Calculate the errors for the noise and pedestal values. 
+        # Calculate the errors for the noise and pedestal values.
         mask = counts > 1
         denominator = np.sqrt(counts - 1, where=mask,
                               out=np.full_like(counts, np.nan, dtype=float))
-        np.divide(self.noise_cal.values, np.sqrt(2) * denominator, 
+        np.divide(self.noise_cal.values, np.sqrt(2) * denominator,
                 out=self.noise_cal.errors, where=mask)
-        np.divide(self.noise_cal.values, denominator, 
+        np.divide(self.noise_cal.values, denominator,
                 out=self.pedestal_cal.errors, where=mask)
         return self.noise_cal, self.pedestal_cal
 
