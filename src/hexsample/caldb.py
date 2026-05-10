@@ -60,7 +60,13 @@ class CalDB:
         return cls._open(CalibrationType.NOISE, designator)
 
     @classmethod
+    def open_gain(cls, designator: str) -> CalibrationMatrix:
+        """Open the gain calibration file for the given designation.
+        """
+        return cls._open(CalibrationType.GAIN, designator)
+
+    @classmethod
     def open_equalization(cls, designator: str) -> CalibrationMatrix:
-        """Open the pixel equalization calibration file for the given designation.
+        """Open the equalization calibration file for the given designation.
         """
         return cls._open(CalibrationType.EQUALIZATION, designator)
