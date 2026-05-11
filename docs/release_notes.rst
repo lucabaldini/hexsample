@@ -32,7 +32,6 @@ Release notes
   - https://github.com/lucabaldini/hexsample/issues/129
 
 
-
 Version 0.16.0 (2026-05-05)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
