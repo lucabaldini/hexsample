@@ -28,6 +28,7 @@ from typing import Optional, Tuple
 
 import h5py
 import numpy as np
+import xraydb
 from aptapy.hist import Histogram3d
 from iminuit import Minuit
 from joblib import Parallel, delayed
@@ -48,6 +49,7 @@ class CalibrationType(str, Enum):
     PEDESTAL = "pedestal"
     NOISE = "noise"
     GAIN = "gain"
+    EQUALIZATION = "equalization"
 
     @classmethod
     def values(cls) -> Tuple[str, ...]:
@@ -72,6 +74,9 @@ class CalibrationMetadata(str, Enum):
     VERSION = "version"
     CALIBRATION_TYPE = "calibration_type"
     IS_SYNTHETIC = "is_synthetic"
+    # This is to convert ADC counts to energy and it's stored only in the
+    # equalization matrix, and is measured in eV/ADC count.
+    ADC_TO_EV = "adc_to_ev"
 
 
 class CalibrationUnits(str, Enum):
@@ -82,14 +87,16 @@ class CalibrationUnits(str, Enum):
     ENC = "Electrons"
     NOISE = "ADC counts"
     PEDESTAL = "ADC counts"
-    GAIN = ""
+    GAIN = "ADC counts / electron"
+    EQUALIZATION = ""
 
 
 CALIBRATION_UNITS = {
     CalibrationType.ENC: CalibrationUnits.ENC,
     CalibrationType.NOISE: CalibrationUnits.NOISE,
     CalibrationType.PEDESTAL: CalibrationUnits.PEDESTAL,
-    CalibrationType.GAIN: CalibrationUnits.GAIN
+    CalibrationType.GAIN: CalibrationUnits.GAIN,
+    CalibrationType.EQUALIZATION: CalibrationUnits.EQUALIZATION
 }
 
 
@@ -123,7 +130,8 @@ class CalibrationMatrix:
         self._errors = np.full(self._shape, np.nan)
         # Other useful information for the metadata
         self.num_events = 0
-        self._metadata = {
+        self._cached = False
+        self._cached_metadata = {
             CalibrationMetadata.NUM_COLS: num_cols,
             CalibrationMetadata.NUM_ROWS: num_rows
             }
@@ -187,6 +195,8 @@ class CalibrationMatrix:
     def metadata(self) -> dict:
         """Return the metadata of the calibration matrix.
         """
+        if self._cached:
+            return self._cached_metadata
         mask = self._entries > 0
         # If there are no pixels with events, we can set the average, minimum and maximum number of
         # events to zero.
@@ -197,12 +207,13 @@ class CalibrationMatrix:
         else:
             entries_avg = entries_min = entries_max = 0
         # Setting the metadata values.
-        self._metadata[CalibrationMetadata.NUM_EVENTS] = self.num_events
-        self._metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
-        self._metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
-        self._metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
-        self._metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
-        return self._metadata
+        self._cached_metadata[CalibrationMetadata.NUM_EVENTS] = self.num_events
+        self._cached_metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
+        self._cached_metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
+        self._cached_metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
+        self._cached_metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
+        self._cached = True
+        return self._cached_metadata
 
     def set_value(self, value: float) -> None:
         """Set a value for all the pixels in the calibration matrix.
@@ -269,9 +280,9 @@ class CalibrationMatrix:
             h5file.create_dataset(self.ERRORS, data=self.errors, dtype=np.float32,
                                   **compression_pars)
             # Update the header with the relevant information and metadata.
-            self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type.value
-            self._metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
-            self._metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
+            self._cached_metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type.value
+            self._cached_metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
+            self._cached_metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
             for key, val in self.metadata.items():
                 h5file.attrs[key] = val
         return file_path
@@ -298,7 +309,7 @@ class CalibrationMatrix:
             obj = cls(num_cols=attrs["num_cols"], num_rows=attrs["num_rows"])
             obj.num_events = attrs.get(CalibrationMetadata.NUM_EVENTS.value)
             for key, val in attrs.items():
-                obj._metadata[key] = val
+                obj._cached_metadata[key] = val
             # Load the matrix and the hits matrices from the HDF5 file.
             obj._values = h5file[obj.VALUES][:]
             obj._entries = h5file[obj.ENTRIES][:]
@@ -320,10 +331,10 @@ class CalibrationMatrix:
     def __str__(self) -> str:
         """Return a string representation of the calibration matrix.
         """
-        if CalibrationMetadata.FILE_NAME in self._metadata:
-            return self._metadata[CalibrationMetadata.FILE_NAME]
-        return f"CalibrationMatrix(num_cols={self._metadata[CalibrationMetadata.NUM_COLS]}, " \
-                f"num_rows={self._metadata[CalibrationMetadata.NUM_ROWS]})"
+        if CalibrationMetadata.FILE_NAME in self._cached_metadata:
+            return self._cached_metadata[CalibrationMetadata.FILE_NAME]
+        return f"CalibrationMatrix(num_cols={self._cached_metadata[CalibrationMetadata.NUM_COLS]}, " \
+                f"num_rows={self._cached_metadata[CalibrationMetadata.NUM_ROWS]})"
 
 
 class CalibrateBase:
@@ -598,16 +609,22 @@ class CalibrateDark:
         return self.noise_cal, self.pedestal_cal
 
 
+# The following methods are used for the equalization matrix calibration. They cannot be moved
+# inside the class because they are used as functions to be executed in parallel, and they
+# need to be defined at the top level of the module to be picklable by joblib.
+
+
 def _likelihood_fit(data: csr_matrix, conv_factor: float, pdf: SpectrumPDF,
                     pdf_derivative: callable) -> Optional[Tuple[np.ndarray, np.ndarray]]:
     """Perform the likelihood fit for a region of the detector.
 
     Returns
     -------
-    gain : np.ndarray
-        The gain values for the pixels in the region, calculated from the fit.
+    equalization : np.ndarray
+        The equalization values for the pixels in the region, calculated from the fit.
     error : np.ndarray
-        The error on the gain values for the pixels in the region, calculated from the fit.
+        The error on the equalization values for the pixels in the region, calculated
+        from the fit.
     """
     # Define the negative log-likelihood function for the fit.
     def nll(pars):
@@ -635,12 +652,12 @@ def _likelihood_fit(data: csr_matrix, conv_factor: float, pdf: SpectrumPDF,
         m.limits = [(1e-10, None) for _ in range(len(init_pars))]
         m.errordef = Minuit.LIKELIHOOD
         m.migrad()
-    # If the fit is successful, return the gain values and their errors, otherwise
-    # return None.
+    # If the fit is successful, return the pixel equalization values and their errors,
+    # otherwise return None.
     if m.valid:
-        gain = 1 / np.array(m.values)
+        equalization = 1 / np.array(m.values)
         error = m.errors / np.array(m.values)**2
-        return gain, error
+        return equalization, error
     return None
 
 
@@ -737,25 +754,28 @@ def _fit_block(
     # If the fit is not successful, return None and continue with the next block.
     if result is None:
         return None
-    # If the fit is successful, return the gain values and their errors and the
+    # If the fit is successful, return the equalization values and their errors and the
     # coordinates of the active pixels.
     return result[0], result[1], rows[active_mask], cols[active_mask], num_events_per_pixel
 
 
-class CalibrateGain(CalibrateBase):
+class CalibrateEqualization(CalibrateBase):
 
-    """Calibrate the gain of the detector by analyzing the events in a DigiFile. This class takes a
-    CalibrationMatrix object as input, and updates the matrix with the data from the file.
+    """Calculate the equalization matrix for the detector readout. This matrix is used
+    to convert the PHA values to Pulse Invariant (PI). By the definition, the mean value
+    of the matrix is 1.0.
 
-    At the moment, the dataset used for this task should contain events from a monochromatic source
-    and with known energy.
-
+    The calibration is peformed by analyzing events in a DigiFile.
+    
     Arguments
     ---------
-    cal_matrix : CalibrationMatrix
-        Calibration matrix to be updated with the gain values calculated from the data.
-    energy : float
-        The energy of the monochromatic source, in eV.
+    num_cols : int
+        The number of columns of the detector readout chip.
+    num_rows : int
+        The number of rows of the detector readout chip.
+    pdf : SpectrumPDF
+        The probability density function of the spectrum of the events in the dataset, which is
+        used for the likelihood fit to calculate the equalization values for the pixels.
     """
 
     def __init__(self, num_cols: int, num_rows: int, pdf: SpectrumPDF) -> None:
@@ -786,8 +806,17 @@ class CalibrateGain(CalibrateBase):
         self._event_count += 1
         self.cal_matrix.num_events += 1
 
-    def fit(self) -> CalibrationMatrix:
+    def fit(self, size: int) -> CalibrationMatrix:
         """Fit the collected events to determine the gain of each pixel.
+
+        Arguments
+        ---------
+        size : int
+            The length of the square chip region to be fitted simultaneously. The optimal
+            value for this parameter is a trade-off between the number of active pixels in
+            the chip and the computational time of the fit, which increases significantly
+            with the number of pixels. For small active regions, a size of 6 can be a good
+            choice, while for the full chip calibration, 10 is a good value. 
 
         Returns
         -------
@@ -812,10 +841,8 @@ class CalibrateGain(CalibrateBase):
         # Calculate the sum of the ADC counts in each event, which is used for the data
         # cuts in the fit, and to calculate the mean ADC count in an event.
         event_sum = data_csr.sum(axis=1).A1
-        # Calculate the mean of the ADC counts in an event.
-        conv_factor = self._pdf.mean() / event_sum.mean()
-        # Define the size of the blocks to fit contemporarily.
-        size = 6
+        # Calculate the conversion factor from ADC to eV.
+        adc_to_ev = self._pdf.mean() / event_sum.mean()
         # Calculate the starting column and row indices for the blocks. We are using an
         # overlap of 2 pixels between the blocks to ensure that pixels on the edges are
         # correctly calibrated.
@@ -834,7 +861,7 @@ class CalibrateGain(CalibrateBase):
         del data_csr, data_pha, data_coords, data_event_rows
         gc.collect()
         # Start the parallel processing of the blocks.
-        args = (size, nrows, ncols, data_csc, event_sum, conv_factor,
+        args = (size, nrows, ncols, data_csc, event_sum, adc_to_ev,
                 self._pdf, self._pdf_derivative)
         bar_format = "{desc}: {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
         results = Parallel(n_jobs=-1, backend="loky")(
@@ -867,10 +894,41 @@ class CalibrateGain(CalibrateBase):
         self.cal_matrix.values = values
         self.cal_matrix.errors = errors
         self.cal_matrix.entries = entries
+        self.cal_matrix._cached_metadata[CalibrationMetadata.ADC_TO_EV] = adc_to_ev
         return self.cal_matrix
 
 
+class CalibrateGain:
+
+    """Class for calibrating the gain of the readout chip.
+
+    This class provides methods to calculate the gain values based on the equalization
+    matrix and sensor material properties.
+    """
+
+    def __init__(self, equalization_matrix: CalibrationMatrix, material_symbol: str) -> None:
+        """Class constructor.
+        """
+        num_rows, num_cols = equalization_matrix.shape
+        self.cal_matrix = CalibrationMatrix(num_cols, num_rows)
+        self.equalization_matrix = equalization_matrix
+        self.material_symbol = material_symbol
+    
+    def fit(self) -> CalibrationMatrix:
+        """Calculate the gain values based on the equalization matrix and the sensor material
+        properties, and update the calibration matrix with the calculated values.
+        """
+        ionization_potential = xraydb.ionization_potential(self.material_symbol)
+        conv_factor = self.equalization_matrix.metadata[CalibrationMetadata.ADC_TO_EV] / ionization_potential
+        self.cal_matrix.values = self.equalization_matrix.values / conv_factor
+        self.cal_matrix.errors = self.equalization_matrix.errors / conv_factor
+        self.cal_matrix.entries = self.equalization_matrix.entries
+        self.cal_matrix.num_events = self.equalization_matrix.num_events
+        return self.cal_matrix
+        
+
 class CalibrateENC:
+
     """Class for calibrating the equivalent noise charge (ENC) of the readout chip.
 
     This class provides methods to calculate the ENC values based on the noise and gain
@@ -878,7 +936,7 @@ class CalibrateENC:
     """
 
     def __init__(self, noise_matrix: CalibrationMatrix, gain_matrix: CalibrationMatrix) -> None:
-        """Class constructor
+        """Class constructor.
         """
         if noise_matrix.shape != gain_matrix.shape:
             raise ValueError("Noise and gain matrices must have the same shape.")

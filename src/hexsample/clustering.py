@@ -43,6 +43,7 @@ class Cluster:
     col: np.ndarray
     row: np.ndarray
     pha: np.ndarray
+    adc_to_ev: float
     pos_recon_algorithm: str
     recon_pars: Optional[dict] = None
 
@@ -61,6 +62,11 @@ class Cluster:
         """Return the total pulse height of the cluster.
         """
         return self.pha.sum()
+
+    def energy(self) -> float:
+        """Return the energy of the cluster in eV.
+        """
+        return self.pulse_height() * self.adc_to_ev
 
     def centroid(self) -> Tuple[float, float]:
         """Return the cluster centroid.
@@ -348,4 +354,4 @@ class ClusteringNN(ClusteringBase):
         # Sort the arrays in decreasing order before applying the position suppression.
         pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
         x, y = self.readout.pixel_to_world(col, row)
-        return Cluster(x, y, col, row, pha, self.pos_recon_algorithm, self.recon_pars)
+        return Cluster(x, y, col, row, pha, readout.gain.metadata["adc_to_ev"], self.pos_recon_algorithm, self.recon_pars)

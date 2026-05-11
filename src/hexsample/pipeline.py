@@ -50,7 +50,7 @@ def reconstruct(**kwargs) -> str:
     input_file_path = kwargs["input_file"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
-    gain_matrix = kwargs["gain"]
+    equalization_matrix = kwargs["equalization"]
     suffix = kwargs.get("suffix", defaults.suffix)
     zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
@@ -64,7 +64,7 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
                   eta_3pix_rad_pivot, eta_3pix_theta_sigma)
-    args = input_file_path, noise_matrix, pedestal_matrix, gain_matrix, suffix, \
+    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, suffix, \
             zero_sup_threshold,num_neighbors, max_neighbors, pos_recon_algorithm, *recon_args
     return tasks.reconstruct(*args, kwargs)
 
@@ -81,13 +81,13 @@ def calibrate_eta(**kwargs) -> None:
     """Calibrate the eta function using the events from a digi file.
     """
     input_file_path = kwargs["input_file"]
-    gain_matrix = kwargs["gain"]
+    equalization_matrix = kwargs["equalization"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
     num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationEtaDefaults.zero_sup_threshold)
-    args = input_file_path, noise_matrix, pedestal_matrix, gain_matrix, num_bins, \
+    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, num_bins, \
             zero_sup_threshold
     return tasks.calibrate_eta(*args)
 
@@ -119,16 +119,27 @@ def calibrate_enc(**kwargs) -> str:
     return tasks.calibrate_enc(*args)
 
 
-def calibrate_gain(**kwargs) -> str:
-    """Calibrate the gain of the chip.
+def calibrate_equalization(**kwargs) -> str:
+    """Calibrate the equalization of the chip.
     """
     input_file_path = kwargs["input_file"]
     pdf = kwargs["pdf"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
+    size = kwargs.get("size", tasks.CalibrationEqualizationDefaults.size)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
-                                    tasks.CalibrationGainDefaults.zero_sup_threshold)
-    args = input_file_path, pdf, noise_matrix, pedestal_matrix, zero_sup_threshold
+                                    tasks.CalibrationEqualizationDefaults.zero_sup_threshold)
+    args = input_file_path, pdf, noise_matrix, pedestal_matrix, size, zero_sup_threshold
+    return tasks.calibrate_equalization(*args)
+
+
+def calibrate_gain(**kwargs) -> str:
+    """Calibrate the gain of the chip.
+    """
+    equalization_matrix = kwargs["equalization"]
+    material_symbol = kwargs.get("material_symbol", tasks.CalibrationGainDefaults.material_symbol)
+    output_dir = kwargs.get("output_dir", tasks.CalibrationGainDefaults.output_dir)
+    args = equalization_matrix, material_symbol, output_dir
     return tasks.calibrate_gain(*args)
 
 
@@ -151,10 +162,10 @@ def display(**kwargs) -> None:
     """Display events from a digi or recon file.
     """
     input_file_path = kwargs["input_file"]
-    gain_matrix = kwargs["gain"]
+    equalization_matrix = kwargs["equalization"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
-    args = input_file_path, noise_matrix, pedestal_matrix, gain_matrix
+    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix
     return tasks.display(*args)
 
 
