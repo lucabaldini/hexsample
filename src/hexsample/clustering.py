@@ -307,6 +307,7 @@ class ClusteringNN(ClusteringBase):
            for speed using proper numpy array for the offset indexes.
         """
         readout = self.readout
+        adc_to_ev = readout.gain.metadata["adc_to_ev"]
         if isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
             # Trailing -1 is bc the central px is already considered.
@@ -354,4 +355,4 @@ class ClusteringNN(ClusteringBase):
         # Sort the arrays in decreasing order before applying the position suppression.
         pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
         x, y = self.readout.pixel_to_world(col, row)
-        return Cluster(x, y, col, row, pha, readout.gain.metadata["adc_to_ev"], self.pos_recon_algorithm, self.recon_pars)
+        return Cluster(x, y, col, row, pha, adc_to_ev, self.pos_recon_algorithm, self.recon_pars)

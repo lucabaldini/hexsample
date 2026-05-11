@@ -34,7 +34,6 @@ from tqdm import tqdm
 from . import rng
 from .analysis import create_histogram
 from .calibration import (
-    CalibrationMetadata,
     CALIBRATION_UNITS,
     CalibrateDark,
     CalibrateENC,
@@ -42,6 +41,7 @@ from .calibration import (
     CalibrateGain,
     CalibrateNoise,
     CalibrationMatrix,
+    CalibrationMetadata,
     CalibrationType,
 )
 from .clustering import ClusteringNN
@@ -545,7 +545,7 @@ def synthesize_calibration_file(
     calibration_matrix = CalibrationMatrix(num_cols, num_rows)
     rms = mean * percent_rms / 100
     if calibration_type == CalibrationType.EQUALIZATION:
-        calibration_matrix._cached_metadata[CalibrationMetadata.ADC_TO_EV] = mean
+        calibration_matrix.update_metadata(CalibrationMetadata.ADC_TO_EV, mean)
         rms /= mean
         mean = 1.
     logger.info(f"Generating {calibration_type.value} calibration matrix with "

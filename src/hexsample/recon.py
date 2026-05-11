@@ -25,6 +25,7 @@ from typing import Tuple
 
 from .clustering import Cluster
 
+
 @dataclass
 class ReconEventBase:
 

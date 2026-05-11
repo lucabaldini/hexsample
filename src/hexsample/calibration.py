@@ -215,6 +215,18 @@ class CalibrationMatrix:
         self._cached = True
         return self._cached_metadata
 
+    def update_metadata(self, key: CalibrationMetadata, value) -> None:
+        """Update the metadata of the calibration matrix with a new key-value pair.
+
+        Arguments
+        ---------
+        key : CalibrationMetadata
+            The key of the metadata to be updated.
+        value :
+            The value of the metadata to be updated.
+        """
+        self._cached_metadata[key] = value
+
     def set_value(self, value: float) -> None:
         """Set a value for all the pixels in the calibration matrix.
 
@@ -333,8 +345,9 @@ class CalibrationMatrix:
         """
         if CalibrationMetadata.FILE_NAME in self._cached_metadata:
             return self._cached_metadata[CalibrationMetadata.FILE_NAME]
-        return f"CalibrationMatrix(num_cols={self._cached_metadata[CalibrationMetadata.NUM_COLS]}, " \
-                f"num_rows={self._cached_metadata[CalibrationMetadata.NUM_ROWS]})"
+        return f"CalibrationMatrix( " \
+               f"num_cols={self._cached_metadata[CalibrationMetadata.NUM_COLS]}, " \
+               f"num_rows={self._cached_metadata[CalibrationMetadata.NUM_ROWS]})"
 
 
 class CalibrateBase:
@@ -894,7 +907,7 @@ class CalibrateEqualization(CalibrateBase):
         self.cal_matrix.values = values
         self.cal_matrix.errors = errors
         self.cal_matrix.entries = entries
-        self.cal_matrix._cached_metadata[CalibrationMetadata.ADC_TO_EV] = adc_to_ev
+        self.cal_matrix.update_metadata(CalibrationMetadata.ADC_TO_EV, adc_to_ev)
         return self.cal_matrix
 
 
@@ -913,19 +926,26 @@ class CalibrateGain:
         self.cal_matrix = CalibrationMatrix(num_cols, num_rows)
         self.equalization_matrix = equalization_matrix
         self.material_symbol = material_symbol
-    
+
     def fit(self) -> CalibrationMatrix:
         """Calculate the gain values based on the equalization matrix and the sensor material
         properties, and update the calibration matrix with the calculated values.
         """
+        # Get the ionization potential of the sensor material and the conversion factor
+        # from ADC to eV from the metadata of the equalization matrix.
         ionization_potential = xraydb.ionization_potential(self.material_symbol)
-        conv_factor = self.equalization_matrix.metadata[CalibrationMetadata.ADC_TO_EV] / ionization_potential
-        self.cal_matrix.values = self.equalization_matrix.values / conv_factor
-        self.cal_matrix.errors = self.equalization_matrix.errors / conv_factor
+        adc_to_ev = self.equalization_matrix.metadata[CalibrationMetadata.ADC_TO_EV]
+        # Calculate the conversion factor from ADC to electrons.
+        adc_to_electrons = adc_to_ev / ionization_potential
+        # Calculate the gain values as the equalization values divided by the conversion
+        # factor and update the errors.
+        self.cal_matrix.values = self.equalization_matrix.values / adc_to_electrons
+        self.cal_matrix.errors = self.equalization_matrix.errors / adc_to_electrons
+        # Update some metadata for the gain matrix.
         self.cal_matrix.entries = self.equalization_matrix.entries
         self.cal_matrix.num_events = self.equalization_matrix.num_events
         return self.cal_matrix
-        
+
 
 class CalibrateENC:
 
