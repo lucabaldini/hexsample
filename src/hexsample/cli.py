@@ -425,7 +425,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                            type=str, default="centroid", help="How to reconstruct position")
         CliArgumentParser.add_cal_noise_file(group, default=None, required=True)
         CliArgumentParser.add_cal_pedestal_file(group, default=None, required=True)
-        # CliArgumentParser.add_cal_gain_file(group, default=None, required=True)
         CliArgumentParser.add_cal_equalization_file(group, default=None, required=True)
         group.add_argument("--eta_2pix_rad_sigma", default=defaults.eta_2pix_rad_sigma, type=float,
                            help="probit function sigma parameter for two pixel" \

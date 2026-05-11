@@ -312,6 +312,8 @@ class ClusteringNN(ClusteringBase):
             # If the readout is circular, we want to take all the neirest neighbors.
             # Trailing -1 is bc the central px is already considered.
             self.num_neighbors = 6 #HexagonalReadoutCircular.NUM_PIXELS - 1
+            if readout.is_at_border(event.column, event.row):
+                return None
             col = [event.column]
             row = [event.row]
             adc_channel_order = [readout.adc_channel(event.column, event.row)]

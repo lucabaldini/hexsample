@@ -46,10 +46,10 @@ class CalibrationType(str, Enum):
     """
 
     ENC = "enc"
-    PEDESTAL = "pedestal"
-    NOISE = "noise"
-    GAIN = "gain"
     EQUALIZATION = "equalization"
+    GAIN = "gain"
+    NOISE = "noise"
+    PEDESTAL = "pedestal"
 
     @classmethod
     def values(cls) -> Tuple[str, ...]:
@@ -85,18 +85,18 @@ class CalibrationUnits(str, Enum):
     """
 
     ENC = "Electrons"
+    EQUALIZATION = ""
+    GAIN = "ADC counts / electron"
     NOISE = "ADC counts"
     PEDESTAL = "ADC counts"
-    GAIN = "ADC counts / electron"
-    EQUALIZATION = ""
 
 
 CALIBRATION_UNITS = {
     CalibrationType.ENC: CalibrationUnits.ENC,
+    CalibrationType.EQUALIZATION: CalibrationUnits.EQUALIZATION,
+    CalibrationType.GAIN: CalibrationUnits.GAIN,
     CalibrationType.NOISE: CalibrationUnits.NOISE,
     CalibrationType.PEDESTAL: CalibrationUnits.PEDESTAL,
-    CalibrationType.GAIN: CalibrationUnits.GAIN,
-    CalibrationType.EQUALIZATION: CalibrationUnits.EQUALIZATION
 }
 
 
@@ -115,9 +115,9 @@ class CalibrationMatrix:
         The number of rows of the detector readout chip.
     """
 
-    VALUES = "values"
     ENTRIES = "entries"
     ERRORS = "errors"
+    VALUES = "values"
 
     def __init__(self, num_cols: int, num_rows: int) -> None:
         """Class constructor.

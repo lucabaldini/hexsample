@@ -4,6 +4,35 @@ Release notes
 =============
 
 
+* Package dependencies updated: `joblib` and `iminuit` added.
+* New calibration matrix type `equalization` added in `caldb.py` to store the pixel equalization
+  factors.
+* New `CalibrateEqualization` class to calibrate the pixel equalization factors. This is
+  performed with a likelihood fit using the source spectrum probability density function (PDF)
+  and the observed energy of the events. Corresponding CLI command `calibgen equalization` added
+  to generate equalization calibration files from event files.
+* The `CalibrateGain` class has been refactored. Now it produces a gain calibration matrix from
+  a equalization calibration matrix, by using the ADC to eV conversion and the chip sensor
+  matieral. The gain matrix is expressed in ADC counts per electron. Corresponding CLI command
+  `calibgen gain` refactored to reflect this change.
+* Some CLI commands refactored to use the equalization calibration file instead of the gain
+  calibration file (`reconstruct`, `display`, `calibgen eta`).
+* New `pdf.py` module containing facilities to calculate the PDF of the source spectrum and store
+  it in a `.npz` file.
+* Added `calibspec` CLI command to create a source spectrum PDF file from a reconstructed event
+  file. The PDF is saved as a `.npz` file.
+* New `adc` method to calculate the total ADC counts of the event added to `ReconEvent`. Now a
+  reconstructed file contains both the ADC counts and the energy in eV of the events (if the 
+  conversion factor from ADC to eV is available in the equalization calibration file).
+* New `energy` method to calculate the total energy of the event added to `Cluster`. The
+  conversion factor from ADC to eV is passed by `ClusteringNN`.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/132
+  - https://github.com/lucabaldini/hexsample/issues/129
+
+
+
 Version 0.16.0 (2026-05-05)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

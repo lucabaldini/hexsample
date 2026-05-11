@@ -730,8 +730,8 @@ def calibrate_equalization(
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
-    # Initialize the gain matrix and run the calibration.
-    gain_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
+    # Initialize the equalization matrix and run the calibration.
+    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
     logger.info("Starting the event loop...")
@@ -742,9 +742,9 @@ def calibrate_equalization(
             continue
         if cluster is None:
             continue
-        gain_calibration.analyze_cluster(cluster)
-    logger.info("Calculating the gain matrix...")
-    equalization_matrix = gain_calibration.fit(size)
+        equalization_calibration.analyze_cluster(cluster)
+    logger.info("Calculating the equalization matrix...")
+    equalization_matrix = equalization_calibration.fit(size)
     output_file_path = input_file_path.replace(".h5", "_matrix_equalization.h5")
     logger.info(f"Saving equalization matrix to {output_file_path}...")
     equalization_matrix.to_hdf5(output_file_path, CalibrationType.EQUALIZATION, False)
