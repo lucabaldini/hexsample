@@ -124,13 +124,15 @@ def calibrate_equalization(**kwargs) -> str:
     """Calibrate the equalization of the chip.
     """
     input_file_path = kwargs["input_file"]
-    pdf = kwargs["pdf"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
+    algorithm = kwargs["algorithm"]
+    pdf = kwargs["pdf"]
     size = kwargs.get("size", tasks.CalibrationEqualizationDefaults.size)
     zero_sup_threshold = kwargs.get("zero_sup_threshold",
                                     tasks.CalibrationEqualizationDefaults.zero_sup_threshold)
-    args = input_file_path, pdf, noise_matrix, pedestal_matrix, size, zero_sup_threshold
+    args = input_file_path, noise_matrix, pedestal_matrix, algorithm, \
+            pdf, size, zero_sup_threshold
     return tasks.calibrate_equalization(*args)
 
 

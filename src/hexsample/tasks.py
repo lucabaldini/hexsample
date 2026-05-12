@@ -687,15 +687,18 @@ class CalibrationEqualizationDefaults:
     definition in this Python module and the command-line interface.
     """
 
+    algorithm: str = "relative"
+    pdf: Optional[SpectrumPDF] = None
     size: int = 10
     zero_sup_threshold: int = 20
 
 
 def calibrate_equalization(
         input_file_path: str,
-        pdf: SpectrumPDF,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
+        algorithm: str = CalibrationEqualizationDefaults.algorithm,
+        pdf: Optional[SpectrumPDF] = CalibrationEqualizationDefaults.pdf,
         size: int = CalibrationEqualizationDefaults.size,
         zero_sup_threshold: int = CalibrationEqualizationDefaults.zero_sup_threshold
         ) -> str:
@@ -734,9 +737,9 @@ def calibrate_equalization(
         header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the equalization matrix and run the calibration.
-    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
+    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], algorithm, pdf)
     logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         try:
@@ -746,7 +749,10 @@ def calibrate_equalization(
         if cluster is not None:
             equalization_calibration.analyze_cluster(cluster)
     logger.info("Calculating the equalization matrix...")
-    equalization_matrix = equalization_calibration.fit(size)
+    if algorithm == "relative":
+        equalization_matrix = equalization_calibration.fit()
+    elif algorithm == "absolute":
+        equalization_matrix = equalization_calibration.fit(size=size)
     output_file_path = input_file_path.replace(".h5", "_matrix_equalization.h5")
     logger.info(f"Saving equalization matrix to {output_file_path}...")
     equalization_matrix.to_hdf5(output_file_path, CalibrationType.EQUALIZATION, False)

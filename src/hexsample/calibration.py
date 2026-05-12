@@ -858,40 +858,64 @@ class CalibrateEqualization(CalibrateBase):
         The number of columns of the detector readout chip.
     num_rows : int
         The number of rows of the detector readout chip.
+    algorithm : str
+        The algorithm to be used for the calculation of the equalization values. The options
+        are "absolute" and "relative". The "absolute" algorithm performs a likelihood fit to
+        calculate the gain of each pixel, while the "relative" algorithm calculates the
+        equalization values by comparing the mean PHA of 1-pixel events.
     pdf : SpectrumPDF
         The probability density function of the spectrum of the events in the dataset, which is
         used for the likelihood fit to calculate the equalization values for the pixels.
     """
 
-    def __init__(self, num_cols: int, num_rows: int, pdf: SpectrumPDF) -> None:
+    def __init__(self, num_cols: int, num_rows: int, algorithm: str = "relative",
+                 pdf: Optional[SpectrumPDF] = None) -> None:
         """Class constructor.
         """
         super().__init__(num_cols, num_rows)
-        self._event_count = 0
-        self._pha = []
-        self._coords = []
-        self._event_rows = []
-        self._pdf = pdf
-        self._pdf_derivative = pdf.derivative
+        self._algorithm = algorithm
+        # Initiliaze the data structures for the absolute calibration algorithm.
+        if algorithm == "absolute":
+            self._event_count = 0
+            self._pha = []
+            self._coords = []
+            self._event_rows = []
+            if pdf is None:
+                raise ValueError("A SpectrumPDF object must be provided for the "
+                                 "absolute equalization calibration.")
+            self._pdf = pdf
+            self._pdf_derivative = pdf.derivative
+        # Initialize the data structures for the relative calibration algorithm.
+        elif algorithm == "relative":
+            self._stats = RunningStats(shape=self.cal_matrix.shape)
+        else:
+            raise ValueError(f"Invalid algorithm {algorithm} for the equalization calibration. "
+                             f"Valid options are 'absolute' and 'relative'.")
 
     def analyze_cluster(self, cluster: Cluster) -> None:
         """Analyze the event cluster to update the calibration matrix.
         """
-        # Get the coordinates of the cluster pixels
-        cols = cluster.col
-        rows = cluster.row
-        # Update the arrays for the least squares fit.
-        self._pha.extend(cluster.pha)
-        ncols = self.cal_matrix.shape[1]
-        for col, row in zip(cols, rows):
-            # Calculate the index of the pixel in the flattened array
-            self._coords.append(row * ncols + col)
-            self._event_rows.append(self._event_count)
-        # Update the event count
-        self._event_count += 1
-        self.cal_matrix.num_events += 1
+        if self._algorithm == "absolute":
+            # Get the coordinates of the cluster pixels
+            cols = cluster.col
+            rows = cluster.row
+            # Update the arrays for the least squares fit.
+            self._pha.extend(cluster.pha)
+            ncols = self.cal_matrix.shape[1]
+            for col, row in zip(cols, rows):
+                # Calculate the index of the pixel in the flattened array
+                self._coords.append(row * ncols + col)
+                self._event_rows.append(self._event_count)
+            # Update the event count
+            self._event_count += 1
+            self.cal_matrix.num_events += 1
+        elif self._algorithm == "relative":
+            if cluster.size() == 1:
+                pha = cluster.pha.reshape((1, 1))
+                self._stats.update(pha, offset=(cluster.row[0], cluster.col[0]))
+                self.cal_matrix.num_events += 1
 
-    def fit(self, size: int) -> CalibrationMatrix:
+    def _fit_absolute(self, size: int) -> CalibrationMatrix:
         """Fit the collected events to determine the gain of each pixel.
 
         Arguments
@@ -981,86 +1005,54 @@ class CalibrateEqualization(CalibrateBase):
         self.cal_matrix.entries = entries
         self.cal_matrix.update_metadata(CalibrationMetadata.ADC_TO_EV, adc_to_ev)
         return self.cal_matrix
-
-
-# This class may be moved inside the CalibrateEqualization class, but for now we are keeping it
-# separate to not create a mess.
-class CalibrateEqualRelative(CalibrateBase):
-
-    def __init__(self, num_cols: int, num_rows: int) -> None:
-        """Class constructor.
-        """
-        super().__init__(num_cols, num_rows)
-        xedges = np.linspace(0, num_cols, num_cols + 1)
-        yedges = np.linspace(0, num_rows, num_rows + 1)
-        # For now just use a fixed number, but we need to fix this
-        zedges = np.linspace(0, 2048, 2049)
-        self._histogram = Histogram3d(xedges, yedges, zedges)
-        # Batch analysis
-        self._pha = []
-        self._cols = []
-        self._rows = []
-
-    def analyze_cluster(self, cluster: Cluster) -> None:
-        """Analyze the event cluster to update the calibration matrix.
-        """
-        # Get the coordinates of the cluster pixels
-        # Update the arrays for the least squares fit.
-        if cluster.size() <= 1:                
-            self._pha.extend(cluster.pha)
-            self._cols.extend(cluster.col)
-            self._rows.extend(cluster.row)
-            # Update the event count
-            self.cal_matrix.num_events += 1
-        if len(self._pha) >= 1000000:
-            self.update_hist()
     
-    def update_hist(self) -> None:
-        """Fill the histogram with the accumulated data and update the hits for the pixels that
-        have been filled in the histogram.
+    def _fit_relative(self) -> CalibrationMatrix:
+        """Analyze the collected data to calculate the equalization values
+        for the pixels and update the calibration matrix with the calculated values.
+
+        Returns
+        -------
+        cal_matrix : CalibrationMatrix
+            Updated calibration matrix with the equalization values calculated from the data.
         """
-        if len(self._pha) > 0:
-            pha = np.array(self._pha)
-            cols = np.array(self._cols)
-            rows = np.array(self._rows)
-            # Fill the histogram with the accumulated data.
-            self._histogram.fill(cols, rows, pha)
-            # Update the hits for the pixels that have been filled in the histogram.
-            # This operation cannot be done with ar[rows, cols] += 1 because it only updates
-            # the value once for repeated indexes.
-            np.add.at(self.cal_matrix.entries, (rows, cols), 1)
-            # Reset the batch arrays
-            self._pha = []
-            self._cols = []
-            self._rows = []
-
-    def fit(self) -> CalibrationMatrix:
-        """Analyze the histogram to calculate the noise and pedestal values for each pixel, and
-        update the calibration matrices.
-
-        At the moment, the pedestal and noise values are estimated as the mean and the standard
-        deviation of the pixel value distribution for each pixel.
-        """
-        # Calculate the mean and the standard deviation of the pixel value distribution for
-        # each pixel.
-        print("Filling histogram with the collected data...")
-        self.update_hist()
-
-        histo_mean, histo_sigma = self._histogram.project_statistics(axis=2)
-        mu = histo_mean.content.T
-        sigma = histo_sigma.content.T
-        # Update the noise and pedestal matrices with the calculated values for the pixels that
-        # have at least one hit.
-        equalization_matrix = np.where(self.cal_matrix.entries > 0, mu, self.cal_matrix.values)
-        mean = np.nanmean(equalization_matrix[equalization_matrix > 0])
-        print(f"Mean equalization value: {mean}")
-        equalization_matrix /= mean
-        # Write the matrices
-        self.cal_matrix.values = equalization_matrix
+        # Get the mean and the standard deviation of the pixel value distribution
+        # for each pixel.
+        mu = self._stats.mean()
+        std = self._stats.std()
+        # Calculate the mean value of the pixel averages. This value is used to
+        # normalize the equalization values, imposing that the mean of the distribution
+        # of the equalization values is 1.0.
+        # Note that we are using nanmean and masking values above zero to avoid
+        # numerical issues.
+        mean = np.nanmean(mu[mu > 0])
+        mu /= mean
+        # Write the equalization values to the calibration matrix.
+        self.cal_matrix.values = np.where(mu > 0, mu, self.cal_matrix.values)
+        # Update the entries.
+        self.cal_matrix.entries = self._stats.counts()
+        # Calculate the errors on the pixels as the standard deviation of the
+        # sample mean, divided by the total mean.
         mask = self.cal_matrix.entries > 1
-        self.cal_matrix.errors[mask] = sigma[mask] / mean / np.sqrt((self.cal_matrix.entries[mask] - 1))
+        denominator = mean * np.sqrt(self.cal_matrix.entries - 1, where=mask,
+                              out=np.full_like(self.cal_matrix.entries, np.nan, dtype=float))
+        np.divide(std, denominator, out=self.cal_matrix.errors, where=mask)
+        self.cal_matrix.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.)
         return self.cal_matrix
 
+    def fit(self, **kwargs) -> CalibrationMatrix:
+        """Calculate the equalization calibration matrix.
+
+        Returns
+        -------
+        equalization_matrix : CalibrationMatrix
+            Updated calibration matrix with the equalization values calculated from the data.
+        """
+        if self._algorithm == "absolute":
+            return self._fit_absolute(**kwargs)
+        elif self._algorithm == "relative":
+            return self._fit_relative()
+        else:
+            raise ValueError(f"Invalid algorithm {self._algorithm} for the equalization calibration.")
 
 
 class CalibrateGain:
