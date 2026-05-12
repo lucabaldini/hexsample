@@ -710,21 +710,27 @@ def calibrate_equalization(
     input_file_path : str
         The path to the input file.
 
-    pdf : SpectrumPDF
-        The spectrum probability density function to use for the gain calibration.
-
     noise_matrix : CalibrationMatrix
-        The calibration noise matrix to use for the gain calibration.
+        The calibration noise matrix to use for the pixel equalization calibration.
 
     pedestal_matrix : CalibrationMatrix
-        The pedestal matrix to use for the gain calibration.
-    
-    size : int
-        The length of the square region of the chip to fit simultaneously during the
+        The pedestal matrix to use for the pixel equalization calibration.
+
+    algorithm : str, optional
+        The algorithm to use for the pixel equalization calibration. Supported values
+        are "relative" and "absolute".
+
+    pdf : SpectrumPDF, optional
+        The spectrum probability density function to use for the pixel equalization
         calibration.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold to use for the clustering in the gain calibration.
+    size : int, optional
+        The length of the square region of the chip to fit simultaneously during the
+        pixel equalization calibration.
+
+    zero_sup_threshold : int, optional
+        The zero-suppression threshold to use for the clustering in the pixel
+        equalization calibration.
     """
     # Open the input file and extract the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -750,12 +756,7 @@ def calibrate_equalization(
         if cluster is not None:
             equalization_calibration.analyze_cluster(cluster)
     logger.info("Calculating the equalization matrix...")
-    if algorithm == "relative":
-        equalization_matrix = equalization_calibration.fit()
-    elif algorithm == "absolute":
-        equalization_matrix = equalization_calibration.fit(size=size)
-    else:
-        raise ValueError(f"Unsupported equalization calibration algorithm: {algorithm}")
+    equalization_matrix = equalization_calibration.fit(size=size)
     output_file_path = input_file_path.replace(".h5", "_matrix_equalization.h5")
     logger.info(f"Saving equalization matrix to {output_file_path}...")
     equalization_matrix.to_hdf5(output_file_path, CalibrationType.EQUALIZATION, False)
