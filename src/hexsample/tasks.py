@@ -29,6 +29,7 @@ from typing import Optional, Tuple, Union
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.plotting import plt, setup_gca
+from aptapy.models import Line
 from tqdm import tqdm
 
 from . import rng
@@ -1030,10 +1031,14 @@ def calibview(
         mc_vals_hist.plot(statistics=True)
         plt.legend()
         # Plot the correlation between the calibrated values and the Monte Carlo truth values.
-        x = np.linspace(mc_edges[0], mc_edges[-1], 2)
         plt.figure("Correlation between calibrated values and Monte Carlo truth values")
         plt.scatter(vals, mc_vals[mask.flatten()], alpha=0.1, s=10)
-        plt.plot(x, x, color="k", linestyle="--")
+        line = Line()
+        line.intercept.freeze(0.)
+        line.fit(vals, mc_vals[mask.flatten()])
+        label = f"Slope: {line.slope.ufloat()}"
+        line.plot(label=label, color="black", linestyle="--", )
+        plt.legend()
         plt.xlabel(f"Calibrated values [{unit}]")
         plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
         # Plot the residuals distribution.
@@ -1045,10 +1050,10 @@ def calibview(
         residual_hist.plot(statistics=True)
         plt.legend()
         # Plot the pull distribution.
-        # pull = (vals - mc_vals[mask.flatten()]) / matrix.errors.flatten()[mask.flatten()]
-        # pull_edges = np.linspace(np.nanmin(pull), np.nanmax(pull), 100)
-        # pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
-        # plt.figure("Pull distribution")
-        # pull_hist.plot(statistics=True)
-        # plt.legend()
+        pull = (vals - mc_vals[mask.flatten()]) / matrix.errors.flatten()[mask.flatten()]
+        pull_edges = np.linspace(np.nanmin(pull), np.nanmax(pull), 100)
+        pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
+        plt.figure("Pull distribution")
+        pull_hist.plot(statistics=True)
+        plt.legend()
     plt.show()
