@@ -1044,10 +1044,10 @@ def calibview(
         residual_hist.plot(statistics=True)
         plt.legend()
         # Plot the pull distribution.
-        pull = (vals - mc_vals[mask.flatten()]) / matrix.errors.flatten()[mask.flatten()]
-        pull_edges = np.linspace(np.nanmin(pull), np.nanmax(pull), 100)
-        pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
-        plt.figure("Pull distribution")
-        pull_hist.plot(statistics=True)
-        plt.legend()
+        # pull = (vals - mc_vals[mask.flatten()]) / matrix.errors.flatten()[mask.flatten()]
+        # pull_edges = np.linspace(np.nanmin(pull), np.nanmax(pull), 100)
+        # pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
+        # plt.figure("Pull distribution")
+        # pull_hist.plot(statistics=True)
+        # plt.legend()
     plt.show()

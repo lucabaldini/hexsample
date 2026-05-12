@@ -911,6 +911,86 @@ class CalibrateEqualization(CalibrateBase):
         return self.cal_matrix
 
 
+# This class may be moved inside the CalibrateEqualization class, but for now we are keeping it
+# separate to not create a mess.
+class CalibrateEqualRelative(CalibrateBase):
+
+    def __init__(self, num_cols: int, num_rows: int) -> None:
+        """Class constructor.
+        """
+        super().__init__(num_cols, num_rows)
+        xedges = np.linspace(0, num_cols, num_cols + 1)
+        yedges = np.linspace(0, num_rows, num_rows + 1)
+        # For now just use a fixed number, but we need to fix this
+        zedges = np.linspace(0, 2048, 2049)
+        self._histogram = Histogram3d(xedges, yedges, zedges)
+        # Batch analysis
+        self._pha = []
+        self._cols = []
+        self._rows = []
+
+    def analyze_cluster(self, cluster: Cluster) -> None:
+        """Analyze the event cluster to update the calibration matrix.
+        """
+        # Get the coordinates of the cluster pixels
+        # Update the arrays for the least squares fit.
+        if cluster.size() <= 1:                
+            self._pha.extend(cluster.pha)
+            self._cols.extend(cluster.col)
+            self._rows.extend(cluster.row)
+            # Update the event count
+            self.cal_matrix.num_events += 1
+        if len(self._pha) >= 1000000:
+            self.update_hist()
+    
+    def update_hist(self) -> None:
+        """Fill the histogram with the accumulated data and update the hits for the pixels that
+        have been filled in the histogram.
+        """
+        if len(self._pha) > 0:
+            pha = np.array(self._pha)
+            cols = np.array(self._cols)
+            rows = np.array(self._rows)
+            # Fill the histogram with the accumulated data.
+            self._histogram.fill(cols, rows, pha)
+            # Update the hits for the pixels that have been filled in the histogram.
+            # This operation cannot be done with ar[rows, cols] += 1 because it only updates
+            # the value once for repeated indexes.
+            np.add.at(self.cal_matrix.entries, (rows, cols), 1)
+            # Reset the batch arrays
+            self._pha = []
+            self._cols = []
+            self._rows = []
+
+    def fit(self) -> CalibrationMatrix:
+        """Analyze the histogram to calculate the noise and pedestal values for each pixel, and
+        update the calibration matrices.
+
+        At the moment, the pedestal and noise values are estimated as the mean and the standard
+        deviation of the pixel value distribution for each pixel.
+        """
+        # Calculate the mean and the standard deviation of the pixel value distribution for
+        # each pixel.
+        print("Filling histogram with the collected data...")
+        self.update_hist()
+
+        histo_mean, histo_sigma = self._histogram.project_statistics(axis=2)
+        mu = histo_mean.content.T
+        sigma = histo_sigma.content.T
+        # Update the noise and pedestal matrices with the calculated values for the pixels that
+        # have at least one hit.
+        equalization_matrix = np.where(self.cal_matrix.entries > 0, mu, self.cal_matrix.values)
+        mean = np.nanmean(equalization_matrix[equalization_matrix > 0])
+        print(f"Mean equalization value: {mean}")
+        equalization_matrix /= mean
+        # Write the matrices
+        self.cal_matrix.values = equalization_matrix
+        mask = self.cal_matrix.entries > 1
+        self.cal_matrix.errors[mask] = sigma[mask] / mean / np.sqrt((self.cal_matrix.entries[mask] - 1))
+        return self.cal_matrix
+
+
+
 class CalibrateGain:
 
     """Class for calibrating the gain of the readout chip.
