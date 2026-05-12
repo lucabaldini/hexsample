@@ -74,4 +74,3 @@ def test_derivative(size: int = 100000):
     plt.figure("Derivative of a gaussian PDF")
     xx = np.linspace(vals.min()*0.8, vals.max()*1.2, 10000)
     plt.plot(xx, derivative(xx))
-    plt.legend()

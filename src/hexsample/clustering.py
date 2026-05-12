@@ -267,7 +267,6 @@ class ClusteringBase:
         idx = np.argsort(-out_pha)[:3]
         return out_pha[idx], out_col[idx], out_row[idx]
 
-
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
