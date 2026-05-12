@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.16.1 (2026-05-12)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * New `stats.py` module with some common statistical functions, most notably
   a class to accumulate the running statistics using the Welford algorithm.
 * `calibgen dark` now accepts the argument `algorithm` to choose between two different algorithms
