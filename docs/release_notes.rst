@@ -3,10 +3,20 @@
 Release notes
 =============
 
+* New algorithm added to calibrate the pixel equalization factors. This algorithm calculates
+  the gain equalization factors without any assumption on the source spectrum, by analyzing
+  the energy distributions of one-pixel events and comparing them across the pixels.
+* `calibgen equalization` now accepts the argument `algorithm` to choose between two different
+  calibration algorithms: "relative", without using the source spectrum, and "absolute", that
+  needs the source spectrum PDF to be passed as an argument.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/134
+  - https://github.com/lucabaldini/hexsample/issues/133
+
 
 Version 0.16.2 (2026-05-12)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 * Package dependencies updated: `joblib` and `iminuit` added.
 * New calibration matrix type `equalization` added in `caldb.py` to store the pixel equalization
