@@ -30,6 +30,7 @@ import h5py
 import numpy as np
 import xraydb
 from aptapy.hist import Histogram3d
+from aptapy.models import Gaussian
 from iminuit import Minuit
 from joblib import Parallel, delayed
 from scipy.sparse import csc_matrix, csr_matrix
@@ -38,6 +39,7 @@ from tqdm import tqdm
 from .clustering import Cluster
 from .digi import DigiEventRectangular
 from .pdf import SpectrumPDF
+from .stats import RunningStats
 
 
 class CalibrationType(str, Enum):
@@ -131,7 +133,7 @@ class CalibrationMatrix:
         # Other useful information for the metadata
         self.num_events = 0
         self._cached = False
-        self._cached_metadata = {
+        self._metadata = {
             CalibrationMetadata.NUM_COLS: num_cols,
             CalibrationMetadata.NUM_ROWS: num_rows
             }
@@ -157,6 +159,8 @@ class CalibrationMatrix:
             raise ValueError(f"Input matrix has shape {new_matrix.shape}, but expected shape is "
                              f"{self._shape}.")
         self._values = new_matrix
+        # Invalidate the cached metadata since the values of the matrix have changed.
+        self._cached = False
 
     @property
     def entries(self) -> np.ndarray:
@@ -174,6 +178,8 @@ class CalibrationMatrix:
             raise ValueError(f"Input entries matrix has shape {new_entries.shape}, but expected "
                              f"shape is {self._shape}.")
         self._entries = new_entries
+        # Invalidate the cached metadata since the number of events has changed.
+        self._cached = False
 
     @property
     def errors(self) -> np.ndarray:
@@ -190,13 +196,15 @@ class CalibrationMatrix:
             raise ValueError(f"Input error matrix has shape {new_error.shape}, but expected shape "
                              f"is {self._shape}.")
         self._errors = new_error
+        # Invalidate the cached metadata since the error values have changed.
+        self._cached = False
 
     @property
     def metadata(self) -> dict:
         """Return the metadata of the calibration matrix.
         """
         if self._cached:
-            return self._cached_metadata
+            return self._metadata
         mask = self._entries > 0
         # If there are no pixels with events, we can set the average, minimum and maximum number of
         # events to zero.
@@ -207,13 +215,13 @@ class CalibrationMatrix:
         else:
             entries_avg = entries_min = entries_max = 0
         # Setting the metadata values.
-        self._cached_metadata[CalibrationMetadata.NUM_EVENTS] = self.num_events
-        self._cached_metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
-        self._cached_metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
-        self._cached_metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
-        self._cached_metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
+        self._metadata[CalibrationMetadata.NUM_EVENTS] = self.num_events
+        self._metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
+        self._metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
+        self._metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
+        self._metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
         self._cached = True
-        return self._cached_metadata
+        return self._metadata
 
     def update_metadata(self, key: CalibrationMetadata, value) -> None:
         """Update the metadata of the calibration matrix with a new key-value pair.
@@ -225,7 +233,7 @@ class CalibrationMatrix:
         value :
             The value of the metadata to be updated.
         """
-        self._cached_metadata[key] = value
+        self._metadata[key] = value
 
     def set_value(self, value: float) -> None:
         """Set a value for all the pixels in the calibration matrix.
@@ -236,6 +244,7 @@ class CalibrationMatrix:
             The value to be set for all the pixels in the calibration matrix.
         """
         self._values = np.full(self._shape, value)
+        self._cached = False
 
     def fill(self, value: float, max_hits: int = 0) -> None:
         """Substitute the value of the pixels with less hits than or equal to a certain threshold
@@ -251,6 +260,7 @@ class CalibrationMatrix:
             The maximum number of hits for a pixel to be considered for replacement.
         """
         self._values = np.where(self._entries <= max_hits, value, self._values)
+        self._cached = False
 
     def mean(self, min_hits: int = 1) -> float:
         """Return the mean value of the calibration matrix, calculated as the mean of the pixels
@@ -292,9 +302,9 @@ class CalibrationMatrix:
             h5file.create_dataset(self.ERRORS, data=self.errors, dtype=np.float32,
                                   **compression_pars)
             # Update the header with the relevant information and metadata.
-            self._cached_metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type.value
-            self._cached_metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
-            self._cached_metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
+            self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type.value
+            self._metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
+            self._metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
             for key, val in self.metadata.items():
                 h5file.attrs[key] = val
         return file_path
@@ -321,7 +331,7 @@ class CalibrationMatrix:
             obj = cls(num_cols=attrs["num_cols"], num_rows=attrs["num_rows"])
             obj.num_events = attrs.get(CalibrationMetadata.NUM_EVENTS.value)
             for key, val in attrs.items():
-                obj._cached_metadata[key] = val
+                obj._metadata[key] = val
             # Load the matrix and the hits matrices from the HDF5 file.
             obj._values = h5file[obj.VALUES][:]
             obj._entries = h5file[obj.ENTRIES][:]
@@ -343,11 +353,11 @@ class CalibrationMatrix:
     def __str__(self) -> str:
         """Return a string representation of the calibration matrix.
         """
-        if CalibrationMetadata.FILE_NAME in self._cached_metadata:
-            return self._cached_metadata[CalibrationMetadata.FILE_NAME]
+        if CalibrationMetadata.FILE_NAME in self._metadata:
+            return self._metadata[CalibrationMetadata.FILE_NAME]
         return f"CalibrationMatrix( " \
-               f"num_cols={self._cached_metadata[CalibrationMetadata.NUM_COLS]}, " \
-               f"num_rows={self._cached_metadata[CalibrationMetadata.NUM_ROWS]})"
+               f"num_cols={self._metadata[CalibrationMetadata.NUM_COLS]}, " \
+               f"num_rows={self._metadata[CalibrationMetadata.NUM_ROWS]})"
 
 
 class CalibrateBase:
@@ -456,33 +466,41 @@ class CalibrateDark:
     over the entire readout chip. In case of a dataset with source signal, the signal pixels are
     masked out by setting them to zero, and only the remaining pixels are used for the calibration.
 
-    The calibration is performed by estimating the mean and the standard deviation of the pixel
-    value distribution for each pixel, and using these values as the pedestal and noise values.
-
     Arguments
     ---------
-    noise_matrix : CalibrationMatrix
-        Calibration matrix to be updated with the noise values calculated from the data.
-    pedestal_matrix : CalibrationMatrix
-        Calibration matrix to be updated with the pedestal values calculated from the data.
+    num_cols : int
+        The number of columns of the detector readout chip.
+    num_rows : int
+        The number of rows of the detector readout chip.
+    algorithm : str
+        The algorithm to be used for the calculation of the noise and pedestal values. The options
+        are "welford" and "fit".    
     """
 
-    def __init__(self, num_cols: int, num_rows: int) -> None:
+    def __init__(self, num_cols: int, num_rows: int, algorithm: str = "welford") -> None:
         """Class constructor.
         """
         self.noise_cal = CalibrationMatrix(num_cols, num_rows)
         self.pedestal_cal = CalibrationMatrix(num_cols, num_rows)
+        self._algorithm = algorithm
         # Check if the noise and pedestal calibration matrices have the same shape.
         num_rows, num_cols = self.noise_cal.shape
-        xedges = np.linspace(0, num_cols, num_cols + 1)
-        yedges = np.linspace(0, num_rows, num_rows + 1)
-        # For now just use a fixed number, but we need to fix this
-        zedges = np.linspace(0, 2048, 2049)
-        self._histogram = Histogram3d(xedges, yedges, zedges)
-        # Batch analysis
-        self._pha = []
-        self._cols = []
-        self._rows = []
+        if algorithm == "fit":
+            xedges = np.linspace(0, num_cols, num_cols + 1)
+            yedges = np.linspace(0, num_rows, num_rows + 1)
+            # For now just use a fixed number, but we need to fix this
+            zedges = np.linspace(0, 2048, 2049)
+            self._histogram = Histogram3d(xedges, yedges, zedges)
+            # Batch analysis
+            self._pha = []
+            self._cols = []
+            self._rows = []
+        # Welford arrays
+        elif algorithm == "welford":
+            self._stats = RunningStats(shape=self.noise_cal.shape)
+        else:
+            raise ValueError(f"Invalid algorithm {algorithm} for the dark calibration. "
+                             f"Valid options are 'fit' and 'welford'.")
 
     def _remove_signal(self, event: DigiEventRectangular) -> np.ndarray:
         """Remove the signal pixels from the event pha array.
@@ -518,7 +536,7 @@ class CalibrateDark:
         """
         return event.roi.size > max_size
 
-    def update_hist(self) -> None:
+    def _fill_hist(self) -> None:
         """Fill the histogram with the accumulated data and update the hits for the pixels that
         have been filled in the histogram.
         """
@@ -538,6 +556,19 @@ class CalibrateDark:
             self._cols = []
             self._rows = []
 
+    def _update_hist(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray,
+                     batch_size: int) -> None:
+        """Accumulate values to fill the histogram in batch and update it when the batch
+        size is large enough.
+        """
+        # Accumulate the data to fill the histogram in batch.
+        self._pha.extend(pha)
+        self._cols.extend(col)
+        self._rows.extend(row)
+        # If the size of the accumulated data is large enough, fill the histogram.
+        if len(self._pha) >= batch_size:
+            self._fill_hist()
+
     def analyze_event(self, event: DigiEventRectangular, has_source: bool,
                       batch_size: int = 5000000) -> None:
         """Analyze an event to accumulate the ADC counts of noise pixels to calibrate the noise
@@ -552,74 +583,112 @@ class CalibrateDark:
         batch_size : int
             The size of the batch to be analyzed.
         """
+        # If the event is not good, skip the analysis for this event.
         if self._bad_event(event):
             return
-        pha = self._remove_signal(event) if has_source else event.pha
-        # Find the coordinates of the pixels with pha > 0 in the event.
-        local_rows, local_cols = np.nonzero(pha > 0)
-        pha_values = pha[local_rows, local_cols]
-        # Traslate the local coordinates to global coordinates.
-        row_slice, col_slice = event.roi.readout_slice()
-        global_rows = local_rows + row_slice.start
-        global_cols = local_cols + col_slice.start
-        # Accumulate the data to fill the histogram in batch.
-        self._pha.extend(pha_values)
-        self._cols.extend(global_cols)
-        self._rows.extend(global_rows)
+        if self._algorithm == "welford":
+            # Update the Welford statistics for the pixels in the event.
+            outer_mask = event.roi.outer_mask(margin=1)
+            offset = (event.roi.min_row, event.roi.min_col)
+            self._stats.update(event.pha, offset=offset, mask=outer_mask)
+        elif self._algorithm == "fit":
+            # Flattened the PHA array with the signal pixels removed.
+            pha = self._remove_signal(event) if has_source else event.pha
+            # Find the coordinates of the pixels with pha > 0 in the event.
+            local_rows, local_cols = np.nonzero(pha > 0)
+            pha_values = pha[local_rows, local_cols]
+            # Traslate the local coordinates to global coordinates.
+            row_slice, col_slice = event.roi.readout_slice()
+            global_rows = local_rows + row_slice.start
+            global_cols = local_cols + col_slice.start
+            self._update_hist(pha_values, global_cols, global_rows, batch_size)
+        # Update the number of events for the calibration matrices.
         self.noise_cal.num_events += 1
         self.pedestal_cal.num_events += 1
-        # If the size of the accumulated data is large enough, fill the histogram.
-        if len(self._pha) >= batch_size:
-            self.update_hist()
 
-    # def fit(self) -> None:
-    #     noise = self.noise_cal.matrix.copy()
-    #     pedestal = self.pedestal_cal.matrix.copy()
-    #     model = Gaussian()
-    #     print("Fitting noise and pedestal for each pixel...")
-    #     # Should try to think about a more efficient way to perform 10^5 fits
-    #     for col in range(self.noise_cal.shape[1]):
-    #         print(f"Fitting column {col}...")
-    #         for row in range(self.noise_cal.shape[0]):
-    #             slice_ = self._histogram.slice1d(col, row)
-    #             entries = slice_.content.sum()
-    #             if entries > 0:
-    #                 model.fit(slice_)
-    #                 noise[row, col] = model.sigma
-    #                 pedestal[row, col] = model.mu
+    def _fit_histogram(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
+        """Calculate the noise and pedestal values for each pixel by fitting the counts
+        distribution with a Gaussian model.
+        """
+        # Fill the histogram with the last batch of accumulated data, if there is any.
+        self._fill_hist()
+        # Create copies of noise and pedestal matrices to be updated with the fitted values.
+        noise = self.noise_cal.values.copy()
+        pedestal = self.pedestal_cal.values.copy()
+        noise_err = self.noise_cal.errors.copy()
+        pedestal_err = self.pedestal_cal.errors.copy()
+        # Fit a Gaussian model to the pixel value distribution for each pixel with enough entries.
+        model = Gaussian()
+        bin_centers = self._histogram.bin_centers(axis=2)
+        cols = range(self.noise_cal.shape[1])
+        rows = range(self.noise_cal.shape[0])
+        # Calculate the mean and the standard deviation of the pixel value distribution for each
+        # pixel to use them as initial values for the fit. This is necessary to speed up the fit.
+        mean, std = self._histogram.project_statistics(axis=2)
+        for col, row in tqdm(product(cols, rows), total=len(cols)*len(rows), miniters=50):
+            counts = self._histogram.content[col, row, :]
+            # Check if there are enough entries to perform the fit.
+            if counts.sum() > 10:
+                # sigma = self._histogram.errors[col, row, :]
+                sigma = None
+                mu = mean.content[col, row]
+                s = std.content[col, row]
+                xmin = max(0, mu - 3 * s)
+                xmax = mu + 3 * s
+                p0 = (1., mu, s)
+                try:
+                    model.fit(bin_centers, counts, xmin=xmin, xmax=xmax, sigma=sigma, p0=p0)
+                except (RuntimeError, np.linalg.LinAlgError):
+                    continue
+                # Update the noise and pedestal matrices with the fitted values for the pixel.
+                noise[row, col] = model.sigma.value
+                pedestal[row, col] = model.mu.value
+                noise_err[row, col] = model.sigma.error
+                pedestal_err[row, col] = model.mu.error
+        # Write back the calibration matrices.
+        self.noise_cal.values = noise
+        self.pedestal_cal.values = pedestal
+        self.noise_cal.errors = noise_err
+        self.pedestal_cal.errors = pedestal_err
+        return self.noise_cal, self.pedestal_cal
+
+    def _fit_welford(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
+        """Update the noise and pedestal calibration matrices with the values calculated from the
+        Welford's algorithm for the pixels that have at least one hit, calulate the errors and
+        update the entries.
+        """
+        counts = self._stats.counts()
+        # Calculate the noise and pedestal values.
+        self.noise_cal.values = self._stats.std()
+        self.pedestal_cal.values = self._stats.mean()
+        # Update the entries.
+        self.noise_cal.entries = counts
+        self.pedestal_cal.entries = counts
+        # Calculate the errors for the noise and pedestal values.
+        mask = counts > 1
+        denominator = np.sqrt(counts - 1, where=mask,
+                              out=np.full_like(counts, np.nan, dtype=float))
+        np.divide(self.noise_cal.values, np.sqrt(2) * denominator,
+                out=self.noise_cal.errors, where=mask)
+        np.divide(self.noise_cal.values, denominator,
+                out=self.pedestal_cal.errors, where=mask)
+        return self.noise_cal, self.pedestal_cal
 
     def fit(self) -> Tuple[CalibrationMatrix, CalibrationMatrix]:
-        """Analyze the histogram to calculate the noise and pedestal values for each pixel, and
-        update the calibration matrices.
-
-        At the moment, the pedestal and noise values are estimated as the mean and the standard
-        deviation of the pixel value distribution for each pixel.
+        """Calculate the noise and pedestal calibration matrices.
 
         Returns
         -------
         noise_cal : CalibrationMatrix
-             Updated calibration matrices for the noise.
+            Updated calibration matrices for the noise.
         pedestal_cal : CalibrationMatrix
-             Updated calibration matrices for the pedestal.
+            Updated calibration matrices for the pedestal.
         """
-        # Calculate the mean and the standard deviation of the pixel value distribution for
-        # each pixel.
-        histo_mean, histo_sigma = self._histogram.project_statistics(axis=2)
-        mu = histo_mean.content.T
-        sigma = histo_sigma.content.T
-        # Update the noise and pedestal matrices with the calculated values for the pixels that
-        # have at least one hit.
-        noise_matrix = np.where(self.noise_cal.entries > 0, sigma, self.noise_cal.values)
-        pedestal_matrix = np.where(self.pedestal_cal.entries > 0, mu, self.pedestal_cal.values)
-        # Write the matrices
-        self.noise_cal.values = noise_matrix
-        mask = self.noise_cal.entries > 1
-        # The error on the estimate of the standard deviation is given by sigma / sqrt(2 * (N - 1))
-        self.noise_cal.errors[mask] = sigma[mask] / np.sqrt(2 * (self.noise_cal.entries[mask] - 1))
-        self.pedestal_cal.values = pedestal_matrix
-        # The error on the estimate of the mean is given by sigma / sqrt(N - 1)
-        self.pedestal_cal.errors[mask] = sigma[mask] / np.sqrt(self.pedestal_cal.entries[mask] - 1)
-        return self.noise_cal, self.pedestal_cal
+        if self._algorithm == "welford":
+            return self._fit_welford()
+        if self._algorithm == "fit":
+            return self._fit_histogram()
+        raise ValueError(f"Invalid algorithm {self._algorithm} for the dark calibration.")
 
 
 # The following methods are used for the equalization matrix calibration. They cannot be moved
@@ -643,13 +712,16 @@ def _likelihood_fit(data: csr_matrix, conv_factor: float, pdf: SpectrumPDF,
     def nll(pars):
         total_adc = data @ pars
         p = pdf(total_adc * conv_factor)
-        return -np.sum(np.log(p + 1e-10))
+        # To avoid negative or zero values in the log, clip p to be larger than 1e-10.
+        p_clipped = np.clip(p, 1e-10, None)
+        return -np.sum(np.log(p_clipped))
     # Define the gradient of the log-likelihood function for the fit.
     def nll_grad(pars):
         total_adc = data @ pars
         p = pdf(total_adc * conv_factor)
+        p_clipped = np.clip(p, 1e-10, None)
         dp = pdf_derivative(total_adc * conv_factor)
-        grad = -data.T @ (dp / (p + 1e-10)) * conv_factor
+        grad = -data.T @ (dp / p_clipped) * conv_factor
         return np.asarray(grad).flatten()
     # Define the initial parameters for the fit.
     init_pars = np.ones(data.shape[1])

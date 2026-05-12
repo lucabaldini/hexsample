@@ -26,6 +26,11 @@ from aptapy.plotting import plt
 from scipy.interpolate import CubicSpline
 from scipy.stats import gaussian_kde
 
+try:
+    from numpy import trapezoid as trapezoid
+except ImportError:
+    from numpy import trapz as trapezoid
+
 
 class SpectrumPDF:
 
@@ -64,10 +69,10 @@ class SpectrumPDF:
             raise ValueError("The PDF is empty. Fit the PDF with data or load it from file.")
         # The location of the PDF can be estimated as the mean of the distribution.
         x_grid = np.linspace(min(self.pdf.x), max(self.pdf.x), 1000)
-        y_grid = self.pdf(x_grid)
-        area = np.trapezoid(y_grid, x_grid)
-        normalized_pdf = y_grid / area
-        mean = np.sum(x_grid * normalized_pdf) / np.sum(normalized_pdf)
+        # Clip the PDF to avoid negative values.
+        y_grid = np.maximum(0, self.pdf(x_grid))
+        area = trapezoid(y_grid, x_grid)
+        mean = trapezoid(x_grid * y_grid, x_grid) / area
         return mean
 
     def to_file(self, file_path: str) -> str:
@@ -78,6 +83,8 @@ class SpectrumPDF:
         file_path : str
             The path to the file where the PDF will be saved.
         """
+        if self.pdf is None:
+            raise ValueError("The PDF is empty. Fit the PDF with data before saving it to file.")
         np.savez(file_path, x=self.pdf.x, c=self.pdf.c)
         return file_path
 

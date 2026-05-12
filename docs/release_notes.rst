@@ -4,6 +4,10 @@ Release notes
 =============
 
 
+Version 0.16.2 (2026-05-12)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 * Package dependencies updated: `joblib` and `iminuit` added.
 * New calibration matrix type `equalization` added in `caldb.py` to store the pixel equalization
   factors.
@@ -12,8 +16,8 @@ Release notes
   and the observed energy of the events. Corresponding CLI command `calibgen equalization` added
   to generate equalization calibration files from event files.
 * The `CalibrateGain` class has been refactored. Now it produces a gain calibration matrix from
-  a equalization calibration matrix, by using the ADC to eV conversion and the chip sensor
-  matieral. The gain matrix is expressed in ADC counts per electron. Corresponding CLI command
+  an equalization calibration matrix, by using the ADC to eV conversion and the chip sensor
+  material. The gain matrix is expressed in ADC counts per electron. Corresponding CLI command
   `calibgen gain` refactored to reflect this change.
 * Some CLI commands refactored to use the equalization calibration file instead of the gain
   calibration file (`reconstruct`, `display`, `calibgen eta`).
@@ -30,6 +34,22 @@ Release notes
 
   - https://github.com/lucabaldini/hexsample/pull/132
   - https://github.com/lucabaldini/hexsample/issues/129
+
+
+Version 0.16.1 (2026-05-12)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* New `stats.py` module with some common statistical functions, most notably
+  a class to accumulate the running statistics using the Welford algorithm.
+* `calibgen dark` now accepts the argument `algorithm` to choose between two different algorithms
+  to calibrate the noise and pedestal of the readout chip: "welford", to use Welford's online
+  algorithm, that updates the mean and variance of the counts distribution on the fly, and "fit",
+  that updates a 3D histogram of the counts distribution and fits it with a Gaussian to extract
+  the noise and pedestal.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/131
+  - https://github.com/lucabaldini/hexsample/issues/130
 
 
 Version 0.16.0 (2026-05-05)

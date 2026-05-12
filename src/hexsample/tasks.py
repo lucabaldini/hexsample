@@ -344,7 +344,7 @@ def reconstruct(
             cluster = clustering.run(event)
         except IndexError as e:
             logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
-        if cluster.size() in size:
+        if cluster is not None and (cluster.size() in size):
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args)
@@ -443,7 +443,7 @@ def calibrate_eta(
         except IndexError:
             continue
         # Analyze only 2-pixel and 3-pixel events.
-        if cluster.size() == 2 or cluster.size() == 3:
+        if cluster is not None and (cluster.size() == 2 or cluster.size() == 3):
             mc_event = input_file.mc_event(i)
             size_list.append(cluster.size())
             # Calculate the photon position with respect to the most charged pixel
@@ -525,7 +525,7 @@ def synthesize_calibration_file(
     random_seed : int, optional
         The seed for the random number generator.
     """
-    name, args = current_call()
+    name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     # Initialize the random number generator with the given seed
     rng.initialize(seed=random_seed)
@@ -600,12 +600,14 @@ class CalibrationDarkDefaults:
     definition in this Python module and the command-line interface.
     """
 
+    algorithm: str = "welford"
     has_source: bool = True
     batch_size: int = 5000000
 
 
 def calibrate_dark(
         input_file_path: str,
+        algorithm: str = CalibrationDarkDefaults.algorithm,
         has_source: bool = CalibrationDarkDefaults.has_source,
         batch_size: int = CalibrationDarkDefaults.batch_size
         ) -> Tuple[str, str]:
@@ -615,13 +617,12 @@ def calibrate_dark(
     if readout_mode is not HexagonalReadoutMode.RECTANGULAR:
         raise RuntimeError("Noise calibration is only supported for rectangular readout")
     # Create the calibration matrix
-    dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"])
+    dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"], algorithm)
     # Loop over the events and analyze the noise.
     logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         dark_calibration.analyze_event(event, has_source, batch_size)
     # Update the histogram with the last batch of events and fit the data.
-    dark_calibration.update_hist()
     logger.info("Calculating the noise and pedestal matrices...")
     noise_matrix, pedestal_matrix = dark_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.
@@ -727,6 +728,7 @@ def calibrate_equalization(
     # necessary for the calibration.
     unit_gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
     unit_gain_map.set_value(1.)
+    unit_gain_map.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
@@ -740,9 +742,8 @@ def calibrate_equalization(
             cluster = clustering.run(event)
         except IndexError:
             continue
-        if cluster is None:
-            continue
-        equalization_calibration.analyze_cluster(cluster)
+        if cluster is not None:
+            equalization_calibration.analyze_cluster(cluster)
     logger.info("Calculating the equalization matrix...")
     equalization_matrix = equalization_calibration.fit(size)
     output_file_path = input_file_path.replace(".h5", "_matrix_equalization.h5")

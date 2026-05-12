@@ -267,7 +267,6 @@ class ClusteringBase:
         idx = np.argsort(-out_pha)[:3]
         return out_pha[idx], out_col[idx], out_row[idx]
 
-
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
@@ -299,7 +298,7 @@ class ClusteringNN(ClusteringBase):
     pos_recon_algorithm: str
     recon_pars: Optional[dict] = None
 
-    def run(self, event) -> Cluster:
+    def run(self, event) -> Optional[Cluster]:
         """Overladed method.
 
         .. warning::
@@ -307,6 +306,9 @@ class ClusteringNN(ClusteringBase):
            for speed using proper numpy array for the offset indexes.
         """
         readout = self.readout
+        # Load the adc_to_ev conversion factor from the readout metadata of the
+        # equalization matrix. If the data is not present, or the wrong matrix type
+        # is passed, this will raise a KeyError.
         adc_to_ev = readout.gain.metadata["adc_to_ev"]
         if isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
