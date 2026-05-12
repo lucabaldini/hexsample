@@ -263,7 +263,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option for the zero-suppression threshold.
         """
         parser.add_argument("--zero_sup_threshold", type=float, default=default,
-                            help="zero-suppression threshold as a multiple of the noise")
+                            help="zero-suppression threshold expressed as sigma of noise")
 
     @staticmethod
     def add_cal_enc_file(parser: argparse.ArgumentParser, default: str,

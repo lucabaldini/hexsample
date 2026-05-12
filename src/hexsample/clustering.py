@@ -306,6 +306,7 @@ class ClusteringNN(ClusteringBase):
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
+        # Load the readout calibration matrices.
         noise = self.readout.enc
         pedestal = self.readout.pedestal
         gain = self.readout.gain
