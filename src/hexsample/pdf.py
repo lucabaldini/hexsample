@@ -26,6 +26,11 @@ from aptapy.plotting import plt
 from scipy.interpolate import CubicSpline
 from scipy.stats import gaussian_kde
 
+try:
+    from numpy import trapezoid as trapezoid
+except ImportError:
+    from numpy import trapz as trapezoid
+
 
 class SpectrumPDF:
 
@@ -66,8 +71,8 @@ class SpectrumPDF:
         x_grid = np.linspace(min(self.pdf.x), max(self.pdf.x), 1000)
         # Clip the PDF to avoid negative values.
         y_grid = np.maximum(0, self.pdf(x_grid))
-        area = np.trapezoid(y_grid, x_grid)
-        mean = np.trapezoid(x_grid * y_grid, x_grid) / area
+        area = trapezoid(y_grid, x_grid)
+        mean = trapezoid(x_grid * y_grid, x_grid) / area
         return mean
 
     def to_file(self, file_path: str) -> str:
