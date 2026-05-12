@@ -27,7 +27,7 @@ from scipy.interpolate import CubicSpline
 from scipy.stats import gaussian_kde
 
 try:
-    from numpy import trapezoid as trapezoid
+    from numpy import trapezoid
 except ImportError:
     from numpy import trapz as trapezoid
 

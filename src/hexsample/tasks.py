@@ -28,8 +28,8 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
-from aptapy.plotting import plt, setup_gca
 from aptapy.models import Line
+from aptapy.plotting import plt, setup_gca
 from tqdm import tqdm
 
 from . import rng
@@ -728,18 +728,19 @@ def calibrate_equalization(
     """
     # Open the input file and extract the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
+    num_cols, num_rows = header["num_cols"], header["num_rows"]
     # Define the arguments to create the readout object with uniform pixel equalization,
     # necessary for the calibration.
-    unit_gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    unit_gain_map = CalibrationMatrix(num_cols, num_rows)
     unit_gain_map.set_value(1.)
     unit_gain_map.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.)
-    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
+    args = HexagonalLayout(header["layout"]), num_cols, num_rows, header["pitch"], \
+           noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the equalization matrix and run the calibration.
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
-    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], algorithm, pdf)
+    equalization_calibration = CalibrateEqualization(num_cols, num_rows, algorithm, pdf)
     logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         try:
@@ -753,6 +754,8 @@ def calibrate_equalization(
         equalization_matrix = equalization_calibration.fit()
     elif algorithm == "absolute":
         equalization_matrix = equalization_calibration.fit(size=size)
+    else:
+        raise ValueError(f"Unsupported equalization calibration algorithm: {algorithm}")
     output_file_path = input_file_path.replace(".h5", "_matrix_equalization.h5")
     logger.info(f"Saving equalization matrix to {output_file_path}...")
     equalization_matrix.to_hdf5(output_file_path, CalibrationType.EQUALIZATION, False)

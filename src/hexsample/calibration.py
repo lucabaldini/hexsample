@@ -1005,7 +1005,7 @@ class CalibrateEqualization(CalibrateBase):
         self.cal_matrix.entries = entries
         self.cal_matrix.update_metadata(CalibrationMetadata.ADC_TO_EV, adc_to_ev)
         return self.cal_matrix
-    
+
     def _fit_relative(self) -> CalibrationMatrix:
         """Analyze the collected data to calculate the equalization values
         for the pixels and update the calibration matrix with the calculated values.
@@ -1049,10 +1049,10 @@ class CalibrateEqualization(CalibrateBase):
         """
         if self._algorithm == "absolute":
             return self._fit_absolute(**kwargs)
-        elif self._algorithm == "relative":
+        if self._algorithm == "relative":
             return self._fit_relative()
-        else:
-            raise ValueError(f"Invalid algorithm {self._algorithm} for the equalization calibration.")
+        raise ValueError(f"Invalid algorithm {self._algorithm} for the equalization"
+                          " calibration.")
 
 
 class CalibrateGain:
