@@ -3,6 +3,10 @@
 Release notes
 =============
 
+* Refactored zero suppression threshold to be interpreted as number of standard deviations of
+  the noise instead of a fixed number.
+* Added check of the calibration matrices at the readout initialization to fill the empty
+  pixels, in order to avoid problems in the reconstruction.
 * New algorithm added to calibrate the pixel equalization factors. This algorithm calculates
   the gain equalization factors without any assumption on the source spectrum, by analyzing
   the energy distributions of one-pixel events and comparing them across the pixels.
@@ -11,8 +15,10 @@ Release notes
   needs the source spectrum PDF to be passed as an argument.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/135
   - https://github.com/lucabaldini/hexsample/pull/134
   - https://github.com/lucabaldini/hexsample/issues/133
+  - https://github.com/lucabaldini/hexsample/issues/125  
 
 
 Version 0.16.2 (2026-05-12)
