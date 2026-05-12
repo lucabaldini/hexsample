@@ -95,9 +95,10 @@ def calibrate_dark(**kwargs) -> Tuple[str, str]:
     """Calibrate the dark of the chip.
     """
     input_file_path = kwargs["input_file"]
+    algorithm = kwargs["algorithm"]
     has_source = kwargs["has_source"]
     batch_size = kwargs["batch_size"]
-    args = input_file_path, has_source, batch_size
+    args = input_file_path, algorithm, has_source, batch_size
     return tasks.calibrate_dark(*args)
 
 

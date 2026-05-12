@@ -3,6 +3,18 @@
 Release notes
 =============
 
+* New `stats.py` module with some common statistical functions, most notably
+  a class to accumulate the running statistics using the Welford algorithm.
+* `calibgen dark` now accepts the argument `algorithm` to choose between two different algorithms
+  to calibrate the noise and pedestal of the readout chip: "welford", to use Welford's online
+  algorithm, that updates the mean and variance of the counts distribution on the fly, and "fit",
+  that updates a 3D histogram of the counts distribution and fits it with a Gaussian to extract
+  the noise and pedestal.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/131
+  - https://github.com/lucabaldini/hexsample/issues/130
+
 
 Version 0.16.0 (2026-05-05)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
