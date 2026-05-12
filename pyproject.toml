@@ -44,6 +44,8 @@ dependencies = [
     "xraydb",
     "aptapy>=0.18.0",
     "scikit-image",
+    "iminuit",
+    "joblib",
   ]
 
 [project.optional-dependencies]

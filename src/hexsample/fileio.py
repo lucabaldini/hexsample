@@ -226,9 +226,10 @@ class ReconDescription(tables.IsDescription):
     livetime = tables.Int32Col(pos=2)
     roi_size = tables.Int32Col(pos=3)
     cluster_size = tables.Int8Col(pos=4)
-    energy = tables.Float32Col(pos=5)
-    posx = tables.Float32Col(pos=6)
-    posy = tables.Float32Col(pos=7)
+    adc = tables.Int32Col(pos=5)
+    energy = tables.Float32Col(pos=6)
+    posx = tables.Float32Col(pos=7)
+    posy = tables.Float32Col(pos=8)
 
 def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     """Helper function to fill an output table row, given a ReconEvent object.
@@ -244,6 +245,7 @@ def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     row["livetime"] = event.livetime
     #row["roi_size"] = event.roi_size
     row["cluster_size"] = event.cluster.size()
+    row["adc"] = event.adc()
     row["energy"] = event.energy()
     row["posx"], row["posy"] = event.position()
     row.append()

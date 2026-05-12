@@ -43,6 +43,7 @@ class Cluster:
     col: np.ndarray
     row: np.ndarray
     pha: np.ndarray
+    adc_to_ev: float
     pos_recon_algorithm: str
     recon_pars: Optional[dict] = None
 
@@ -61,6 +62,11 @@ class Cluster:
         """Return the total pulse height of the cluster.
         """
         return self.pha.sum()
+
+    def energy(self) -> float:
+        """Return the energy of the cluster in eV.
+        """
+        return self.pulse_height() * self.adc_to_ev
 
     def centroid(self) -> Tuple[float, float]:
         """Return the cluster centroid.
@@ -262,7 +268,6 @@ class ClusteringBase:
         idx = np.argsort(-out_pha)[:3]
         return out_pha[idx], out_col[idx], out_row[idx]
 
-
     def run(self, event: DigiEventRectangular) -> Cluster:
         """Workhorse method to be reimplemented by derived classes.
         """
@@ -294,23 +299,27 @@ class ClusteringNN(ClusteringBase):
     pos_recon_algorithm: str
     recon_pars: Optional[dict] = None
 
-    def run(self, event) -> Cluster:
+    def run(self, event) -> Optional[Cluster]:
         """Overladed method.
 
         .. warning::
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
-        # FIXME: we might want to pass ENC to the reconstruction since we divide
-        # the noise by the gain, operation that we can already do with calibgen enc.
         noise = self.readout.enc
         pedestal = self.readout.pedestal
         gain = self.readout.gain
+        # Load the adc_to_ev conversion factor from the readout metadata of the
+        # equalization matrix. If the data is not present, or the wrong matrix type
+        # is passed, this will raise a KeyError.
+        adc_to_ev = gain.metadata["adc_to_ev"]
         if isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
             # Trailing -1 is bc the central px is already considered.
             self.num_neighbors = 6 #HexagonalReadoutCircular.NUM_PIXELS - 1
             seed_coords = (event.column, event.row)
+            if self.readout.is_at_border(*seed_coords):
+                return None
             # Taking the NN logical coordinates ...
             neigh_coords = self.readout.neighbors(*seed_coords)
             col, row = np.vstack((seed_coords, neigh_coords)).T
@@ -321,6 +330,8 @@ class ClusteringNN(ClusteringBase):
             pha = (event.pha[adc_channel_order] - pedestal(col, row)) / gain(col, row)
         elif isinstance(event, DigiEventRectangular):
             seed_coords = event.highest_pixel()
+            if self.readout.is_at_border(*seed_coords):
+                return None
             neigh_coords = self.readout.neighbors(*seed_coords)
             col, row = np.vstack((seed_coords, neigh_coords)).T
             pha = (event(col, row) - pedestal(col, row)) / gain(col, row)
@@ -339,4 +350,4 @@ class ClusteringNN(ClusteringBase):
         # Sort the arrays in decreasing order before applying the position suppression.
         pha, col, row = self.position_suppress(pha[mask], col[mask], row[mask])
         x, y = self.readout.pixel_to_world(col, row)
-        return Cluster(x, y, col, row, pha, self.pos_recon_algorithm, self.recon_pars)
+        return Cluster(x, y, col, row, pha, adc_to_ev, self.pos_recon_algorithm, self.recon_pars)
