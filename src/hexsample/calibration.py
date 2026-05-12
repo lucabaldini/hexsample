@@ -274,7 +274,7 @@ class CalibrationMatrix:
         if not np.any(self._entries >= min_hits):
             return np.nan
         return self._values[self._entries >= min_hits].mean()
-    
+
     def median(self) -> float:
         """Return the median value of the calibration matrix, calculated as the median of the
         pixels with at least one event.
