@@ -64,3 +64,9 @@ class CalDB:
         """Open the gain calibration file for the given designation.
         """
         return cls._open(CalibrationType.GAIN, designator)
+
+    @classmethod
+    def open_equalization(cls, designator: str) -> CalibrationMatrix:
+        """Open the equalization calibration file for the given designation.
+        """
+        return cls._open(CalibrationType.EQUALIZATION, designator)

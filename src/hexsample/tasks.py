@@ -21,7 +21,6 @@
 """
 
 import inspect
-import os
 import pathlib
 from dataclasses import dataclass
 from enum import Enum
@@ -38,9 +37,11 @@ from .calibration import (
     CALIBRATION_UNITS,
     CalibrateDark,
     CalibrateENC,
+    CalibrateEqualization,
     CalibrateGain,
     CalibrateNoise,
     CalibrationMatrix,
+    CalibrationMetadata,
     CalibrationType,
 )
 from .clustering import ClusteringNN
@@ -63,6 +64,7 @@ from .fileio import (
 from .hexagon import HexagonalGrid, HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
+from .pdf import SpectrumPDF
 from .readout import (
     AbstractReadout,
     HexagonalReadoutBase,
@@ -72,7 +74,7 @@ from .readout import (
 )
 from .recon import ReconEvent
 from .sensor import Sensor
-from .source import DiskBeam, Line, Source
+from .source import Source
 from .xpol import chip_descriptor
 
 # Make room for the output data.
@@ -234,7 +236,7 @@ def reconstruct(
         input_file_path: str,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
-        gain_matrix: CalibrationMatrix,
+        equalization_matrix: CalibrationMatrix,
         suffix: str = ReconstructionDefaults.suffix,
         zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
@@ -267,8 +269,8 @@ def reconstruct(
     pedestal_matrix : CalibrationMatrix
         The pedestal matrix to use for the reconstruction.
 
-    gain_matrix : CalibrationMatrix
-        The gain matrix to use for the reconstruction.
+    equalization_matrix : CalibrationMatrix
+        The equalization matrix to use for the reconstruction.
 
     suffix : str
         The suffix to append to the output file name.
@@ -308,7 +310,7 @@ def reconstruct(
     input_file, header, readout_mode = open_file(input_file_path)
     # Creating the readout object.
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
+        header["pitch"], noise_matrix, equalization_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Define the effective number of neighbors to be used for the clustering. If max_neighbors is
     # specified (i.e. different from -1), it has priority over num_neighbors. It is necessary to
@@ -342,7 +344,7 @@ def reconstruct(
             cluster = clustering.run(event)
         except IndexError as e:
             logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
-        if cluster.size() in size:
+        if cluster is not None and (cluster.size() in size):
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args)
@@ -355,6 +357,31 @@ def reconstruct(
     output_file.flush()
     input_file.close()
     output_file.close()
+    return output_file_path
+
+
+def calibspec(
+        input_file_path: str
+        ) -> str:
+    """Create a probability density function from a reconstructed spectrum to use in
+    the gain calibration.
+
+    Arguments
+    ----------
+    input_file_path : str
+        The path to the input recon file.
+    """
+    name, args = current_call(1)
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    input_file = ReconInputFile(input_file_path)
+    energy = input_file.column("energy")
+    input_file.close()
+    pdf = SpectrumPDF()
+    logger.info("Fitting the PDF to the energy distribution...")
+    pdf.fit(energy)
+    output_file_path = input_file_path.replace(".h5", ".npz")
+    logger.info(f"Saving the PDF to {output_file_path}...")
+    pdf.to_file(output_file_path)
     return output_file_path
 
 
@@ -375,7 +402,7 @@ def calibrate_eta(
         input_file_path: str,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
-        gain_matrix: CalibrationMatrix,
+        equalization_matrix: CalibrationMatrix,
         num_bins: int = CalibrationEtaDefaults.num_bins,
         zero_sup_threshold: int = CalibrationEtaDefaults.zero_sup_threshold
         ) -> None:
@@ -392,8 +419,8 @@ def calibrate_eta(
     pedestal_matrix : CalibrationMatrix
         The pedestal calibration matrix to use for the analysis.
 
-    gain_matrix : CalibrationMatrix
-        The gain calibration matrix to use for the analysis.
+    equalization_matrix : CalibrationMatrix
+        The equalization calibration matrix to use for the analysis.
 
     num_bins : int
         The number of bins to be used in the calibration.
@@ -403,7 +430,7 @@ def calibrate_eta(
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, gain_matrix, pedestal_matrix
+        header["pitch"], noise_matrix, equalization_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
@@ -416,7 +443,7 @@ def calibrate_eta(
         except IndexError:
             continue
         # Analyze only 2-pixel and 3-pixel events.
-        if cluster.size() == 2 or cluster.size() == 3:
+        if cluster is not None and (cluster.size() == 2 or cluster.size() == 3):
             mc_event = input_file.mc_event(i)
             size_list.append(cluster.size())
             # Calculate the photon position with respect to the most charged pixel
@@ -498,7 +525,7 @@ def synthesize_calibration_file(
     random_seed : int, optional
         The seed for the random number generator.
     """
-    name, args = current_call()
+    name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     # Initialize the random number generator with the given seed
     rng.initialize(seed=random_seed)
@@ -517,6 +544,10 @@ def synthesize_calibration_file(
     # Generate the calibration matrix with the appropriate size and values
     calibration_matrix = CalibrationMatrix(num_cols, num_rows)
     rms = mean * percent_rms / 100
+    if calibration_type == CalibrationType.EQUALIZATION:
+        calibration_matrix.update_metadata(CalibrationMetadata.ADC_TO_EV, mean)
+        rms /= mean
+        mean = 1.
     logger.info(f"Generating {calibration_type.value} calibration matrix with "
                 f"mean {mean:g} and RMS {rms:g}...")
     calibration_matrix.values = rng.generator.normal(mean, scale=rms, size=(num_rows, num_cols))
@@ -639,10 +670,86 @@ def calibrate_enc(
     logger.info("Calculating the ENC matrix...")
     enc_matrix = enc_calibration.fit()
     noise_file_name = noise_matrix.metadata["file_name"]
-    enc_file_name = noise_file_name.replace("_matrix_noise", "_matrix_enc.h5")
+    enc_file_name = noise_file_name.replace("noise", "enc") + ".h5"
     output_file_path = pathlib.Path(output_dir) / enc_file_name
     logger.info(f"Saving to {output_file_path}...")
     enc_matrix.to_hdf5(output_file_path, CalibrationType.ENC, False)
+    logger.info("Done!")
+    return output_file_path
+
+
+@dataclass(frozen=True)
+class CalibrationEqualizationDefaults:
+    """Default parameters for the pixel equalization calibration task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    size: int = 10
+    zero_sup_threshold: int = 20
+
+
+def calibrate_equalization(
+        input_file_path: str,
+        pdf: SpectrumPDF,
+        noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
+        size: int = CalibrationEqualizationDefaults.size,
+        zero_sup_threshold: int = CalibrationEqualizationDefaults.zero_sup_threshold
+        ) -> str:
+    """Calibrate pixel equalization of the readout chip using the events from a digi file.
+    The results are stored as a matrix in a HDF5 file.
+
+    Arguments
+    ---------
+    input_file_path : str
+        The path to the input file.
+
+    pdf : SpectrumPDF
+        The spectrum probability density function to use for the gain calibration.
+
+    noise_matrix : CalibrationMatrix
+        The calibration noise matrix to use for the gain calibration.
+
+    pedestal_matrix : CalibrationMatrix
+        The pedestal matrix to use for the gain calibration.
+    
+    size : int
+        The length of the square region of the chip to fit simultaneously during the
+        calibration.
+
+    zero_sup_threshold : int
+        The zero-suppression threshold to use for the clustering in the gain calibration.
+    """
+    # Open the input file and extract the readout information.
+    input_file, header, readout_mode = open_file(input_file_path)
+    # Define the arguments to create the readout object with uniform pixel equalization,
+    # necessary for the calibration.
+    unit_gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    unit_gain_map.set_value(1.)
+    unit_gain_map.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.)
+    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
+    readout = create_readout(readout_mode, header, *args)
+    # Initialize the equalization matrix and run the calibration.
+    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
+    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
+                              pos_recon_algorithm="centroid")
+    logger.info("Starting the event loop...")
+    for _, event in tqdm(enumerate(input_file)):
+        try:
+            cluster = clustering.run(event)
+        except IndexError:
+            continue
+        if cluster is not None:
+            equalization_calibration.analyze_cluster(cluster)
+    logger.info("Calculating the equalization matrix...")
+    equalization_matrix = equalization_calibration.fit(size)
+    output_file_path = input_file_path.replace(".h5", "_matrix_equalization.h5")
+    logger.info(f"Saving equalization matrix to {output_file_path}...")
+    equalization_matrix.to_hdf5(output_file_path, CalibrationType.EQUALIZATION, False)
+    input_file.close()
     logger.info("Done!")
     return output_file_path
 
@@ -655,120 +762,36 @@ class CalibrationGainDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    num_events: int = 200000
-    zero_sup_threshold: int = 20
+    output_dir: Union[str, pathlib.Path] = HEXSAMPLE_DATA
+    material_symbol: str = "Si"
 
 
 def calibrate_gain(
-        input_file_path: str,
-        energy: float,
-        noise_matrix: CalibrationMatrix,
-        pedestal_matrix: CalibrationMatrix,
-        num_events: int = CalibrationGainDefaults.num_events,
-        zero_sup_threshold: int = CalibrationGainDefaults.zero_sup_threshold
+        equalization_matrix: CalibrationMatrix,
+        material_symbol: str = CalibrationGainDefaults.material_symbol,
+        output_dir: Union[str, pathlib.Path] = CalibrationGainDefaults.output_dir
         ) -> str:
-    """Calibrate gain of the readout chip using the events from a digi file.
-    The results are stored as a matrix in a HDF5 file.
+    """Calibrate the gain of the readout chip using the equalization matrix and the
+    ionization potential of the sensor material. The results are stored as a matrix
+    in a HDF5 file.
 
     Arguments
-    ---------
-    input_file_path : str
-        The path to the input file.
-
-    energy : float
-        The energy of the X-ray photons in eV. This is used to convert the charge collected in
-        each pixel to the number of electron, which is necessary for the gain calibration.
-
-    noise_matrix : CalibrationMatrix
-        The calibration noise matrix to use for the gain calibration.
-
-    pedestal_matrix : CalibrationMatrix
-        The pedestal matrix to use for the gain calibration.
-
-    num_events : int
-        The number of events to simulate to correct the bias.
-
-    zero_sup_threshold : int
-        The zero-suppression threshold to use for the clustering in the gain calibration.
+    equalization_matrix : CalibrationMatrix
+        The equalization matrix to use for the gain calibration.
+    material_symbol : str
+        The symbol of the sensor material to use for the gain calibration, e.g. "Si" for
+        silicon.
     """
-    # Open the input file and extract the readout information.
-    input_file, header, readout_mode = open_file(input_file_path)
-    # Define the arguments to create the readout object with unit gain, necessary for the
-    # calibration.
-    unit_gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    unit_gain_map.set_value(1.)
-    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
-    readout = create_readout(readout_mode, header, *args)
-    # Initialize the gain matrix and run the calibration.
-    gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
-    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
-                              pos_recon_algorithm="centroid")
-    logger.info("Starting the event loop...")
-    for _, event in tqdm(enumerate(input_file)):
-        try:
-            cluster = clustering.run(event)
-        except IndexError:
-            continue
-        gain_calibration.analyze_cluster(cluster)
+    name, args = current_call(num_backward_steps=1)
+    logger.info(f"Running {__name__}.{name} with arguments {args}...")
+    gain_calibration = CalibrateGain(equalization_matrix, material_symbol)
     logger.info("Calculating the gain matrix...")
     gain_matrix = gain_calibration.fit()
-    if not np.any(gain_matrix.entries > 0):
-        raise RuntimeError("No valid gain values found during the first step of calibration," \
-        "cannot proceed further. The possible reason could be a small number of events over " \
-        "the analyzed chip region.")
-    # Create the readout object for the simulation. We are using rectangular readout just because
-    # it's faster to simulate, and using a uniform gain matrix with the mean value of the first
-    # calibration to correct the bias in the gain matrix.
-    # To calculate the mean value, we are excluding the outliers by considering only the values
-    # between the 1st and the 99th percentile.
-    gain_sim = CalibrationMatrix(header["num_cols"], header["num_rows"])
-    vals = gain_matrix.values
-    lower_bound, upper_bound = np.nanpercentile(vals, [1, 99])
-    gain_sim.set_value(np.mean(vals[(vals > lower_bound) & (vals < upper_bound)]))
-    simulation_readout = HexagonalReadoutRectangular(HexagonalLayout(header["layout"]),
-        header["num_cols"], header["num_rows"], header["pitch"],
-        enc=noise_matrix, gain=gain_sim, pedestal=pedestal_matrix)
-    output = HEXSAMPLE_DATA / "_tmp_simulation_bias.h5"
-    # Simulate events with the best-fit gain matrix to correct the bias.
-    logger.info("Simulating file to correct the bias...")
-    simulate(
-        source=Source(Line(energy), DiskBeam(radius=0.15)),
-        sensor=Sensor(),
-        readout=simulation_readout,
-        num_events=num_events,
-        output_file_path=output)
-    tmp_input_file = digi_input_file_class("rectangular")(output)
-    tmp_gain_calibration = CalibrateGain(header["num_cols"], header["num_rows"], energy)
-    # Re-run the gain calibration on the simulated events to calculate the correction factor.
-    logger.info("Starting the event loop for the simulated file...")
-    for _, event in tqdm(enumerate(tmp_input_file)):
-        try:
-            cluster = clustering.run(event)
-        except IndexError:
-            continue
-        tmp_gain_calibration.analyze_cluster(cluster)
-    logger.info("Calculating the gain matrix from the simulation...")
-    tmp_gain_matrix = tmp_gain_calibration.fit()
-    # Calculate the correction factor from the simulation.
-    logger.info("Calculating the correction factor...")
-    mask = tmp_gain_matrix.entries > 0
-    # Calculate the residuals between the MC and calibrated gain matrices from the simulation
-    # and calculate the mean residual to be used as a correction factor.
-    residuals = (tmp_gain_matrix.values[mask] - gain_sim.values[mask]) / gain_sim.values[mask]
-    # Exclude the outliers by considering only the values between the 1st and the 99th percentile.
-    lower_bound, upper_bound = np.percentile(residuals, [1, 99])
-    mean_residual = np.mean(residuals[(residuals > lower_bound) & (residuals < upper_bound)])
-    # Apply the correction factor to the gain matrix and save it to a HDF5 file.
-    mask_gain = gain_matrix.entries > 0
-    gain_matrix.values[mask_gain] = gain_matrix.values[mask_gain] / (1 + mean_residual)
-    output_file_path = input_file_path.replace(".h5", "_matrix_gain.h5")
-    logger.info(f"Saving corrected gain matrix to {output_file_path}...")
+    equalization_file_name = equalization_matrix.metadata["file_name"]
+    gain_file_name = equalization_file_name.replace("equalization", "gain") + ".h5"
+    output_file_path = pathlib.Path(output_dir) / gain_file_name
+    logger.info(f"Saving to {output_file_path}...")
     gain_matrix.to_hdf5(output_file_path, CalibrationType.GAIN, False)
-    # Close the input files.
-    tmp_input_file.close()
-    os.remove(output)
-    input_file.close()
     logger.info("Done!")
     return output_file_path
 
@@ -783,14 +806,14 @@ class DisplayDefaults:
 
     noise_matrix: Optional[CalibrationMatrix] = None
     pedestal_matrix: Optional[CalibrationMatrix] = None
-    gain_matrix: Optional[CalibrationMatrix] = None
+    equalization_matrix: Optional[CalibrationMatrix] = None
 
 
 def display(
         input_file_path: str,
         noise_matrix: Optional[CalibrationMatrix] = DisplayDefaults.noise_matrix,
         pedestal_matrix: Optional[CalibrationMatrix] = DisplayDefaults.pedestal_matrix,
-        gain_matrix: Optional[CalibrationMatrix] = DisplayDefaults.gain_matrix,
+        equalization_matrix: Optional[CalibrationMatrix] = DisplayDefaults.equalization_matrix,
         ) -> None:
     """Display events from a digi file.
 
@@ -805,16 +828,17 @@ def display(
     pedestal_matrix : CalibrationMatrix, optional
         The pedestal calibration matrix to use for the display.
 
-    gain_matrix : CalibrationMatrix, optional
-        The gain calibration matrix to use for the display.
+    equalization_matrix : CalibrationMatrix, optional
+        The equalization calibration matrix to use for the display.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
-    cal_matrices = [noise_matrix, gain_matrix, pedestal_matrix]
+    cal_matrices = [noise_matrix, equalization_matrix, pedestal_matrix]
     missing = [matrix for matrix in cal_matrices if matrix is None]
     # Check if any of the calibration matrices is missing.
     if 0 < len(missing) < len(cal_matrices):
-        logger.warning(f"{len(missing)} calibration matrices are missing.")
+        logger.warning(f"{len(missing)} calibration matrices are missing to perform" \
+                       " event reconstruction.")
     # Initialize the correct type of event display based on the input matrices.
     grid_args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"], \
         header["pitch"]
@@ -862,7 +886,7 @@ def quicklook(input_file_path: str) -> None:
         The path to the input recon file.
     """
     # Open the input file
-    name, args = current_call()
+    name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     input_file = ReconInputFile(input_file_path)
     # Plotting the reconstructed energy and the true energy
@@ -949,7 +973,7 @@ def calibview(
         The upper quantile of the values in the matrix to be included in the statistics.
     """
     # pylint: disable=too-many-statements
-    name, args = current_call()
+    name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     logger.info("Matrix metadata:")
     # Log the metadata of the matrix.
@@ -959,7 +983,7 @@ def calibview(
         logger.info(f"  {key}: {value}")
     unit = CALIBRATION_UNITS.get(matrix.metadata["calibration_type"]).value
     # Calculate the quantiles of the values in the matrix to set the limits for the plots.
-    rel_error_mask = matrix.errors / matrix.values < rel_error
+    rel_error_mask = abs(matrix.errors / matrix.values) < rel_error
     hits_mask = matrix.entries >= min_hits
     mask = rel_error_mask & hits_mask
     if not np.any(mask):
@@ -997,6 +1021,10 @@ def calibview(
         plt.colorbar(label=mc_unit)
         # Plot the distribution of the Monte Carlo truth values.
         mc_edges = np.linspace(np.nanmin(mc_vals), np.nanmax(mc_vals), 100)
+        # If Monte Carlo distribution is uniform, we need to modify the edges
+        if mc_edges[0] == mc_edges[-1]:
+            val = mc_edges[0]
+            mc_edges = np.linspace(val*0.9, val*1.1, 100)
         mc_vals_hist = Histogram1d(mc_edges, label="MC Distribution", xlabel=mc_unit).fill(mc_vals)
         plt.figure("Distribution of Monte Carlo truth values")
         mc_vals_hist.plot(statistics=True)
