@@ -307,8 +307,6 @@ class ClusteringNN(ClusteringBase):
            for speed using proper numpy array for the offset indexes.
         """
         # Load the readout calibration matrices.
-        # FIXME: we have to fill empty pixel with some value, but not here. Maybe the ideal
-        # thing is doing it at the readout initialization.
         noise = self.readout.enc
         pedestal = self.readout.pedestal
         gain = self.readout.gain
