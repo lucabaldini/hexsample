@@ -274,6 +274,22 @@ class CalibrationMatrix:
         if not np.any(self._entries >= min_hits):
             return np.nan
         return self._values[self._entries >= min_hits].mean()
+    
+    def median(self) -> float:
+        """Return the median value of the calibration matrix, calculated as the median of the
+        pixels with at least one event.
+        """
+        if not np.any(self._entries > 0):
+            return np.nan
+        return np.median(self._values[self._entries > 0])
+
+    def std(self) -> float:
+        """Return the standard deviation of the calibration matrix, calculated as the standard
+        deviation of the pixels with at least one event.
+        """
+        if not np.any(self._entries > 0):
+            return np.nan
+        return np.std(self._values[self._entries > 0])
 
     def to_hdf5(self, file_path: str, calibration_type: CalibrationType, is_synthetic: bool) -> str:
         """Save the calibration matrix to an HDF5 file at the given path.
