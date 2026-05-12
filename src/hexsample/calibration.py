@@ -890,7 +890,7 @@ class CalibrateEqualization(CalibrateBase):
         """
         super().__init__(num_cols, num_rows)
         self._algorithm = algorithm
-        # Initiliaze the data structures for the absolute calibration algorithm.
+        # Initialize the data structures for the absolute calibration algorithm.
         if algorithm == "absolute":
             self._event_count = 0
             self._pha = []
