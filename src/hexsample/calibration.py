@@ -24,18 +24,16 @@ import gc
 import pathlib
 from enum import Enum
 from itertools import product
-from itertools import product
 from typing import Optional, Tuple
 
 import h5py
 import numpy as np
 import xraydb
 from aptapy.hist import Histogram3d
+from aptapy.models import Gaussian
 from iminuit import Minuit
 from joblib import Parallel, delayed
-from aptapy.models import Gaussian
 from scipy.sparse import csc_matrix, csr_matrix
-from tqdm import tqdm
 from tqdm import tqdm
 
 from .clustering import Cluster
