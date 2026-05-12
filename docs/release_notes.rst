@@ -12,8 +12,8 @@ Release notes
   and the observed energy of the events. Corresponding CLI command `calibgen equalization` added
   to generate equalization calibration files from event files.
 * The `CalibrateGain` class has been refactored. Now it produces a gain calibration matrix from
-  a equalization calibration matrix, by using the ADC to eV conversion and the chip sensor
-  matieral. The gain matrix is expressed in ADC counts per electron. Corresponding CLI command
+  an equalization calibration matrix, by using the ADC to eV conversion and the chip sensor
+  material. The gain matrix is expressed in ADC counts per electron. Corresponding CLI command
   `calibgen gain` refactored to reflect this change.
 * Some CLI commands refactored to use the equalization calibration file instead of the gain
   calibration file (`reconstruct`, `display`, `calibgen eta`).

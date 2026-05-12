@@ -344,7 +344,7 @@ def reconstruct(
             cluster = clustering.run(event)
         except IndexError as e:
             logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
-        if cluster.size() in size:
+        if cluster is not None and (cluster.size() in size):
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args)
@@ -443,7 +443,7 @@ def calibrate_eta(
         except IndexError:
             continue
         # Analyze only 2-pixel and 3-pixel events.
-        if cluster.size() == 2 or cluster.size() == 3:
+        if cluster is not None and (cluster.size() == 2 or cluster.size() == 3):
             mc_event = input_file.mc_event(i)
             size_list.append(cluster.size())
             # Calculate the photon position with respect to the most charged pixel
@@ -728,6 +728,7 @@ def calibrate_equalization(
     # necessary for the calibration.
     unit_gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
     unit_gain_map.set_value(1.)
+    unit_gain_map.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
         header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
@@ -741,9 +742,8 @@ def calibrate_equalization(
             cluster = clustering.run(event)
         except IndexError:
             continue
-        if cluster is None:
-            continue
-        equalization_calibration.analyze_cluster(cluster)
+        if cluster is not None:
+            equalization_calibration.analyze_cluster(cluster)
     logger.info("Calculating the equalization matrix...")
     equalization_matrix = equalization_calibration.fit(size)
     output_file_path = input_file_path.replace(".h5", "_matrix_equalization.h5")

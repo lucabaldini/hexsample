@@ -135,7 +135,7 @@ class CalibrationMatrix:
         # Other useful information for the metadata
         self.num_events = 0
         self._cached = False
-        self._cached_metadata = {
+        self._metadata = {
             CalibrationMetadata.NUM_COLS: num_cols,
             CalibrationMetadata.NUM_ROWS: num_rows
             }
@@ -161,6 +161,8 @@ class CalibrationMatrix:
             raise ValueError(f"Input matrix has shape {new_matrix.shape}, but expected shape is "
                              f"{self._shape}.")
         self._values = new_matrix
+        # Invalidate the cached metadata since the values of the matrix have changed.
+        self._cached = False
 
     @property
     def entries(self) -> np.ndarray:
@@ -178,6 +180,8 @@ class CalibrationMatrix:
             raise ValueError(f"Input entries matrix has shape {new_entries.shape}, but expected "
                              f"shape is {self._shape}.")
         self._entries = new_entries
+        # Invalidate the cached metadata since the number of events has changed.
+        self._cached = False
 
     @property
     def errors(self) -> np.ndarray:
@@ -194,13 +198,15 @@ class CalibrationMatrix:
             raise ValueError(f"Input error matrix has shape {new_error.shape}, but expected shape "
                              f"is {self._shape}.")
         self._errors = new_error
+        # Invalidate the cached metadata since the error values have changed.
+        self._cached = False
 
     @property
     def metadata(self) -> dict:
         """Return the metadata of the calibration matrix.
         """
         if self._cached:
-            return self._cached_metadata
+            return self._metadata
         mask = self._entries > 0
         # If there are no pixels with events, we can set the average, minimum and maximum number of
         # events to zero.
@@ -211,13 +217,13 @@ class CalibrationMatrix:
         else:
             entries_avg = entries_min = entries_max = 0
         # Setting the metadata values.
-        self._cached_metadata[CalibrationMetadata.NUM_EVENTS] = self.num_events
-        self._cached_metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
-        self._cached_metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
-        self._cached_metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
-        self._cached_metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
+        self._metadata[CalibrationMetadata.NUM_EVENTS] = self.num_events
+        self._metadata[CalibrationMetadata.ENTRIES_AVG] = entries_avg
+        self._metadata[CalibrationMetadata.ENTRIES_MIN] = entries_min
+        self._metadata[CalibrationMetadata.ENTRIES_MAX] = entries_max
+        self._metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
         self._cached = True
-        return self._cached_metadata
+        return self._metadata
 
     def update_metadata(self, key: CalibrationMetadata, value) -> None:
         """Update the metadata of the calibration matrix with a new key-value pair.
@@ -229,7 +235,7 @@ class CalibrationMatrix:
         value :
             The value of the metadata to be updated.
         """
-        self._cached_metadata[key] = value
+        self._metadata[key] = value
 
     def set_value(self, value: float) -> None:
         """Set a value for all the pixels in the calibration matrix.
@@ -240,6 +246,7 @@ class CalibrationMatrix:
             The value to be set for all the pixels in the calibration matrix.
         """
         self._values = np.full(self._shape, value)
+        self._cached = False
 
     def fill(self, value: float, max_hits: int = 0) -> None:
         """Substitute the value of the pixels with less hits than or equal to a certain threshold
@@ -255,6 +262,7 @@ class CalibrationMatrix:
             The maximum number of hits for a pixel to be considered for replacement.
         """
         self._values = np.where(self._entries <= max_hits, value, self._values)
+        self._cached = False
 
     def mean(self, min_hits: int = 1) -> float:
         """Return the mean value of the calibration matrix, calculated as the mean of the pixels
@@ -296,9 +304,9 @@ class CalibrationMatrix:
             h5file.create_dataset(self.ERRORS, data=self.errors, dtype=np.float32,
                                   **compression_pars)
             # Update the header with the relevant information and metadata.
-            self._cached_metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type.value
-            self._cached_metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
-            self._cached_metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
+            self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type.value
+            self._metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
+            self._metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
             for key, val in self.metadata.items():
                 h5file.attrs[key] = val
         return file_path
@@ -325,7 +333,7 @@ class CalibrationMatrix:
             obj = cls(num_cols=attrs["num_cols"], num_rows=attrs["num_rows"])
             obj.num_events = attrs.get(CalibrationMetadata.NUM_EVENTS.value)
             for key, val in attrs.items():
-                obj._cached_metadata[key] = val
+                obj._metadata[key] = val
             # Load the matrix and the hits matrices from the HDF5 file.
             obj._values = h5file[obj.VALUES][:]
             obj._entries = h5file[obj.ENTRIES][:]
@@ -347,11 +355,11 @@ class CalibrationMatrix:
     def __str__(self) -> str:
         """Return a string representation of the calibration matrix.
         """
-        if CalibrationMetadata.FILE_NAME in self._cached_metadata:
-            return self._cached_metadata[CalibrationMetadata.FILE_NAME]
+        if CalibrationMetadata.FILE_NAME in self._metadata:
+            return self._metadata[CalibrationMetadata.FILE_NAME]
         return f"CalibrationMatrix( " \
-               f"num_cols={self._cached_metadata[CalibrationMetadata.NUM_COLS]}, " \
-               f"num_rows={self._cached_metadata[CalibrationMetadata.NUM_ROWS]})"
+               f"num_cols={self._metadata[CalibrationMetadata.NUM_COLS]}, " \
+               f"num_rows={self._metadata[CalibrationMetadata.NUM_ROWS]})"
 
 
 class CalibrateBase:
@@ -706,13 +714,16 @@ def _likelihood_fit(data: csr_matrix, conv_factor: float, pdf: SpectrumPDF,
     def nll(pars):
         total_adc = data @ pars
         p = pdf(total_adc * conv_factor)
-        return -np.sum(np.log(p + 1e-10))
+        # To avoid negative or zero values in the log, clip p to be larger than 1e-10.
+        p_clipped = np.clip(p, 1e-10, None)
+        return -np.sum(np.log(p_clipped))
     # Define the gradient of the log-likelihood function for the fit.
     def nll_grad(pars):
         total_adc = data @ pars
         p = pdf(total_adc * conv_factor)
+        p_clipped = np.clip(p, 1e-10, None)
         dp = pdf_derivative(total_adc * conv_factor)
-        grad = -data.T @ (dp / (p + 1e-10)) * conv_factor
+        grad = -data.T @ (dp / p_clipped) * conv_factor
         return np.asarray(grad).flatten()
     # Define the initial parameters for the fit.
     init_pars = np.ones(data.shape[1])
