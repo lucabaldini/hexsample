@@ -738,7 +738,8 @@ def calibrate_equalization(
            noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the equalization matrix and run the calibration.
-    clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
+    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
+    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
     equalization_calibration = CalibrateEqualization(num_cols, num_rows, algorithm, pdf)
     logger.info("Starting the event loop...")
