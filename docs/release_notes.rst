@@ -4,6 +4,10 @@ Release notes
 =============
 
 
+Version 0.16.2 (2026-05-12)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 * Package dependencies updated: `joblib` and `iminuit` added.
 * New calibration matrix type `equalization` added in `caldb.py` to store the pixel equalization
   factors.
