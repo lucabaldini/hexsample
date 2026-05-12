@@ -463,14 +463,16 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the gain calibration properties.
         """
         defaults = tasks.CalibrationEqualizationDefaults
-        parser.add_argument("pdf", type=pdf.SpectrumPDF.from_file,
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
+        parser.add_argument("--algorithm", type=str, choices=["relative", "absolute"],
+                            default=defaults.algorithm,
+                            help="algorithm to be used for the equalization calibration")
+        parser.add_argument("--pdf", type=pdf.SpectrumPDF.from_file, default=defaults.pdf,
                             help="path to the spectrum PDF file")
         parser.add_argument("--size", type=int, default=defaults.size,
                             help="length of the square region of the chip to fit simultaneously")
-        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
-        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
-        CliArgumentParser.add_zero_sup_threshold(parser,
-                            default=defaults.zero_sup_threshold)
+        CliArgumentParser.add_zero_sup_threshold(parser, default=defaults.zero_sup_threshold)
 
     def add_calibrate_eta_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the eta function calibration properties.
