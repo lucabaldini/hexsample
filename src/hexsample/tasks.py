@@ -525,7 +525,7 @@ def synthesize_calibration_file(
     random_seed : int, optional
         The seed for the random number generator.
     """
-    name, args = current_call()
+    name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     # Initialize the random number generator with the given seed
     rng.initialize(seed=random_seed)

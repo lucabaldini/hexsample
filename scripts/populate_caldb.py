@@ -23,11 +23,14 @@
 """
 
 import numpy as np
+from xraydb import ionization_potential
 
 from hexsample.caldb import CalDB, CalibrationType
 from hexsample.tasks import SynthesizeCalibrationDefaults, synthesize_calibration_file
 
+DEFAULT_IONIZATION_POTENTIAL = ionization_potential("Si")
 DEFAULT_GAIN = 1.
+DEFAULT_ADC_TO_EV = DEFAULT_IONIZATION_POTENTIAL / DEFAULT_GAIN
 RMS_VALS = (0, 10)
 ENC_VALS = np.array((20., 30., 40., 50., 75., 100.))
 PEDESTAL_VALS = (0, 1000)
@@ -62,6 +65,7 @@ def populate_caldb() -> None:
     generate_files(CalibrationType.ENC, ENC_VALS, RMS_VALS)
     generate_files(CalibrationType.NOISE, ENC_VALS * DEFAULT_GAIN, RMS_VALS)
     generate_files(CalibrationType.GAIN, [DEFAULT_GAIN], RMS_VALS)
+    generate_files(CalibrationType.EQUALIZATION, [DEFAULT_ADC_TO_EV], [0.]) 
     generate_files(CalibrationType.PEDESTAL, PEDESTAL_VALS, RMS_VALS)
 
 
