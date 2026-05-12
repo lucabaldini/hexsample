@@ -600,12 +600,14 @@ class CalibrationDarkDefaults:
     definition in this Python module and the command-line interface.
     """
 
+    algorithm: str = "welford"
     has_source: bool = True
     batch_size: int = 5000000
 
 
 def calibrate_dark(
         input_file_path: str,
+        algorithm: str = CalibrationDarkDefaults.algorithm,
         has_source: bool = CalibrationDarkDefaults.has_source,
         batch_size: int = CalibrationDarkDefaults.batch_size
         ) -> Tuple[str, str]:
@@ -615,13 +617,12 @@ def calibrate_dark(
     if readout_mode is not HexagonalReadoutMode.RECTANGULAR:
         raise RuntimeError("Noise calibration is only supported for rectangular readout")
     # Create the calibration matrix
-    dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"])
+    dark_calibration = CalibrateDark(header["num_cols"], header["num_rows"], algorithm)
     # Loop over the events and analyze the noise.
     logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         dark_calibration.analyze_event(event, has_source, batch_size)
     # Update the histogram with the last batch of events and fit the data.
-    dark_calibration.update_hist()
     logger.info("Calculating the noise and pedestal matrices...")
     noise_matrix, pedestal_matrix = dark_calibration.fit()
     # Close the input file and save the noise matrix to a HDF5 file.

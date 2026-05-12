@@ -41,6 +41,7 @@ Solid-state hybrid detectors with hexagonal sampling.
    roi
    sensor
    source
+   stats
    tasks
 
 

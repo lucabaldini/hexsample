@@ -448,11 +448,15 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the dark calibration properties.
         """
+        defaults = tasks.CalibrationDarkDefaults
+        parser.add_argument("--algorithm", type=str, choices=["welford", "fit"],
+                            default=defaults.algorithm,
+                            help="algorithm to be used for the dark calibration")
         parser.add_argument("--no_source", action="store_false", dest="has_source",
-                            default=tasks.CalibrationDarkDefaults.has_source,
+                            default=defaults.has_source,
                             help="if specified, events are considered to be without source")
         parser.add_argument("--batch_size", type=int,
-                            default=tasks.CalibrationDarkDefaults.batch_size,
+                            default=defaults.batch_size,
                             help="number of events to be analyzed in a batch for the dark" \
                             " calibration")
 
