@@ -24,7 +24,6 @@
 from typing import Tuple
 
 from . import legacy, tasks
-from .calibration import ChargeFractionMatrices
 from .readout import ReadoutProxy
 from .sensor import Sensor
 from .source import Source
@@ -63,12 +62,9 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
     eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
-    if kwargs.get("mle_matrices_file") is not None:
-        charge_fraction_matrices = ChargeFractionMatrices.from_hdf5(kwargs.get("mle_matrices_file"))
-    else:
-        charge_fraction_matrices = None
+    mle_data = kwargs.get("mle_data", defaults.mle_data)
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
-                  eta_3pix_rad_pivot, eta_3pix_theta_sigma, charge_fraction_matrices)
+                  eta_3pix_rad_pivot, eta_3pix_theta_sigma, mle_data)
     args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, suffix, \
             zero_sup_threshold,num_neighbors, max_neighbors, pos_recon_algorithm, *recon_args
     return tasks.reconstruct(*args, kwargs)
