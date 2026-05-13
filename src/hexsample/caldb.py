@@ -23,6 +23,7 @@
 import pathlib
 
 from .calibration import CalibrationMatrix, CalibrationType
+from .position import MLECalibrationData
 
 
 class CalDB:
@@ -70,3 +71,12 @@ class CalDB:
         """Open the equalization calibration file for the given designation.
         """
         return cls._open(CalibrationType.EQUALIZATION, designator)
+
+    @classmethod
+    def open_mle(cls, designator: str) -> MLECalibrationData:
+        """Open the MLE calibration file for the given designation.
+        """
+        if pathlib.Path(designator).is_file():
+            return MLECalibrationData.from_hdf5(designator)
+        file_path = cls.ROOT_DIR / CalibrationType.MLE.value / f"{designator}.h5"
+        return MLECalibrationData.from_hdf5(file_path)
