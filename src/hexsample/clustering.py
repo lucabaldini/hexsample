@@ -34,7 +34,7 @@ from .readout import HexagonalReadoutBase
 # This line is necessary to avoid circular imports errors, allowing to import the class only
 # when type checking is performed
 if TYPE_CHECKING:
-    from .calibration import ChargeFractionMatrices
+    from .position import MLECalibrationData
 
 
 @dataclass
@@ -187,7 +187,7 @@ class Cluster:
                                " eta function")
         return x_recon, y_recon
 
-    def mle(self, charge_fraction_matrices: "ChargeFractionMatrices", sigma_noise: float,
+    def mle(self, charge_fraction_matrices: "MLECalibrationData", sigma_noise: float,
             pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the maximum likelihood estimator. The
         computation is performed using the negative log-likelihood, which is minimized with the
@@ -208,11 +208,14 @@ class Cluster:
         """
         # Load the data from the charge fraction matrices and calculate the binning information
         # needed for the likelihood computation.
-        matrices = charge_fraction_matrices.matrices
+        matrices = charge_fraction_matrices.values
         x_bins = charge_fraction_matrices.x_bins
         y_bins = charge_fraction_matrices.y_bins
-        xmin, ymin = x_bins[0], y_bins[0]
+        # Calculate bin edges and pass the left edge of the first bin (not the center)
         bin_size = x_bins[1] - x_bins[0]
+        xmin = x_bins[0] - bin_size / 2
+        ymin = y_bins[0] - bin_size / 2
+
         # Define the wrapper functions for the nll and its gradient for the minimization.
         def nll(x, y):
             """Wrapper around the nll_numba function to be passed to iminuit, which expects a
@@ -225,6 +228,7 @@ class Cluster:
             function that takes the parameters to be optimized as arguments.
             """
             return nll_grad_numba(x, y, self.pha, matrices, xmin, ymin, bin_size, sigma_noise)
+
         # Compute the initial guess for the minimization using the cluster centroid.
         x_centroid, y_centroid = self.centroid()
         parin = np.array([x_centroid - self.x[0], y_centroid - self.y[0]]) / pitch
@@ -247,7 +251,22 @@ class Cluster:
         #         self._erry_high = m.merrors["y"].upper * 0.005
         #     except RuntimeError:
         #         pass
-        return self.x[0] + m.values['x'] * pitch, self.y[0] + m.values['y'] * pitch
+        # x_v = np.linspace(x_bins[0], x_bins[-1], 100)
+        # y_v = np.linspace(y_bins[0], y_bins[-1], 100)
+        # z = np.array([[nll(xi, yi) for xi in x_v] for yi in y_v])
+        # import matplotlib.pyplot as plt
+        # # 2. Plot al volo con imshow
+        # plt.figure()
+        # plt.imshow(
+        #     z,
+        #     extent=[x_bins[0], x_bins[-1], y_bins[0], y_bins[-1]],
+        #     origin="lower",
+        #     cmap="viridis",
+        # )
+        # plt.colorbar(label="NLL")
+        # plt.plot(m.values["x"], m.values["y"], "r*")
+        # plt.show()
+        return self.x[0] + m.values["x"] * pitch, self.y[0] + m.values["y"] * pitch
 
     def position(self):
         """Return the cluster reconstructed position using the position reconstruction algorithm
@@ -430,7 +449,7 @@ class ClusteringHex(ClusteringBase):
 
     """Hexagonal clustering.
 
-    This clustering strategy always takes the six neighbors of the seed pixel, without applyng
+    This clustering strategy always takes the six neighbors of the seed pixel, without applying
     any position suppression. The order of the pixels is fixed, with the seed pixel always in the
     first position, and the neighbors ordered clockwise, depending on the readout geometry.
 
@@ -448,41 +467,41 @@ class ClusteringHex(ClusteringBase):
 
     def run(self, event) -> Cluster:
         """Overladed method.
-
-        .. warning::
-           The loop ever the neighbors might likely be vectorized and streamlined
-           for speed using proper numpy array for the offset indexes.
         """
-        gain = self.readout.gain
+        # Load the readout calibration matrices.
         noise = self.readout.enc
         pedestal = self.readout.pedestal
+        gain = self.readout.gain
+        # Load the adc_to_ev conversion factor from the readout metadata of the
+        # equalization matrix.
+        adc_to_ev = gain.metadata["adc_to_ev"]
         if isinstance(event, DigiEventCircular):
-            gain_array = [gain(event.row, event.column)]
-            col = [event.column]
-            row = [event.row]
-            seed_pha = event.pha[self.readout.adc_channel(event.column, event.row)]
-            pha = [(seed_pha - 1000) / gain_array[0]]
-            for _col, _row in self.readout.neighbors(event.column, event.row):
-                col.append(_col)
-                row.append(_row)
-                _pha = event.pha[self.readout.adc_channel(_col, _row)]
-                pha.append((_pha - 1000) / gain(_row, _col))
-        # pylint: disable = invalid-name
+            # Check if the seed pixel is at the border, in that case we throw away
+            # the event.
+            seed_coords = (event.column, event.row)
+            if self.readout.is_at_border(*seed_coords):
+                return None
+            # Taking the NN logical coordinates ...
+            neigh_coords = self.readout.neighbors(*seed_coords)
+            col, row = np.vstack((seed_coords, neigh_coords)).T
+            # ... trasforming the coordinates in the corresponding ADC channel ...
+            adc_channel_order = self.readout.adc_channel(col, row)
+            # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i]
+            # and applying pedestal and gain correction.
+            pha = (event.pha[adc_channel_order] - pedestal(col, row)) / gain(col, row)
         elif isinstance(event, DigiEventRectangular):
-            seed_col, seed_row = event.highest_pixel()
-            col = [seed_col]
-            row = [seed_row]
-            seed_pha = event(seed_col, seed_row)
-            pha = [(seed_pha - 1000) / gain(seed_row, seed_col)]
-            for _col, _row in self.readout.neighbors(seed_col, seed_row):
-                col.append(_col)
-                row.append(_row)
-                _pha = event(_col, _row)
-                pha.append((_pha - 1000) / gain(_row, _col))
-        # Converting lists into numpy arrays
-        col = np.array(col)
-        row = np.array(row)
-        pha = np.array(pha)
+            seed_cords = event.highest_pixel()
+            # Check if the seed pixel is at the border, in that case we throw away the event.
+            if self.readout.is_at_border(*seed_cords):
+                return None
+            neigh_coords = self.readout.neighbors(*seed_cords)
+            col, row = np.vstack((seed_cords, neigh_coords)).T
+            pha = (event(col, row) - pedestal(col, row)) / gain(col, row)
+        else:
+            raise RuntimeError(f"Unsupported event type {type(event)} for clustering")
+        # Zero suppressing the event (whatever the readout type)...
+        threshold = self.zero_sup_threshold * (noise(col, row) / gain(col, row))
+        pha = self.zero_suppress(pha, threshold)
         # Calculate the physical coordinates of the pixels in the cluster.
         x, y = self.readout.pixel_to_world(col, row)
-        return Cluster(x, y, col, row, pha, self.pos_recon_algorithm, self.recon_pars)
+        return Cluster(x, y, col, row, pha, adc_to_ev, self.pos_recon_algorithm, self.recon_pars)

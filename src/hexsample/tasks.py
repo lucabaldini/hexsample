@@ -17,8 +17,7 @@
 # with this program; if not, write to the Free Software Foundation Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-"""Basic simulation, reconstruction and analysis tasks.
-"""
+"""Basic simulation, reconstruction and analysis tasks."""
 
 import inspect
 import pathlib
@@ -44,9 +43,8 @@ from .calibration import (
     CalibrationMatrix,
     CalibrationMetadata,
     CalibrationType,
-    ChargeFractionMatrices,
 )
-from .clustering import ClusteringNN
+from .clustering import ClusteringHex, ClusteringNN
 from .display import EventDisplay
 from .eta import (
     angle,
@@ -55,8 +53,6 @@ from .eta import (
     calibrate_theta_3pix,
     distance,
 )
-from .clustering import ClusteringHex, ClusteringNN
-from .display import EventDisplay
 from .fileio import (
     DigiInputFileBase,
     ReconInputFile,
@@ -69,6 +65,7 @@ from .hexagon import HexagonalGrid, HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
 from .pdf import SpectrumPDF
+from .position import CalibrateMLE, MLECalibrationData, MLECalibrationMetadata
 from .readout import (
     AbstractReadout,
     HexagonalReadoutBase,
@@ -107,8 +104,7 @@ def current_call(num_backward_steps: int = 2) -> Tuple[str, dict]:
 
 
 def open_file(input_file_path: Union[str, pathlib.Path]) -> Tuple[DigiInputFileBase, dict, str]:
-    """Open a digi file and extract the header and the readout type.
-    """
+    """Open a digi file and extract the header and the readout type."""
     name, args = current_call()
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     input_file_path = str(input_file_path)
@@ -121,10 +117,8 @@ def open_file(input_file_path: Union[str, pathlib.Path]) -> Tuple[DigiInputFileB
     return input_file, header, readout_mode
 
 
-def create_readout(readout_mode: HexagonalReadoutMode, header: dict, *args
-                   ) -> HexagonalReadoutBase:
-    """Create and return a readout object based on the readout mode and the header information.
-    """
+def create_readout(readout_mode: HexagonalReadoutMode, header: dict, *args) -> HexagonalReadoutBase:
+    """Create and return a readout object based on the readout mode and the header information."""
     if readout_mode is HexagonalReadoutMode.RECTANGULAR:
         readout = HexagonalReadoutRectangular(*args, padding=header["padding"])
     elif readout_mode is HexagonalReadoutMode.CIRCULAR:
@@ -142,6 +136,7 @@ class SimulationDefaults:
     This is a small helper dataclass to help ensure consistency between the main task
     definition in this Python module and the command-line interface.
     """
+
     # source: Source = Source()
     # sensor: Sensor = Sensor()
     # readout = ? For this one we need to reconcile the thing with argparse...
@@ -151,15 +146,15 @@ class SimulationDefaults:
 
 
 def simulate(
-        source: Source,
-        sensor: Sensor,
-        readout: AbstractReadout,
-        num_events: int = SimulationDefaults.num_events,
-        output_file_path: str = SimulationDefaults.output_file_path,
-        random_seed: int = SimulationDefaults.random_seed,
-        # This will go away.
-        header_kwargs: dict = None,
-        ) -> str:
+    source: Source,
+    sensor: Sensor,
+    readout: AbstractReadout,
+    num_events: int = SimulationDefaults.num_events,
+    output_file_path: str = SimulationDefaults.output_file_path,
+    random_seed: int = SimulationDefaults.random_seed,
+    # This will go away.
+    header_kwargs: dict = None,
+) -> str:
     """Run a simulation.
 
     .. warning::
@@ -216,7 +211,6 @@ def simulate(
 
 @dataclass(frozen=True)
 class ReconstructionDefaults:
-
     """Default parameters for the reconstruction task.
 
     This is a small helper dataclass to help ensure consistency between the main task
@@ -224,7 +218,7 @@ class ReconstructionDefaults:
     """
 
     suffix: str = "recon"
-    zero_sup_threshold: float = 0.
+    zero_sup_threshold: float = 0.0
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
@@ -234,7 +228,7 @@ class ReconstructionDefaults:
     eta_3pix_rad_sigma: float = 0.141
     eta_3pix_rad_pivot: float = 0.05
     eta_3pix_theta_sigma: float = 0.104
-    charge_fraction_matrices: Optional[ChargeFractionMatrices] = None
+    mle_data: Optional[MLECalibrationData] = None
 
 
 def reconstruct(
@@ -253,11 +247,9 @@ def reconstruct(
         eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
         eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
         eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
-        charge_fraction_matrices: Optional[ChargeFractionMatrices] = (
-            ReconstructionDefaults.charge_fraction_matrices
-        ),
+        mle_data: Optional[MLECalibrationData] = ReconstructionDefaults.mle_data,
         header_kwargs: dict = None,
-        ) -> str:
+    ) -> str:
     """Run the reconstruction.
 
     .. warning::
@@ -314,9 +306,8 @@ def reconstruct(
     eta_3pix_theta_sigma : float
         The sigma parameter for the angular component of the eta function for three pixel events.
 
-    charge_fraction_matrices : ChargeFractionMatrices, optional
-        The charge fraction matrices to use for the MLE position reconstruction. If None, the MLE
-        reconstruction will not be available.
+    mle_data : MLECalibrationData, optional
+        MLE calibration data.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -345,18 +336,17 @@ def reconstruct(
             eta_3pix_rad_sigma=eta_3pix_rad_sigma,
             eta_3pix_rad_pivot=eta_3pix_rad_pivot,
             eta_3pix_theta_sigma=eta_3pix_theta_sigma,
-            pitch=header["pitch"]
+            pitch=header["pitch"],
         )
     if pos_recon_algorithm == "mle":
-        if charge_fraction_matrices is None:
-            raise RuntimeError("Charge fraction matrices must be provided for MLE position" \
-            "reconstruction")
-        recon_pars = dict(charge_fraction_matrices=charge_fraction_matrices,
-                          sigma_noise=header["enc"], pitch=header["pitch"])
+        if mle_data is None:
+            raise RuntimeError("MLE data must be provided for MLE position reconstruction")
+        recon_pars = dict(charge_fraction_matrices=mle_data, sigma_noise=20, pitch=header["pitch"])
         clustering = ClusteringHex(readout, 0, pos_recon_algorithm, recon_pars)
     else:
-        clustering = ClusteringNN(readout, zero_sup_threshold, effective_neighbors,
-                                pos_recon_algorithm, recon_pars)
+        clustering = ClusteringNN(
+            readout, zero_sup_threshold, effective_neighbors, pos_recon_algorithm, recon_pars
+        )
     # Run the actual reconstruction.
     # Create a list of acceptable cluster sizes.
     size = list(range(1, max_neighbors + 2)) if max_neighbors >= 0 else [num_neighbors + 1]
@@ -381,9 +371,7 @@ def reconstruct(
     return output_file_path
 
 
-def calibspec(
-        input_file_path: str
-        ) -> str:
+def calibspec(input_file_path: str) -> str:
     """Create a probability density function from a reconstructed spectrum to use in
     the gain calibration.
 
@@ -414,7 +402,7 @@ class CalibrationMLEDefaults:
     definition in this Python module and the command-line interface.
     """
 
-    bin_size: float = 0.02
+    bin_size: float = 0.01
 
 
 def calibrate_mle(
@@ -422,7 +410,8 @@ def calibrate_mle(
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
         equalization_matrix: CalibrationMatrix,
-        bin_size: float) -> str:
+        bin_size: float,
+    ) -> str:
     """Calibrate the charge diffusion for the Maximum Likelihood Estimator (MLE) position
     reconstruction algorithm, using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
@@ -436,36 +425,38 @@ def calibrate_mle(
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
-    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, equalization_matrix, pedestal_matrix
+    grid_args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"]
+    grid = HexagonalGrid(*grid_args)
     # Create the readout object, necessary to create the clustering object
-    readout = create_readout(readout_mode, header, *args)
+    readout_args = *grid_args, noise_matrix, equalization_matrix, pedestal_matrix
+    readout = create_readout(readout_mode, header, *readout_args)
     clustering = ClusteringHex(readout, 0)
-    # Create lists to store the x, y (incident position) and charge fraction values of the events.
-    x, y, fraction = [], [], []
-    # Loop over the events in the input file and fill the lists with the relevant information.
+    # Initialize the MLE calibrator and run the event loop.
+    mle_calibrator = CalibrateMLE(bin_size, grid)
+    logger.info("Starting the event loop...")
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
-        fraction.append(cluster.pha / cluster.pulse_height())
         mc_event = input_file.mc_event(i)
-        x.append(mc_event.absx - cluster.x[0])
-        y.append(mc_event.absy - cluster.y[0])
+        mle_calibrator.analyze_cluster(cluster, mc_event)
+    # Close the input file.
     input_file.close()
-    # Convert the lists to numpy arrays and normalize the x and y coordinates by the pixel pitch.
-    fraction = np.array(fraction)
-    x = np.array(x) / readout.pitch
-    y = np.array(y) / readout.pitch
-    # Create the charge fraction matrices and save them to a HDF5 file.
-    matrices = ChargeFractionMatrices(bin_size, readout)
-    matrices.upload_data(x, y, fraction)
+    data = mle_calibrator.fit()
+    # Access sensor information from the header and update the metadata.
+    data.update_metadata(MLECalibrationMetadata.PITCH.value, header["pitch"])
+    data.update_metadata(MLECalibrationMetadata.LAYOUT.value, header["layout"].value)
+    data.update_metadata(MLECalibrationMetadata.DIFFUSION_SIGMA.value, header["diffusion_sigma"])
+    data.update_metadata(MLECalibrationMetadata.THICKNESS.value, header["thickness"])
+    # Save the calibration results to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_mle_matrices.h5")
-    matrices.to_hdf5(output_file_path)
+    logger.info(f"Saving the MLE calibration data to {output_file_path}...")
+    data.to_hdf5(output_file_path)
+    logger.info("Done!")
     return output_file_path
 
 
 @dataclass(frozen=True)
 class CalibrationEtaDefaults:
-
     """Default parameters for the eta function calibration task.
 
     This is a small helper dataclass to help ensure consistency between the main task
@@ -473,17 +464,17 @@ class CalibrationEtaDefaults:
     """
 
     num_bins: int = 50
-    zero_sup_threshold: float = 1.
+    zero_sup_threshold: float = 1.0
 
 
 def calibrate_eta(
-        input_file_path: str,
-        noise_matrix: CalibrationMatrix,
-        pedestal_matrix: CalibrationMatrix,
-        equalization_matrix: CalibrationMatrix,
-        num_bins: int = CalibrationEtaDefaults.num_bins,
-        zero_sup_threshold: float = CalibrationEtaDefaults.zero_sup_threshold
-        ) -> None:
+    input_file_path: str,
+    noise_matrix: CalibrationMatrix,
+    pedestal_matrix: CalibrationMatrix,
+    equalization_matrix: CalibrationMatrix,
+    num_bins: int = CalibrationEtaDefaults.num_bins,
+    zero_sup_threshold: float = CalibrationEtaDefaults.zero_sup_threshold,
+) -> None:
     """Calibrate the eta function using the events from a digi file.
 
     Arguments
@@ -507,11 +498,19 @@ def calibrate_eta(
         The zero-suppression threshold as a multiple of the noise.
     """
     input_file, header, readout_mode = open_file(input_file_path)
-    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, equalization_matrix, pedestal_matrix
+    args = (
+        HexagonalLayout(header["layout"]),
+        header["num_cols"],
+        header["num_rows"],
+        header["pitch"],
+        noise_matrix,
+        equalization_matrix,
+        pedestal_matrix,
+    )
     readout = create_readout(readout_mode, header, *args)
-    clustering = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
-                              pos_recon_algorithm="centroid")
+    clustering = ClusteringNN(
+        readout, zero_sup_threshold, num_neighbors=6, pos_recon_algorithm="centroid"
+    )
     # Create the lists to store the data.
     size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
     # Loop over the events and calculate the interesting quantities.
@@ -525,8 +524,10 @@ def calibrate_eta(
             mc_event = input_file.mc_event(i)
             size_list.append(cluster.size())
             # Calculate the photon position with respect to the most charged pixel
-            ph_pos = np.array([mc_event.absx - cluster.x[0],
-                               mc_event.absy - cluster.y[0]]) / header["pitch"]
+            ph_pos = (
+                np.array([mc_event.absx - cluster.x[0], mc_event.absy - cluster.y[0]])
+                / header["pitch"]
+            )
             photon_pos_list.append(ph_pos)
             eta_list.append(cluster.calculate_eta())
             versors_list.append(cluster.versors())
@@ -555,9 +556,7 @@ def calibrate_eta(
 
 @dataclass(frozen=True)
 class SynthesizeCalibrationDefaults:
-
-    """Default values for the generate_calibration_file task.
-    """
+    """Default values for the generate_calibration_file task."""
 
     percent_rms: int = 0
     output_dir: Union[str, pathlib.Path] = HEXSAMPLE_DATA
@@ -567,14 +566,14 @@ class SynthesizeCalibrationDefaults:
 
 
 def synthesize_calibration_file(
-        calibration_type: CalibrationType,
-        mean: float,
-        percent_rms: int = SynthesizeCalibrationDefaults.percent_rms,
-        chip_name: str = SynthesizeCalibrationDefaults.chip_name,
-        output_dir: Union[str, pathlib.Path] = SynthesizeCalibrationDefaults.output_dir,
-        version: int = SynthesizeCalibrationDefaults.version,
-        random_seed: int = SynthesizeCalibrationDefaults.random_seed
-        ) -> str:
+    calibration_type: CalibrationType,
+    mean: float,
+    percent_rms: int = SynthesizeCalibrationDefaults.percent_rms,
+    chip_name: str = SynthesizeCalibrationDefaults.chip_name,
+    output_dir: Union[str, pathlib.Path] = SynthesizeCalibrationDefaults.output_dir,
+    version: int = SynthesizeCalibrationDefaults.version,
+    random_seed: int = SynthesizeCalibrationDefaults.random_seed,
+) -> str:
     """Generate a synthetic calibration file for the given calibration type and
     chip name.
 
@@ -625,9 +624,11 @@ def synthesize_calibration_file(
     if calibration_type == CalibrationType.EQUALIZATION:
         calibration_matrix.update_metadata(CalibrationMetadata.ADC_TO_EV, mean)
         rms /= mean
-        mean = 1.
-    logger.info(f"Generating {calibration_type.value} calibration matrix with "
-                f"mean {mean:g} and RMS {rms:g}...")
+        mean = 1.0
+    logger.info(
+        f"Generating {calibration_type.value} calibration matrix with "
+        f"mean {mean:g} and RMS {rms:g}..."
+    )
     calibration_matrix.values = rng.generator.normal(mean, scale=rms, size=(num_rows, num_cols))
     # Save the calibration matrix to the output directory
     output_path = pathlib.Path(output_dir) / file_name
@@ -637,9 +638,7 @@ def synthesize_calibration_file(
     return str(output_path)
 
 
-def calibrate_noise(
-        input_file_path: str
-        ) -> str:
+def calibrate_noise(input_file_path: str) -> str:
     """Calibrate noise of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
 
@@ -684,11 +683,11 @@ class CalibrationDarkDefaults:
 
 
 def calibrate_dark(
-        input_file_path: str,
-        algorithm: str = CalibrationDarkDefaults.algorithm,
-        has_source: bool = CalibrationDarkDefaults.has_source,
-        batch_size: int = CalibrationDarkDefaults.batch_size
-        ) -> Tuple[str, str]:
+    input_file_path: str,
+    algorithm: str = CalibrationDarkDefaults.algorithm,
+    has_source: bool = CalibrationDarkDefaults.has_source,
+    batch_size: int = CalibrationDarkDefaults.batch_size,
+) -> Tuple[str, str]:
     # Open the input file and extract the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     # The analysis is only supported for rectangular readout.
@@ -727,10 +726,10 @@ class CalibrationEncDefaults:
 
 
 def calibrate_enc(
-        noise_matrix: CalibrationMatrix,
-        gain_matrix: CalibrationMatrix,
-        output_dir: Union[str, pathlib.Path] = CalibrationEncDefaults.output_dir
-    ) -> str:
+    noise_matrix: CalibrationMatrix,
+    gain_matrix: CalibrationMatrix,
+    output_dir: Union[str, pathlib.Path] = CalibrationEncDefaults.output_dir,
+) -> str:
     """Calibrate the equivalent noise charge (ENC) of the readout chip using the noise and gain
     matrices. The results are stored as a matrix in a HDF5 file.
 
@@ -767,18 +766,18 @@ class CalibrationEqualizationDefaults:
     algorithm: str = "relative"
     pdf: Optional[SpectrumPDF] = None
     size: int = 10
-    zero_sup_threshold: float = 1.
+    zero_sup_threshold: float = 1.0
 
 
 def calibrate_equalization(
-        input_file_path: str,
-        noise_matrix: CalibrationMatrix,
-        pedestal_matrix: CalibrationMatrix,
-        algorithm: str = CalibrationEqualizationDefaults.algorithm,
-        pdf: Optional[SpectrumPDF] = CalibrationEqualizationDefaults.pdf,
-        size: int = CalibrationEqualizationDefaults.size,
-        zero_sup_threshold: float = CalibrationEqualizationDefaults.zero_sup_threshold
-        ) -> str:
+    input_file_path: str,
+    noise_matrix: CalibrationMatrix,
+    pedestal_matrix: CalibrationMatrix,
+    algorithm: str = CalibrationEqualizationDefaults.algorithm,
+    pdf: Optional[SpectrumPDF] = CalibrationEqualizationDefaults.pdf,
+    size: int = CalibrationEqualizationDefaults.size,
+    zero_sup_threshold: float = CalibrationEqualizationDefaults.zero_sup_threshold,
+) -> str:
     """Calibrate pixel equalization of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
 
@@ -815,15 +814,26 @@ def calibrate_equalization(
     # Define the arguments to create the readout object with uniform pixel equalization,
     # necessary for the calibration.
     unit_gain_map = CalibrationMatrix(num_cols, num_rows)
-    unit_gain_map.set_value(1.)
-    unit_gain_map.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.)
-    args = HexagonalLayout(header["layout"]), num_cols, num_rows, header["pitch"], \
-           noise_matrix, unit_gain_map, pedestal_matrix
+    unit_gain_map.set_value(1.0)
+    unit_gain_map.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.0)
+    args = (
+        HexagonalLayout(header["layout"]),
+        num_cols,
+        num_rows,
+        header["pitch"],
+        noise_matrix,
+        unit_gain_map,
+        pedestal_matrix,
+    )
     readout = create_readout(readout_mode, header, *args)
     # Initialize the equalization matrix and run the calibration.
     equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
-    clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
-                              pos_recon_algorithm="centroid")
+    clustering = ClusteringNN(
+        readout,
+        zero_sup_threshold=zero_sup_threshold,
+        num_neighbors=6,
+        pos_recon_algorithm="centroid",
+    )
     equalization_calibration = CalibrateEqualization(num_cols, num_rows, algorithm, pdf)
     logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
@@ -856,10 +866,10 @@ class CalibrationGainDefaults:
 
 
 def calibrate_gain(
-        equalization_matrix: CalibrationMatrix,
-        material_symbol: str = CalibrationGainDefaults.material_symbol,
-        output_dir: Union[str, pathlib.Path] = CalibrationGainDefaults.output_dir
-        ) -> str:
+    equalization_matrix: CalibrationMatrix,
+    material_symbol: str = CalibrationGainDefaults.material_symbol,
+    output_dir: Union[str, pathlib.Path] = CalibrationGainDefaults.output_dir,
+) -> str:
     """Calibrate the gain of the readout chip using the equalization matrix and the
     ionization potential of the sensor material. The results are stored as a matrix
     in a HDF5 file.
@@ -899,11 +909,11 @@ class DisplayDefaults:
 
 
 def display(
-        input_file_path: str,
-        noise_matrix: Optional[CalibrationMatrix] = DisplayDefaults.noise_matrix,
-        pedestal_matrix: Optional[CalibrationMatrix] = DisplayDefaults.pedestal_matrix,
-        equalization_matrix: Optional[CalibrationMatrix] = DisplayDefaults.equalization_matrix,
-        ) -> None:
+    input_file_path: str,
+    noise_matrix: Optional[CalibrationMatrix] = DisplayDefaults.noise_matrix,
+    pedestal_matrix: Optional[CalibrationMatrix] = DisplayDefaults.pedestal_matrix,
+    equalization_matrix: Optional[CalibrationMatrix] = DisplayDefaults.equalization_matrix,
+) -> None:
     """Display events from a digi file.
 
     Arguments
@@ -926,11 +936,16 @@ def display(
     missing = [matrix for matrix in cal_matrices if matrix is None]
     # Check if any of the calibration matrices is missing.
     if 0 < len(missing) < len(cal_matrices):
-        logger.warning(f"{len(missing)} calibration matrices are missing to perform" \
-                       " event reconstruction.")
+        logger.warning(
+            f"{len(missing)} calibration matrices are missing to perform event reconstruction."
+        )
     # Initialize the correct type of event display based on the input matrices.
-    grid_args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"], \
-        header["pitch"]
+    grid_args = (
+        HexagonalLayout(header["layout"]),
+        header["num_cols"],
+        header["num_rows"],
+        header["pitch"],
+    )
     # If any of the calibration matrices is missing, we only show the grid with pixel values.
     if len(missing) > 0:
         grid = HexagonalGrid(*grid_args)
@@ -948,7 +963,7 @@ def display(
             eta_3pix_rad_sigma=recon_defaults.eta_3pix_rad_sigma,
             eta_3pix_rad_pivot=recon_defaults.eta_3pix_rad_pivot,
             eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
-            pitch=header["pitch"]
+            pitch=header["pitch"],
         )
     # Create the event display and show the events.
     EventDisplay(input_file, grid, recon_pars=recon_pars)
@@ -989,7 +1004,7 @@ def quicklook(input_file_path: str) -> None:
 
     # Plotting the reconstructed x and y position and the true position.
     plt.figure("Reconstructed photons position")
-    binning = np.linspace(-5. * 0.2, 5. * 0.2, 100)
+    binning = np.linspace(-5.0 * 0.2, 5.0 * 0.2, 100)
     x = input_file.column("posx")
     y = input_file.column("posy")
     histo = Histogram2d(binning, binning).fill(x, y)
@@ -1001,14 +1016,14 @@ def quicklook(input_file_path: str) -> None:
     histo_mc = Histogram2d(binning, binning).fill(x_mc, y_mc)
     histo_mc.plot()
     setup_gca(xlabel="x [cm]", ylabel="y [cm]")
-    #Closing the file and showing the figures.
+    # Closing the file and showing the figures.
     plt.figure("x-direction resolution")
-    binning = np.linspace((x-x_mc).min(), (x-x_mc).max(), 100)
-    histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x-x_mc)
+    binning = np.linspace((x - x_mc).min(), (x - x_mc).max(), 100)
+    histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x - x_mc)
     histx.plot()
     plt.figure("y-direction resolution")
-    binning = np.linspace((y-y_mc).min(), (y-y_mc).max(), 100)
-    histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y-y_mc)
+    binning = np.linspace((y - y_mc).min(), (y - y_mc).max(), 100)
+    histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y - y_mc)
     histy.plot()
     input_file.close()
     plt.show()
@@ -1025,18 +1040,18 @@ class CalibviewDefaults:
     mc_matrix: Optional[CalibrationMatrix] = None
     min_hits: int = 0
     rel_error: float = np.inf
-    lower_quantile: float = 0.
-    upper_quantile: float = 100.
+    lower_quantile: float = 0.0
+    upper_quantile: float = 100.0
 
 
 def calibview(
-        matrix: CalibrationMatrix,
-        mc_matrix: Optional[CalibrationMatrix] = CalibviewDefaults.mc_matrix,
-        min_hits: int = CalibviewDefaults.min_hits,
-        rel_error: float = CalibviewDefaults.rel_error,
-        lower_quantile: float = CalibviewDefaults.lower_quantile,
-        upper_quantile: float = CalibviewDefaults.upper_quantile
-        ) -> None:
+    matrix: CalibrationMatrix,
+    mc_matrix: Optional[CalibrationMatrix] = CalibviewDefaults.mc_matrix,
+    min_hits: int = CalibviewDefaults.min_hits,
+    rel_error: float = CalibviewDefaults.rel_error,
+    lower_quantile: float = CalibviewDefaults.lower_quantile,
+    upper_quantile: float = CalibviewDefaults.upper_quantile,
+) -> None:
     """Display a calibration matrix and plot some basic statistics about it. If the
     Monte Carlo truth matrix is provided, the correlation between the two matrices
     is also presented.
@@ -1077,10 +1092,13 @@ def calibview(
     mask = rel_error_mask & hits_mask
     if not np.any(mask):
         raise RuntimeError("No valid pixels found with the given quality cuts.")
-    lower_bound, upper_bound = np.nanpercentile(matrix.values.flatten()[mask.flatten()],
-                                                [lower_quantile, upper_quantile])
-    logger.info(f"Quality cuts: min_hits={min_hits}, rel_error<{rel_error}, " \
-                f"lower_quantile={lower_quantile}, upper_quantile={upper_quantile}")
+    lower_bound, upper_bound = np.nanpercentile(
+        matrix.values.flatten()[mask.flatten()], [lower_quantile, upper_quantile]
+    )
+    logger.info(
+        f"Quality cuts: min_hits={min_hits}, rel_error<{rel_error}, "
+        f"lower_quantile={lower_quantile}, upper_quantile={upper_quantile}"
+    )
     logger.info(f"Number of calibrated pixels after quality cuts: {np.sum(mask)}")
     # Plot the values matrix.
     plt.figure(f"Calibrated matrix: {matrix.metadata['file_name']}")
@@ -1100,8 +1118,10 @@ def calibview(
         mc_vals = mc_matrix.values.flatten()
         mc_unit = CALIBRATION_UNITS.get(mc_matrix.metadata["calibration_type"]).value
         if mc_unit != unit:
-            logger.warning(f"Unit of the Monte Carlo matrix ({mc_unit}) is different from" \
-            f" the unit of the calibrated matrix ({unit}).")
+            logger.warning(
+                f"Unit of the Monte Carlo matrix ({mc_unit}) is different from"
+                f" the unit of the calibrated matrix ({unit})."
+            )
         # Plot the Monte Carlo truth matrix.
         plt.figure(f"Monte Carlo truth matrix: {mc_matrix.metadata['file_name']}")
         plt.imshow(mc_matrix.values, origin="upper")
@@ -1113,7 +1133,7 @@ def calibview(
         # If Monte Carlo distribution is uniform, we need to modify the edges
         if mc_edges[0] == mc_edges[-1]:
             val = mc_edges[0]
-            mc_edges = np.linspace(val*0.9, val*1.1, 100)
+            mc_edges = np.linspace(val * 0.9, val * 1.1, 100)
         mc_vals_hist = Histogram1d(mc_edges, label="MC Distribution", xlabel=mc_unit).fill(mc_vals)
         plt.figure("Distribution of Monte Carlo truth values")
         mc_vals_hist.plot(statistics=True)
@@ -1122,18 +1142,23 @@ def calibview(
         plt.figure("Correlation between calibrated values and Monte Carlo truth values")
         plt.scatter(vals, mc_vals[mask.flatten()], alpha=0.1, s=10)
         line = Line()
-        line.intercept.freeze(0.)
+        line.intercept.freeze(0.0)
         line.fit(vals, mc_vals[mask.flatten()])
         label = f"Slope: {line.slope.ufloat()}"
-        line.plot(label=label, color="black", linestyle="--", )
+        line.plot(
+            label=label,
+            color="black",
+            linestyle="--",
+        )
         plt.legend()
         plt.xlabel(f"Calibrated values [{unit}]")
         plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
         # Plot the residuals distribution.
         residuals = (vals - mc_vals[mask.flatten()]) / mc_vals[mask.flatten()]
         residual_edges = np.linspace(np.nanmin(residuals), np.nanmax(residuals), 100)
-        residual_hist = Histogram1d(residual_edges, label="Residuals",
-                                    xlabel="Relative Residual").fill(residuals)
+        residual_hist = Histogram1d(
+            residual_edges, label="Residuals", xlabel="Relative Residual"
+        ).fill(residuals)
         plt.figure("Relative residuals distribution")
         residual_hist.plot(statistics=True)
         plt.legend()
