@@ -110,9 +110,10 @@ class HexagonalReadoutBase(HexagonalGrid, AbstractReadout):
         if self.enc is None or self.gain is None or self.pedestal is None:
             raise TypeError("enc, gain and pedestal are mandatory and cannot be None")
         # We should think of a better way to deal with empty pixels, but for the moment this works.
-        self.gain.fill(self.gain.median(), 2)
-        self.pedestal.fill(self.pedestal.median(), 100)
-        self.enc.fill(self.enc.median(), 100)
+        if not self.enc.metadata["is_synthetic"]:
+            self.gain.fill(self.gain.median(), 2)
+            self.pedestal.fill(self.pedestal.median(), 100)
+            self.enc.fill(self.enc.median(), 100)
         self.trigger_id = -1
 
     @staticmethod

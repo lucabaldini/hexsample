@@ -453,29 +453,32 @@ class ClusteringHex(ClusteringBase):
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
+        gain = self.readout.gain
+        noise = self.readout.enc
+        pedestal = self.readout.pedestal
         if isinstance(event, DigiEventCircular):
-            gain_array = [self._gain(event.row, event.column)]
+            gain_array = [gain(event.row, event.column)]
             col = [event.column]
             row = [event.row]
             seed_pha = event.pha[self.readout.adc_channel(event.column, event.row)]
-            pha = [(seed_pha - self.readout.offset) / gain_array[0]]
+            pha = [(seed_pha - 1000) / gain_array[0]]
             for _col, _row in self.readout.neighbors(event.column, event.row):
                 col.append(_col)
                 row.append(_row)
                 _pha = event.pha[self.readout.adc_channel(_col, _row)]
-                pha.append((_pha - self.readout.offset) / self._gain(_row, _col))
+                pha.append((_pha - 1000) / gain(_row, _col))
         # pylint: disable = invalid-name
         elif isinstance(event, DigiEventRectangular):
             seed_col, seed_row = event.highest_pixel()
             col = [seed_col]
             row = [seed_row]
             seed_pha = event(seed_col, seed_row)
-            pha = [(seed_pha - self.readout.offset) / self._gain(seed_row, seed_col)]
+            pha = [(seed_pha - 1000) / gain(seed_row, seed_col)]
             for _col, _row in self.readout.neighbors(seed_col, seed_row):
                 col.append(_col)
                 row.append(_row)
                 _pha = event(_col, _row)
-                pha.append((_pha - self.readout.offset) / self._gain(_row, _col))
+                pha.append((_pha - 1000) / gain(_row, _col))
         # Converting lists into numpy arrays
         col = np.array(col)
         row = np.array(row)

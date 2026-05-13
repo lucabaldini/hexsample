@@ -417,7 +417,12 @@ class CalibrationMLEDefaults:
     bin_size: float = 0.02
 
 
-def calibrate_mle(input_file_path: str, bin_size: float) -> str:
+def calibrate_mle(
+        input_file_path: str,
+        noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
+        equalization_matrix: CalibrationMatrix,
+        bin_size: float) -> str:
     """Calibrate the charge diffusion for the Maximum Likelihood Estimator (MLE) position
     reconstruction algorithm, using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
@@ -432,7 +437,7 @@ def calibrate_mle(input_file_path: str, bin_size: float) -> str:
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], header["enc"], header["gain"], header.get("offset", 0)
+        header["pitch"], noise_matrix, equalization_matrix, pedestal_matrix
     # Create the readout object, necessary to create the clustering object
     readout = create_readout(readout_mode, header, *args)
     clustering = ClusteringHex(readout, 0)

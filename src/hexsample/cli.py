@@ -152,7 +152,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         mle = calibrate_subparsers.add_parser("mle",
                                     help="calibrate the MLE position reconstruction algorithm")
         self.add_input_file(mle)
-        self.add_bin_size(mle, default=tasks.CalibrationMLEDefaults.bin_size)
+        self.add_mle_options(mle)
         self.add_logging_level(mle)
         mle.set_defaults(runner=pipeline.calibrate_mle)
         # Noise calibration
@@ -264,13 +264,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         parser.add_argument("--num_bins", type=int, default=default,
                             help="number of bins to be used in the calibration")
-
-    @staticmethod
-    def add_bin_size(parser: argparse.ArgumentParser, default: float) -> None:
-        """Add an option for the bin size to be used in different calibrations.
-        """
-        parser.add_argument("--bin_size", type=float, default=default,
-                            help="bin size to be used in the calibration, in units of pixel pitch")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: float) -> None:
@@ -639,6 +632,16 @@ class CliArgumentParser(argparse.ArgumentParser):
                             " file name")
         parser.add_argument("--random_seed", type=int, default=defaults.random_seed,
                             help="random seed for the generation of the calibration values")
+    
+    def add_mle_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the MLE position reconstruction calibration properties.
+        """
+        defaults = tasks.CalibrationMLEDefaults
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_equalization_file(parser, default=None, required=True)
+        parser.add_argument("--bin_size", type=float, default=defaults.bin_size,
+                            help="bin size to be used in the calibration, in units of pixel pitch")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the single-event display properties.
