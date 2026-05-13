@@ -35,11 +35,9 @@ from iminuit import Minuit
 from joblib import Parallel, delayed
 from scipy.sparse import csc_matrix, csr_matrix
 from tqdm import tqdm
-import tables
 
 from .clustering import Cluster
 from .digi import DigiEventRectangular
-from .readout import HexagonalReadoutBase
 from .pdf import SpectrumPDF
 from .stats import RunningStats
 
@@ -53,6 +51,7 @@ class CalibrationType(str, Enum):
     EQUALIZATION = "equalization"
     GAIN = "gain"
     NOISE = "noise"
+    MLE = "mle"
     PEDESTAL = "pedestal"
 
     @classmethod
@@ -380,7 +379,7 @@ class CalibrationMatrix:
         """
         if CalibrationMetadata.FILE_NAME in self._metadata:
             return self._metadata[CalibrationMetadata.FILE_NAME]
-        return f"CalibrationMatrix( " \
+        return f"CalibrationMatrix(" \
                f"num_cols={self._metadata[CalibrationMetadata.NUM_COLS]}, " \
                f"num_rows={self._metadata[CalibrationMetadata.NUM_ROWS]})"
 
@@ -1162,134 +1161,3 @@ class CalibrateENC:
         self.cal_matrix.errors = enc_errors
         self.cal_matrix.num_events = self.noise_matrix.num_events
         return self.cal_matrix
-
-
-class ChargeFractionMatrices:
-
-    """Charge fraction calibration matrices for the detector.
-
-    This class implements the logic to create a set of calibration matrices to determine the
-    fraction of charge collected by each pixel as a function of the incident position of the
-    photon on the central pixel of the cluster. The calibration matrices are calculated by creating
-    a grid of bins and calculating the average value of the fraction of charge collected by each
-    pixel for each bin over all the events that fall in that bin.
-
-    Arguments
-    ---------
-    bin_size: float
-        The size of the square bins in the grid, in units of pixel pitch.
-    readout : HexagonalReadoutBase
-        The detector readout instance.
-    """
-
-    def __init__(self, bin_size: float, readout: HexagonalReadoutBase) -> None:
-        """Class constructor.
-        """
-        if bin_size <= 0 or bin_size > 1:
-            raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 1].")
-        # Set the bin edges according to the pixel orientation.
-        if readout:
-            xedge = 0.5
-            yedge = 1/np.sqrt(3)
-            if readout.flat_topped():
-                xedge = 1/np.sqrt(3)
-                yedge = 0.5
-            x_nbins = int(2 * xedge / bin_size)
-            y_nbins = int(2 * yedge / bin_size)
-            self.xedges = np.linspace(-xedge, xedge, x_nbins + 1)
-            self.yedges = np.linspace(-yedge, yedge, y_nbins + 1)
-            # Prepare the matrices to store the calibration data.
-            self._matrices = np.zeros((7, x_nbins, y_nbins))
-            # Calculate the bin centers from the edges.
-            self._x_bins = (self.xedges[:-1] + self.xedges[1:]) / 2
-            self._y_bins = (self.yedges[:-1] + self.yedges[1:]) / 2
-
-    def upload_data(self, x: np.ndarray, y: np.ndarray, fractions: np.ndarray) -> None:
-        """Update the calibration matriecs with the data from the events. The data are uploaded by
-        calculating the average value of the charge fraction for each bin in the x and y axes, and
-        storing the average values in the corresponding bins of the calibration matrix.
-
-        Arguments
-        ---------
-        x : np.ndarray
-            The x coordinates of the events, in units of pixel pitch.
-        y : np.ndarray
-            The y coordinates of the events, in units of pixel pitch.
-        fractions : np.ndarray
-            The charge fraction values array of the events.
-        """
-        bin_count, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges])
-        for i in range(7):
-            bin_sum, _, _ = np.histogram2d(x, y, bins=[self.xedges, self.yedges],
-                                           weights=fractions[:, i])
-            with np.errstate(divide='ignore', invalid='ignore'):
-                average = bin_sum / bin_count
-                average[np.isnan(average)] = 0
-            self._matrices[i, :, :] = average
-
-    @property
-    def matrices(self) -> np.ndarray:
-        """Set of calibration matrices with the fraction of charge collected by each pixel for each
-        position of the grid.
-        """
-        return self._matrices
-
-    @property
-    def x_bins(self) -> np.ndarray:
-        """Bin centers in the x axis.
-        """
-        return self._x_bins
-
-    @property
-    def y_bins(self) -> np.ndarray:
-        """Bin centers in the y axis.
-        """
-        return self._y_bins
-
-    def to_hdf5(self, file_path: str) -> str:
-        """Save the calibration matrices to an HDF5 file at the given path. The file stores the
-        calibration matrices and the bin centers in the x and y axes.
-
-        Arguments
-        ---------
-        file_path : str
-            The path of the file on the disk.
-        
-        Returns
-        -------
-        file_path : str
-            The path of the file on the disk.
-        """
-        with tables.File(file_path, "w") as h5file:
-            root = h5file.root
-            h5file.create_array(root, "matrices", self.matrices)
-            h5file.create_array(root, "x_bins", self.x_bins)
-            h5file.create_array(root, "y_bins", self.y_bins)
-        return file_path
-
-    @classmethod
-    def from_hdf5(cls, file_path: str) -> "ChargeFractionMatrices":
-        """Create an instance of ChargeFractionMatrices from an HDF5 file at the given path. The
-        instance contains the calibration matrices and the bin centers in the x and y axes.
-
-        Arguments
-        ---------
-        file_path : str
-            The path of the file on the disk.
-        
-        Returns
-        -------
-        obj : ChargeFractionMatrices
-            An instance of ChargeFractionMatrices initialized with the data from the HDF5 file.
-        """
-        with tables.File(file_path, "r") as h5file:
-            matrices = h5file.root.matrices[:]
-            x_bins = h5file.root.x_bins[:]
-            y_bins = h5file.root.y_bins[:]
-        # Create an instance of the class without initializing the attributes, since we will set
-        # them with the data loaded from the HDF5 file.
-        obj = cls.__new__(cls)
-        obj._matrices = matrices
-        obj._x_bins = x_bins
-        obj._y_bins = y_bins
-        return obj
