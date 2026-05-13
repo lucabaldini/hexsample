@@ -259,8 +259,9 @@ class CalibrationMatrix:
         max_hits : int
             The maximum number of hits for a pixel to be considered for replacement.
         """
-        self._values = np.where(self._entries <= max_hits, value, self._values)
-        self._cached = False
+        if not self._metadata.get(CalibrationMetadata.IS_SYNTHETIC, False):
+            self._values = np.where(self._entries <= max_hits, value, self._values)
+            self._cached = False
 
     def mean(self, min_hits: int = 1) -> float:
         """Return the mean value of the calibration matrix, calculated as the mean of the pixels
@@ -271,6 +272,8 @@ class CalibrationMatrix:
         min_hits : int
             The minimum number of hits for a pixel to be considered for the mean calculation.
         """
+        if self._metadata.get(CalibrationMetadata.IS_SYNTHETIC, False):
+            return self._values.mean()
         if not np.any(self._entries >= min_hits):
             return np.nan
         return self._values[self._entries >= min_hits].mean()
@@ -279,6 +282,8 @@ class CalibrationMatrix:
         """Return the median value of the calibration matrix, calculated as the median of the
         pixels with at least one event.
         """
+        if self._metadata.get(CalibrationMetadata.IS_SYNTHETIC, False):
+            return np.median(self._values)
         if not np.any(self._entries > 0):
             return np.nan
         return np.median(self._values[self._entries > 0])
@@ -287,6 +292,8 @@ class CalibrationMatrix:
         """Return the standard deviation of the calibration matrix, calculated as the standard
         deviation of the pixels with at least one event.
         """
+        if self._metadata.get(CalibrationMetadata.IS_SYNTHETIC, False):
+            return np.std(self._values)
         if not np.any(self._entries > 0):
             return np.nan
         return np.std(self._values[self._entries > 0])
