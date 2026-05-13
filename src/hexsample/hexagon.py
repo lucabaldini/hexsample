@@ -383,7 +383,34 @@ class HexagonalGrid:
             row = r + (q + self._parity_offset(q)) // 2
         return col, row
 
-    def world_to_pixel(self, x: np.array, y: np.array) -> Tuple[np.array, np.array]:
+    def is_in_bounds(self, col: np.array, row: np.array) -> np.array:
+        """Check if the given pixels are inside the hexagonal grid bounds.
+
+        Arguments
+        ---------
+        col : array_like
+            The column pixel coordinate(s).
+
+        row : array_like
+            The row pixel coordinate(s).
+        """
+        return (col >= 0) & (col < self.num_cols) & (row >= 0) & (row < self.num_rows)
+
+    def is_at_border(self, col: np.array, row: np.array) -> np.array:
+        """Check if the given pixels are at the border of the hexagonal grid.
+
+        Arguments
+        ---------
+        col : array_like
+            The column pixel coordinate(s).
+
+        row : array_like
+            The row pixel coordinate(s).
+        """
+        return (col == 0) | (col == self.num_cols - 1) | (row == 0) | (row == self.num_rows - 1)
+
+    def world_to_pixel(self, x: np.array, y: np.array,
+                       in_bounds: bool = False) -> Tuple[np.array, np.array]:
         """Transform world coordinates to pixel coordinates.
 
         This proceeds in three basic steps (conversion to fractional axial coordinates,
@@ -398,6 +425,10 @@ class HexagonalGrid:
 
         y : array_like
             The input y coordinate(s).
+        
+        in_bounds : bool, optional
+            If True, mask the output arrays to return only the pixels that are inside
+            the grid bounds.
         """
         # pylint: disable = invalid-name
         # Add back the offsets---and remember the y axis is running from the
@@ -411,6 +442,12 @@ class HexagonalGrid:
         q, r = self._axial_round(q, r)
         # ... and convert to offset coordinates.
         col, row = self._axial_to_offset(q, r)
+        # If requested, mask the output arrays to return only the pixels that are inside
+        # the grid bounds.
+        if in_bounds:
+            mask = self.is_in_bounds(col, row)
+            col = col[mask]
+            row = row[mask]
         return col, row
 
     def pixel_logical_coordinates(self) -> Tuple[np.array, np.array]:

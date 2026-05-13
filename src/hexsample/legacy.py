@@ -25,11 +25,11 @@ import struct
 import numpy as np
 from tqdm import tqdm
 
-from . import xpol
 from .digi import DigiEventRectangular
 from .fileio import DigiOutputFileRectangular
 from .logging_ import logger
 from .roi import Padding, RegionOfInterest
+from .xpol import XPOL3
 
 
 class MDAT3File:
@@ -166,10 +166,10 @@ def mdat3_to_digi(file_path: str, num_events: int = None) -> None:
     output_file = DigiOutputFileRectangular(output_file_path)
     # We are hardcoding the readout layout here
     readout_dict = dict(readout_mode="rectangular",
-                        layout=xpol.XPOL3_LAYOUT,
-                        num_cols=xpol.XPOL3_SIZE[0],
-                        num_rows=xpol.XPOL3_SIZE[1],
-                        pitch=xpol.XPOL_PITCH,
+                        layout=XPOL3.layout,
+                        num_cols=XPOL3.size[0],
+                        num_rows=XPOL3.size[1],
+                        pitch=XPOL3.pitch,
                         enc=None,
                         gain=None,
                         padding=MDAT3File.DEFAULT_PADDING)

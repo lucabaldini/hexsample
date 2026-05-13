@@ -30,6 +30,7 @@ import numpy as np
 import tables
 
 from . import __version__
+from .calibration import CalibrationMatrix
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .logging_ import logger
 from .mc import MonteCarloEvent
@@ -225,9 +226,10 @@ class ReconDescription(tables.IsDescription):
     livetime = tables.Int32Col(pos=2)
     roi_size = tables.Int32Col(pos=3)
     cluster_size = tables.Int8Col(pos=4)
-    energy = tables.Float32Col(pos=5)
-    posx = tables.Float32Col(pos=6)
-    posy = tables.Float32Col(pos=7)
+    adc = tables.Int32Col(pos=5)
+    energy = tables.Float32Col(pos=6)
+    posx = tables.Float32Col(pos=7)
+    posy = tables.Float32Col(pos=8)
 
 def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     """Helper function to fill an output table row, given a ReconEvent object.
@@ -243,6 +245,7 @@ def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     row["livetime"] = event.livetime
     #row["roi_size"] = event.roi_size
     row["cluster_size"] = event.cluster.size()
+    row["adc"] = event.adc()
     row["energy"] = event.energy()
     row["posx"], row["posy"] = event.position()
     row.append()
@@ -319,15 +322,16 @@ class OutputFileBase(tables.File):
         # pylint: disable=protected-access
         logger.info(f"Updating {group._v_pathname} group user attributes...")
         for name, value in kwargs.items():
-            if isinstance(value, np.ndarray) and value.size > 100:
-                logger.debug(f"Saving average of {name} array to header because array is large...")
-                value = np.average(value)
             if isinstance(value, (tuple, list)):
                 logger.debug(f"Converting {name} ({value}) to a native numpy array...")
                 value = np.array(value)
                 logger.debug(f"-> {value}.")
             if value is None:
                 logger.debug(f"Converting {name} ({value}) to string...")
+                value = str(value)
+                logger.debug(f"-> {value}.")
+            if isinstance(value, CalibrationMatrix):
+                logger.debug(f"Converting {name} ({value!r}) to string...")
                 value = str(value)
                 logger.debug(f"-> {value}.")
             OutputFileBase._set_user_attribute(group, name, value)
@@ -390,10 +394,11 @@ class DigiOutputFileRectangular(OutputFileBase):
             The Monte Carlo event contribution.
         """
         # pylint: disable=arguments-differ
-        _fill_digi_row_rectangular(self.digi_table.row, digi_event)
-        self.pha_array.append(digi_event.pha.flatten())
-        if mc_event is not None:
-            _fill_mc_row(self.mc_table.row, mc_event)
+        if digi_event is not None:
+            _fill_digi_row_rectangular(self.digi_table.row, digi_event)
+            self.pha_array.append(digi_event.pha.flatten())
+            if mc_event is not None:
+                _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.
@@ -444,8 +449,10 @@ class DigiOutputFileCircular(OutputFileBase):
             The Monte Carlo event contribution.
         """
         # pylint: disable=arguments-differ
-        _fill_digi_row_circular(self.digi_table.row, digi_event)
-        _fill_mc_row(self.mc_table.row, mc_event)
+        if digi_event is not None:
+            _fill_digi_row_circular(self.digi_table.row, digi_event)
+            if mc_event is not None:
+                _fill_mc_row(self.mc_table.row, mc_event)
 
     def flush(self) -> None:
         """Flush the basic file components.

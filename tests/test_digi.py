@@ -18,11 +18,15 @@
 
 import numpy as np
 
+from hexsample import rng
+from hexsample.calibration import CalibrationMatrix
 from hexsample.digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from hexsample.hexagon import HexagonalLayout
 from hexsample.logging_ import logger
 from hexsample.readout import HexagonalReadoutCircular, HexagonalReadoutRectangular
 from hexsample.roi import Padding, RegionOfInterest
+
+rng.initialize(seed=0)
 
 
 def test_digi_event_base():
@@ -55,7 +59,14 @@ def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
     gain: float = 0.5, offset: int = 0, num_pairs: int = 1000):
     """Test for circular event digitalization class.
     """
-    readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc, gain, offset)
+    enc_matrix = CalibrationMatrix(num_cols, num_rows)
+    enc_matrix.set_value(enc)
+    gain_matrix = CalibrationMatrix(num_cols, num_rows)
+    gain_matrix.set_value(gain)
+    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
+    pedestal_matrix.set_value(offset)
+    readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc_matrix, gain_matrix,
+                                       pedestal_matrix)
     # Pick out some particular pixels, we expect only the one with higher PHA
     # to be saved in the DigiEventCircular.
     col1, row1 = 2, 4
@@ -106,8 +117,14 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     """
     if padding is None:
         padding = Padding(1, 1, 1, 1)
-    readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch,
-                                          enc, gain, offset, trg_threshold, 0, padding)
+    enc_matrix = CalibrationMatrix(num_cols, num_rows)
+    enc_matrix.set_value(enc)
+    gain_matrix = CalibrationMatrix(num_cols, num_rows)
+    gain_matrix.set_value(gain)
+    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
+    pedestal_matrix.set_value(offset)
+    readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc_matrix,
+                                          gain_matrix, pedestal_matrix, trg_threshold, 0, padding)
     # Pick out a particular pixel...
     col, row = num_cols // 3, num_rows // 4
     logger.debug(f"Testing pixel ({col}, {row})...")
@@ -130,3 +147,31 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     evt = readout.read(0., x, y)
     assert evt(col, row) == round(num_pairs * gain)
     print(evt.ascii())
+
+def test_borders_rectangular_digi(num_cols: int = 304, num_rows: int = 352, pitch: float = 0.005,
+                                  num_pairs: int = 1000) -> None:
+    """Test the digitization of events at the borders of the readout chip for
+    rectangular readout.
+    """
+    # Define the readout and its properties.
+    padding = Padding(7, 4, 4, 4)
+    enc_matrix = CalibrationMatrix(num_cols, num_rows)
+    enc_matrix.set_value(20.)
+    gain_matrix = CalibrationMatrix(num_cols, num_rows)
+    gain_matrix.set_value(1.)
+    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
+    pedestal_matrix.set_value(0.)
+    readout = HexagonalReadoutRectangular(HexagonalLayout.ODD_R, num_cols, num_rows, pitch,
+        enc_matrix, gain_matrix, pedestal_matrix, 500., 0, padding)
+    # Pick a particular pixel close to the right border of the chip
+    x0, y0 = readout.pixel_to_world(num_cols - 1, num_rows // 2)
+    x0 += 3 * pitch
+    # Create the x and y arrays of the pair positions from a gaussian distribution.
+    x, y = rng.generator.normal(loc=(x0, y0), scale=0.0007, size=(num_pairs, 2)).T
+    # Sample the signal
+    min_col, min_row, signal = readout.sample(x, y)
+    assert min_col == 0
+    assert min_row == 0
+    assert np.array_equal(signal, np.empty_like(signal))
+    _, pha = readout.trigger(signal, min_col, min_row)
+    assert np.array_equal(pha, np.empty_like(pha))

@@ -30,8 +30,10 @@ from hexsample.source import (
     Line,
     LineForest,
     PointBeam,
+    RectangleBeam,
     SlitBeam,
     Source,
+    SquareBeam,
     TriangularBeam,
 )
 
@@ -150,6 +152,30 @@ def test_slit_beam(num_photons: int = 10000):
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
     plt.figure("Slit beam")
+    Histogram2d(binning_x, binning_y).fill(x, y).plot()
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+
+
+def test_square_beam(num_photons: int = 10000):
+    """Test for SquareBeam class
+    """
+    beam = SquareBeam(side=1.0)
+    x, y = beam.rvs(num_photons)
+    binning_x = np.linspace(min(x), max(x), 100)
+    binning_y = np.linspace(min(y), max(y), 100)
+    plt.figure("Square beam")
+    Histogram2d(binning_x, binning_y).fill(x, y).plot()
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+
+
+def test_rectangle_beam(num_photons: int = 10000):
+    """Test for RectangleBeam class
+    """
+    beam = RectangleBeam(width=1.0, height=0.5)
+    x, y = beam.rvs(num_photons)
+    binning_x = np.linspace(min(x), max(x), 100)
+    binning_y = np.linspace(min(y), max(y), 100)
+    plt.figure("Rectangle beam")
     Histogram2d(binning_x, binning_y).fill(x, y).plot()
     setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 

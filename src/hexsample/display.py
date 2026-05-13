@@ -29,6 +29,8 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import RegularPolygon
 from matplotlib.widgets import Button, TextBox
 
+from hexsample.fileio import DigiInputFileBase
+
 from .clustering import ClusteringNN
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
@@ -78,7 +80,7 @@ class HexagonalGridDisplay:
     """Display for an HexagonalGrid object.
     """
 
-    def __init__(self, grid: HexagonalGrid, zero_sup_threshold: int = 0,
+    def __init__(self, grid: HexagonalGrid, zero_sup_threshold: float = 0.,
                  **kwargs) -> None:
         """Constructor.
         """
@@ -152,7 +154,7 @@ class HexagonalGridDisplay:
 
     def draw_digi_event_rectangular(self, event: DigiEventRectangular,
         offset: Tuple[float, float] = (0., 0.),
-        indices: bool = True, padding: bool = True, zero_sup_threshold: float = 0,
+        indices: bool = True, padding: bool = True, zero_sup_threshold: float = 0.,
         values: bool = True, **kwargs) -> HexagonCollection:
         """Draw an actual event int the parent hexagonal grid.
 
@@ -165,13 +167,12 @@ class HexagonalGridDisplay:
             # Draw the pixel values
             fmt = dict(ha="center", va="center", fontsize="small")
             for x, y, value in zip(collection.x, collection.y, event.pha.flatten()):
-                value -= self._grid.offset
                 if value > zero_sup_threshold:
                     self.axes.text(x, y, f"{value}", color="black", **fmt)
         return collection
 
     def draw_digi_event_circular(self, event: DigiEventCircular,
-        offset: Tuple[float, float] = (0., 0.), zero_sup_threshold: float = 0,
+        offset: Tuple[float, float] = (0., 0.), zero_sup_threshold: float = 0.,
         values: bool = True, **kwargs) -> HexagonCollection:
         """Display a digi event with circular readout.
         """
@@ -201,13 +202,12 @@ class HexagonalGridDisplay:
             # Draw the pixel values
             fmt = dict(ha="center", va="center", fontsize="small")
             for x, y, value in zip(collection.x, collection.y, pha.flatten()):
-                value -= self._grid.offset
                 if value > zero_sup_threshold:
                     self.axes.text(x, y, f"{value}", color="black", **fmt)
         self.axes.add_collection(collection)
         return collection
 
-    def draw_digi_event(self, event, zero_sup_threshold) -> HexagonCollection:
+    def draw_digi_event(self, event: DigiEventBase, zero_sup_threshold: int) -> HexagonCollection:
         """Draw a digi event.
 
         This is just dispatching the call to the proper method depending
@@ -246,10 +246,25 @@ class HexagonalGridDisplay:
 
 class EventDisplay(HexagonalGridDisplay):
 
-    def __init__(self, input_file, grid: HexagonalGrid, zero_sup_threshold: int = 0, **kwargs):
-        super().__init__(grid, zero_sup_threshold, **kwargs)
+    """Class to display events from a Digi input file.
+
+    If the keyword argument recon_pars is provided, the display will also show the reconstructed
+    positions and the Monte Carlo truth position (if available) on top of the digi event.
+
+    Arguments
+    ---------
+    input_file: DigiInputFileBase
+        The input file to read the events from.
+    
+    grid: HexagonalGrid
+        The grid to use for the display.
+    """
+
+    def __init__(self, input_file: DigiInputFileBase, grid: HexagonalGrid, **kwargs):
+        """Class constructor."""
+        super().__init__(grid, **kwargs)
         self._input_file = input_file
-        self.event_id = kwargs.get("event_id", 0)
+        self.event_id = 0
         ##Draw the previous and next buttons for event navigation
         axprev = self.figure.add_axes([0.7, 0.05, 0.12, 0.075])
         self.prev_button = Button(axprev, 'Previous')
@@ -273,8 +288,9 @@ class EventDisplay(HexagonalGridDisplay):
         self.axes.set_aspect("equal")
         initial_event = self._input_file.pick_event(int(self.event_id))
         self.draw_digi_event(initial_event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), initial_event,
-                            self._grid, self.zero_sup_threshold)
+        if isinstance(self._grid, HexagonalReadoutBase):
+            self.draw_positions(self._input_file.current_mc_event(), initial_event,
+                                self._grid, self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
         self.prev_button.on_clicked(self.prev)
@@ -294,7 +310,7 @@ class EventDisplay(HexagonalGridDisplay):
     def current_zero_sup_threshold(self) -> int:
         """Convenience method to get the current zero suppression threshold.
         """
-        return int(self.zero_sup_text_box.text)
+        return float(self.zero_sup_text_box.text)
 
     def _draw(self, event: DigiEventBase) -> None:
         """Complete draw method for an event.
@@ -305,8 +321,9 @@ class EventDisplay(HexagonalGridDisplay):
         """
         self.axes.clear()
         self.draw_digi_event(event, self.zero_sup_threshold)
-        self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
-                            self.zero_sup_threshold)
+        if isinstance(self._grid, HexagonalReadoutBase):
+            self.draw_positions(self._input_file.current_mc_event(), event, self._grid,
+                                self.zero_sup_threshold)
         self.axes.autoscale()
         self.axes.axis("off")
         # Show current event ID in the text box after picking the event. This can be improved
@@ -337,5 +354,7 @@ class EventDisplay(HexagonalGridDisplay):
         self._draw(event)
 
     def show(self):
+        """Convenience function to setup the matplotlib canvas for an event display.
+        """
         self.setup_gca()
         plt.show()
