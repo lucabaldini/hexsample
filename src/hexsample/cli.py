@@ -543,7 +543,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                             " file name")
         parser.add_argument("--random_seed", type=int, default=defaults.random_seed,
                             help="random seed for the generation of the calibration values")
-    
+
     def add_mle_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the MLE position reconstruction calibration properties.
         """

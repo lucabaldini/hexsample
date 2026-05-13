@@ -331,7 +331,7 @@ class OutputFileBase(tables.File):
                 logger.debug(f"Converting {name} ({value}) to string...")
                 value = str(value)
                 logger.debug(f"-> {value}.")
-            if isinstance(value, CalibrationMatrix) or isinstance(value, MLECalibrationData):
+            if isinstance(value, (CalibrationMatrix, MLECalibrationData)):
                 logger.debug(f"Converting {name} ({value!r}) to string...")
                 value = str(value)
                 logger.debug(f"-> {value}.")

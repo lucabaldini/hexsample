@@ -19,8 +19,8 @@
 import numpy as np
 from aptapy.plotting import plt
 
-from hexsample.calibration import ChargeFractionMatrices
 from hexsample.likelihood import nll_numba
+from hexsample.position import MLECalibrationData
 
 
 def test_nll_numba(test_data_path):
@@ -32,8 +32,8 @@ def test_nll_numba(test_data_path):
     y = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), 100)
     # Load the charge fraction matrices and extract the relevant attributes
     mle_table_path = test_data_path("test_mle_matrices.h5")
-    charge_fraction_matrices = ChargeFractionMatrices.from_hdf5(mle_table_path)
-    f = charge_fraction_matrices.matrices
+    charge_fraction_matrices = MLECalibrationData.from_hdf5(mle_table_path)
+    f = charge_fraction_matrices.values
     x_bins = charge_fraction_matrices.x_bins
     y_bins = charge_fraction_matrices.y_bins
     xbin0 = x_bins[0]

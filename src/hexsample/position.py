@@ -77,7 +77,7 @@ class MLECalibrationData:
         the average fraction of charge collected by each pixel.
         """
         return self._values
-    
+
     @values.setter
     def values(self, new_values: np.ndarray) -> None:
         """Set the calibration data tensor with the new values.
@@ -86,7 +86,7 @@ class MLECalibrationData:
             raise ValueError(f"Invalid shape for the new values: {new_values.shape}. "
                              f"Expected shape: {self._values.shape}.")
         self._values = new_values
-    
+
     @property
     def x_bins(self) -> np.ndarray:
         """Bin centers in the x axis for the calibration data.
@@ -98,13 +98,13 @@ class MLECalibrationData:
         """Bin centers in the y axis for the calibration data.
         """
         return self._y_bins
-    
+
     @property
     def metadata(self) -> dict:
         """Metadata dictionary containing useful information about the calibration data.
         """
         return self._metadata
-    
+
     def update_metadata(self, key: str, value) -> None:
         """Update the metadata dictionary with a new key-value pair.
 
@@ -169,7 +169,7 @@ class MLECalibrationData:
             for key, val in attrs.items():
                 obj._metadata[key] = val
         return obj
-    
+
     def __str__(self):
         """Return a string representation of the MLECalibrationData object.
         """
@@ -226,7 +226,7 @@ class CalibrateMLE:
         # Create the MLECalibrationData object to store the calibration data.
         self.cal_data = MLECalibrationData(x_bins=self.x_bins, y_bins=self.y_bins)
         self._stats = RunningStats(shape=self.cal_data.values.shape)
-    
+
     def analyze_cluster(self, cluster: Cluster, mc_event: MonteCarloEvent) -> None:
         """Analyze the event cluster and update the calibration data.
 
@@ -255,7 +255,7 @@ class CalibrateMLE:
         for i in range(7):
             frac = np.array([[[charge_fractions[i]]]])
             self._stats.update(frac, offset=(i, x_bin, y_bin))
-    
+
     def fit(self) -> MLECalibrationData:
         """Calculate the average charge fractions for each bin and store them in the
         MLECalibrationData object.
@@ -265,5 +265,5 @@ class CalibrateMLE:
         cal_data : MLECalibrationData
             The MLECalibrationData object containing the calibration data.
         """
-        self.cal_data.values = self._stats._mean
+        self.cal_data.values = self._stats.mean()
         return self.cal_data
