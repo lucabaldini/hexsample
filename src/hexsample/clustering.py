@@ -360,7 +360,7 @@ class ClusteringNN(ClusteringBase):
     recon_pars: Optional[dict] = None
 
     def run(self, event) -> Optional[Cluster]:
-        """Overladed method.
+        """Overloaded method.
 
         .. warning::
            The loop ever the neighbors might likely be vectorized and streamlined
@@ -384,7 +384,7 @@ class ClusteringNN(ClusteringBase):
             # Taking the NN logical coordinates ...
             neigh_coords = self.readout.neighbors(*seed_coords)
             col, row = np.vstack((seed_coords, neigh_coords)).T
-            # ... trasforming the coordinates in the corresponding ADC channel ...
+            # ... transforming the coordinates in the corresponding ADC channel ...
             adc_channel_order = self.readout.adc_channel(col, row)
             # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i]
             # and applying pedestal and gain correction.
@@ -435,7 +435,7 @@ class ClusteringHex(ClusteringBase):
     pos_recon_algorithm: str = "mle"
     recon_pars: dict = None
 
-    def run(self, event) -> Cluster:
+    def run(self, event) -> Optional[Cluster]:
         """Overladed method.
         """
         # Load the readout calibration matrices.
@@ -454,18 +454,18 @@ class ClusteringHex(ClusteringBase):
             # Taking the NN logical coordinates ...
             neigh_coords = self.readout.neighbors(*seed_coords)
             col, row = np.vstack((seed_coords, neigh_coords)).T
-            # ... trasforming the coordinates in the corresponding ADC channel ...
+            # ... transforming the coordinates in the corresponding ADC channel ...
             adc_channel_order = self.readout.adc_channel(col, row)
             # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i]
             # and applying pedestal and gain correction.
             pha = (event.pha[adc_channel_order] - pedestal(col, row)) / gain(col, row)
         elif isinstance(event, DigiEventRectangular):
-            seed_cords = event.highest_pixel()
+            seed_coords = event.highest_pixel()
             # Check if the seed pixel is at the border, in that case we throw away the event.
-            if self.readout.is_at_border(*seed_cords):
+            if self.readout.is_at_border(*seed_coords):
                 return None
-            neigh_coords = self.readout.neighbors(*seed_cords)
-            col, row = np.vstack((seed_cords, neigh_coords)).T
+            neigh_coords = self.readout.neighbors(*seed_coords)
+            col, row = np.vstack((seed_coords, neigh_coords)).T
             pha = (event(col, row) - pedestal(col, row)) / gain(col, row)
         else:
             raise RuntimeError(f"Unsupported event type {type(event)} for clustering")

@@ -21,6 +21,7 @@
 """
 
 import math
+from typing import Tuple
 
 import numpy as np
 from numba import njit
@@ -30,7 +31,7 @@ LOG2PI = math.log(2 * math.pi)
 
 @njit
 def coordinates(x: float, y: float, xbin0: float, ybin0: float, bin_size: float,
-                shape: tuple[int, int]) -> tuple[int, int, float, float]:
+                shape: Tuple[int, int]) -> Tuple[int, int, float, float]:
     """Map the (x, y) position to the corresponding bi-dimensional matrix indices,
     calculating both the integer part (ix0, iy0) and the fractional part (wx, wy).
 
@@ -46,7 +47,7 @@ def coordinates(x: float, y: float, xbin0: float, ybin0: float, bin_size: float,
         The y coordinate of the first bin center in the matrix.
     bin_size : float
         The size of the bins in the matrix.
-    shape : tuple[int, int]
+    shape : Tuple[int, int]
         The shape of the matrix.
     """
     nx, ny = shape
@@ -70,7 +71,7 @@ def interpolation(f: np.ndarray, ix0: int, iy0: int, wx: float, wy: float) -> np
     of the seven pixels in the cluster, returning an array with the interpolated values.
 
     The interpolation is performed using the four nearest bins in the charge fraction
-    matrix. To interpolare the value, the fractional coordinates (wx, wy) are used to
+    matrix. To interpolate the value, the fractional coordinates (wx, wy) are used to
     weight the contributions of the four bins.
 
     Arguments
@@ -106,13 +107,13 @@ def interpolation(f: np.ndarray, ix0: int, iy0: int, wx: float, wy: float) -> np
 
 @njit
 def interpolation_derivatives(f: np.ndarray, ix0: int, iy0: int, wx: float, wy: float,
-                              bin_size: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+                              bin_size: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Perform bilinear interpolation of the value of the charge fraction for each
     of the seven pixels in the cluster, and compute the derivatives with respect to
     x and y.
 
     The interpolation is performed using the four nearest bins in the charge fraction
-    matrix. To interpolare the value, the fractional coordinates (wx, wy) are used to
+    matrix. To interpolate the value, the fractional coordinates (wx, wy) are used to
     weight the contributions of the four bins.
 
     Arguments
@@ -198,11 +199,11 @@ def nll_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, 
     # Calculate the inverse of the noise variance for each pixel
     inv_sigma2 = 1.0 / (noise**2)
     # Profile out the summed pha by finding the value that minimizes the NLL for fixed (x, y)
-    weigh_pha = weighted_pha(pha, f_interp, inv_sigma2)
+    total_pha = weighted_pha(pha, f_interp, inv_sigma2)
     # Now compute the NLL using the optimal energy
     nll = 0.0
     for i in range(7):
-        mu = f_interp[i] * weigh_pha
+        mu = f_interp[i] * total_pha
         res = pha[i] - mu
         nll += 0.5 * (res**2 * inv_sigma2[i] + LOG2PI)
     return nll
@@ -220,13 +221,13 @@ def nll_grad_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: fl
     # Calculate the inverse of the noise variance for each pixel
     inv_sigma2 = 1.0 / (noise**2)
     # Profile out the summed pha by finding the value that minimizes the NLL for fixed (x, y)
-    weigh_pha = weighted_pha(pha, f_interp, inv_sigma2)
+    total_pha = weighted_pha(pha, f_interp, inv_sigma2)
     # Now compute the gradient using the optimal energy
     gnll_x = 0.0
     gnll_y = 0.0
     for i in range(7):
-        mu = f_interp[i] * weigh_pha
+        mu = f_interp[i] * total_pha
         d_loss_dmu = -(pha[i] - mu) * inv_sigma2[i]
-        gnll_x += d_loss_dmu * weigh_pha * df_dx[i]
-        gnll_y += d_loss_dmu * weigh_pha * df_dy[i]
+        gnll_x += d_loss_dmu * total_pha * df_dx[i]
+        gnll_y += d_loss_dmu * total_pha * df_dy[i]
     return np.array([gnll_x, gnll_y])

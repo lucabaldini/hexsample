@@ -350,6 +350,7 @@ def reconstruct(
             pitch=header["pitch"]
         )
         clustering = ClusteringHex(readout, 0, pos_recon_algorithm, recon_pars)
+        num_neighbors = 6
     else:
         clustering = ClusteringNN(
             readout, zero_sup_threshold, effective_neighbors, pos_recon_algorithm, recon_pars

@@ -523,8 +523,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group to generate calibration files.
         """
         defaults = tasks.SynthesizeCalibrationDefaults
+        cal_type = calibration.CalibrationType
         parser.add_argument("calibration_type", type=calibration.CalibrationType,
-                            choices=calibration.CalibrationType.values(),
+                            choices=[c.value for c in cal_type if c != cal_type.MLE],
                             help="type of calibration file to be generated")
         parser.add_argument("mean", type=float,
                             help="mean value of the calibration parameter.")

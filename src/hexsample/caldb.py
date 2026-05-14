@@ -21,6 +21,7 @@
 """
 
 import pathlib
+from typing import Type
 
 from .calibration import CalibrationBase, CalibrationMatrix, CalibrationType, MLECalibrationData
 
@@ -34,7 +35,7 @@ class CalDB:
 
     @classmethod
     def _open(cls, calibration_type: CalibrationType, designator: str,
-              calibration_class: CalibrationBase = CalibrationMatrix) -> CalibrationBase:
+              calibration_class: Type[CalibrationBase] = CalibrationMatrix) -> CalibrationBase:
         """Open the calibration file for the given designation and intent.
         """
         if pathlib.Path(designator).is_file():
