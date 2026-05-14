@@ -22,7 +22,7 @@
 
 import pathlib
 
-from .calibration import CalibrationMatrix, CalibrationType, MLECalibrationData
+from .calibration import CalibrationBase, CalibrationMatrix, CalibrationType, MLECalibrationData
 
 
 class CalDB:
@@ -33,49 +33,47 @@ class CalDB:
     ROOT_DIR = pathlib.Path(__file__).parent.parent.parent / "caldb"
 
     @classmethod
-    def _open(cls, calibration_type: CalibrationType, designator: str) -> CalibrationMatrix:
+    def _open(cls, calibration_type: CalibrationType, designator: str,
+              calibration_class: CalibrationBase) -> CalibrationBase:
         """Open the calibration file for the given designation and intent.
         """
         if pathlib.Path(designator).is_file():
-            return CalibrationMatrix.from_hdf5(designator)
+            return calibration_class.from_hdf5(designator)
         file_path = cls.ROOT_DIR / calibration_type.value / f"{designator}.h5"
-        return CalibrationMatrix.from_hdf5(file_path)
+        return calibration_class.from_hdf5(file_path)
 
     @classmethod
     def open_enc(cls, designator: str) -> CalibrationMatrix:
         """Open the ENC calibration file for the given designation.
         """
-        return cls._open(CalibrationType.ENC, designator)
+        return cls._open(CalibrationType.ENC, designator, CalibrationMatrix)
 
     @classmethod
     def open_pedestal(cls, designator: str) -> CalibrationMatrix:
         """Open the pedestal calibration file for the given designation.
         """
-        return cls._open(CalibrationType.PEDESTAL, designator)
+        return cls._open(CalibrationType.PEDESTAL, designator, CalibrationMatrix)
 
     @classmethod
     def open_noise(cls, designator: str) -> CalibrationMatrix:
         """Open the noise calibration file for the given designation.
         """
-        return cls._open(CalibrationType.NOISE, designator)
+        return cls._open(CalibrationType.NOISE, designator, CalibrationMatrix)
 
     @classmethod
     def open_gain(cls, designator: str) -> CalibrationMatrix:
         """Open the gain calibration file for the given designation.
         """
-        return cls._open(CalibrationType.GAIN, designator)
+        return cls._open(CalibrationType.GAIN, designator, CalibrationMatrix)
 
     @classmethod
     def open_equalization(cls, designator: str) -> CalibrationMatrix:
         """Open the equalization calibration file for the given designation.
         """
-        return cls._open(CalibrationType.EQUALIZATION, designator)
+        return cls._open(CalibrationType.EQUALIZATION, designator, CalibrationMatrix)
 
     @classmethod
     def open_mle(cls, designator: str) -> MLECalibrationData:
         """Open the MLE calibration file for the given designation.
         """
-        if pathlib.Path(designator).is_file():
-            return MLECalibrationData.from_hdf5(designator)
-        file_path = cls.ROOT_DIR / CalibrationType.MLE.value / f"{designator}.h5"
-        return MLECalibrationData.from_hdf5(file_path)
+        return cls._open(CalibrationType.MLE, designator, MLECalibrationData)
