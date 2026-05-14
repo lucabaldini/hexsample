@@ -32,7 +32,7 @@ DEFAULT_IONIZATION_POTENTIAL = ionization_potential("Si")
 DEFAULT_GAIN = 1.
 DEFAULT_ADC_TO_EV = DEFAULT_IONIZATION_POTENTIAL / DEFAULT_GAIN
 RMS_VALS = (0, 10)
-ENC_VALS = np.array((20., 30., 40., 50., 75., 100.))
+ENC_VALS = np.array((0., 20., 30., 40., 50., 75., 100.))
 PEDESTAL_VALS = (0, 1000)
 
 default_kwargs = dict(
