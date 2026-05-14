@@ -22,8 +22,7 @@
 
 import pathlib
 
-from .calibration import CalibrationMatrix, CalibrationType
-from .position import MLECalibrationData
+from .calibration import CalibrationMatrix, CalibrationType, MLECalibrationData
 
 
 class CalDB:

@@ -30,11 +30,10 @@ import numpy as np
 import tables
 
 from . import __version__
-from .calibration import CalibrationMatrix
+from .calibration import CalibrationBase
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .logging_ import logger
 from .mc import MonteCarloEvent
-from .position import MLECalibrationData
 from .readout import HexagonalReadoutCircular, HexagonalReadoutMode, HexagonalReadoutRectangular
 from .recon import ReconEvent
 
@@ -331,7 +330,7 @@ class OutputFileBase(tables.File):
                 logger.debug(f"Converting {name} ({value}) to string...")
                 value = str(value)
                 logger.debug(f"-> {value}.")
-            if isinstance(value, (CalibrationMatrix, MLECalibrationData)):
+            if isinstance(value, CalibrationBase):
                 logger.debug(f"Converting {name} ({value!r}) to string...")
                 value = str(value)
                 logger.debug(f"-> {value}.")
