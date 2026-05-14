@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.16.3 (2026-05-14)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Refactored zero suppression threshold to be interpreted as number of standard deviations of
   the noise instead of a fixed number.
 * Added check of the calibration matrices at the readout initialization to fill the empty
