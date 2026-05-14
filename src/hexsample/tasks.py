@@ -28,6 +28,7 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
+from aptapy.models import Line
 from aptapy.plotting import plt, setup_gca
 from tqdm import tqdm
 
@@ -686,15 +687,18 @@ class CalibrationEqualizationDefaults:
     definition in this Python module and the command-line interface.
     """
 
+    algorithm: str = "relative"
+    pdf: Optional[SpectrumPDF] = None
     size: int = 10
     zero_sup_threshold: int = 20
 
 
 def calibrate_equalization(
         input_file_path: str,
-        pdf: SpectrumPDF,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
+        algorithm: str = CalibrationEqualizationDefaults.algorithm,
+        pdf: Optional[SpectrumPDF] = CalibrationEqualizationDefaults.pdf,
         size: int = CalibrationEqualizationDefaults.size,
         zero_sup_threshold: int = CalibrationEqualizationDefaults.zero_sup_threshold
         ) -> str:
@@ -706,36 +710,43 @@ def calibrate_equalization(
     input_file_path : str
         The path to the input file.
 
-    pdf : SpectrumPDF
-        The spectrum probability density function to use for the gain calibration.
-
     noise_matrix : CalibrationMatrix
-        The calibration noise matrix to use for the gain calibration.
+        The calibration noise matrix to use for the pixel equalization calibration.
 
     pedestal_matrix : CalibrationMatrix
-        The pedestal matrix to use for the gain calibration.
-    
-    size : int
-        The length of the square region of the chip to fit simultaneously during the
+        The pedestal matrix to use for the pixel equalization calibration.
+
+    algorithm : str, optional
+        The algorithm to use for the pixel equalization calibration. Supported values
+        are "relative" and "absolute".
+
+    pdf : SpectrumPDF, optional
+        The spectrum probability density function to use for the pixel equalization
         calibration.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold to use for the clustering in the gain calibration.
+    size : int, optional
+        The length of the square region of the chip to fit simultaneously during the
+        pixel equalization calibration.
+
+    zero_sup_threshold : int, optional
+        The zero-suppression threshold to use for the clustering in the pixel
+        equalization calibration.
     """
     # Open the input file and extract the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
+    num_cols, num_rows = header["num_cols"], header["num_rows"]
     # Define the arguments to create the readout object with uniform pixel equalization,
     # necessary for the calibration.
-    unit_gain_map = CalibrationMatrix(header["num_cols"], header["num_rows"])
+    unit_gain_map = CalibrationMatrix(num_cols, num_rows)
     unit_gain_map.set_value(1.)
     unit_gain_map.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.)
-    args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
-        header["pitch"], noise_matrix, unit_gain_map, pedestal_matrix
+    args = HexagonalLayout(header["layout"]), num_cols, num_rows, header["pitch"], \
+           noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the equalization matrix and run the calibration.
-    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
+    equalization_calibration = CalibrateEqualization(num_cols, num_rows, algorithm, pdf)
     logger.info("Starting the event loop...")
     for _, event in tqdm(enumerate(input_file)):
         try:
@@ -745,7 +756,7 @@ def calibrate_equalization(
         if cluster is not None:
             equalization_calibration.analyze_cluster(cluster)
     logger.info("Calculating the equalization matrix...")
-    equalization_matrix = equalization_calibration.fit(size)
+    equalization_matrix = equalization_calibration.fit(size=size)
     output_file_path = input_file_path.replace(".h5", "_matrix_equalization.h5")
     logger.info(f"Saving equalization matrix to {output_file_path}...")
     equalization_matrix.to_hdf5(output_file_path, CalibrationType.EQUALIZATION, False)
@@ -1030,10 +1041,14 @@ def calibview(
         mc_vals_hist.plot(statistics=True)
         plt.legend()
         # Plot the correlation between the calibrated values and the Monte Carlo truth values.
-        x = np.linspace(mc_edges[0], mc_edges[-1], 2)
         plt.figure("Correlation between calibrated values and Monte Carlo truth values")
         plt.scatter(vals, mc_vals[mask.flatten()], alpha=0.1, s=10)
-        plt.plot(x, x, color="k", linestyle="--")
+        line = Line()
+        line.intercept.freeze(0.)
+        line.fit(vals, mc_vals[mask.flatten()])
+        label = f"Slope: {line.slope.ufloat()}"
+        line.plot(label=label, color="black", linestyle="--", )
+        plt.legend()
         plt.xlabel(f"Calibrated values [{unit}]")
         plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
         # Plot the residuals distribution.
@@ -1046,6 +1061,7 @@ def calibview(
         plt.legend()
         # Plot the pull distribution.
         pull = (vals - mc_vals[mask.flatten()]) / matrix.errors.flatten()[mask.flatten()]
+        pull = pull[~np.isnan(pull) & ~np.isinf(pull)]
         pull_edges = np.linspace(np.nanmin(pull), np.nanmax(pull), 100)
         pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
         plt.figure("Pull distribution")
