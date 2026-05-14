@@ -56,12 +56,15 @@ def coordinates(x: float, y: float, xbin0: float, ybin0: float, bin_size: float,
     y_frac = (y - ybin0) / bin_size
     ix0 = int(math.floor(x_frac))
     iy0 = int(math.floor(y_frac))
-    # Clamp the indices to be within the bounds of the map
-    ix0 = max(0, min(ix0, nx - 2))
-    iy0 = max(0, min(iy0, ny - 2))
     # Calculate the fractional coordinates within the pixel.
     wx = x_frac - ix0
     wy = y_frac - iy0
+    # Clamp the indices to be within the bounds of the map
+    ix0 = max(0, min(ix0, nx - 2))
+    iy0 = max(0, min(iy0, ny - 2))
+    # Clamp the fractional coordinates to be within [0, 1]
+    wx = max(0.0, min(wx, 1.0))
+    wy = max(0.0, min(wy, 1.0))
     return ix0, iy0, wx, wy
 
 

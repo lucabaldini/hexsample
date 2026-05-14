@@ -1346,8 +1346,8 @@ class CalibrateMLE:
     def __init__(self, bin_size: float, grid: HexagonalGrid) -> None:
         """Class constructor.
         """
-        if bin_size <= 0 or bin_size > 1:
-            raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 1].")
+        if not (0 < bin_size <= 0.25):
+            raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 0.25].")
         self.bin_size = bin_size
         self.grid = grid
         # Calculate the bin edges according to the pixel orientation.
@@ -1355,15 +1355,12 @@ class CalibrateMLE:
             x_size, y_size = self.PIXEL_SIZE["flat_topped"]
         else:
             x_size, y_size = self.PIXEL_SIZE["pointy_topped"]
-        x_nbins = int(x_size / bin_size)
-        y_nbins = int(y_size / bin_size)
-        xedges = np.linspace(-x_size / 2, x_size / 2, x_nbins + 1)
-        yedges = np.linspace(-y_size / 2, y_size / 2, y_nbins + 1)
-        # Store bin edges for digitize and calculate the bin centers from the edges.
-        self._x_edges = xedges
-        self._y_edges = yedges
-        self.x_bins = (xedges[:-1] + xedges[1:]) / 2
-        self.y_bins = (yedges[:-1] + yedges[1:]) / 2
+        # Calculate the bin edges.
+        self._x_edges = np.arange(-x_size / 2, x_size / 2 + bin_size, bin_size)
+        self._y_edges = np.arange(-y_size / 2, y_size / 2 + bin_size, bin_size)
+        # Calculate the bin centers.
+        self.x_bins = (self._x_edges[:-1] + self._x_edges[1:]) / 2
+        self.y_bins = (self._y_edges[:-1] + self._y_edges[1:]) / 2
         # Create the MLECalibrationData object to store the calibration data.
         self.cal_data = MLECalibrationData(x_bins=self.x_bins, y_bins=self.y_bins)
         self._stats = RunningStats(shape=self.cal_data.values.shape)
