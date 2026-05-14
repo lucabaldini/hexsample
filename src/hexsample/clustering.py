@@ -23,19 +23,17 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Tuple
 
-import iminuit
 import numpy as np
 from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
-# from .likelihood import nll_grad_numba, nll_numba
 from .position import mle
 from .readout import HexagonalReadoutBase
 
 # This line is necessary to avoid circular imports errors, allowing to import the class only
 # when type checking is performed
 if TYPE_CHECKING:
-    from .calibration import MLECalibrationData, CalibrationMatrix
+    from .calibration import CalibrationMatrix, MLECalibrationData
 
 
 @dataclass
@@ -219,7 +217,9 @@ class Cluster:
         # centroid of the cluster.
         p0 = (self.centroid() - np.array([self.x[0], self.y[0]])) / pitch
         # Run the minimization.
-        m = mle(self.pha, equal_noise, mle_data.values, mle_data.bin_size, mle_data.xlims, mle_data.ylims, p0=p0)
+        m = mle(self.pha, equal_noise,
+                mle_data.values, mle_data.bin_size, mle_data.xlims, mle_data.ylims,
+                p0=p0)
         # Some plots for debugging.
         # x_v = np.linspace(x_bins[0], x_bins[-1], 100)
         # y_v = np.linspace(y_bins[0], y_bins[-1], 100)

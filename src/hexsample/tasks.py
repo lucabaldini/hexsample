@@ -39,11 +39,11 @@ from .calibration import (
     CalibrateENC,
     CalibrateEqualization,
     CalibrateGain,
+    CalibrateMLE,
     CalibrateNoise,
     CalibrationMatrix,
     CalibrationMetadata,
     CalibrationType,
-    CalibrateMLE,
     MLECalibrationData,
     MLECalibrationMetadata,
 )
@@ -343,7 +343,12 @@ def reconstruct(
     if pos_recon_algorithm == "mle":
         if mle_data is None:
             raise RuntimeError("MLE data must be provided for MLE position reconstruction")
-        recon_pars = dict(mle_data=mle_data, noise_matrix=noise_matrix, equalization_matrix=equalization_matrix, pitch=header["pitch"])
+        recon_pars = dict(
+            mle_data=mle_data,
+            noise_matrix=noise_matrix,
+            equalization_matrix=equalization_matrix,
+            pitch=header["pitch"]
+        )
         clustering = ClusteringHex(readout, 0, pos_recon_algorithm, recon_pars)
     else:
         clustering = ClusteringNN(

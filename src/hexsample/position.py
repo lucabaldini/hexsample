@@ -106,6 +106,10 @@ def mle(
     # precise value.
     m.errors["x"] = bin_size / 2
     m.errors["y"] = bin_size / 2
+    # Define the strategy for the minimizer. We use the higher strategy to
+    # avoid numerical problems with the hessian. For an explanation of the
+    # strategy levels, please refer to the iminuit documentation.
+    m.strategy = 2
     # Run the minimization.
     m.migrad()
     # Return the minimizer object, which contains the best-fit values and

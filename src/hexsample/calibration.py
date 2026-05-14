@@ -21,11 +21,11 @@
 """
 
 import gc
+import inspect
 import pathlib
 from enum import Enum
 from itertools import product
-from typing import Optional, Tuple, Iterator
-import inspect
+from typing import Iterator, Optional, Tuple
 
 import h5py
 import numpy as np
@@ -140,7 +140,7 @@ class CalibrationBase:
         """
         self._values = None
         self._metadata = {}
-    
+
     def __iter__(self) -> Iterator[Tuple[str, np.ndarray]]:
         """Iterate over the calibration datasets.
         """
@@ -177,7 +177,7 @@ class CalibrationBase:
         """Return the metadata of the calibration.
         """
         raise NotImplementedError("Metadata property is not implemented yet.")
-    
+
     def update_metadata(self, key: str, value) -> None:
         """Update the metadata dictionary with a new key-value pair.
 
@@ -238,7 +238,7 @@ class CalibrationBase:
             attrs = dict(h5file.attrs)
             # Loop over the required arguments to find the corresponding values
             # in the attributes or datasets of the HDF5 file.
-            for key in init_pars:                
+            for key in init_pars:
                 if key == "self":
                     continue
                 # Check if the argument is in the attributes.
@@ -256,8 +256,11 @@ class CalibrationBase:
                 obj._metadata[key] = value
                 # If some of the metadata keys correspond to public class attributes,
                 # set the attribute values as well.
-                if hasattr(obj, key):
-                    setattr(obj, key, value)
+                try:
+                    if hasattr(obj, key):
+                        setattr(obj, key, value)
+                except AttributeError:
+                    pass
         return obj
 
     def __str__(self) -> str:
@@ -322,7 +325,7 @@ class CalibrationMatrix(CalibrationBase):
         """
         super().values = new_values
         self._cached = False
-        
+
     @property
     def entries(self) -> np.ndarray:
         """Return the number of events for each pixel in the calibration matrix.
@@ -459,6 +462,7 @@ class CalibrationMatrix(CalibrationBase):
         is_synthetic : bool
             Whether the calibration data is synthetic or not.
         """
+        # pylint: disable=arguments-differ
         self.update_metadata(CalibrationMetadata.IS_SYNTHETIC, is_synthetic)
         self.update_metadata(CalibrationMetadata.NUM_EVENTS, self.num_events)
         return super().to_hdf5(file_path, calibration_type)
@@ -492,6 +496,7 @@ class MLECalibrationData(CalibrationBase):
     def __init__(self, x_bins: np.ndarray, y_bins: np.ndarray) -> None:
         """Class constructor.
         """
+        super().__init__()
         self._x_bins = x_bins
         self._y_bins = y_bins
         # Calculate the bin size and the limits of the array.
