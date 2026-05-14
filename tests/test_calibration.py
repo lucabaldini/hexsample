@@ -18,8 +18,10 @@
 
 import numpy as np
 
+from hexsample import rng
 from hexsample.calibration import CalibrationMatrix
 
+rng.initialize()
 
 def test_initialization_matrix():
     """Test the initialization of the CalibrationMatrix class.
@@ -44,6 +46,7 @@ def test_initialization_matrix():
     rows = np.array([0, 1])
     assert np.array_equal(cal_matrix(cols, rows), np.array([1., 1.]))
 
+
 def test_set_value_matrix():
     """Test the set_value method of the CalibrationMatrix class.
     """
@@ -52,6 +55,7 @@ def test_set_value_matrix():
     cal_matrix = CalibrationMatrix(*shape)
     cal_matrix.set_value(value)
     assert np.array_equal(cal_matrix.values, np.full(shape, 2.))
+
 
 def test_fill_matrix():
     """Test the fill method of the CalibrationMatrix class.
@@ -63,3 +67,20 @@ def test_fill_matrix():
     cal_matrix.entries[0, :] = 10
     cal_matrix.fill(2., max_hits=5)
     assert np.array_equal(cal_matrix.values[1:, :], np.full((4, 5), 2.))
+
+
+def test_statistics():
+    """Test the statistics method of the CalibrationMatrix class.
+    """
+    shape = (100, 100)
+    cal_matrix = CalibrationMatrix(*shape)
+    # Test that the statistics are NaN when there are no entries
+    assert np.isnan(cal_matrix.mean())
+    assert np.isnan(cal_matrix.std())
+    assert np.isnan(cal_matrix.median())
+    mean, rms = 20., 1.
+    cal_matrix.values = rng.generator.normal(mean, rms, size=shape)
+    cal_matrix.entries = np.full(shape, 10, dtype=int)
+    assert np.isclose(cal_matrix.mean(), mean, rtol=0.01)
+    assert np.isclose(cal_matrix.std(), rms, rtol=0.01)
+    assert np.isclose(cal_matrix.median(), mean, rtol=0.01)

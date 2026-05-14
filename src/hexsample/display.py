@@ -80,7 +80,7 @@ class HexagonalGridDisplay:
     """Display for an HexagonalGrid object.
     """
 
-    def __init__(self, grid: HexagonalGrid, zero_sup_threshold: int = 0,
+    def __init__(self, grid: HexagonalGrid, zero_sup_threshold: float = 0.,
                  **kwargs) -> None:
         """Constructor.
         """
@@ -154,7 +154,7 @@ class HexagonalGridDisplay:
 
     def draw_digi_event_rectangular(self, event: DigiEventRectangular,
         offset: Tuple[float, float] = (0., 0.),
-        indices: bool = True, padding: bool = True, zero_sup_threshold: float = 0,
+        indices: bool = True, padding: bool = True, zero_sup_threshold: float = 0.,
         values: bool = True, **kwargs) -> HexagonCollection:
         """Draw an actual event int the parent hexagonal grid.
 
@@ -172,7 +172,7 @@ class HexagonalGridDisplay:
         return collection
 
     def draw_digi_event_circular(self, event: DigiEventCircular,
-        offset: Tuple[float, float] = (0., 0.), zero_sup_threshold: float = 0,
+        offset: Tuple[float, float] = (0., 0.), zero_sup_threshold: float = 0.,
         values: bool = True, **kwargs) -> HexagonCollection:
         """Display a digi event with circular readout.
         """
@@ -310,7 +310,7 @@ class EventDisplay(HexagonalGridDisplay):
     def current_zero_sup_threshold(self) -> int:
         """Convenience method to get the current zero suppression threshold.
         """
-        return int(self.zero_sup_text_box.text)
+        return float(self.zero_sup_text_box.text)
 
     def _draw(self, event: DigiEventBase) -> None:
         """Complete draw method for an event.

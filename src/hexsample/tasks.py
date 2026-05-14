@@ -221,7 +221,7 @@ class ReconstructionDefaults:
     """
 
     suffix: str = "recon"
-    zero_sup_threshold: int = 0
+    zero_sup_threshold: float = 0.
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
@@ -239,7 +239,7 @@ def reconstruct(
         pedestal_matrix: CalibrationMatrix,
         equalization_matrix: CalibrationMatrix,
         suffix: str = ReconstructionDefaults.suffix,
-        zero_sup_threshold: int = ReconstructionDefaults.zero_sup_threshold,
+        zero_sup_threshold: float = ReconstructionDefaults.zero_sup_threshold,
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
@@ -276,8 +276,8 @@ def reconstruct(
     suffix : str
         The suffix to append to the output file name.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold.
+    zero_sup_threshold : float
+        The zero-suppression threshold as a multiple of the noise.
 
     num_neighbors : int
         The number of neighbor pixels to be used for the clustering.
@@ -396,7 +396,7 @@ class CalibrationEtaDefaults:
     """
 
     num_bins: int = 50
-    zero_sup_threshold: int = 30
+    zero_sup_threshold: float = 1.
 
 
 def calibrate_eta(
@@ -405,7 +405,7 @@ def calibrate_eta(
         pedestal_matrix: CalibrationMatrix,
         equalization_matrix: CalibrationMatrix,
         num_bins: int = CalibrationEtaDefaults.num_bins,
-        zero_sup_threshold: int = CalibrationEtaDefaults.zero_sup_threshold
+        zero_sup_threshold: float = CalibrationEtaDefaults.zero_sup_threshold
         ) -> None:
     """Calibrate the eta function using the events from a digi file.
 
@@ -426,8 +426,8 @@ def calibrate_eta(
     num_bins : int
         The number of bins to be used in the calibration.
 
-    zero_sup_threshold : int
-        The zero-suppression threshold to be used for the clustering in the calibration.
+    zero_sup_threshold : float
+        The zero-suppression threshold as a multiple of the noise.
     """
     input_file, header, readout_mode = open_file(input_file_path)
     args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
@@ -690,7 +690,7 @@ class CalibrationEqualizationDefaults:
     algorithm: str = "relative"
     pdf: Optional[SpectrumPDF] = None
     size: int = 10
-    zero_sup_threshold: int = 20
+    zero_sup_threshold: float = 1.
 
 
 def calibrate_equalization(
@@ -700,7 +700,7 @@ def calibrate_equalization(
         algorithm: str = CalibrationEqualizationDefaults.algorithm,
         pdf: Optional[SpectrumPDF] = CalibrationEqualizationDefaults.pdf,
         size: int = CalibrationEqualizationDefaults.size,
-        zero_sup_threshold: int = CalibrationEqualizationDefaults.zero_sup_threshold
+        zero_sup_threshold: float = CalibrationEqualizationDefaults.zero_sup_threshold
         ) -> str:
     """Calibrate pixel equalization of the readout chip using the events from a digi file.
     The results are stored as a matrix in a HDF5 file.
@@ -728,7 +728,7 @@ def calibrate_equalization(
         The length of the square region of the chip to fit simultaneously during the
         pixel equalization calibration.
 
-    zero_sup_threshold : int, optional
+    zero_sup_threshold : float, optional
         The zero-suppression threshold to use for the clustering in the pixel
         equalization calibration.
     """
@@ -744,6 +744,7 @@ def calibrate_equalization(
            noise_matrix, unit_gain_map, pedestal_matrix
     readout = create_readout(readout_mode, header, *args)
     # Initialize the equalization matrix and run the calibration.
+    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
     clustering = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6,
                               pos_recon_algorithm="centroid")
     equalization_calibration = CalibrateEqualization(num_cols, num_rows, algorithm, pdf)

@@ -206,11 +206,12 @@ class ClusteringBase:
     readout: HexagonalReadoutBase
     zero_sup_threshold: float
 
-    def zero_suppress(self, array: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def zero_suppress(array: np.ndarray, threshold: np.ndarray) -> np.ndarray:
         """Zero suppress a generic array.
         """
         out = array.copy()
-        out[out <= self.zero_sup_threshold] = 0
+        out[out <= threshold] = 0
         return out
 
     def position_suppress(self, pha: np.ndarray, col: np.ndarray, row: np.ndarray
@@ -305,50 +306,41 @@ class ClusteringNN(ClusteringBase):
            The loop ever the neighbors might likely be vectorized and streamlined
            for speed using proper numpy array for the offset indexes.
         """
-        readout = self.readout
+        # Load the readout calibration matrices.
+        noise = self.readout.enc
+        pedestal = self.readout.pedestal
+        gain = self.readout.gain
         # Load the adc_to_ev conversion factor from the readout metadata of the
         # equalization matrix. If the data is not present, or the wrong matrix type
         # is passed, this will raise a KeyError.
-        adc_to_ev = readout.gain.metadata["adc_to_ev"]
+        adc_to_ev = gain.metadata["adc_to_ev"]
         if isinstance(event, DigiEventCircular):
             # If the readout is circular, we want to take all the neirest neighbors.
             # Trailing -1 is bc the central px is already considered.
             self.num_neighbors = 6 #HexagonalReadoutCircular.NUM_PIXELS - 1
-            if readout.is_at_border(event.column, event.row):
+            seed_coords = (event.column, event.row)
+            if self.readout.is_at_border(*seed_coords):
                 return None
-            col = [event.column]
-            row = [event.row]
-            adc_channel_order = [readout.adc_channel(event.column, event.row)]
-            # Taking the NN in logical coordinates ...
-            for _col, _row in readout.neighbors(event.column, event.row):
-                col.append(_col)
-                row.append(_row)
-                # ... transforming the coordinates of the NN in its corresponding ADC channel ...
-                adc_channel_order.append(readout.adc_channel(_col, _row))
-            # Converting lists into numpy arrays.
-            pha = np.array(event.pha[adc_channel_order])
-            col = np.array(col)
-            row = np.array(row)
-            # Applying the pedestal subtraction and gain correction.
-            pha = (pha - readout.pedestal(col, row)) / readout.gain(col, row)
-        # pylint: disable = invalid-name
+            # Taking the NN logical coordinates ...
+            neigh_coords = self.readout.neighbors(*seed_coords)
+            col, row = np.vstack((seed_coords, neigh_coords)).T
+            # ... trasforming the coordinates in the corresponding ADC channel ...
+            adc_channel_order = self.readout.adc_channel(col, row)
+            # ... reordering the pha array for the correspondance (col[i], row[i]) with pha[i]
+            # and applying pedestal and gain correction.
+            pha = (event.pha[adc_channel_order] - pedestal(col, row)) / gain(col, row)
         elif isinstance(event, DigiEventRectangular):
-            seed_col, seed_row = event.highest_pixel()
-            if readout.is_at_border(seed_col, seed_row):
+            seed_coords = event.highest_pixel()
+            if self.readout.is_at_border(*seed_coords):
                 return None
-            col = [seed_col]
-            row = [seed_row]
-            for _col, _row in readout.neighbors(seed_col, seed_row):
-                col.append(_col)
-                row.append(_row)
-            col = np.array(col)
-            row = np.array(row)
-            pha = np.array([
-                (event(_col, _row) - readout.pedestal(_col, _row)) / readout.gain(_col, _row)
-                for _col, _row in zip(col, row)
-            ])
+            neigh_coords = self.readout.neighbors(*seed_coords)
+            col, row = np.vstack((seed_coords, neigh_coords)).T
+            pha = (event(col, row) - pedestal(col, row)) / gain(col, row)
+        else:
+            raise RuntimeError(f"Unsupported event type {type(event)} for clustering")
         # Zero suppressing the event (whatever the readout type)...
-        pha = self.zero_suppress(pha)
+        threshold = self.zero_sup_threshold * (noise(col, row) / gain(col, row))
+        pha = self.zero_suppress(pha, threshold)
         # Array indexes in order of decreasing pha---note that we use -pha to
         # trick argsort into sorting values in decreasing order.
         idx = np.argsort(-pha)

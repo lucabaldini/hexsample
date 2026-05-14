@@ -259,11 +259,11 @@ class CliArgumentParser(argparse.ArgumentParser):
                             help="number of bins to be used in the eta function calibration")
 
     @staticmethod
-    def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
+    def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: float) -> None:
         """Add an option for the zero-suppression threshold.
         """
-        parser.add_argument("--zero_sup_threshold", type=int, default=default,
-                            help="zero-suppression threshold in ADC counts")
+        parser.add_argument("--zero_sup_threshold", type=float, default=default,
+                            help="zero-suppression threshold expressed as sigma of noise")
 
     @staticmethod
     def add_cal_enc_file(parser: argparse.ArgumentParser, default: str,
@@ -415,8 +415,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         defaults = tasks.ReconstructionDefaults
         group = parser.add_argument_group("reconstruction", "Reconstruction configuration")
-        group.add_argument("--zero_sup_threshold", type=int, default=0,
-                           help="zero-suppression threshold in ADC counts")
+        CliArgumentParser.add_zero_sup_threshold(group, default=defaults.zero_sup_threshold)
         group.add_argument("--num_neighbors", type=int, default=2,
                            help="number of neighbors to be considered (0--6)")
         group.add_argument("--max_neighbors", type=int, default=-1,
@@ -478,15 +477,14 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_calibrate_eta_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the eta function calibration properties.
         """
+        defaults = tasks.CalibrationEtaDefaults
         CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
         CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
         CliArgumentParser.add_cal_equalization_file(parser, default=None, required=True)
         parser.add_argument("--num_bins", type=int,
-                            default=tasks.CalibrationEtaDefaults.num_bins,
+                            default=defaults.num_bins,
                             help="number of bins to be used in the eta function calibration")
-        parser.add_argument("--zero_sup_threshold", type=int,
-                            default=tasks.CalibrationEtaDefaults.zero_sup_threshold,
-                            help="zero-suppression threshold in ADC counts")
+        CliArgumentParser.add_zero_sup_threshold(parser, default=defaults.zero_sup_threshold)
 
     def add_enc_calibration_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the ENC calibration properties.

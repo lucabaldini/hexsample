@@ -19,7 +19,7 @@
 import numpy as np
 
 from hexsample import rng
-from hexsample.calibration import CalibrationMatrix
+from hexsample.caldb import CalDB
 from hexsample.digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from hexsample.hexagon import HexagonalLayout
 from hexsample.logging_ import logger
@@ -55,16 +55,12 @@ def test_digi_event_circular():
 
 
 def test_digitization_circular(layout: HexagonalLayout = HexagonalLayout.ODD_R,
-    num_cols: int = 100, num_rows: int = 100, pitch: float = 0.1, enc: float = 0.,
-    gain: float = 0.5, offset: int = 0, num_pairs: int = 1000):
+    num_cols: int = 304, num_rows: int = 352, pitch: float = 0.1, num_pairs: int = 1000):
     """Test for circular event digitalization class.
     """
-    enc_matrix = CalibrationMatrix(num_cols, num_rows)
-    enc_matrix.set_value(enc)
-    gain_matrix = CalibrationMatrix(num_cols, num_rows)
-    gain_matrix.set_value(gain)
-    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
-    pedestal_matrix.set_value(offset)
+    enc_matrix = CalDB.open_enc("sim_xpol3_enc-20_gauss-p10_v001")
+    gain_matrix = CalDB.open_gain("sim_xpol3_gain-1_gauss-p10_v001")
+    pedestal_matrix = CalDB.open_pedestal("sim_xpol3_pedestal-0_uniform_v001")
     readout = HexagonalReadoutCircular(layout, num_cols, num_rows, pitch, enc_matrix, gain_matrix,
                                        pedestal_matrix)
     # Pick out some particular pixels, we expect only the one with higher PHA
@@ -110,19 +106,16 @@ def test_digi_event_rectangular_comparison():
     assert evt1 == evt2
     assert evt1 != evt3
 
-def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols: int = 100,
-    num_rows: int = 100, pitch: float = 0.1, enc: float = 0., gain: float = 0.5, offset: int = 0,
-    num_pairs: int = 1000, trg_threshold: float = 200., padding: Padding = None):
+def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols: int = 304,
+    num_rows: int = 352, pitch: float = 0.1, num_pairs: int = 1000, trg_threshold: float = 200.,
+    padding: Padding = None):
     """Create a fake digi event and test all the steps of the digitization.
     """
     if padding is None:
         padding = Padding(1, 1, 1, 1)
-    enc_matrix = CalibrationMatrix(num_cols, num_rows)
-    enc_matrix.set_value(enc)
-    gain_matrix = CalibrationMatrix(num_cols, num_rows)
-    gain_matrix.set_value(gain)
-    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
-    pedestal_matrix.set_value(offset)
+    enc_matrix = CalDB.open_enc("sim_xpol3_enc-0_uniform_v001")
+    gain_matrix = CalDB.open_gain("sim_xpol3_gain-1_gauss-p10_v001")
+    pedestal_matrix = CalDB.open_pedestal("sim_xpol3_pedestal-0_uniform_v001")
     readout = HexagonalReadoutRectangular(layout, num_cols, num_rows, pitch, enc_matrix,
                                           gain_matrix, pedestal_matrix, trg_threshold, 0, padding)
     # Pick out a particular pixel...
@@ -145,7 +138,7 @@ def test_digitization(layout: HexagonalLayout = HexagonalLayout.ODD_R, num_cols:
     assert roi.max_row == 2 * (row // 2) + 1 + padding.top
     # And now, redo all the steps and create an actual digi event.
     evt = readout.read(0., x, y)
-    assert evt(col, row) == round(num_pairs * gain)
+    assert evt(col, row) == round(num_pairs * gain_matrix(col, row))
     print(evt.ascii())
 
 def test_borders_rectangular_digi(num_cols: int = 304, num_rows: int = 352, pitch: float = 0.005,
@@ -155,12 +148,9 @@ def test_borders_rectangular_digi(num_cols: int = 304, num_rows: int = 352, pitc
     """
     # Define the readout and its properties.
     padding = Padding(7, 4, 4, 4)
-    enc_matrix = CalibrationMatrix(num_cols, num_rows)
-    enc_matrix.set_value(20.)
-    gain_matrix = CalibrationMatrix(num_cols, num_rows)
-    gain_matrix.set_value(1.)
-    pedestal_matrix = CalibrationMatrix(num_cols, num_rows)
-    pedestal_matrix.set_value(0.)
+    enc_matrix = CalDB.open_enc("sim_xpol3_enc-0_uniform_v001")
+    gain_matrix = CalDB.open_gain("sim_xpol3_gain-1_gauss-p10_v001")
+    pedestal_matrix = CalDB.open_pedestal("sim_xpol3_pedestal-0_uniform_v001")
     readout = HexagonalReadoutRectangular(HexagonalLayout.ODD_R, num_cols, num_rows, pitch,
         enc_matrix, gain_matrix, pedestal_matrix, 500., 0, padding)
     # Pick a particular pixel close to the right border of the chip
