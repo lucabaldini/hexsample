@@ -149,8 +149,8 @@ def interpolation_derivatives(f: np.ndarray, ix0: int, iy0: int, wx: float, wy: 
                         v11 * wx * wy)
         # Calculate the derivatives with respect to x and y using the differences
         # between the bins, weighted by the fractional coordinates.
-        df_dx[i] = ((v10 - v00) * (1 - wy) + (v11 - v01) * wy)
-        df_dy[i] = ((v01 - v00) * (1 - wx) + (v11 - v10) * wx)
+        df_dx[i] = (v10 - v00) * (1 - wy) + (v11 - v01) * wy
+        df_dy[i] = (v01 - v00) * (1 - wx) + (v11 - v10) * wx
     # Divide the derivatives by the bin size to get the correct units.
     df_dx /= bin_size
     df_dy /= bin_size
