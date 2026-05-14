@@ -134,6 +134,7 @@ class CalibrationBase:
     """
 
     VALUES = "values"
+    _VALUES_DTYPE = np.float32
 
     def __init__(self) -> None:
         """Class constructor.
@@ -141,7 +142,7 @@ class CalibrationBase:
         self._values = None
         self._metadata = {}
 
-    def __iter__(self) -> Iterator[Tuple[str, np.ndarray]]:
+    def __iter__(self) -> Iterator[Tuple[str, np.ndarray, np.dtype]]:
         """Iterate over the calibration datasets.
         """
         # Access the class attributes.
@@ -152,8 +153,9 @@ class CalibrationBase:
                 # Get the corresponding dataset variable name.
                 dataset_var = f"_{dataset_name}"
                 if hasattr(self, dataset_var):
-                    # Yield the dataset name and value.
-                    yield dataset_name, getattr(self, dataset_var)
+                    # Yield the dataset name, value and dtype.
+                    dtype_var = f"_{attr}_DTYPE"
+                    yield dataset_name, getattr(self, dataset_var), getattr(self, dtype_var)
 
     @property
     def values(self) -> np.ndarray:
@@ -206,8 +208,8 @@ class CalibrationBase:
         # Define the HDF5 compression parameters.
         compression_pars = dict(compression="gzip", compression_opts=9, shuffle=True)
         with h5py.File(file_path, "w") as h5file:
-            for name, dataset in self:
-                h5file.create_dataset(name, data=dataset, **compression_pars)
+            for name, dataset, dtype in self:
+                h5file.create_dataset(name, data=dataset, dtype=dtype, **compression_pars)
             # Save the metadata in the HDF5 file as attributes.
             for key, value in self.metadata.items():
                 h5file.attrs[key] = value
@@ -250,7 +252,7 @@ class CalibrationBase:
             # Instantiate the class with the recovered arguments, and set the
             # dataset values and metadata from the HDF5 file.
             obj = cls(**init_args)
-            for name, _ in obj:
+            for name, _, _ in obj:
                 setattr(obj, f"_{name}", h5file[name][:])
             for key, value in attrs.items():
                 obj._metadata[key] = value
@@ -288,6 +290,8 @@ class CalibrationMatrix(CalibrationBase):
 
     ENTRIES = "entries"
     ERRORS = "errors"
+    _ENTRIES_DTYPE = np.int32
+    _ERRORS_DTYPE = np.float32
 
     def __init__(self, num_cols: int, num_rows: int) -> None:
         """Class constructor.
@@ -311,20 +315,6 @@ class CalibrationMatrix(CalibrationBase):
         """Return the shape of the calibration matrix.
         """
         return self._shape
-
-    @property
-    def values(self) -> np.ndarray:
-        """Return the calibration values.
-        """
-        # This is just to redefine the setter to add the caching mechanism.
-        return super().values
-
-    @values.setter
-    def values(self, new_values: np.ndarray) -> None:
-        """Set the calibration values to a new value.
-        """
-        super().values = new_values
-        self._cached = False
 
     @property
     def entries(self) -> np.ndarray:
@@ -492,6 +482,8 @@ class MLECalibrationData(CalibrationBase):
 
     X_BINS = "x_bins"
     Y_BINS = "y_bins"
+    _X_BINS_DTYPE = np.float32
+    _Y_BINS_DTYPE = np.float32
 
     def __init__(self, x_bins: np.ndarray, y_bins: np.ndarray) -> None:
         """Class constructor.
