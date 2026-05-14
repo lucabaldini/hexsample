@@ -24,7 +24,8 @@ import gc
 import pathlib
 from enum import Enum
 from itertools import product
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Iterator
+import inspect
 
 import h5py
 import numpy as np
@@ -38,6 +39,8 @@ from tqdm import tqdm
 
 from .clustering import Cluster
 from .digi import DigiEventRectangular
+from .hexagon import HexagonalGrid
+from .mc import MonteCarloEvent
 from .pdf import SpectrumPDF
 from .stats import RunningStats
 
@@ -82,6 +85,20 @@ class CalibrationMetadata(str, Enum):
     ADC_TO_EV = "adc_to_ev"
 
 
+class MLECalibrationMetadata(str, Enum):
+
+    """Enum to store the metadata keys for the MLE calibration data.
+    """
+
+    CALIBRATION_TYPE = "calibration_type"
+    DIFFUSION_SIGMA = "diffusion_sigma"
+    FILE_NAME = "file_name"
+    LAYOUT = "layout"
+    PITCH = "pitch"
+    THICKNESS = "thickness"
+    VERSION = "version"
+
+
 class CalibrationUnits(str, Enum):
 
     """Enum to store the possible units for the calibration matrix values.
@@ -103,7 +120,154 @@ CALIBRATION_UNITS = {
 }
 
 
-class CalibrationMatrix:
+class CalibrationBase:
+
+    """Base class for calibration data classes.
+
+    This class defines the basic structure and functionalities for the calibration
+    classes, such as the storage of the calibration values and metadata, and the
+    methods to save and load the calibration data from HDF5 files.
+
+    .. note:: This class is not meant to be used directly, but to be inherited by
+              the specific calibration classes.
+    """
+
+    VALUES = "values"
+
+    def __init__(self) -> None:
+        """Class constructor.
+        """
+        self._values = None
+        self._metadata = {}
+    
+    def __iter__(self) -> Iterator[Tuple[str, np.ndarray]]:
+        """Iterate over the calibration datasets.
+        """
+        # Access the class attributes.
+        for attr in dir(self):
+            # Get only the uppercase attributes.
+            if attr.isupper() and not attr.startswith("_"):
+                dataset_name = getattr(self, attr)
+                # Get the corresponding dataset variable name.
+                dataset_var = f"_{dataset_name}"
+                if hasattr(self, dataset_var):
+                    # Yield the dataset name and value.
+                    yield dataset_name, getattr(self, dataset_var)
+
+    @property
+    def values(self) -> np.ndarray:
+        """Return the calibration values.
+        """
+        if self._values is None:
+            raise NotImplementedError("Calibration values have not been initialized yet.")
+        return self._values
+
+    @values.setter
+    def values(self, new_values: np.ndarray) -> None:
+        """Set the calibration values to a new value.
+        """
+        if new_values.shape != self.values.shape:
+            raise ValueError(f"Input matrix has shape {new_values.shape}, but expected shape is "
+                             f"{self.values.shape}.")
+        self._values = new_values
+
+    @property
+    def metadata(self) -> dict:
+        """Return the metadata of the calibration.
+        """
+        raise NotImplementedError("Metadata property is not implemented yet.")
+    
+    def update_metadata(self, key: str, value) -> None:
+        """Update the metadata dictionary with a new key-value pair.
+
+        Arguments
+        ---------
+        key : str
+            The key of the metadata entry to update.
+        value
+            The value of the metadata entry to update.
+        """
+        self._metadata[key] = value
+
+    def to_hdf5(self, file_path: str, calibration_type: CalibrationType) -> str:
+        """Save the calibration matrix to an HDF5 file at the given path.
+
+        Arguments
+        ---------
+        file_path : str
+            The path of the file on the disk.
+        calibration_type : CalibrationType
+            The type of calibration for which the matrix is being saved.
+        """
+        # Update the metadata with the relevant information for the calibration data.
+        self.update_metadata(CalibrationMetadata.FILE_NAME, pathlib.Path(file_path).stem)
+        self.update_metadata(CalibrationMetadata.CALIBRATION_TYPE, calibration_type.value)
+        # Define the HDF5 compression parameters.
+        compression_pars = dict(compression="gzip", compression_opts=9, shuffle=True)
+        with h5py.File(file_path, "w") as h5file:
+            for name, dataset in self:
+                h5file.create_dataset(name, data=dataset, **compression_pars)
+            # Save the metadata in the HDF5 file as attributes.
+            for key, value in self.metadata.items():
+                h5file.attrs[key] = value
+        return file_path
+
+    @classmethod
+    def from_hdf5(cls, file_path: str) -> "CalibrationBase":
+        """Create an instance of the calibration data class from an HDF5 file at
+        the given path.
+
+        Arguments
+        ---------
+        file_path : str
+            The path of the file on the disk.
+        """
+        # Check if the file path is valid and if it exists.
+        if file_path is None:
+            raise ValueError("No file path provided for the calibration matrix.")
+        if not pathlib.Path(file_path).is_file():
+            raise FileNotFoundError(f"File {file_path} does not exist.")
+        # Open the HDF5 file.
+        with h5py.File(file_path, "r") as h5file:
+            # Inspect the __init__ method to get the required arguments for the
+            # class constructor.
+            init_pars = inspect.signature(cls.__init__).parameters
+            init_args = {}
+            # Open the attributes of the HDF5 file.
+            attrs = dict(h5file.attrs)
+            # Loop over the required arguments to find the corresponding values
+            # in the attributes or datasets of the HDF5 file.
+            for key in init_pars:                
+                if key == "self":
+                    continue
+                # Check if the argument is in the attributes.
+                if key in attrs:
+                    init_args[key] = attrs[key]
+                # Otherwise recover it from the datasets.
+                else:
+                    init_args[key] = h5file[key][:]
+            # Instantiate the class with the recovered arguments, and set the
+            # dataset values and metadata from the HDF5 file.
+            obj = cls(**init_args)
+            for name, _ in obj:
+                setattr(obj, f"_{name}", h5file[name][:])
+            for key, value in attrs.items():
+                obj._metadata[key] = value
+                # If some of the metadata keys correspond to public class attributes,
+                # set the attribute values as well.
+                if hasattr(obj, key):
+                    setattr(obj, key, value)
+        return obj
+
+    def __str__(self) -> str:
+        """Return a string representation of the calibration data.
+        """
+        if CalibrationMetadata.FILE_NAME in self._metadata:
+            return self._metadata[CalibrationMetadata.FILE_NAME]
+        return f"{self.__class__.__name__}(shape={self.values.shape})"
+
+
+class CalibrationMatrix(CalibrationBase):
 
     """Class to store and use calibration matrices for the detector readout.
 
@@ -120,12 +284,11 @@ class CalibrationMatrix:
 
     ENTRIES = "entries"
     ERRORS = "errors"
-    VALUES = "values"
 
     def __init__(self, num_cols: int, num_rows: int) -> None:
         """Class constructor.
         """
-        # pylint: disable=unused-argument
+        super().__init__()
         self._shape = (num_rows, num_cols)
         # Create the arrays to store the calibration data and the number of events for each pixel.
         self._values = np.full(self._shape, np.nan)
@@ -144,24 +307,6 @@ class CalibrationMatrix:
         """Return the shape of the calibration matrix.
         """
         return self._shape
-
-    @property
-    def values(self) -> np.ndarray:
-        """Return the calibration matrix.
-        """
-        return self._values
-
-    @values.setter
-    def values(self, new_matrix: np.ndarray) -> None:
-        """Set the value of the calibration matrix to a new value.
-        """
-        # Check the consistency of the shape of the new matrix.
-        if new_matrix.shape != self._shape:
-            raise ValueError(f"Input matrix has shape {new_matrix.shape}, but expected shape is "
-                             f"{self._shape}.")
-        self._values = new_matrix
-        # Invalidate the cached metadata since the values of the matrix have changed.
-        self._cached = False
 
     @property
     def entries(self) -> np.ndarray:
@@ -223,18 +368,6 @@ class CalibrationMatrix:
         self._metadata[CalibrationMetadata.NUM_CALIBRATED_PIXELS] = int(mask.sum())
         self._cached = True
         return self._metadata
-
-    def update_metadata(self, key: CalibrationMetadata, value) -> None:
-        """Update the metadata of the calibration matrix with a new key-value pair.
-
-        Arguments
-        ---------
-        key : CalibrationMetadata
-            The key of the metadata to be updated.
-        value :
-            The value of the metadata to be updated.
-        """
-        self._metadata[key] = value
 
     def set_value(self, value: float) -> None:
         """Set a value for all the pixels in the calibration matrix.
@@ -311,56 +444,9 @@ class CalibrationMatrix:
         is_synthetic : bool
             Whether the calibration data is synthetic or not.
         """
-        # pylint: disable=protected-access
-        compression_pars = dict(
-            compression="gzip",
-            compression_opts=9,
-            shuffle=True
-        )
-        with h5py.File(file_path, "w") as h5file:
-            # Save the matrix and the hits matrices as arrays in the HDF5 file.
-            h5file.create_dataset(self.VALUES, data=self.values, dtype=np.float32,
-                                  **compression_pars)
-            h5file.create_dataset(self.ENTRIES, data=self.entries, dtype=np.int32,
-                                  **compression_pars)
-            h5file.create_dataset(self.ERRORS, data=self.errors, dtype=np.float32,
-                                  **compression_pars)
-            # Update the header with the relevant information and metadata.
-            self._metadata[CalibrationMetadata.CALIBRATION_TYPE] = calibration_type.value
-            self._metadata[CalibrationMetadata.IS_SYNTHETIC] = is_synthetic
-            self._metadata[CalibrationMetadata.FILE_NAME] = pathlib.Path(file_path).stem
-            for key, val in self.metadata.items():
-                h5file.attrs[key] = val
-        return file_path
-
-    @classmethod
-    def from_hdf5(cls, file_path: str) -> "CalibrationMatrix":
-        """Create an instance of the calibration matrix from an HDF5 file at the given path.
-
-        Arguments
-        ---------
-        file_path : str
-            The path of the file on the disk.
-        """
-        # pylint: disable=protected-access
-        if file_path is None:
-            raise ValueError("No file path provided for the calibration matrix.")
-        # Check if the file exists before trying to open it.
-        if not pathlib.Path(file_path).is_file():
-            raise FileNotFoundError(f"File {file_path} does not exist.")
-        with h5py.File(file_path, "r") as h5file:
-            # Load the attributes from the header.
-            attrs = dict(h5file.attrs)
-            # Instantiate the object with the attributes loaded from the header.
-            obj = cls(num_cols=attrs["num_cols"], num_rows=attrs["num_rows"])
-            obj.num_events = attrs.get(CalibrationMetadata.NUM_EVENTS.value)
-            for key, val in attrs.items():
-                obj._metadata[key] = val
-            # Load the matrix and the hits matrices from the HDF5 file.
-            obj._values = h5file[obj.VALUES][:]
-            obj._entries = h5file[obj.ENTRIES][:]
-            obj._errors = h5file[obj.ERRORS][:]
-        return obj
+        self.update_metadata(CalibrationMetadata.IS_SYNTHETIC, is_synthetic)
+        self.update_metadata(CalibrationMetadata.NUM_EVENTS, self.num_events)
+        return super().to_hdf5(file_path, calibration_type)
 
     def __call__(self, col: np.ndarray, row: np.ndarray) -> float:
         """Return the value of the calibration matrix for the given pixel coordinates.
@@ -374,14 +460,47 @@ class CalibrationMatrix:
         """
         return self.values[row, col]
 
-    def __str__(self) -> str:
-        """Return a string representation of the calibration matrix.
+
+class MLECalibrationData(CalibrationBase):
+
+    """Class to store and use calibration data for Maximum Likelihood Estimation
+    (MLE) position reconstruction.
+
+    This class stores a set of seven matrices, each containing the average fraction
+    of charge collected by a pixel in a cluster of 7 pixels as a function of the incident
+    position of the photon on the central pixel of the cluster.
+    """
+
+    X_BINS = "x_bins"
+    Y_BINS = "y_bins"
+
+    def __init__(self, x_bins: np.ndarray, y_bins: np.ndarray) -> None:
+        self._x_bins = x_bins
+        self._y_bins = y_bins
+        # Create the tensor to store the calibration data.
+        self._values = np.zeros((7, len(x_bins), len(y_bins)))
+        # Some useful information for the metadata.
+        self._metadata = {
+            MLECalibrationMetadata.CALIBRATION_TYPE: CalibrationType.MLE.value
+        }
+
+    @property
+    def x_bins(self) -> np.ndarray:
+        """Bin centers in the x axis for the calibration data.
         """
-        if CalibrationMetadata.FILE_NAME in self._metadata:
-            return self._metadata[CalibrationMetadata.FILE_NAME]
-        return f"CalibrationMatrix(" \
-               f"num_cols={self._metadata[CalibrationMetadata.NUM_COLS]}, " \
-               f"num_rows={self._metadata[CalibrationMetadata.NUM_ROWS]})"
+        return self._x_bins
+
+    @property
+    def y_bins(self) -> np.ndarray:
+        """Bin centers in the y axis for the calibration data.
+        """
+        return self._y_bins
+
+    @property
+    def metadata(self) -> dict:
+        """Metadata dictionary containing useful information about the calibration data.
+        """
+        return self._metadata
 
 
 class CalibrateBase:
@@ -1161,3 +1280,94 @@ class CalibrateENC:
         self.cal_matrix.errors = enc_errors
         self.cal_matrix.num_events = self.noise_matrix.num_events
         return self.cal_matrix
+
+
+class CalibrateMLE:
+
+    """Class to perform the calibration of the MLE position reconstruction algorithm. 
+    
+    This class implements the logic to create a set of calibration matrices to determine
+    the fraction of charge collected by each pixel as a function of the incident position
+    of the photon on the central pixel of the cluster. The calibration matrices are
+    calculated by creating a grid of bins and calculating the average value of the
+    fraction of charge collected by each pixel for each bin over all the events that fall
+    in that bin.
+
+    Arguments
+    ---------
+    bin_size: float
+        The size of the square bins in the grid, in units of pixel pitch.
+    grid: HexagonalGrid
+        The hexagonal grid with the same geometry of the detector.
+    """
+
+    PIXEL_SIZE = dict(
+        flat_topped=(2 / np.sqrt(3), 1),
+        pointy_topped=(1, 2 / np.sqrt(3))
+    )
+
+    def __init__(self, bin_size: float, grid: HexagonalGrid) -> None:
+        """Class constructor.
+        """
+        if bin_size <= 0 or bin_size > 1:
+            raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 1].")
+        self.bin_size = bin_size
+        self.grid = grid
+        # Calculate the bin edges according to the pixel orientation.
+        if grid.flat_topped():
+            x_size, y_size = self.PIXEL_SIZE["flat_topped"]
+        else:
+            x_size, y_size = self.PIXEL_SIZE["pointy_topped"]
+        x_nbins = int(x_size / bin_size)
+        y_nbins = int(y_size / bin_size)
+        xedges = np.linspace(-x_size / 2, x_size / 2, x_nbins + 1)
+        yedges = np.linspace(-y_size / 2, y_size / 2, y_nbins + 1)
+        # Store bin edges for digitize and calculate the bin centers from the edges.
+        self._x_edges = xedges
+        self._y_edges = yedges
+        self.x_bins = (xedges[:-1] + xedges[1:]) / 2
+        self.y_bins = (yedges[:-1] + yedges[1:]) / 2
+        # Create the MLECalibrationData object to store the calibration data.
+        self.cal_data = MLECalibrationData(x_bins=self.x_bins, y_bins=self.y_bins)
+        self._stats = RunningStats(shape=self.cal_data.values.shape)
+
+    def analyze_cluster(self, cluster: Cluster, mc_event: MonteCarloEvent) -> None:
+        """Analyze the event cluster and update the calibration data.
+
+        Arguments
+        ---------
+        cluster : Cluster
+            The cluster of pixels to analyze.
+        mc_event : MonteCarloEvent
+            The Monte Carlo event corresponding to the cluster.
+        """
+        # Calculate the Monte Carlo pixel normalized impact coordinates relative
+        # to the central pixel of the cluster.
+        x_rel = (mc_event.absx - cluster.x[0]) / self.grid.pitch
+        y_rel = (mc_event.absy - cluster.y[0]) / self.grid.pitch
+        # Find the corresponding bin in the data matrices using bin edges.
+        # np.digitize returns the index i such that edges[i-1] <= x < edges[i].
+        x_bin = np.digitize(x_rel, self._x_edges) - 1
+        y_bin = np.digitize(y_rel, self._y_edges) - 1
+        # Clamp indices to valid range to handle edge cases.
+        x_bin = np.clip(x_bin, 0, len(self.x_bins) - 1)
+        y_bin = np.clip(y_bin, 0, len(self.y_bins) - 1)
+        # Calculate the charge fractions for the cluster.
+        charge_fractions = cluster.pha / cluster.pulse_height()
+        # Update the calibration data.
+        # Maybe we can find a better way to use running stats here.
+        for i in range(7):
+            frac = np.array([[[charge_fractions[i]]]])
+            self._stats.update(frac, offset=(i, x_bin, y_bin))
+
+    def fit(self) -> MLECalibrationData:
+        """Calculate the average charge fractions for each bin and store them in the
+        MLECalibrationData object.
+
+        Returns
+        -------
+        cal_data : MLECalibrationData
+            The MLECalibrationData object containing the calibration data.
+        """
+        self.cal_data.values = self._stats.mean()
+        return self.cal_data
