@@ -34,7 +34,7 @@ class CalDB:
 
     @classmethod
     def _open(cls, calibration_type: CalibrationType, designator: str,
-              calibration_class: CalibrationBase) -> CalibrationBase:
+              calibration_class: CalibrationBase = CalibrationMatrix) -> CalibrationBase:
         """Open the calibration file for the given designation and intent.
         """
         if pathlib.Path(designator).is_file():
@@ -46,31 +46,31 @@ class CalDB:
     def open_enc(cls, designator: str) -> CalibrationMatrix:
         """Open the ENC calibration file for the given designation.
         """
-        return cls._open(CalibrationType.ENC, designator, CalibrationMatrix)
+        return cls._open(CalibrationType.ENC, designator)
 
     @classmethod
     def open_pedestal(cls, designator: str) -> CalibrationMatrix:
         """Open the pedestal calibration file for the given designation.
         """
-        return cls._open(CalibrationType.PEDESTAL, designator, CalibrationMatrix)
+        return cls._open(CalibrationType.PEDESTAL, designator)
 
     @classmethod
     def open_noise(cls, designator: str) -> CalibrationMatrix:
         """Open the noise calibration file for the given designation.
         """
-        return cls._open(CalibrationType.NOISE, designator, CalibrationMatrix)
+        return cls._open(CalibrationType.NOISE, designator)
 
     @classmethod
     def open_gain(cls, designator: str) -> CalibrationMatrix:
         """Open the gain calibration file for the given designation.
         """
-        return cls._open(CalibrationType.GAIN, designator, CalibrationMatrix)
+        return cls._open(CalibrationType.GAIN, designator)
 
     @classmethod
     def open_equalization(cls, designator: str) -> CalibrationMatrix:
         """Open the equalization calibration file for the given designation.
         """
-        return cls._open(CalibrationType.EQUALIZATION, designator, CalibrationMatrix)
+        return cls._open(CalibrationType.EQUALIZATION, designator)
 
     @classmethod
     def open_mle(cls, designator: str) -> MLECalibrationData:
