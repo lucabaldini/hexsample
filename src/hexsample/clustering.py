@@ -28,13 +28,14 @@ import numpy as np
 from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
-from .likelihood import nll_grad_numba, nll_numba
+# from .likelihood import nll_grad_numba, nll_numba
+from .position import mle
 from .readout import HexagonalReadoutBase
 
 # This line is necessary to avoid circular imports errors, allowing to import the class only
 # when type checking is performed
 if TYPE_CHECKING:
-    from .position import MLECalibrationData
+    from .calibration import MLECalibrationData, CalibrationMatrix
 
 
 @dataclass
@@ -187,70 +188,39 @@ class Cluster:
                                " eta function")
         return x_recon, y_recon
 
-    def mle(self, charge_fraction_matrices: "MLECalibrationData", sigma_noise: float,
-            pitch: float) -> Tuple[float, float]:
-        """Return the cluster reconstructed position using the maximum likelihood estimator. The
-        computation is performed using the negative log-likelihood, which is minimized with the
-        iminuit package.
-
-        To speed up the computation, the negative log-likelihood and its gradient are implemented
-        in the likelihood.py module and decorated with numba.njit.
+    def mle(self,
+            mle_data: "MLECalibrationData",
+            noise_matrix: "CalibrationMatrix",
+            equalization_matrix: "CalibrationMatrix",
+            pitch: float
+            ) -> Tuple[float, float]:
+        """Return the cluster reconstructed position using the maximum likelihood estimator.
 
         Arguments
         ---------
-        charge_fraction_matrices : ChargeFractionMatrices
-            The charge fraction matrices object containing the charge fraction maps and the pixel
-            grid information.
-        sigma_noise : float
-            The noise level for the likelihood computation.
+        mle_data : MLECalibrationData
+            The MLE calibration data containing the precomputed charge fraction
+            matrices and other relevant information.
+
+        noise_matrix : CalibrationMatrix
+            The noise calibration matrix containing the equalized noise standard
+            deviation for each pixel.
+
+        equalization_matrix : CalibrationMatrix
+            The equalization calibration matrix containing the gain correction
+            for each pixel.
+
         pitch : float
-            The pitch of the pixels.
+             The pixel pitch.
         """
-        # Load the data from the charge fraction matrices and calculate the binning information
-        # needed for the likelihood computation.
-        matrices = charge_fraction_matrices.values
-        x_bins = charge_fraction_matrices.x_bins
-        y_bins = charge_fraction_matrices.y_bins
-        # Calculate bin edges and pass the left edge of the first bin (not the center)
-        bin_size = x_bins[1] - x_bins[0]
-        xmin = x_bins[0] - bin_size / 2
-        ymin = y_bins[0] - bin_size / 2
-
-        # Define the wrapper functions for the nll and its gradient for the minimization.
-        def nll(x, y):
-            """Wrapper around the nll_numba function to be passed to iminuit, which expects a
-            function that takes the parameters to be optimized as arguments.
-            """
-            return nll_numba(x, y, self.pha, matrices, xmin, ymin, bin_size, sigma_noise)
-
-        def nll_grad(x, y):
-            """Wrapper around the nll_grad_numba function to be passed to iminuit, which expects a
-            function that takes the parameters to be optimized as arguments.
-            """
-            return nll_grad_numba(x, y, self.pha, matrices, xmin, ymin, bin_size, sigma_noise)
-
-        # Compute the initial guess for the minimization using the cluster centroid.
-        x_centroid, y_centroid = self.centroid()
-        parin = np.array([x_centroid - self.x[0], y_centroid - self.y[0]]) / pitch
-        parname = ["x", "y"]
-        # Initialize the minimizer.
-        m = iminuit.Minuit(nll, *parin, grad=nll_grad, name=parname)
-        # Set limits and initial step sizes for the minimization.
-        m.limits = [(x_bins[0], x_bins[-1]), (y_bins[0], y_bins[-1])]
-        m.errors = [0.01, 0.01]
+        # Calculate the equalized noise for the pixels in the cluster.
+        equal_noise = noise_matrix(self.col, self.row) / equalization_matrix(self.col, self.row)
+        # Calculate the initial guess for the position of the photon, using the
+        # centroid of the cluster.
+        p0 = (self.centroid() - np.array([self.x[0], self.y[0]])) / pitch
         # Run the minimization.
-        m.migrad()
-        # # These lines are for uncertainty estimation, but it is currently not supported by the
-        # # Recon files
-        # if m.fmin.is_valid:
-        #     try:
-        #         m.minos()
-        #         self._errx_low = m.merrors["x"].lower * 0.005
-        #         self._errx_high = m.merrors["x"].upper * 0.005
-        #         self._erry_low = m.merrors["y"].lower * 0.005
-        #         self._erry_high = m.merrors["y"].upper * 0.005
-        #     except RuntimeError:
-        #         pass
+        m = mle(self.pha, equal_noise, mle_data.values, mle_data.bin_size, mle_data.xlims, mle_data.ylims, p0=p0)
+        # Some plots for debugging.
         # x_v = np.linspace(x_bins[0], x_bins[-1], 100)
         # y_v = np.linspace(y_bins[0], y_bins[-1], 100)
         # z = np.array([[nll(xi, yi) for xi in x_v] for yi in y_v])

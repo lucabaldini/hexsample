@@ -43,6 +43,9 @@ from .calibration import (
     CalibrationMatrix,
     CalibrationMetadata,
     CalibrationType,
+    CalibrateMLE,
+    MLECalibrationData,
+    MLECalibrationMetadata,
 )
 from .clustering import ClusteringHex, ClusteringNN
 from .display import EventDisplay
@@ -65,7 +68,6 @@ from .hexagon import HexagonalGrid, HexagonalLayout
 from .logging_ import logger
 from .mc import PhotonList
 from .pdf import SpectrumPDF
-from .position import CalibrateMLE, MLECalibrationData, MLECalibrationMetadata
 from .readout import (
     AbstractReadout,
     HexagonalReadoutBase,
@@ -341,7 +343,7 @@ def reconstruct(
     if pos_recon_algorithm == "mle":
         if mle_data is None:
             raise RuntimeError("MLE data must be provided for MLE position reconstruction")
-        recon_pars = dict(charge_fraction_matrices=mle_data, sigma_noise=20, pitch=header["pitch"])
+        recon_pars = dict(mle_data=mle_data, noise_matrix=noise_matrix, equalization_matrix=equalization_matrix, pitch=header["pitch"])
         clustering = ClusteringHex(readout, 0, pos_recon_algorithm, recon_pars)
     else:
         clustering = ClusteringNN(
@@ -364,7 +366,6 @@ def reconstruct(
             except IndexError:
                 mc_event = None
             output_file.add_row(recon_event, mc_event)
-
     output_file.flush()
     input_file.close()
     output_file.close()
@@ -431,7 +432,9 @@ def calibrate_mle(
     # Create the readout object, necessary to create the clustering object
     readout_args = *grid_args, noise_matrix, equalization_matrix, pedestal_matrix
     readout = create_readout(readout_mode, header, *readout_args)
-    clustering = ClusteringHex(readout, 0)
+    # To correctly analyze every type of event, we need a zero suppression threshold
+    # of 0, because the calibration should be performed on zero-noise simulations.
+    clustering = ClusteringHex(readout, zero_sup_threshold=0)
     # Initialize the MLE calibrator and run the event loop.
     mle_calibrator = CalibrateMLE(bin_size, grid)
     logger.info("Starting the event loop...")
@@ -450,7 +453,7 @@ def calibrate_mle(
     # Save the calibration results to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_mle_matrices.h5")
     logger.info(f"Saving the MLE calibration data to {output_file_path}...")
-    data.to_hdf5(output_file_path)
+    data.to_hdf5(output_file_path, CalibrationType.MLE)
     logger.info("Done!")
     return output_file_path
 

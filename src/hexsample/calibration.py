@@ -90,6 +90,7 @@ class MLECalibrationMetadata(str, Enum):
     """Enum to store the metadata keys for the MLE calibration data.
     """
 
+    BIN_SIZE = "bin_size"
     CALIBRATION_TYPE = "calibration_type"
     DIFFUSION_SIGMA = "diffusion_sigma"
     FILE_NAME = "file_name"
@@ -309,6 +310,20 @@ class CalibrationMatrix(CalibrationBase):
         return self._shape
 
     @property
+    def values(self) -> np.ndarray:
+        """Return the calibration values.
+        """
+        # This is just to redefine the setter to add the caching mechanism.
+        return super().values
+
+    @values.setter
+    def values(self, new_values: np.ndarray) -> None:
+        """Set the calibration values to a new value.
+        """
+        super().values = new_values
+        self._cached = False
+        
+    @property
     def entries(self) -> np.ndarray:
         """Return the number of events for each pixel in the calibration matrix.
         """
@@ -475,12 +490,19 @@ class MLECalibrationData(CalibrationBase):
     Y_BINS = "y_bins"
 
     def __init__(self, x_bins: np.ndarray, y_bins: np.ndarray) -> None:
+        """Class constructor.
+        """
         self._x_bins = x_bins
         self._y_bins = y_bins
+        # Calculate the bin size and the limits of the array.
+        self._bin_size = x_bins[1] - x_bins[0]
+        self._xlim = (x_bins[0] - self._bin_size / 2, x_bins[-1] + self._bin_size / 2)
+        self._ylim = (y_bins[0] - self._bin_size / 2, y_bins[-1] + self._bin_size / 2)
         # Create the tensor to store the calibration data.
         self._values = np.zeros((7, len(x_bins), len(y_bins)))
         # Some useful information for the metadata.
         self._metadata = {
+            MLECalibrationMetadata.BIN_SIZE: self._bin_size,
             MLECalibrationMetadata.CALIBRATION_TYPE: CalibrationType.MLE.value
         }
 
@@ -495,6 +517,24 @@ class MLECalibrationData(CalibrationBase):
         """Bin centers in the y axis for the calibration data.
         """
         return self._y_bins
+
+    @property
+    def bin_size(self) -> float:
+        """Bin size of the calibration data.
+        """
+        return self._bin_size
+
+    @property
+    def xlims(self) -> Tuple[float, float]:
+        """Limits of the x axis for the calibration data.
+        """
+        return self._xlim
+
+    @property
+    def ylims(self) -> Tuple[float, float]:
+        """Limits of the y axis for the calibration data.
+        """
+        return self._ylim
 
     @property
     def metadata(self) -> dict:
