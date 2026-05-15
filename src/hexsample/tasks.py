@@ -414,7 +414,8 @@ def calibrate_position(
     # To correctly analyze every type of event, we need a zero suppression threshold
     # of 0, because the calibration should be performed on zero-noise simulations.
     clustering = ClusteringHex(readout, zero_sup_threshold=0)
-    clustering_nn = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold, num_neighbors=6, pos_recon_algorithm="centroid")
+    clustering_nn = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold,
+                                 num_neighbors=6, pos_recon_algorithm="centroid")
     # Initialize the position calibrator and run the event loop.
     position_calibrator = CalibratePosition(bin_size, num_bins, grid)
     logger.info("Starting the event loop...")
@@ -428,10 +429,11 @@ def calibrate_position(
     input_file.close()
     data = position_calibrator.fit()
     # Access sensor information from the header and update the metadata.
-    data.update_metadata(PositionCalibrationMetadata.PITCH.value, header["pitch"])
-    data.update_metadata(PositionCalibrationMetadata.LAYOUT.value, header["layout"].value)
-    data.update_metadata(PositionCalibrationMetadata.DIFFUSION_SIGMA.value, header["diffusion_sigma"])
-    data.update_metadata(PositionCalibrationMetadata.THICKNESS.value, header["thickness"])
+    metadata = PositionCalibrationMetadata
+    data.update_metadata(metadata.PITCH.value, header["pitch"])
+    data.update_metadata(metadata.LAYOUT.value, header["layout"].value)
+    data.update_metadata(metadata.DIFFUSION_SIGMA.value, header["diffusion_sigma"])
+    data.update_metadata(metadata.THICKNESS.value, header["thickness"])
     # Save the calibration results to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_position_data.h5")
     logger.info(f"Saving the calibration data to {output_file_path}...")
@@ -792,6 +794,7 @@ class DisplayDefaults:
     noise_matrix: Optional[CalibrationMatrix] = None
     pedestal_matrix: Optional[CalibrationMatrix] = None
     equalization_matrix: Optional[CalibrationMatrix] = None
+    position_cal: Optional[PositionCalibrationData] = None
 
 
 def display(
@@ -799,6 +802,7 @@ def display(
     noise_matrix: Optional[CalibrationMatrix] = DisplayDefaults.noise_matrix,
     pedestal_matrix: Optional[CalibrationMatrix] = DisplayDefaults.pedestal_matrix,
     equalization_matrix: Optional[CalibrationMatrix] = DisplayDefaults.equalization_matrix,
+    position_cal: Optional[PositionCalibrationData] = DisplayDefaults.position_cal,
 ) -> None:
     """Display events from a digi file.
 
@@ -815,6 +819,9 @@ def display(
 
     equalization_matrix : CalibrationMatrix, optional
         The equalization calibration matrix to use for the display.
+    
+    position_cal : PositionCalibrationData, optional
+        The position calibration data to use for the display.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -841,15 +848,11 @@ def display(
     else:
         readout_args = (*grid_args, *cal_matrices)
         grid = create_readout(readout_mode, header, *readout_args)
-        recon_defaults = ReconstructionDefaults
         recon_pars = dict(
-            eta_2pix_rad_sigma=recon_defaults.eta_2pix_rad_sigma,
-            eta_2pix_rad_pivot=recon_defaults.eta_2pix_rad_pivot,
-            eta_3pix_rad_offset=recon_defaults.eta_3pix_rad_offset,
-            eta_3pix_rad_sigma=recon_defaults.eta_3pix_rad_sigma,
-            eta_3pix_rad_pivot=recon_defaults.eta_3pix_rad_pivot,
-            eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
+            position_cal=position_cal,
             pitch=header["pitch"],
+            noise_matrix=noise_matrix,
+            equalization_matrix=equalization_matrix
         )
     # Create the event display and show the events.
     EventDisplay(input_file, grid, recon_pars=recon_pars)

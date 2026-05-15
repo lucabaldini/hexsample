@@ -426,9 +426,10 @@ class CliArgumentParser(argparse.ArgumentParser):
         CliArgumentParser.add_cal_equalization_file(group, default=None, required=True)
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
                            type=str, default="centroid", help="How to reconstruct position")
-        group.add_argument("--position_cal", type=caldb.CalDB.open_position, default=None, required=False,
-                           help="path to a file containing the position calibration data or name of a " \
-                           "calibration file inside the caldb/position folder.")
+        group.add_argument("--position_cal", type=caldb.CalDB.open_position, default=None,
+                           required=False, help="path to a file containing the position " \
+                           "calibration data or name of a calibration file inside the " \
+                           "caldb/position folder.")
 
     def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the dark calibration properties.
@@ -489,7 +490,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         defaults = tasks.SynthesizeCalibrationDefaults
         cal_type = calibration.CalibrationType
         parser.add_argument("calibration_type", type=calibration.CalibrationType,
-                            choices=[c.value for c in cal_type if c not in (cal_type.POSITION, cal_type.ETA)],
+                            choices=[c.value for c in cal_type if c not in (cal_type.POSITION)],
                             help="type of calibration file to be generated")
         parser.add_argument("mean", type=float,
                             help="mean value of the calibration parameter.")

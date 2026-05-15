@@ -23,8 +23,8 @@
 from typing import Tuple
 
 import numpy as np
-from aptapy.models import Probit
 from aptapy.hist import Histogram2d
+from aptapy.models import Probit
 from iminuit import Minuit
 
 from .likelihood import nll_grad_numba, nll_numba

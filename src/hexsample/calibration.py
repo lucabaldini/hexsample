@@ -42,7 +42,7 @@ from .digi import DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .mc import MonteCarloEvent
 from .pdf import SpectrumPDF
-from .position import versor_2pix, versor_3pix, profile
+from .position import profile, versor_2pix, versor_3pix
 from .stats import RunningStats
 
 
@@ -53,7 +53,6 @@ class CalibrationType(str, Enum):
 
     ENC = "enc"
     EQUALIZATION = "equalization"
-    ETA = "eta"
     GAIN = "gain"
     NOISE = "noise"
     PEDESTAL = "pedestal"
@@ -157,7 +156,7 @@ class CalibrationBase:
                 if hasattr(self, var):
                     val = getattr(self, var)
                     dtype_var = f"_{attr}_DTYPE"
-                    dtype = getattr(self, dtype_var, np.float64) 
+                    dtype = getattr(self, dtype_var, np.float64)
                     # Yield the dataset name, value and dtype.
                     yield name, val, dtype
 
@@ -494,7 +493,7 @@ class PositionCalibrationData(CalibrationBase):
     Y_BINS = "y_bins"
     _X_BINS_DTYPE = np.float32
     _Y_BINS_DTYPE = np.float32
- 
+
     # Eta calibration data keys.
     TWO_PIX_RAD_SIGMA = "two_pix_rad_sigma"
     THREE_PIX_RAD_OFFSET = "three_pix_rad_offset"
@@ -1418,7 +1417,7 @@ class CalibratePosition:
     def __init__(self, bin_size: float, num_bins: int, grid: HexagonalGrid) -> None:
         """Class constructor.
         """
-        if not (0 < bin_size <= 0.25):
+        if not 0 < bin_size <= 0.25:
             raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 0.25].")
         self.bin_size = bin_size
         self._num_bins = num_bins

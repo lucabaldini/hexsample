@@ -27,7 +27,7 @@ from .calibration import (
     CalibrationBase,
     CalibrationMatrix,
     CalibrationType,
-    PositionCalibrationData
+    PositionCalibrationData,
 )
 
 

@@ -149,14 +149,15 @@ class Cluster:
         return self.x[0] + m.values["x"] * pitch, self.y[0] + m.values["y"] * pitch
 
     def position(self) -> Tuple[float, float]:
-        """Return the cluster reconstructed position using the position reconstruction algorithm
-        specified in the constructor.
+        """Return the cluster reconstructed position using the position reconstruction
+        algorithm specified in the constructor.
         """
         # Get the reconstruction algorithm callable from the class attributes.
         recon_algorithm = getattr(self, self.pos_recon_algorithm)
         # Check if it is actually callable, otherwise raise an error.
         if not callable(recon_algorithm):
-            raise RuntimeError(f"Invalid position reconstruction algorithm {self.pos_recon_algorithm}")
+            raise RuntimeError(f"Invalid position reconstruction algorithm \
+                                {self.pos_recon_algorithm}")
         # Get the arguments of the reconstruction algorithm method.
         args = inspect.signature(recon_algorithm).parameters.keys()
         # Create a dictionary with the arguments to be passed to the method.
