@@ -1434,8 +1434,6 @@ class CalibratePosition:
         # Calculate the bin centers.
         self.x_bins = (self._x_edges[:-1] + self._x_edges[1:]) / 2
         self.y_bins = (self._y_edges[:-1] + self._y_edges[1:]) / 2
-        # Initialize the running statistics for the MLE calibration.
-        self._stats = RunningStats(shape=self.cal_data.values.shape)
         # Create the lists to store the data for the eta calibration.
         self._position_2 = []
         self._eta_2 = []
@@ -1445,6 +1443,8 @@ class CalibratePosition:
         self._versors_3 = []
         # Create the PositionCalibrationData object to store the calibration data.
         self.cal_data = PositionCalibrationData(x_bins=self.x_bins, y_bins=self.y_bins)
+        # Initialize the running statistics for the MLE calibration.
+        self._stats = RunningStats(shape=self.cal_data.values.shape)
 
     def analyze_hex_cluster(self, cluster: Cluster, mc_event: MonteCarloEvent) -> None:
         """Analyze the event cluster and update the calibration data for the
