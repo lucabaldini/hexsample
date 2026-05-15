@@ -56,17 +56,9 @@ def reconstruct(**kwargs) -> str:
     num_neighbors = kwargs.get("num_neighbors", defaults.num_neighbors)
     max_neighbors = kwargs.get("max_neighbors", defaults.max_neighbors)
     pos_recon_algorithm = kwargs.get("pos_recon_algorithm", defaults.pos_recon_algorithm)
-    eta_2pix_rad_sigma = kwargs.get("eta_2pix_rad_sigma", defaults.eta_2pix_rad_sigma)
-    eta_2pix_rad_pivot = kwargs.get("eta_2pix_rad_pivot", defaults.eta_2pix_rad_pivot)
-    eta_3pix_rad_offset = kwargs.get("eta_3pix_rad_offset", defaults.eta_3pix_rad_offset)
-    eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
-    eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
-    eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
-    mle_data = kwargs.get("mle_data", defaults.mle_data)
-    recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
-                  eta_3pix_rad_pivot, eta_3pix_theta_sigma, mle_data)
+    position_cal = kwargs.get("position_cal", defaults.position_cal)
     args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, suffix, \
-            zero_sup_threshold,num_neighbors, max_neighbors, pos_recon_algorithm, *recon_args
+            zero_sup_threshold,num_neighbors, max_neighbors, pos_recon_algorithm, position_cal
     return tasks.reconstruct(*args, kwargs)
 
 
@@ -79,30 +71,19 @@ def calibspec(**kwargs) -> str:
 
 
 def calibrate_position(**kwargs) -> str:
-    """Calibrate the MLE position reconstruction algorithm.
+    """Calibrate the position reconstruction algorithms.
     """
+    defaults = tasks.CalibrationPositionDefaults
     input_file_path = kwargs["input_file"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
     equalization_matrix = kwargs["equalization"]
-    bin_size = kwargs.get("bin_size", tasks.CalibrationMLEDefaults.bin_size)
-    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, bin_size
+    bin_size = kwargs.get("bin_size", defaults.bin_size)
+    num_bins = kwargs.get("num_bins", defaults.num_bins)
+    zero_sup_threshold = kwargs.get("zero_sup_threshold", defaults.zero_sup_threshold)
+    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, bin_size, \
+           num_bins, zero_sup_threshold
     return tasks.calibrate_position(*args)
-
-
-def calibrate_eta(**kwargs) -> None:
-    """Calibrate the eta function using the events from a digi file.
-    """
-    input_file_path = kwargs["input_file"]
-    equalization_matrix = kwargs["equalization"]
-    noise_matrix = kwargs["noise"]
-    pedestal_matrix = kwargs["pedestal"]
-    num_bins = kwargs.get("num_bins", tasks.CalibrationEtaDefaults.num_bins)
-    zero_sup_threshold = kwargs.get("zero_sup_threshold",
-                                    tasks.CalibrationEtaDefaults.zero_sup_threshold)
-    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, num_bins, \
-            zero_sup_threshold
-    return tasks.calibrate_eta(*args)
 
 
 def calibrate_noise(**kwargs) -> str:
