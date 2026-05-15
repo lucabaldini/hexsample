@@ -23,6 +23,7 @@
 from typing import Tuple
 
 import numpy as np
+from aptapy.models import Probit
 from iminuit import Minuit
 
 from .likelihood import nll_grad_numba, nll_numba
@@ -30,13 +31,130 @@ from .likelihood import nll_grad_numba, nll_numba
 
 def eta_2pix(
     pha: np.ndarray,
-    eta_2pix_rad_sigma
+    x: np.ndarray,
+    y: np.ndarray,
+    two_pix_rad_sigma: float
 ) -> Tuple[float, float]:
-    eta = pha[1] / (pha[0] + pha[1])
+    """Calculate the incident position of the photon in a two-pixel cluster
+    using the eta reconstruction algorithm.
+
+    Arguments
+    ---------
+    pha : np.ndarray
+        The measured pha in the two pixels of the cluster, ordered in
+        decreasing order of pha.
     
+    x : np.ndarray
+        The x coordinates of the centers of the two pixels.
+
+    y : np.ndarray
+        The y coordinates of the centers of the two pixels.
+
+    two_pix_rad_sigma : float
+        The sigma parameter of the Probit function used to calculate the distance
+        from the higher-pha pixel center. This parameter is expressed in units of
+        the pixel pitch.
+    
+    Returns
+    -------
+    dx : float
+        The x coordinate of the incident position of the photon, relative to the
+        center of the higher-pha pixel and expressed in units of the pixel pitch.
+
+    dy : float
+        The y coordinate of the incident position of the photon, relative to the
+        center of the higher-pha pixel and expressed in units of the pixel pitch.
+    """
+    # Calculate the eta variable, defined as the ratio between the lower-pha pixel
+    # and the total pha in the cluster.
+    eta = pha[1] / np.sum(pha)
+    # Calculate the distance from the center of the higher-pha pixel, using the
+    # Probit function to model the charge diffusion around the incident position.
+    dr = Probit.evaluate(eta, 0.5, two_pix_rad_sigma)
+    # Calculate the unit vector pointing from the center of the higher-pha pixel
+    # to the center of the lower-pha pixel.
+    versor = np.array([x[1] - x[0], y[1] - y[0]])
+    versor /= np.hypot(versor[0], versor[1])
+    # Project the radial coordinate onto the x and y axes to get the coordinates
+    # of the incident position relative to the center of the higher-pha pixel.
+    dx, dy = dr * versor[0], dr * versor[1]
+    return dx, dy
 
 
+def eta_3pix(
+    pha: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    eta_3pix_rad_offset: float,
+    eta_3pix_rad_sigma: float,
+    eta_3pix_theta_sigma: float
+) -> Tuple[float, float]:
+    """Calculate the incident position of the photon in a three-pixel cluster
+    using the eta reconstruction algorithm.
 
+    Arguments
+    ---------
+    pha : np.ndarray
+        The measured pha in the three pixels of the cluster, ordered in
+        decreasing order of pha.
+    
+    x : np.ndarray
+        The x coordinates of the centers of the three pixels.
+    
+    y : np.ndarray
+        The y coordinates of the centers of the three pixels.
+    
+    eta_3pix_rad_offset : float
+        The offset parameter of the Probit function used to calculate the distance
+        from the higher-pha pixel center. This parameter is expressed in units of
+        the pixel pitch.
+
+    eta_3pix_rad_sigma : float
+        The sigma parameter of the Probit function used to calculate the distance
+        from the higher-pha pixel center. This parameter is expressed in units of
+        the pixel pitch.
+    
+    eta_3pix_theta_sigma : float
+        The sigma parameter of the Probit function used to calculate the angle of
+        the incident position. This parameter is expressed in units of the pixel
+        pitch.
+    
+    Returns
+    -------
+    dx : float
+        The x coordinate of the incident position of the photon, relative to the
+        center of the higher-pha pixel and expressed in units of the pixel pitch.
+
+    dy : float
+        The y coordinate of the incident position of the photon, relative to the
+        center of the higher-pha pixel and expressed in units of the pixel pitch.
+    """
+    # Calculate the eta variables for the two lower-pha pixels, defined as the
+    # ratio between the pha in each pixel and the total pha in the cluster.
+    eta_1, eta_2 = pha[1:] / np.sum(pha)
+    # Calculate the two new eta variables, used to model the radial and angular
+    # coordinates of the incident position.
+    eta_sum = eta_1 + eta_2
+    eta_diff = (eta_1 - eta_2) / eta_sum
+    # Calculate the radial and angular coordinates of the incident position using
+    # the Probit function.
+    r = Probit.evaluate(3 / 4 * eta_sum, eta_3pix_rad_offset, eta_3pix_rad_sigma)
+    theta = Probit.evaluate((eta_diff + 1) / 2, 0., eta_3pix_theta_sigma) / r
+    # Calculate the unit vectors for the radial and angular coordinates. The first
+    # versor points from the center of the higher-pha pixel to the midpoint between
+    # the two lower-pha pixels.
+    u = np.array([x[1] + x[2] - 2 * x[0], y[1] + y[2] - 2 * y[0]])
+    u /= np.hypot(u[0], u[1])
+    # The second versor is orthogonal to the first one, and its direction is
+    # chosen to point towards the second higher-pha pixel.
+    v = np.array([-u[1], u[0]])
+    if (x[1] - x[0]) * v[0] + (y[1] - y[0]) * v[1] < 0:
+        v = -v
+    # Project the radial coordinate onto the x and y axes using the two versors
+    # and the angle.
+    dx = r * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
+    dy = r * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
+    return dx, dy
 
 
 def mle(
