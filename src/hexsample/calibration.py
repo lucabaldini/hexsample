@@ -52,6 +52,7 @@ class CalibrationType(str, Enum):
 
     ENC = "enc"
     EQUALIZATION = "equalization"
+    ETA = "eta"
     GAIN = "gain"
     NOISE = "noise"
     MLE = "mle"
@@ -149,13 +150,15 @@ class CalibrationBase:
         for attr in dir(self):
             # Get only the uppercase attributes.
             if attr.isupper() and not attr.startswith("_"):
-                dataset_name = getattr(self, attr)
+                name = getattr(self, attr)
                 # Get the corresponding dataset variable name.
-                dataset_var = f"_{dataset_name}"
-                if hasattr(self, dataset_var):
-                    # Yield the dataset name, value and dtype.
+                var = f"_{name}"
+                if hasattr(self, var):
+                    val = getattr(self, var)
                     dtype_var = f"_{attr}_DTYPE"
-                    yield dataset_name, getattr(self, dataset_var), getattr(self, dtype_var)
+                    dtype = getattr(self, dtype_var, np.float64) 
+                    # Yield the dataset name, value and dtype.
+                    yield name, val, dtype
 
     @property
     def values(self) -> np.ndarray:
@@ -538,6 +541,76 @@ class MLECalibrationData(CalibrationBase):
         """Metadata dictionary containing useful information about the calibration data.
         """
         return self._metadata
+
+
+class EtaCalibrationData(CalibrationBase):
+    
+    TWO_PIX_RAD_SIGMA = "two_pix_rad_sigma"
+    THREE_PIX_RAD_OFFSET = "three_pix_rad_offset"
+    THREE_PIX_RAD_SIGMA = "three_pix_rad_sigma"
+    THREE_PIX_THETA_SIGMA = "three_pix_theta_sigma"
+
+    def __init__(self) -> None:
+        """Class constructor.
+        """
+        super().__init__()
+        self._values = np.empty(4)
+        self._two_pix_rad_sigma = 0.
+        self._three_pix_rad_offset = 0.
+        self._three_pix_rad_sigma = 0.
+        self._three_pix_theta_sigma = 0.
+    
+    @property
+    def two_pix_rad_sigma(self) -> float:
+        """Return the sigma of the radial distribution for two-pixel clusters.
+        """
+        return self._two_pix_rad_sigma
+
+    @two_pix_rad_sigma.setter
+    def two_pix_rad_sigma(self, value: float) -> None:
+        """Set the sigma of the radial distribution for two-pixel clusters to a new value.
+        """
+        self._two_pix_rad_sigma = value
+        self._values[0] = value
+    
+    @property
+    def three_pix_rad_offset(self) -> float:
+        """Return the offset of the radial distribution for three-pixel clusters.
+        """
+        return self._three_pix_rad_offset
+    
+    @three_pix_rad_offset.setter
+    def three_pix_rad_offset(self, value: float) -> None:
+        """Set the offset of the radial distribution for three-pixel clusters to a new value.
+        """
+        self._three_pix_rad_offset = value
+        self._values[2] = value
+    
+    @property
+    def three_pix_rad_sigma(self) -> float:
+        """Return the sigma of the radial distribution for three-pixel clusters.
+        """
+        return self._three_pix_rad_sigma
+
+    @three_pix_rad_sigma.setter
+    def three_pix_rad_sigma(self, value: float) -> None:
+        """Set the sigma of the radial distribution for three-pixel clusters to a new value.
+        """
+        self._three_pix_rad_sigma = value
+        self._values[1] = value
+    
+    @property
+    def three_pix_theta_sigma(self) -> float:
+        """Return the sigma of the angular distribution for three-pixel clusters.
+        """
+        return self._three_pix_theta_sigma 
+
+    @three_pix_theta_sigma.setter
+    def three_pix_theta_sigma(self, value: float) -> None:
+        """Set the sigma of the angular distribution for three-pixel clusters to a new value.
+        """
+        self._three_pix_theta_sigma = value
+        self._values[3] = value
 
 
 class CalibrateBase:
@@ -1404,4 +1477,62 @@ class CalibrateMLE:
             The MLECalibrationData object containing the calibration data.
         """
         self.cal_data.values = self._stats.mean()
+        return self.cal_data
+
+from .eta import calibrate_dr_2pix, calibrate_dr_3pix, calibrate_theta_3pix
+from .eta import distance, angle
+
+class CalibrateEta:
+
+    def __init__(self, num_bins, pitch) -> None:
+        self.cal_data = EtaCalibrationData()
+        self._pitch = pitch
+        self._num_bins = num_bins
+        self._position_2 = []
+        self._eta_2 = []
+        self._versors_2 = []
+        self._position_3 = []
+        self._eta_3 = []
+        self._versors_3 = []
+    
+    def analyze_cluster(self, cluster: Cluster, mc_event: MonteCarloEvent) -> None:
+        size = cluster.size()
+        if size in [2, 3]:
+            x_rel = (mc_event.absx - cluster.x[0]) / self._pitch
+            y_rel = (mc_event.absy - cluster.y[0]) / self._pitch
+            eta = cluster.calculate_eta()
+            versors = cluster.versors()
+            if size == 2:
+                self._position_2.append((x_rel, y_rel))
+                self._eta_2.append(eta)
+                self._versors_2.append(versors)
+            elif size == 3:
+                self._position_3.append((x_rel, y_rel))
+                self._eta_3.append(eta)
+                self._versors_3.append(versors)
+
+    def _fit_size_2(self):
+        self._eta_2 = np.array(self._eta_2).flatten()
+        self._position_2 = np.array(self._position_2)
+        self._versors_2 = np.array(self._versors_2)
+        dr = distance(self._position_2, self._versors_2[:, 0])
+        dr_cal = calibrate_dr_2pix(self._eta_2, dr, self._num_bins)
+        return dr_cal
+
+    def _fit_size_3(self):
+        self._eta_3 = np.array(self._eta_3)
+        self._position_3 = np.array(self._position_3)
+        self._versors_3 = np.array(self._versors_3)
+        dr = distance(self._position_3)
+        theta = angle(self._position_3, self._versors_3)
+        offset, dr_cal = calibrate_dr_3pix(self._eta_3, dr, self._num_bins)
+        theta_cal = calibrate_theta_3pix(self._eta_3, dr, theta, self._num_bins)
+        return offset, dr_cal, theta_cal
+
+    def fit(self) -> EtaCalibrationData:
+        self.cal_data.two_pix_rad_sigma = self._fit_size_2()
+        offset, dr_cal_3, theta_cal_3 = self._fit_size_3()
+        self.cal_data.three_pix_offset = offset
+        self.cal_data.three_pix_rad_sigma = dr_cal_3
+        self.cal_data.three_pix_theta_sigma = theta_cal_3
         return self.cal_data

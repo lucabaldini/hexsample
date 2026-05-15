@@ -36,6 +36,7 @@ from .analysis import create_histogram
 from .calibration import (
     CALIBRATION_UNITS,
     CalibrateDark,
+    CalibrateEta,
     CalibrateENC,
     CalibrateEqualization,
     CalibrateGain,
@@ -483,7 +484,7 @@ def calibrate_eta(
     equalization_matrix: CalibrationMatrix,
     num_bins: int = CalibrationEtaDefaults.num_bins,
     zero_sup_threshold: float = CalibrationEtaDefaults.zero_sup_threshold,
-) -> None:
+    ) -> str:
     """Calibrate the eta function using the events from a digi file.
 
     Arguments
@@ -520,47 +521,112 @@ def calibrate_eta(
     clustering = ClusteringNN(
         readout, zero_sup_threshold, num_neighbors=6, pos_recon_algorithm="centroid"
     )
-    # Create the lists to store the data.
-    size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
-    # Loop over the events and calculate the interesting quantities.
+    calibrator = CalibrateEta(num_bins, header["pitch"])
+    logger.info("Starting the event loop...")
     for i, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
         except IndexError:
             continue
-        # Analyze only 2-pixel and 3-pixel events.
-        if cluster is not None and (cluster.size() == 2 or cluster.size() == 3):
+        if cluster is not None:
             mc_event = input_file.mc_event(i)
-            size_list.append(cluster.size())
-            # Calculate the photon position with respect to the most charged pixel
-            ph_pos = (
-                np.array([mc_event.absx - cluster.x[0], mc_event.absy - cluster.y[0]])
-                / header["pitch"]
-            )
-            photon_pos_list.append(ph_pos)
-            eta_list.append(cluster.calculate_eta())
-            versors_list.append(cluster.versors())
+            calibrator.analyze_cluster(cluster, mc_event)
     input_file.close()
-    # Convert the lists to numpy arrays
-    size = np.asarray(size_list, dtype=int)
-    photon_pos = np.asarray(photon_pos_list, dtype=float)
-    versors = np.asarray(versors_list, dtype=float)
-    eta = np.asarray(eta_list, dtype=object)
+    data = calibrator.fit()
+    # Access sensor information from the header and update the metadata.
+    # TODO
+    # Save the calibration results to a HDF5 file.
+    output_file_path = input_file_path.replace(".h5", "_eta_calibration.h5")
+    logger.info(f"Saving the eta calibration data to {output_file_path}...")
+    data.to_hdf5(output_file_path, CalibrationType.ETA)
+    logger.info("Done!")
 
-    # 2-pixel events calibration
-    mask_2pix = size == 2
-    eta_2pix = eta[mask_2pix].flatten()
-    dr_2pix = distance(photon_pos[mask_2pix], versors[mask_2pix, 0])
-    calibrate_dr_2pix(eta_2pix, dr_2pix, nbins=num_bins)
 
-    # 3-pixel events calibration
-    mask_3pix = size == 3
-    eta_3pix = np.stack(eta[mask_3pix])
-    dr_3pix = distance(photon_pos[mask_3pix])
-    theta_3pix = angle(photon_pos[mask_3pix], versors[mask_3pix])
-    calibrate_dr_3pix(eta_3pix, dr_3pix, nbins=num_bins)
-    calibrate_theta_3pix(eta_3pix, dr_3pix, theta_3pix, nbins=num_bins)
-    plt.show()
+# def calibrate_eta(
+#     input_file_path: str,
+#     noise_matrix: CalibrationMatrix,
+#     pedestal_matrix: CalibrationMatrix,
+#     equalization_matrix: CalibrationMatrix,
+#     num_bins: int = CalibrationEtaDefaults.num_bins,
+#     zero_sup_threshold: float = CalibrationEtaDefaults.zero_sup_threshold,
+# ) -> None:
+#     """Calibrate the eta function using the events from a digi file.
+
+#     Arguments
+#     ---------
+#     input_file_path : str
+#         The path to the input file.
+
+#     noise_matrix : CalibrationMatrix
+#         The noise calibration matrix to use for the analysis.
+
+#     pedestal_matrix : CalibrationMatrix
+#         The pedestal calibration matrix to use for the analysis.
+
+#     equalization_matrix : CalibrationMatrix
+#         The equalization calibration matrix to use for the analysis.
+
+#     num_bins : int
+#         The number of bins to be used in the calibration.
+
+#     zero_sup_threshold : float
+#         The zero-suppression threshold as a multiple of the noise.
+#     """
+#     input_file, header, readout_mode = open_file(input_file_path)
+#     args = (
+#         HexagonalLayout(header["layout"]),
+#         header["num_cols"],
+#         header["num_rows"],
+#         header["pitch"],
+#         noise_matrix,
+#         equalization_matrix,
+#         pedestal_matrix,
+#     )
+#     readout = create_readout(readout_mode, header, *args)
+#     clustering = ClusteringNN(
+#         readout, zero_sup_threshold, num_neighbors=6, pos_recon_algorithm="centroid"
+#     )
+#     # Create the lists to store the data.
+#     size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
+#     # Loop over the events and calculate the interesting quantities.
+#     for i, event in tqdm(enumerate(input_file)):
+#         try:
+#             cluster = clustering.run(event)
+#         except IndexError:
+#             continue
+#         # Analyze only 2-pixel and 3-pixel events.
+#         if cluster is not None and (cluster.size() == 2 or cluster.size() == 3):
+#             mc_event = input_file.mc_event(i)
+#             size_list.append(cluster.size())
+#             # Calculate the photon position with respect to the most charged pixel
+#             ph_pos = (
+#                 np.array([mc_event.absx - cluster.x[0], mc_event.absy - cluster.y[0]])
+#                 / header["pitch"]
+#             )
+#             photon_pos_list.append(ph_pos)
+#             eta_list.append(cluster.calculate_eta())
+#             versors_list.append(cluster.versors())
+#     input_file.close()
+#     # Convert the lists to numpy arrays
+#     size = np.asarray(size_list, dtype=int)
+#     photon_pos = np.asarray(photon_pos_list, dtype=float)
+#     versors = np.asarray(versors_list, dtype=float)
+#     eta = np.asarray(eta_list, dtype=object)
+
+#     # 2-pixel events calibration
+#     mask_2pix = size == 2
+#     eta_2pix = eta[mask_2pix].flatten()
+#     dr_2pix = distance(photon_pos[mask_2pix], versors[mask_2pix, 0])
+#     calibrate_dr_2pix(eta_2pix, dr_2pix, nbins=num_bins)
+
+#     # 3-pixel events calibration
+#     mask_3pix = size == 3
+#     eta_3pix = np.stack(eta[mask_3pix])
+#     dr_3pix = distance(photon_pos[mask_3pix])
+#     theta_3pix = angle(photon_pos[mask_3pix], versors[mask_3pix])
+#     calibrate_dr_3pix(eta_3pix, dr_3pix, nbins=num_bins)
+#     calibrate_theta_3pix(eta_3pix, dr_3pix, theta_3pix, nbins=num_bins)
+#     plt.show()
 
 
 @dataclass(frozen=True)

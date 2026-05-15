@@ -28,6 +28,17 @@ from iminuit import Minuit
 from .likelihood import nll_grad_numba, nll_numba
 
 
+def eta_2pix(
+    pha: np.ndarray,
+    eta_2pix_rad_sigma
+) -> Tuple[float, float]:
+    eta = pha[1] / (pha[0] + pha[1])
+    
+
+
+
+
+
 def mle(
     pha: np.ndarray,
     noise: np.ndarray,
