@@ -74,7 +74,7 @@ class CalDB:
         return cls._open(CalibrationType.EQUALIZATION, designator)
 
     @classmethod
-    def open_mle(cls, designator: str) -> PositionCalibrationData:
+    def open_position(cls, designator: str) -> PositionCalibrationData:
         """Open the MLE calibration file for the given designation.
         """
         return cls._open(CalibrationType.POSITION, designator, PositionCalibrationData)
