@@ -20,14 +20,14 @@
 """Clustering facilities.
 """
 
+import inspect
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Tuple
 
 import numpy as np
-from aptapy.models import Probit
 
 from .digi import DigiEventCircular, DigiEventRectangular
-from .position import mle
+from .position import mle, eta_2pix, eta_3pix
 from .readout import HexagonalReadoutBase
 
 # This line is necessary to avoid circular imports errors, allowing to import the class only
@@ -123,71 +123,41 @@ class Cluster:
                 v = np.zeros(2)
         return u, v
 
-    def eta(self, eta_2pix_rad_sigma: float, eta_2pix_rad_pivot: float, eta_3pix_rad_offset: float,
-            eta_3pix_rad_sigma: float, eta_3pix_rad_pivot: float, eta_3pix_theta_sigma: float,
-            pitch: float) -> Tuple[float, float]:
-        """Return the cluster reconstructed position using the eta function calibrated for 2
-        and 3 pixel clusters. If cluster size is not 2 or 3, reconstruct the position with the
-        centroid.
+    def eta(self, position_cal: "PositionCalibrationData", pitch: float) -> Tuple[float, float]:
+        """Return the cluster reconstructed position using the eta function
+        calibrated for 2 and 3 pixel clusters.
+        
+        .. note::
+            If cluster size is not 2 or 3, the position is reconstructed using the
+            centroid algorithm.
 
         Arguments
         ---------
-        eta_2pix_rad_sigma : float
-            Probit function sigma parameter for two pixel events.
-        eta_2pix_rad_pivot : float
-            Transition value from linear (0 to pivot) to probit (> pivot) for two pixel events.
-        eta_3pix_rad_offset : float
-            Probit function offset parameter for three pixel events radial position component.
-        eta_3pix_rad_sigma : float
-            Probit function sigma parameter for three pixel events radial position component.
-        eta_3pix_rad_pivot : float
-            Transition value from linear (0 to pivot) to probit (> pivot) for three pixel events
-            radial position component.
-        eta_3pix_theta_sigma : float
-            Probit function sigma parameter for three pixel events angular position component.
+        position_cal : PositionCalibrationData
+            The position calibration data containing the parameters for the eta
+            reconstruction algorithm.
+        
         pitch : float
-            The pitch of the pixels.
+            The pixel pitch.
         """
-        # Return the centroid position if it's not possible to use the eta function
-        if self.size() not in (2, 3):
-            return self.centroid()
-        # Calculate versors and eta.
-        u, v = self.versors()
-        _eta = self.calculate_eta()
-
-        if self.size() == 2:
-            # For 2-pixel events we estimate the position along the line that connects the
-            # two pixels using the probit function.
-            if _eta[0] > eta_2pix_rad_pivot or eta_2pix_rad_pivot <= 0.:
-                r = Probit().evaluate(_eta[0], 0.5, eta_2pix_rad_sigma)
-            else:
-                y_pivot = Probit().evaluate(eta_2pix_rad_pivot, 0.5, eta_2pix_rad_sigma)
-                r = y_pivot / eta_2pix_rad_pivot * _eta[0]
-            x_recon = self.x[0] + r * pitch * u[0]
-            y_recon = self.y[0] + r * pitch * u[1]
-        elif self.size() == 3:
-            # For 3-pixel events we estimate both r and theta using the probit function.
-            eta_sum = _eta[0] + _eta[1]
-            eta_diff = (_eta[0] - _eta[1]) / eta_sum
-            if eta_sum > eta_3pix_rad_pivot or eta_3pix_rad_pivot <= 0.:
-                r = Probit().evaluate(eta_sum, eta_3pix_rad_offset, eta_3pix_rad_sigma)
-            else:
-                y_pivot = Probit().evaluate(eta_3pix_rad_pivot, eta_3pix_rad_offset,
-                                            eta_3pix_rad_sigma)
-                r = y_pivot / eta_3pix_rad_pivot * eta_sum
-            theta = Probit().evaluate((eta_diff + 1)/2, 0, eta_3pix_theta_sigma) / r
-            # Reconstructing the position using r and theta
-            x_recon = self.x[0] + r * pitch * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
-            y_recon = self.y[0] + r * pitch * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
+        # Calculate the size of the cluster, to choose the correct reconstruction
+        # method.
+        size = self.size()
+        # If size is 2 or 3, we use the corresponding eta reconstruction method...
+        if size == 2:
+            dx, dy = eta_2pix(self.pha, self.x, self.y, position_cal.two_pix_rad_sigma)
+        elif size == 3:
+            args = (position_cal.three_pix_rad_offset, position_cal.three_pix_rad_sigma,
+                    position_cal.three_pix_theta_sigma)
+            dx, dy = eta_3pix(self.pha, self.x, self.y, *args)
+        # ... otherwise use the centroid algorithm.
         else:
-            # This condition should never be reached because of the check at the beginning of the
-            # method, but it's here for safety.
-            raise RuntimeError("Cluster must contain 2 or 3 pixels to reconstruct position with" \
-                               " eta function")
-        return x_recon, y_recon
+            return self.centroid()
+        # Calculate the absolute position of the photon.
+        return self.x[0] + dx * pitch, self.y[0] + dy * pitch
 
     def mle(self,
-            mle_data: "PositionCalibrationData",
+            position_cal: "PositionCalibrationData",
             noise_matrix: "CalibrationMatrix",
             equalization_matrix: "CalibrationMatrix",
             pitch: float
@@ -217,44 +187,25 @@ class Cluster:
         # centroid of the cluster.
         p0 = (self.centroid() - np.array([self.x[0], self.y[0]])) / pitch
         # Run the minimization.
-        m = mle(self.pha, equal_noise,
-                mle_data.values, mle_data.bin_size, mle_data.xlims, mle_data.ylims,
-                p0=p0)
-        # Some plots for debugging.
-        # x_v = np.linspace(x_bins[0], x_bins[-1], 100)
-        # y_v = np.linspace(y_bins[0], y_bins[-1], 100)
-        # z = np.array([[nll(xi, yi) for xi in x_v] for yi in y_v])
-        # import matplotlib.pyplot as plt
-        # # 2. Plot al volo con imshow
-        # plt.figure()
-        # plt.imshow(
-        #     z,
-        #     extent=[x_bins[0], x_bins[-1], y_bins[0], y_bins[-1]],
-        #     origin="lower",
-        #     cmap="viridis",
-        # )
-        # plt.colorbar(label="NLL")
-        # plt.plot(m.values["x"], m.values["y"], "r*")
-        # plt.show()
+        m = mle(self.pha, equal_noise, position_cal.values, position_cal.bin_size,
+                position_cal.xlims, position_cal.ylims, p0=p0)
+        # Calculate the absolute position of the photon from the fit results.
         return self.x[0] + m.values["x"] * pitch, self.y[0] + m.values["y"] * pitch
 
-    def position(self):
+    def position(self) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the position reconstruction algorithm
         specified in the constructor.
-
-        This method is a wrapper around the different position reconstruction algorithms. It checks
-        the value of pos_recon_algorithm and calls the corresponding method. If the value of
-        pos_recon_algorithm is not recognized, it raises an error.
         """
-        if self.pos_recon_algorithm == "centroid":
-            return self.centroid()
-        if self.pos_recon_algorithm == "eta":
-            if self.recon_pars is None:
-                raise RuntimeError("Eta reconstruction algorithm requires recon_pars to be set.")
-            return self.eta(**self.recon_pars)
-        if self.pos_recon_algorithm == "mle":
-            return self.mle(**self.recon_pars)
-        raise RuntimeError(f"Unknown position reconstruction method {self.pos_recon_algorithm}")
+        # Get the reconstruction algorithm callable from the class attributes.
+        recon_algorithm = getattr(self, self.pos_recon_algorithm)
+        # Check if it is actually callable, otherwise raise an error.
+        if not callable(recon_algorithm):
+            raise RuntimeError(f"Invalid position reconstruction algorithm {self.pos_recon_algorithm}")
+        # Get the arguments of the reconstruction algorithm method.
+        args = inspect.signature(recon_algorithm).parameters.keys()
+        # Create a dictionary with the arguments to be passed to the method.
+        filtered_kwargs = {k: v for k, v in self.recon_pars.items() if k in args}
+        return recon_algorithm(**filtered_kwargs)
 
 
 @dataclass
