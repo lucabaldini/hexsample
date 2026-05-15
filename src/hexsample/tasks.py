@@ -39,13 +39,13 @@ from .calibration import (
     CalibrateENC,
     CalibrateEqualization,
     CalibrateGain,
-    CalibrateMLE,
+    CalibratePosition,
     CalibrateNoise,
     CalibrationMatrix,
     CalibrationMetadata,
     CalibrationType,
-    MLECalibrationData,
-    MLECalibrationMetadata,
+    PositionCalibrationData,
+    PositionCalibrationMetadata,
 )
 from .clustering import ClusteringHex, ClusteringNN
 from .display import EventDisplay
@@ -230,7 +230,7 @@ class ReconstructionDefaults:
     eta_3pix_rad_sigma: float = 0.141
     eta_3pix_rad_pivot: float = 0.05
     eta_3pix_theta_sigma: float = 0.104
-    mle_data: Optional[MLECalibrationData] = None
+    mle_data: Optional[PositionCalibrationData] = None
 
 
 def reconstruct(
@@ -249,7 +249,7 @@ def reconstruct(
         eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
         eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
         eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
-        mle_data: Optional[MLECalibrationData] = ReconstructionDefaults.mle_data,
+        mle_data: Optional[PositionCalibrationData] = ReconstructionDefaults.mle_data,
         header_kwargs: dict = None,
     ) -> str:
     """Run the reconstruction.
@@ -412,7 +412,7 @@ class CalibrationMLEDefaults:
     bin_size: float = 0.01
 
 
-def calibrate_mle(
+def calibrate_position(
         input_file_path: str,
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
@@ -442,7 +442,7 @@ def calibrate_mle(
     # of 0, because the calibration should be performed on zero-noise simulations.
     clustering = ClusteringHex(readout, zero_sup_threshold=0)
     # Initialize the MLE calibrator and run the event loop.
-    mle_calibrator = CalibrateMLE(bin_size, grid)
+    mle_calibrator = CalibratePosition(bin_size, grid)
     logger.info("Starting the event loop...")
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
@@ -452,14 +452,14 @@ def calibrate_mle(
     input_file.close()
     data = mle_calibrator.fit()
     # Access sensor information from the header and update the metadata.
-    data.update_metadata(MLECalibrationMetadata.PITCH.value, header["pitch"])
-    data.update_metadata(MLECalibrationMetadata.LAYOUT.value, header["layout"].value)
-    data.update_metadata(MLECalibrationMetadata.DIFFUSION_SIGMA.value, header["diffusion_sigma"])
-    data.update_metadata(MLECalibrationMetadata.THICKNESS.value, header["thickness"])
+    data.update_metadata(PositionCalibrationMetadata.PITCH.value, header["pitch"])
+    data.update_metadata(PositionCalibrationMetadata.LAYOUT.value, header["layout"].value)
+    data.update_metadata(PositionCalibrationMetadata.DIFFUSION_SIGMA.value, header["diffusion_sigma"])
+    data.update_metadata(PositionCalibrationMetadata.THICKNESS.value, header["thickness"])
     # Save the calibration results to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_mle_matrices.h5")
     logger.info(f"Saving the MLE calibration data to {output_file_path}...")
-    data.to_hdf5(output_file_path, CalibrationType.MLE)
+    data.to_hdf5(output_file_path, CalibrationType.POSITION)
     logger.info("Done!")
     return output_file_path
 

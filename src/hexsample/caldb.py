@@ -23,7 +23,7 @@
 import pathlib
 from typing import Type
 
-from .calibration import CalibrationBase, CalibrationMatrix, CalibrationType, MLECalibrationData
+from .calibration import CalibrationBase, CalibrationMatrix, CalibrationType, PositionCalibrationData
 
 
 class CalDB:
@@ -74,7 +74,7 @@ class CalDB:
         return cls._open(CalibrationType.EQUALIZATION, designator)
 
     @classmethod
-    def open_mle(cls, designator: str) -> MLECalibrationData:
+    def open_mle(cls, designator: str) -> PositionCalibrationData:
         """Open the MLE calibration file for the given designation.
         """
-        return cls._open(CalibrationType.MLE, designator, MLECalibrationData)
+        return cls._open(CalibrationType.POSITION, designator, PositionCalibrationData)

@@ -33,7 +33,7 @@ from .readout import HexagonalReadoutBase
 # This line is necessary to avoid circular imports errors, allowing to import the class only
 # when type checking is performed
 if TYPE_CHECKING:
-    from .calibration import CalibrationMatrix, MLECalibrationData
+    from .calibration import CalibrationMatrix, PositionCalibrationData
 
 
 @dataclass
@@ -187,7 +187,7 @@ class Cluster:
         return x_recon, y_recon
 
     def mle(self,
-            mle_data: "MLECalibrationData",
+            mle_data: "PositionCalibrationData",
             noise_matrix: "CalibrationMatrix",
             equalization_matrix: "CalibrationMatrix",
             pitch: float
