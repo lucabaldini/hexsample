@@ -315,6 +315,16 @@ class CliArgumentParser(argparse.ArgumentParser):
                             required=required, help="path to a file containing the gain " \
                             "calibration data or name of a calibration file inside the " \
                             "caldb/gain folder.")
+    
+    @staticmethod
+    def add_cal_position_file(parser: argparse.ArgumentParser, default: str,
+                          required: bool = False) -> None:
+        """Add an option for the position calibration file.
+        """
+        parser.add_argument("--position", type=caldb.CalDB.open_position, default=default,
+                            required=required, help="path to a file containing the position " \
+                            "calibration data or name of a calibration file inside the " \
+                            "caldb/position folder.")
 
     @staticmethod
     def add_source_options(parser: argparse.ArgumentParser) -> None:
@@ -426,10 +436,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         CliArgumentParser.add_cal_equalization_file(group, default=None, required=True)
         group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
                            type=str, default="centroid", help="How to reconstruct position")
-        group.add_argument("--position_cal", type=caldb.CalDB.open_position, default=None,
-                           required=False, help="path to a file containing the position " \
-                           "calibration data or name of a calibration file inside the " \
-                           "caldb/position folder.")
+        CliArgumentParser.add_cal_position_file(group, default=None)
 
     def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the dark calibration properties.
@@ -531,6 +538,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         CliArgumentParser.add_cal_noise_file(parser, default=default.noise_matrix)
         CliArgumentParser.add_cal_pedestal_file(parser, default=default.pedestal_matrix)
         CliArgumentParser.add_cal_equalization_file(parser, default=default.equalization_matrix)
+        CliArgumentParser.add_cal_position_file(parser, default=default.position_cal)
 
     def add_calibview_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the calibration view properties.
