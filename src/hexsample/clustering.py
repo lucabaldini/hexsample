@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 import numpy as np
 
 from .digi import DigiEventCircular, DigiEventRectangular
-from .position import mle, eta_2pix, eta_3pix
+from .position import eta_2pix, eta_3pix, mle
 from .readout import HexagonalReadoutBase
 
 # This line is necessary to avoid circular imports errors, allowing to import the class only
@@ -78,50 +78,6 @@ class Cluster:
         """Return the cluster centroid.
         """
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
-
-    def calculate_eta(self) -> np.ndarray:
-        """Return the eta values of the pixels in the cluster.
-        """
-        return np.array([_pha / self.pulse_height() for _pha in self.pha[1:]])
-
-    def versors(self) -> Tuple[np.ndarray, np.ndarray]:
-        """Return the versors u and v for the cluster. Their definitions depend on the cluster size.
-        For 2-pixel clusters u is the versor that points from the center of the pixel with the
-        highest pha to the center of the other one, while v is the versor perpendicular to u in
-        counterclockwise direction. For 3-pixel clusters u points from the center
-        of the pixel with the highest pha to the midpoint of the line that connects the centers of
-        the other two pixels, and v is perpendicular to u and points towards the second most
-        charged pixel.
-
-        Returns
-        -------
-        u : np.ndarray
-            The u versor.
-        v : np.ndarray
-            The v versor.
-        """
-        if self.x.shape[0] == 2:
-            u = np.array([self.x[1] - self.x[0], self.y[1] - self.y[0]])
-            v = np.array([-u[1], u[0]])
-        elif self.x.shape[0] == 3:
-            u = np.array([self.x[1] + self.x[2] - 2 * self.x[0],
-                          self.y[1] + self.y[2] - 2 * self.y[0]])
-            v = np.array([-u[1], u[0]])
-            if (self.x[1] - self.x[0]) * v[0] + (self.y[1] - self.y[0]) * v[1] < 0:
-                v = -v
-        else:
-            raise RuntimeError("Cluster must contain 2 or 3 pixels to calculate versors")
-        # It can happen that the versor is [0, 0] for events with strange geometries.
-        # In that case we avoid NaN by setting the versor to [0, 0].
-        with np.errstate(invalid="ignore"):
-            norm = np.sqrt(np.sum(u**2))
-            if norm > 0:
-                u = u / norm
-                v = v / norm
-            else:
-                u = np.zeros(2)
-                v = np.zeros(2)
-        return u, v
 
     def eta(self, position_cal: "PositionCalibrationData", pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function
