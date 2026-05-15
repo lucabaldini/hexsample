@@ -78,7 +78,7 @@ def calibspec(**kwargs) -> str:
     return tasks.calibspec(input_file_path)
 
 
-def calibrate_mle(**kwargs) -> str:
+def calibrate_position(**kwargs) -> str:
     """Calibrate the MLE position reconstruction algorithm.
     """
     input_file_path = kwargs["input_file"]
@@ -87,7 +87,7 @@ def calibrate_mle(**kwargs) -> str:
     equalization_matrix = kwargs["equalization"]
     bin_size = kwargs.get("bin_size", tasks.CalibrationMLEDefaults.bin_size)
     args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, bin_size
-    return tasks.calibrate_mle(*args)
+    return tasks.calibrate_position(*args)
 
 
 def calibrate_eta(**kwargs) -> None:

@@ -55,8 +55,8 @@ class CalibrationType(str, Enum):
     ETA = "eta"
     GAIN = "gain"
     NOISE = "noise"
-    MLE = "mle"
     PEDESTAL = "pedestal"
+    POSITION = "position"
 
     @classmethod
     def values(cls) -> Tuple[str, ...]:
@@ -86,7 +86,7 @@ class CalibrationMetadata(str, Enum):
     ADC_TO_EV = "adc_to_ev"
 
 
-class MLECalibrationMetadata(str, Enum):
+class PositionCalibrationMetadata(str, Enum):
 
     """Enum to store the metadata keys for the MLE calibration data.
     """
@@ -473,7 +473,7 @@ class CalibrationMatrix(CalibrationBase):
         return self.values[row, col]
 
 
-class MLECalibrationData(CalibrationBase):
+class PositionCalibrationData(CalibrationBase):
 
     """Class to store and use calibration data for Maximum Likelihood Estimation
     (MLE) position reconstruction.
@@ -502,8 +502,8 @@ class MLECalibrationData(CalibrationBase):
         self._values = np.zeros((7, len(x_bins), len(y_bins)))
         # Some useful information for the metadata.
         self._metadata = {
-            MLECalibrationMetadata.BIN_SIZE: self._bin_size,
-            MLECalibrationMetadata.CALIBRATION_TYPE: CalibrationType.MLE.value
+            PositionCalibrationMetadata.BIN_SIZE: self._bin_size,
+            PositionCalibrationMetadata.CALIBRATION_TYPE: CalibrationType.POSITION.value
         }
 
     @property
@@ -1392,7 +1392,7 @@ class CalibrateENC:
         return self.cal_matrix
 
 
-class CalibrateMLE:
+class CalibratePosition:
 
     """Class to perform the calibration of the MLE position reconstruction algorithm. 
     
@@ -1435,7 +1435,7 @@ class CalibrateMLE:
         self.x_bins = (self._x_edges[:-1] + self._x_edges[1:]) / 2
         self.y_bins = (self._y_edges[:-1] + self._y_edges[1:]) / 2
         # Create the MLECalibrationData object to store the calibration data.
-        self.cal_data = MLECalibrationData(x_bins=self.x_bins, y_bins=self.y_bins)
+        self.cal_data = PositionCalibrationData(x_bins=self.x_bins, y_bins=self.y_bins)
         self._stats = RunningStats(shape=self.cal_data.values.shape)
 
     def analyze_cluster(self, cluster: Cluster, mc_event: MonteCarloEvent) -> None:
@@ -1467,7 +1467,7 @@ class CalibrateMLE:
             frac = np.array([[[charge_fractions[i]]]])
             self._stats.update(frac, offset=(i, x_bin, y_bin))
 
-    def fit(self) -> MLECalibrationData:
+    def fit(self) -> PositionCalibrationData:
         """Calculate the average charge fractions for each bin and store them in the
         MLECalibrationData object.
 

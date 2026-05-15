@@ -148,18 +148,18 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_gain_calibration_options(gain)
         self.add_logging_level(gain)
         gain.set_defaults(runner=pipeline.calibrate_gain)
-        # MLE position reconstruction calibration
-        mle = calibrate_subparsers.add_parser("mle",
-                                    help="calibrate the MLE position reconstruction algorithm")
-        self.add_input_file(mle)
-        self.add_mle_options(mle)
-        self.add_logging_level(mle)
-        mle.set_defaults(runner=pipeline.calibrate_mle)
         # Noise calibration
         noise = calibrate_subparsers.add_parser("noise", help="calibrate the chip noise")
         self.add_input_file(noise)
         self.add_logging_level(noise)
         noise.set_defaults(runner=pipeline.calibrate_noise)
+        # Position reconstruction calibration
+        position = calibrate_subparsers.add_parser("position",
+                                    help="calibrate the position reconstruction algorithms")
+        self.add_input_file(position)
+        self.add_calibrate_position_options(position)
+        self.add_logging_level(position)
+        position.set_defaults(runner=pipeline.calibrate_position)
         # Synthesize calibration files
         synthesize = calibrate_subparsers.add_parser("synthesize",
             help="generate synthetic calibration files")
@@ -525,7 +525,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         defaults = tasks.SynthesizeCalibrationDefaults
         cal_type = calibration.CalibrationType
         parser.add_argument("calibration_type", type=calibration.CalibrationType,
-                            choices=[c.value for c in cal_type if c not in (cal_type.MLE, cal_type.ETA)],
+                            choices=[c.value for c in cal_type if c not in (cal_type.POSITION, cal_type.ETA)],
                             help="type of calibration file to be generated")
         parser.add_argument("mean", type=float,
                             help="mean value of the calibration parameter.")
@@ -545,7 +545,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         parser.add_argument("--random_seed", type=int, default=defaults.random_seed,
                             help="random seed for the generation of the calibration values")
 
-    def add_mle_options(self, parser: argparse.ArgumentParser) -> None:
+    def add_calibrate_position_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the MLE position reconstruction calibration properties.
         """
         defaults = tasks.CalibrationMLEDefaults
