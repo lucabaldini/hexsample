@@ -137,12 +137,6 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_calibrate_equalization_options(equalization)
         self.add_logging_level(equalization)
         equalization.set_defaults(runner=pipeline.calibrate_equalization)
-        # Eta function calibration
-        eta = calibrate_subparsers.add_parser("eta", help="calibrate the eta function")
-        self.add_input_file(eta)
-        self.add_calibrate_eta_options(eta)
-        self.add_logging_level(eta)
-        eta.set_defaults(runner=pipeline.calibrate_eta)
         # Gain calibration
         gain = calibrate_subparsers.add_parser("gain", help="calibrate the chip gain")
         self.add_gain_calibration_options(gain)
@@ -427,32 +421,14 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of neighbors to be considered (0--6)")
         group.add_argument("--max_neighbors", type=int, default=-1,
                            help="maximum number of neighbors to be considered")
-        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
-                           type=str, default="centroid", help="How to reconstruct position")
         CliArgumentParser.add_cal_noise_file(group, default=None, required=True)
         CliArgumentParser.add_cal_pedestal_file(group, default=None, required=True)
         CliArgumentParser.add_cal_equalization_file(group, default=None, required=True)
-        group.add_argument("--eta_2pix_rad_sigma", default=defaults.eta_2pix_rad_sigma, type=float,
-                           help="probit function sigma parameter for two pixel" \
-                           "events eta reconstruction")
-        group.add_argument("--eta_2pix_rad_pivot", default=defaults.eta_2pix_rad_pivot, type=float,
-                           help="transition value from linear (0 to pivot) to probit (> pivot) " \
-                           "for two pixel events eta reconstruction")
-        group.add_argument("--eta_3pix_rad_offset", default=defaults.eta_3pix_rad_offset,
-                           type=float, help="probit function offset parameter for three pixel" \
-                           " events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_rad_sigma", default=defaults.eta_3pix_rad_sigma, type=float,
-                           help="probit function sigma parameter for three pixel " \
-                           "events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_rad_pivot", default=defaults.eta_3pix_rad_pivot, type=float,
-                           help="transition value from linear (0 to pivot) to probit (> pivot) " \
-                           "for three pixel events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
-                           type=float, help="probit function sigma parameter for three pixel " \
-                           "events angular component eta reconstruction")
-        group.add_argument("--mle_data", type=caldb.CalDB.open_mle, default=None, required=False,
-                           help="path to a file containing the MLE calibration data or name of a " \
-                           "calibration file inside the caldb/mle folder.")
+        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
+                           type=str, default="centroid", help="How to reconstruct position")
+        group.add_argument("--position_cal", type=caldb.CalDB.open_position, default=None, required=False,
+                           help="path to a file containing the position calibration data or name of a " \
+                           "calibration file inside the caldb/position folder.")
 
     def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the dark calibration properties.
@@ -482,18 +458,6 @@ class CliArgumentParser(argparse.ArgumentParser):
                             help="path to the spectrum PDF file")
         parser.add_argument("--size", type=int, default=defaults.size,
                             help="length of the square region of the chip to fit simultaneously")
-        CliArgumentParser.add_zero_sup_threshold(parser, default=defaults.zero_sup_threshold)
-
-    def add_calibrate_eta_options(self, parser: argparse.ArgumentParser) -> None:
-        """Add an option group for the eta function calibration properties.
-        """
-        defaults = tasks.CalibrationEtaDefaults
-        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
-        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
-        CliArgumentParser.add_cal_equalization_file(parser, default=None, required=True)
-        parser.add_argument("--num_bins", type=int,
-                            default=defaults.num_bins,
-                            help="number of bins to be used in the eta function calibration")
         CliArgumentParser.add_zero_sup_threshold(parser, default=defaults.zero_sup_threshold)
 
     def add_enc_calibration_options(self, parser: argparse.ArgumentParser) -> None:
@@ -548,12 +512,16 @@ class CliArgumentParser(argparse.ArgumentParser):
     def add_calibrate_position_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the MLE position reconstruction calibration properties.
         """
-        defaults = tasks.CalibrationMLEDefaults
+        defaults = tasks.CalibrationPositionDefaults
         CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
         CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
         CliArgumentParser.add_cal_equalization_file(parser, default=None, required=True)
         parser.add_argument("--bin_size", type=float, default=defaults.bin_size,
                             help="bin size to be used in the calibration, in units of pixel pitch")
+        parser.add_argument("--num_bins", type=int,
+                            default=defaults.num_bins,
+                            help="number of bins to be used in the eta function calibration")
+        CliArgumentParser.add_zero_sup_threshold(parser, default=defaults.zero_sup_threshold)
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the single-event display properties.
