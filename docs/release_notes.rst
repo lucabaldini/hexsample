@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.17.0 (2026-05-18)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * New position reconstruction algorithm based on the likelihood of the charge
   diffusion model implemented.
 * New module `likelihood.py` containing the code for the likelihood evaluation
