@@ -153,6 +153,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_input_file(noise)
         self.add_logging_level(noise)
         noise.set_defaults(runner=pipeline.calibrate_noise)
+        # Position reconstruction calibration
+        position = calibrate_subparsers.add_parser("position",
+                                    help="calibrate the position reconstruction algorithms")
+        self.add_input_file(position)
+        self.add_calibrate_position_options(position)
+        self.add_logging_level(position)
+        position.set_defaults(runner=pipeline.calibrate_position)
         # Synthesize calibration files
         synthesize = calibrate_subparsers.add_parser("synthesize",
             help="generate synthetic calibration files")
@@ -253,10 +260,10 @@ class CliArgumentParser(argparse.ArgumentParser):
 
     @staticmethod
     def add_num_bins(parser: argparse.ArgumentParser, default: int) -> None:
-        """Add an option for the number of bins to be used in the eta function calibration.
+        """Add an option for the number of bins to be used in different calibrations.
         """
         parser.add_argument("--num_bins", type=int, default=default,
-                            help="number of bins to be used in the eta function calibration")
+                            help="number of bins to be used in the calibration")
 
     @staticmethod
     def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: float) -> None:
@@ -420,7 +427,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="number of neighbors to be considered (0--6)")
         group.add_argument("--max_neighbors", type=int, default=-1,
                            help="maximum number of neighbors to be considered")
-        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta"],
+        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
                            type=str, default="centroid", help="How to reconstruct position")
         CliArgumentParser.add_cal_noise_file(group, default=None, required=True)
         CliArgumentParser.add_cal_pedestal_file(group, default=None, required=True)
@@ -443,6 +450,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
                            type=float, help="probit function sigma parameter for three pixel " \
                            "events angular component eta reconstruction")
+        group.add_argument("--mle_data", type=caldb.CalDB.open_mle, default=None, required=False,
+                           help="path to a file containing the MLE calibration data or name of a " \
+                           "calibration file inside the caldb/mle folder.")
 
     def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the dark calibration properties.
@@ -513,8 +523,9 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group to generate calibration files.
         """
         defaults = tasks.SynthesizeCalibrationDefaults
+        cal_type = calibration.CalibrationType
         parser.add_argument("calibration_type", type=calibration.CalibrationType,
-                            choices=calibration.CalibrationType.values(),
+                            choices=[c.value for c in cal_type if c != cal_type.POSITION],
                             help="type of calibration file to be generated")
         parser.add_argument("mean", type=float,
                             help="mean value of the calibration parameter.")
@@ -533,6 +544,16 @@ class CliArgumentParser(argparse.ArgumentParser):
                             " file name")
         parser.add_argument("--random_seed", type=int, default=defaults.random_seed,
                             help="random seed for the generation of the calibration values")
+
+    def add_calibrate_position_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the MLE position reconstruction calibration properties.
+        """
+        defaults = tasks.CalibrationMLEDefaults
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_equalization_file(parser, default=None, required=True)
+        parser.add_argument("--bin_size", type=float, default=defaults.bin_size,
+                            help="bin size to be used in the calibration, in units of pixel pitch")
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the single-event display properties.

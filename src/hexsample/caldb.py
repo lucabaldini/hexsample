@@ -21,8 +21,14 @@
 """
 
 import pathlib
+from typing import Type
 
-from .calibration import CalibrationMatrix, CalibrationType
+from .calibration import (
+    CalibrationBase,
+    CalibrationMatrix,
+    CalibrationType,
+    PositionCalibrationData,
+)
 
 
 class CalDB:
@@ -33,13 +39,14 @@ class CalDB:
     ROOT_DIR = pathlib.Path(__file__).parent.parent.parent / "caldb"
 
     @classmethod
-    def _open(cls, calibration_type: CalibrationType, designator: str) -> CalibrationMatrix:
+    def _open(cls, calibration_type: CalibrationType, designator: str,
+              calibration_class: Type[CalibrationBase] = CalibrationMatrix) -> CalibrationBase:
         """Open the calibration file for the given designation and intent.
         """
         if pathlib.Path(designator).is_file():
-            return CalibrationMatrix.from_hdf5(designator)
+            return calibration_class.from_hdf5(designator)
         file_path = cls.ROOT_DIR / calibration_type.value / f"{designator}.h5"
-        return CalibrationMatrix.from_hdf5(file_path)
+        return calibration_class.from_hdf5(file_path)
 
     @classmethod
     def open_enc(cls, designator: str) -> CalibrationMatrix:
@@ -70,3 +77,9 @@ class CalDB:
         """Open the equalization calibration file for the given designation.
         """
         return cls._open(CalibrationType.EQUALIZATION, designator)
+
+    @classmethod
+    def open_mle(cls, designator: str) -> PositionCalibrationData:
+        """Open the MLE calibration file for the given designation.
+        """
+        return cls._open(CalibrationType.POSITION, designator, PositionCalibrationData)

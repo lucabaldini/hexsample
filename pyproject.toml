@@ -46,6 +46,7 @@ dependencies = [
     "scikit-image",
     "iminuit",
     "joblib",
+    "numba",
   ]
 
 [project.optional-dependencies]

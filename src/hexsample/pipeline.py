@@ -62,8 +62,9 @@ def reconstruct(**kwargs) -> str:
     eta_3pix_rad_sigma = kwargs.get("eta_3pix_rad_sigma", defaults.eta_3pix_rad_sigma)
     eta_3pix_rad_pivot = kwargs.get("eta_3pix_rad_pivot", defaults.eta_3pix_rad_pivot)
     eta_3pix_theta_sigma = kwargs.get("eta_3pix_theta_sigma", defaults.eta_3pix_theta_sigma)
+    mle_data = kwargs.get("mle_data", defaults.mle_data)
     recon_args = (eta_2pix_rad_sigma, eta_2pix_rad_pivot, eta_3pix_rad_offset, eta_3pix_rad_sigma,
-                  eta_3pix_rad_pivot, eta_3pix_theta_sigma)
+                  eta_3pix_rad_pivot, eta_3pix_theta_sigma, mle_data)
     args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, suffix, \
             zero_sup_threshold,num_neighbors, max_neighbors, pos_recon_algorithm, *recon_args
     return tasks.reconstruct(*args, kwargs)
@@ -75,6 +76,18 @@ def calibspec(**kwargs) -> str:
     """
     input_file_path = kwargs["input_file"]
     return tasks.calibspec(input_file_path)
+
+
+def calibrate_position(**kwargs) -> str:
+    """Calibrate the MLE position reconstruction algorithm.
+    """
+    input_file_path = kwargs["input_file"]
+    noise_matrix = kwargs["noise"]
+    pedestal_matrix = kwargs["pedestal"]
+    equalization_matrix = kwargs["equalization"]
+    bin_size = kwargs.get("bin_size", tasks.CalibrationMLEDefaults.bin_size)
+    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, bin_size
+    return tasks.calibrate_position(*args)
 
 
 def calibrate_eta(**kwargs) -> None:
