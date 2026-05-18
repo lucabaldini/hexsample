@@ -39,8 +39,8 @@ from .calibration import (
     CalibrateENC,
     CalibrateEqualization,
     CalibrateGain,
-    CalibratePosition,
     CalibrateNoise,
+    CalibratePosition,
     CalibrationMatrix,
     CalibrationMetadata,
     CalibrationType,
@@ -454,7 +454,8 @@ def calibrate_position(
     # Access sensor information from the header and update the metadata.
     data.update_metadata(PositionCalibrationMetadata.PITCH.value, header["pitch"])
     data.update_metadata(PositionCalibrationMetadata.LAYOUT.value, header["layout"].value)
-    data.update_metadata(PositionCalibrationMetadata.DIFFUSION_SIGMA.value, header["diffusion_sigma"])
+    data.update_metadata(PositionCalibrationMetadata.DIFFUSION_SIGMA.value,
+                         header["diffusion_sigma"])
     data.update_metadata(PositionCalibrationMetadata.THICKNESS.value, header["thickness"])
     # Save the calibration results to a HDF5 file.
     output_file_path = input_file_path.replace(".h5", "_mle_matrices.h5")

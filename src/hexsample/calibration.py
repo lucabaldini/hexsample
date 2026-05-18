@@ -1346,7 +1346,7 @@ class CalibratePosition:
     def __init__(self, bin_size: float, grid: HexagonalGrid) -> None:
         """Class constructor.
         """
-        if not (0 < bin_size <= 0.25):
+        if not 0 < bin_size <= 0.25:
             raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 0.25].")
         self.bin_size = bin_size
         self.grid = grid

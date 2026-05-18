@@ -23,7 +23,12 @@
 import pathlib
 from typing import Type
 
-from .calibration import CalibrationBase, CalibrationMatrix, CalibrationType, PositionCalibrationData
+from .calibration import (
+    CalibrationBase,
+    CalibrationMatrix,
+    CalibrationType,
+    PositionCalibrationData,
+)
 
 
 class CalDB:
