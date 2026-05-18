@@ -321,7 +321,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                           required: bool = False) -> None:
         """Add an option for the position calibration file.
         """
-        parser.add_argument("--position", type=caldb.CalDB.open_position, default=default,
+        parser.add_argument("--position_cal", type=caldb.CalDB.open_position, default=default,
                             required=required, help="path to a file containing the position " \
                             "calibration data or name of a calibration file inside the " \
                             "caldb/position folder.")
