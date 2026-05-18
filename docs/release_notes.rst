@@ -3,6 +3,18 @@
 Release notes
 =============
 
+* New position reconstruction algorithm based on the likelihood of the charge
+  diffusion model implemented.
+* New module `likelihood.py` containing the code for the likelihood evaluation
+  added.
+* New clustering algorithm `ClusteringHex` implemented. This clustering always
+  contains seven pixels: the seed pixel and all its six neighbors.
+* New module `position.py` containing the core implementation of the position
+  reconstruction algorithms added.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/106
+
 
 Version 0.16.3 (2026-05-14)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
