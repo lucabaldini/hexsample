@@ -432,12 +432,18 @@ def calibrate_position(
     data = position_calibrator.fit()
     # Access sensor information from the header and update the metadata.
     metadata = PositionCalibrationMetadata
-    data.update_metadata(metadata.PITCH.value, header["pitch"])
-    data.update_metadata(metadata.LAYOUT.value, header["layout"].value)
-    data.update_metadata(metadata.DIFFUSION_SIGMA.value, header["diffusion_sigma"])
-    data.update_metadata(metadata.THICKNESS.value, header["thickness"])
+    layout = (header["layout"].value).replace("_", "").lower()
+    pitch = header["pitch"]
+    diff_sigma = header["diffusion_sigma"]
+    thickness = header["thickness"]
+    data.update_metadata(metadata.PITCH.value, pitch)
+    data.update_metadata(metadata.LAYOUT.value, layout)
+    data.update_metadata(metadata.DIFFUSION_SIGMA.value, diff_sigma)
+    data.update_metadata(metadata.THICKNESS.value, thickness)
     # Save the calibration results to a HDF5 file.
-    output_file_path = input_file_path.replace(".h5", "_position_data.h5")
+    output_file_name = f"sim_xpol3_position_layout-{layout}_pitch-{pitch*1e4:.0f}" \
+        f"_diff-{diff_sigma:.0f}_thick-{thickness*1e4:.0f}_v001.h5"
+    output_file_path = pathlib.Path(input_file_path).parent / output_file_name
     logger.info(f"Saving the calibration data to {output_file_path}...")
     data.to_hdf5(output_file_path, CalibrationType.POSITION)
     logger.info("Done!")
