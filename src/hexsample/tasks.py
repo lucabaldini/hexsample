@@ -723,7 +723,6 @@ def calibrate_equalization(
     )
     readout = create_readout(readout_mode, header, *args)
     # Initialize the equalization matrix and run the calibration.
-    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
     clustering = ClusteringNN(
         readout,
         zero_sup_threshold=zero_sup_threshold,
