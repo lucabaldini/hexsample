@@ -19,7 +19,7 @@
 import numpy as np
 from aptapy.plotting import plt
 
-from hexsample.calibration import PositionCalibrationData
+from hexsample.caldb import CalDB
 from hexsample.likelihood import nll_numba
 
 
@@ -31,11 +31,11 @@ def test_nll_numba(test_data_path):
     x = np.linspace(-0.5, 0.5, 100)
     y = np.linspace(-1/np.sqrt(3), 1/np.sqrt(3), 100)
     # Load the charge fraction matrices and extract the relevant attributes
-    mle_table_path = test_data_path("test_mle_matrices.h5")
-    mle_data = PositionCalibrationData.from_hdf5(mle_table_path)
-    f = mle_data.values
-    x_bins = mle_data.x_bins
-    y_bins = mle_data.y_bins
+    position_cal = CalDB.open_position(
+        "sim_xpol3_position_layout-oddr_pitch-50_diff-40_thick-300_v001")
+    f = position_cal.values
+    x_bins = position_cal.x_bins
+    y_bins = position_cal.y_bins
     xbin0 = x_bins[0]
     ybin0 = y_bins[0]
     bin_size = x_bins[1] - x_bins[0]
