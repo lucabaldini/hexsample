@@ -31,7 +31,7 @@ from matplotlib.widgets import Button, TextBox
 
 from hexsample.fileio import DigiInputFileBase
 
-from .clustering import ClusteringNN
+from .clustering import ClusteringHex, ClusteringNN
 from .digi import DigiEventBase, DigiEventCircular, DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .mc import MonteCarloEvent
@@ -228,19 +228,20 @@ class HexagonalGridDisplay:
         # Plot the Monte Carlo truth position.
         self.axes.scatter(mc_event.absx, mc_event.absy, marker=".", s=100, label="Monte Carlo")
         # Calculate the cluster from the digi event.
-        cluster = ClusteringNN(readout, zero_sup_threshold, num_neighbors=6,
-                               pos_recon_algorithm="centroid", recon_pars=None).run(digi_event)
+        cluster_nn = ClusteringNN(readout,
+                                  zero_sup_threshold,
+                                  num_neighbors=6,
+                                  pos_recon_algorithm="eta",
+                                  recon_pars=self.recon_pars).run(digi_event)
+        cluster_hex = ClusteringHex(readout, 0, recon_pars=self.recon_pars).run(digi_event)
         # Calculate and plot centroid position.
-        centroid_position = cluster.centroid()
-        self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")
-        # Calculate and plot eta reconstructed position.
-        try:
-            eta_position = cluster.eta(**self.recon_pars)
-            # If cluster size is not 2 or 3, eta returns the centroid position, so we only
-            # plot it if it's different from the centroid.
+        centroid_position = cluster_nn.centroid()
+        mle_position = cluster_hex.position()
+        if cluster_nn.size() in (2, 3):
+            eta_position = cluster_nn.position()
             self.axes.scatter(*eta_position, marker="+", s=100, label=r"$\eta$")
-        except RuntimeError:
-            pass
+        self.axes.scatter(*mle_position, marker="*", s=100, label="MLE")
+        self.axes.scatter(*centroid_position, marker="x", s=100, label="Centroid")
         self.axes.legend()
 
 

@@ -31,7 +31,7 @@ import h5py
 import numpy as np
 import xraydb
 from aptapy.hist import Histogram3d
-from aptapy.models import Gaussian
+from aptapy.models import Gaussian, Probit
 from iminuit import Minuit
 from joblib import Parallel, delayed
 from scipy.sparse import csc_matrix, csr_matrix
@@ -42,6 +42,7 @@ from .digi import DigiEventRectangular
 from .hexagon import HexagonalGrid
 from .mc import MonteCarloEvent
 from .pdf import SpectrumPDF
+from .position import profile, versor_2pix, versor_3pix
 from .stats import RunningStats
 
 
@@ -149,13 +150,15 @@ class CalibrationBase:
         for attr in dir(self):
             # Get only the uppercase attributes.
             if attr.isupper() and not attr.startswith("_"):
-                dataset_name = getattr(self, attr)
+                name = getattr(self, attr)
                 # Get the corresponding dataset variable name.
-                dataset_var = f"_{dataset_name}"
-                if hasattr(self, dataset_var):
-                    # Yield the dataset name, value and dtype.
+                var = f"_{name}"
+                if hasattr(self, var):
+                    val = getattr(self, var)
                     dtype_var = f"_{attr}_DTYPE"
-                    yield dataset_name, getattr(self, dataset_var), getattr(self, dtype_var)
+                    dtype = getattr(self, dtype_var, np.float64)
+                    # Yield the dataset name, value and dtype.
+                    yield name, val, dtype
 
     @property
     def values(self) -> np.ndarray:
@@ -209,7 +212,12 @@ class CalibrationBase:
         compression_pars = dict(compression="gzip", compression_opts=9, shuffle=True)
         with h5py.File(file_path, "w") as h5file:
             for name, dataset, dtype in self:
-                h5file.create_dataset(name, data=dataset, dtype=dtype, **compression_pars)
+                # If we want to save an array, use the compression...
+                if hasattr(dataset, "shape") and dataset.shape != ():
+                    h5file.create_dataset(name, data=dataset, dtype=dtype, **compression_pars)
+                # ... otherwise, if it's a scalar value, we can't use compression.
+                else:
+                    h5file.create_dataset(name, data=dataset, dtype=dtype)
             # Save the metadata in the HDF5 file as attributes.
             for key, value in self.metadata.items():
                 h5file.attrs[key] = value
@@ -248,12 +256,12 @@ class CalibrationBase:
                     init_args[key] = attrs[key]
                 # Otherwise recover it from the datasets.
                 else:
-                    init_args[key] = h5file[key][:]
+                    init_args[key] = h5file[key][()]
             # Instantiate the class with the recovered arguments, and set the
             # dataset values and metadata from the HDF5 file.
             obj = cls(**init_args)
             for name, _, _ in obj:
-                setattr(obj, f"_{name}", h5file[name][:])
+                setattr(obj, f"_{name}", h5file[name][()])
             for key, value in attrs.items():
                 obj._metadata[key] = value
                 # If some of the metadata keys correspond to public class attributes,
@@ -480,15 +488,23 @@ class PositionCalibrationData(CalibrationBase):
     position of the photon on the central pixel of the cluster.
     """
 
+    # MLE calibration data keys and dtypes.
     X_BINS = "x_bins"
     Y_BINS = "y_bins"
     _X_BINS_DTYPE = np.float32
     _Y_BINS_DTYPE = np.float32
 
+    # Eta calibration data keys.
+    TWO_PIX_RAD_SIGMA = "two_pix_rad_sigma"
+    THREE_PIX_RAD_OFFSET = "three_pix_rad_offset"
+    THREE_PIX_RAD_SIGMA = "three_pix_rad_sigma"
+    THREE_PIX_THETA_SIGMA = "three_pix_theta_sigma"
+
     def __init__(self, x_bins: np.ndarray, y_bins: np.ndarray) -> None:
         """Class constructor.
         """
         super().__init__()
+        # MLE calibration data.
         self._x_bins = x_bins
         self._y_bins = y_bins
         # Calculate the bin size and the limits of the array.
@@ -497,6 +513,11 @@ class PositionCalibrationData(CalibrationBase):
         self._ylim = (y_bins[0] - self._bin_size / 2, y_bins[-1] + self._bin_size / 2)
         # Create the tensor to store the calibration data.
         self._values = np.zeros((7, len(x_bins), len(y_bins)))
+        # Eta calibration data.
+        self._two_pix_rad_sigma = 0.
+        self._three_pix_rad_offset = 0.
+        self._three_pix_rad_sigma = 0.
+        self._three_pix_theta_sigma = 0.
         # Some useful information for the metadata.
         self._metadata = {
             PositionCalibrationMetadata.BIN_SIZE: self._bin_size,
@@ -532,6 +553,54 @@ class PositionCalibrationData(CalibrationBase):
         """Limits of the y axis for the calibration data.
         """
         return self._ylim
+
+    @property
+    def two_pix_rad_sigma(self) -> float:
+        """Sigma of the radial distribution of the two-pixel clusters for the eta calibration.
+        """
+        return self._two_pix_rad_sigma
+
+    @two_pix_rad_sigma.setter
+    def two_pix_rad_sigma(self, value: float) -> None:
+        """Set the value for the parameter.
+        """
+        self._two_pix_rad_sigma = value
+
+    @property
+    def three_pix_rad_offset(self) -> float:
+        """Offset of the radial distribution of the three-pixel clusters for the eta calibration.
+        """
+        return self._three_pix_rad_offset
+
+    @three_pix_rad_offset.setter
+    def three_pix_rad_offset(self, value: float) -> None:
+        """Set the value for the parameter.
+        """
+        self._three_pix_rad_offset = value
+
+    @property
+    def three_pix_rad_sigma(self) -> float:
+        """Sigma of the radial distribution of the three-pixel clusters for the eta calibration.
+        """
+        return self._three_pix_rad_sigma
+
+    @three_pix_rad_sigma.setter
+    def three_pix_rad_sigma(self, value: float) -> None:
+        """Set the value for the parameter.
+        """
+        self._three_pix_rad_sigma = value
+
+    @property
+    def three_pix_theta_sigma(self) -> float:
+        """Sigma of the angular distribution of the three-pixel clusters for the eta calibration.
+        """
+        return self._three_pix_theta_sigma
+
+    @three_pix_theta_sigma.setter
+    def three_pix_theta_sigma(self, value: float) -> None:
+        """Set the value for the parameter.
+        """
+        self._three_pix_theta_sigma = value
 
     @property
     def metadata(self) -> dict:
@@ -1334,6 +1403,8 @@ class CalibratePosition:
     ---------
     bin_size: float
         The size of the square bins in the grid, in units of pixel pitch.
+    num_bins: int
+        The number of bins to use for the eta calibration fits.
     grid: HexagonalGrid
         The hexagonal grid with the same geometry of the detector.
     """
@@ -1343,12 +1414,13 @@ class CalibratePosition:
         pointy_topped=(1, 2 / np.sqrt(3))
     )
 
-    def __init__(self, bin_size: float, grid: HexagonalGrid) -> None:
+    def __init__(self, bin_size: float, num_bins: int, grid: HexagonalGrid) -> None:
         """Class constructor.
         """
         if not 0 < bin_size <= 0.25:
             raise ValueError(f"Invalid bin size: {bin_size}. Bin size must be between (0, 0.25].")
         self.bin_size = bin_size
+        self._num_bins = num_bins
         self.grid = grid
         # Calculate the bin edges according to the pixel orientation.
         if grid.flat_topped():
@@ -1361,12 +1433,21 @@ class CalibratePosition:
         # Calculate the bin centers.
         self.x_bins = (self._x_edges[:-1] + self._x_edges[1:]) / 2
         self.y_bins = (self._y_edges[:-1] + self._y_edges[1:]) / 2
-        # Create the MLECalibrationData object to store the calibration data.
+        # Create the lists to store the data for the eta calibration.
+        self._position_2 = []
+        self._eta_2 = []
+        self._versors_2 = []
+        self._position_3 = []
+        self._eta_3 = []
+        self._versors_3 = []
+        # Create the PositionCalibrationData object to store the calibration data.
         self.cal_data = PositionCalibrationData(x_bins=self.x_bins, y_bins=self.y_bins)
+        # Initialize the running statistics for the MLE calibration.
         self._stats = RunningStats(shape=self.cal_data.values.shape)
 
-    def analyze_cluster(self, cluster: Cluster, mc_event: MonteCarloEvent) -> None:
-        """Analyze the event cluster and update the calibration data.
+    def analyze_hex_cluster(self, cluster: Cluster, mc_event: MonteCarloEvent) -> None:
+        """Analyze the event cluster and update the calibration data for the
+        MLE calibration. The cluster must be obtained with the hexagonal clustering.
 
         Arguments
         ---------
@@ -1394,14 +1475,108 @@ class CalibratePosition:
             frac = np.array([[[charge_fractions[i]]]])
             self._stats.update(frac, offset=(i, x_bin, y_bin))
 
+    def analyze_nn_cluster(self, cluster: Cluster, mc_event: MonteCarloEvent) -> None:
+        """Analyze the event cluster and update the calibration data for the eta
+        calibration. The cluster must be obtained with the nearest neighbor clustering.
+
+        Arguments
+        ---------
+        cluster : Cluster
+            The cluster of pixels to analyze.
+        mc_event : MonteCarloEvent
+            The Monte Carlo event corresponding to the cluster.
+        """
+        # Calculate the size of the cluster.
+        size = cluster.size()
+        # If the size is not 2 or 3, do nothing...
+        if size not in [2, 3]:
+            return
+        # Otherwise calculate the coordinates of the Monte Carlo incident
+        # position relative to the central pixel of the cluster, normalized
+        # to the pixel pitch.
+        x_rel = (mc_event.absx - cluster.x[0]) / self.grid.pitch
+        y_rel = (mc_event.absy - cluster.y[0]) / self.grid.pitch
+        # Calculate the eta values for the cluster.
+        eta = cluster.pha[1:] / np.sum(cluster.pha)
+        # Fill the lists for the calibration.
+        if size == 2:
+            self._eta_2.append(eta[0])
+            self._position_2.append((x_rel, y_rel))
+            self._versors_2.append(versor_2pix(cluster.x, cluster.y))
+        elif size == 3:
+            self._position_3.append((x_rel, y_rel))
+            self._eta_3.append(eta)
+            self._versors_3.append(versor_3pix(cluster.x, cluster.y))
+
+    def _fit_size_2(self) -> None:
+        """Fit the data for the 2-pixel clusters to determine the best-fit parameter.
+        """
+        # Convert to arrays
+        self._eta_2 = np.array(self._eta_2)
+        self._position_2 = np.array(self._position_2)
+        self._versors_2 = np.array(self._versors_2)
+        # Calculate the projected distance from the pixel center onto the 2-pixel
+        # cluster versor.
+        dr = np.sum(self._position_2 * self._versors_2, axis=1)
+        # Calculate the profile of dr as a function of the eta values.
+        x, y, yerr = profile(self._eta_2, dr, self._num_bins, 101)
+        # Fit the profile with a probit model.
+        model = Probit()
+        model.offset.freeze(0.5)
+        model.fit(x, y, sigma=yerr, absolute_sigma=True)
+        # Update the calibration data with the fitted parameter.
+        self.cal_data.two_pix_rad_sigma = model.sigma.value
+
+    def _fit_size_3(self) -> None:
+        """Fit the data for the 3-pixel clusters to determine the best-fit parameters.
+        """
+        # Convert to arrays
+        self._eta_3 = np.array(self._eta_3)
+        self._position_3 = np.array(self._position_3)
+        self._versors_3 = np.array(self._versors_3)
+        # Calculate the distance from the pixel center and the eta variable
+        # for the radial fit.
+        dr = np.sqrt(np.sum(self._position_3**2, axis=1))
+        eta_sum = np.sum(self._eta_3, axis=1)
+        # Calculate the profile of dr as a function of the eta sum.
+        x, y, yerr = profile(eta_sum, dr, self._num_bins, 101)
+        # Fit the profile with a probit model.
+        model_r = Probit()
+        model_r.fit(3 / 4 * x, y, sigma=yerr, absolute_sigma=True)
+        # Calculate the angle of the incident position with respect to the versors
+        # of the 3-pixel cluster.
+        x_proj = np.sum(self._position_3 * self._versors_3[:, 0], axis=1)
+        y_proj = np.sum(self._position_3 * self._versors_3[:, 1], axis=1)
+        theta = np.arctan2(y_proj, x_proj)
+        # Calculate the distance from the radial versor and the eta variable for
+        # the angular fit.
+        dy = dr * theta
+        eta_diff = (self._eta_3[:, 0] - self._eta_3[:, 1]) / eta_sum
+        # Calculate the profile of the distance from the radial versor as a
+        # function of the eta difference.
+        x, y, yerr = profile(eta_diff, dy, self._num_bins, 101)
+        # Fit the profile with a probit model.
+        model_theta = Probit()
+        model_theta.offset.freeze(0)
+        model_theta.fit((1 + x)/2, y, sigma=yerr, absolute_sigma=True)
+        # Update the calibration data with the fitted parameters.
+        self.cal_data.three_pix_rad_offset = model_r.offset.value
+        self.cal_data.three_pix_rad_sigma = model_r.sigma.value
+        self.cal_data.three_pix_theta_sigma = model_theta.sigma.value
+
     def fit(self) -> PositionCalibrationData:
         """Calculate the average charge fractions for each bin and store them in the
         MLECalibrationData object.
 
         Returns
         -------
-        cal_data : MLECalibrationData
-            The MLECalibrationData object containing the calibration data.
+        cal_data : PositionCalibrationData
+            The PositionCalibrationData object containing the calibration data.
         """
+        # Run the fits for the eta calibration.
+        self._fit_size_2()
+        self._fit_size_3()
+        # Calculate the average charge fractions for the MLE calibration and
+        # upfate the calibration data.
         self.cal_data.values = self._stats.mean()
         return self.cal_data

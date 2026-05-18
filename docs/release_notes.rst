@@ -7,13 +7,18 @@ Release notes
   diffusion model implemented.
 * New module `likelihood.py` containing the code for the likelihood evaluation
   added.
+* Unified position reconstruction algorithms calibration file and the command
+  into `calibgen position`.
 * New clustering algorithm `ClusteringHex` implemented. This clustering always
   contains seven pixels: the seed pixel and all its six neighbors.
 * New module `position.py` containing the core implementation of the position
-  reconstruction algorithms added.
+  reconstruction algorithms added. As a consequence, the `eta.py` module has
+  been deleted.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/136
   - https://github.com/lucabaldini/hexsample/pull/106
+  - https://github.com/lucabaldini/hexsample/issues/126
 
 
 Version 0.16.3 (2026-05-14)

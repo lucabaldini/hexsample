@@ -49,13 +49,6 @@ from .calibration import (
 )
 from .clustering import ClusteringHex, ClusteringNN
 from .display import EventDisplay
-from .eta import (
-    angle,
-    calibrate_dr_2pix,
-    calibrate_dr_3pix,
-    calibrate_theta_3pix,
-    distance,
-)
 from .fileio import (
     DigiInputFileBase,
     ReconInputFile,
@@ -224,13 +217,7 @@ class ReconstructionDefaults:
     num_neighbors: int = 2
     max_neighbors: int = -1
     pos_recon_algorithm: str = "centroid"
-    eta_2pix_rad_sigma: float = 0.127
-    eta_2pix_rad_pivot: float = 0.04
-    eta_3pix_rad_offset: float = 0.513
-    eta_3pix_rad_sigma: float = 0.141
-    eta_3pix_rad_pivot: float = 0.05
-    eta_3pix_theta_sigma: float = 0.104
-    mle_data: Optional[PositionCalibrationData] = None
+    position_cal: Optional[PositionCalibrationData] = None
 
 
 def reconstruct(
@@ -243,13 +230,7 @@ def reconstruct(
         num_neighbors: int = ReconstructionDefaults.num_neighbors,
         max_neighbors: int = ReconstructionDefaults.max_neighbors,
         pos_recon_algorithm: str = ReconstructionDefaults.pos_recon_algorithm,
-        eta_2pix_rad_sigma: float = ReconstructionDefaults.eta_2pix_rad_sigma,
-        eta_2pix_rad_pivot: float = ReconstructionDefaults.eta_2pix_rad_pivot,
-        eta_3pix_rad_offset: float = ReconstructionDefaults.eta_3pix_rad_offset,
-        eta_3pix_rad_sigma: float = ReconstructionDefaults.eta_3pix_rad_sigma,
-        eta_3pix_rad_pivot: float = ReconstructionDefaults.eta_3pix_rad_pivot,
-        eta_3pix_theta_sigma: float = ReconstructionDefaults.eta_3pix_theta_sigma,
-        mle_data: Optional[PositionCalibrationData] = ReconstructionDefaults.mle_data,
+        position_cal: Optional[PositionCalibrationData] = ReconstructionDefaults.position_cal,
         header_kwargs: dict = None,
     ) -> str:
     """Run the reconstruction.
@@ -290,26 +271,8 @@ def reconstruct(
     pos_recon_algorithm : str
         The position reconstruction algorithm to use.
 
-    eta_2pix_rad_sigma : float
-        The sigma parameter for the radial component of the eta function for two pixel events.
-
-    eta_2pix_rad_pivot : float
-        The pivot parameter for the radial component of the eta function for two pixel events.
-
-    eta_3pix_rad_offset : float
-        The offset parameter for the radial component of the eta function for three pixel events.
-
-    eta_3pix_rad_sigma : float
-        The sigma parameter for the radial component of the eta function for three pixel events.
-
-    eta_3pix_rad_pivot : float
-        The pivot parameter for the radial component of the eta function for three pixel events.
-
-    eta_3pix_theta_sigma : float
-        The sigma parameter for the angular component of the eta function for three pixel events.
-
-    mle_data : MLECalibrationData, optional
-        MLE calibration data.
+    position_cal : PositionCalibrationData
+        The position calibration data to use.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -329,26 +292,13 @@ def reconstruct(
     # to the circular.
     effective_neighbors = max_neighbors if max_neighbors >= 0 else num_neighbors
     # Create the dictionary with the reconstruction parameters to be passed to the clustering.
-    recon_pars = None
-    if pos_recon_algorithm == "eta":
-        recon_pars = dict(
-            eta_2pix_rad_sigma=eta_2pix_rad_sigma,
-            eta_2pix_rad_pivot=eta_2pix_rad_pivot,
-            eta_3pix_rad_offset=eta_3pix_rad_offset,
-            eta_3pix_rad_sigma=eta_3pix_rad_sigma,
-            eta_3pix_rad_pivot=eta_3pix_rad_pivot,
-            eta_3pix_theta_sigma=eta_3pix_theta_sigma,
-            pitch=header["pitch"],
+    recon_pars = dict(
+        position_cal=position_cal,
+        pitch=header["pitch"],
+        noise_matrix=noise_matrix,
+        equalization_matrix=equalization_matrix
         )
     if pos_recon_algorithm == "mle":
-        if mle_data is None:
-            raise RuntimeError("MLE data must be provided for MLE position reconstruction")
-        recon_pars = dict(
-            mle_data=mle_data,
-            noise_matrix=noise_matrix,
-            equalization_matrix=equalization_matrix,
-            pitch=header["pitch"]
-        )
         clustering = ClusteringHex(readout, 0, pos_recon_algorithm, recon_pars)
         num_neighbors = 6
     else:
@@ -402,14 +352,16 @@ def calibspec(input_file_path: str) -> str:
 
 
 @dataclass(frozen=True)
-class CalibrationMLEDefaults:
-    """Default parameters for the Maximum Likelihood Estimator (MLE) calibration task.
+class CalibrationPositionDefaults:
+    """Default parameters for the position algorithms calibration.
 
     This is a small helper dataclass to help ensure consistency between the main task
     definition in this Python module and the command-line interface.
     """
 
     bin_size: float = 0.01
+    num_bins: int = 20
+    zero_sup_threshold: float = 1.0
 
 
 def calibrate_position(
@@ -417,18 +369,39 @@ def calibrate_position(
         noise_matrix: CalibrationMatrix,
         pedestal_matrix: CalibrationMatrix,
         equalization_matrix: CalibrationMatrix,
-        bin_size: float,
+        bin_size: float = CalibrationPositionDefaults.bin_size,
+        num_bins: int = CalibrationPositionDefaults.num_bins,
+        zero_sup_threshold: float = CalibrationPositionDefaults.zero_sup_threshold,
     ) -> str:
-    """Calibrate the charge diffusion for the Maximum Likelihood Estimator (MLE) position
-    reconstruction algorithm, using the events from a digi file.
-    The results are stored as a matrix in a HDF5 file.
+    """Calibrate the position reconstruction algorithms, using the events from a
+    digi file. The results are stored as a matrix in a HDF5 file.
+
+    The output file contains the data necessary for the eta reconstruction algorithm
+    and the charge diffusion matrix for the MLE reconstruction algorithm.
 
     Arguments
     ---------
     input_file_path : str
         The path to the input file.
+
+    noise_matrix : CalibrationMatrix
+        The noise matrix to use for the calibration.
+
+    pedestal_matrix : CalibrationMatrix
+        The pedestal matrix to use for the calibration.
+
+    equalization_matrix : CalibrationMatrix
+        The equalization matrix to use for the calibration.
+
     bin_size : float
         The size of the bins to use for the charge diffusion matrix.
+
+    num_bins : int
+        The number of bins to use for the eta calibration fits.
+
+    zero_sup_threshold : float
+        The zero-suppression threshold as a multiple of the noise, to be used
+        for the clustering of the events for the eta calibration.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -440,128 +413,41 @@ def calibrate_position(
     readout = create_readout(readout_mode, header, *readout_args)
     # To correctly analyze every type of event, we need a zero suppression threshold
     # of 0, because the calibration should be performed on zero-noise simulations.
-    clustering = ClusteringHex(readout, zero_sup_threshold=0)
-    # Initialize the MLE calibrator and run the event loop.
-    mle_calibrator = CalibratePosition(bin_size, grid)
+    clustering = ClusteringHex(readout, zero_sup_threshold=0.)
+    clustering_nn = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold,
+                                 num_neighbors=6, pos_recon_algorithm="centroid")
+    # Initialize the position calibrator and run the event loop.
+    position_calibrator = CalibratePosition(bin_size, num_bins, grid)
     logger.info("Starting the event loop...")
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
+        cluster_nn = clustering_nn.run(event)
+        if cluster is None or cluster_nn is None:
+            continue
         mc_event = input_file.mc_event(i)
-        mle_calibrator.analyze_cluster(cluster, mc_event)
+        position_calibrator.analyze_hex_cluster(cluster, mc_event)
+        position_calibrator.analyze_nn_cluster(cluster_nn, mc_event)
     # Close the input file.
     input_file.close()
-    data = mle_calibrator.fit()
+    data = position_calibrator.fit()
     # Access sensor information from the header and update the metadata.
-    data.update_metadata(PositionCalibrationMetadata.PITCH.value, header["pitch"])
-    data.update_metadata(PositionCalibrationMetadata.LAYOUT.value, header["layout"].value)
-    data.update_metadata(PositionCalibrationMetadata.DIFFUSION_SIGMA.value,
-                         header["diffusion_sigma"])
-    data.update_metadata(PositionCalibrationMetadata.THICKNESS.value, header["thickness"])
+    metadata = PositionCalibrationMetadata
+    layout = (header["layout"].value).replace("_", "").lower()
+    pitch = header["pitch"]
+    diff_sigma = header["diffusion_sigma"]
+    thickness = header["thickness"]
+    data.update_metadata(metadata.PITCH.value, pitch)
+    data.update_metadata(metadata.LAYOUT.value, layout)
+    data.update_metadata(metadata.DIFFUSION_SIGMA.value, diff_sigma)
+    data.update_metadata(metadata.THICKNESS.value, thickness)
     # Save the calibration results to a HDF5 file.
-    output_file_path = input_file_path.replace(".h5", "_mle_matrices.h5")
-    logger.info(f"Saving the MLE calibration data to {output_file_path}...")
+    output_file_name = f"sim_xpol3_position_layout-{layout}_pitch-{pitch*1e4:.0f}" \
+        f"_diff-{diff_sigma:.0f}_thick-{thickness*1e4:.0f}_v001.h5"
+    output_file_path = pathlib.Path(input_file_path).parent / output_file_name
+    logger.info(f"Saving the calibration data to {output_file_path}...")
     data.to_hdf5(output_file_path, CalibrationType.POSITION)
     logger.info("Done!")
     return output_file_path
-
-
-@dataclass(frozen=True)
-class CalibrationEtaDefaults:
-    """Default parameters for the eta function calibration task.
-
-    This is a small helper dataclass to help ensure consistency between the main task
-    definition in this Python module and the command-line interface.
-    """
-
-    num_bins: int = 50
-    zero_sup_threshold: float = 1.0
-
-
-def calibrate_eta(
-    input_file_path: str,
-    noise_matrix: CalibrationMatrix,
-    pedestal_matrix: CalibrationMatrix,
-    equalization_matrix: CalibrationMatrix,
-    num_bins: int = CalibrationEtaDefaults.num_bins,
-    zero_sup_threshold: float = CalibrationEtaDefaults.zero_sup_threshold,
-) -> None:
-    """Calibrate the eta function using the events from a digi file.
-
-    Arguments
-    ---------
-    input_file_path : str
-        The path to the input file.
-
-    noise_matrix : CalibrationMatrix
-        The noise calibration matrix to use for the analysis.
-
-    pedestal_matrix : CalibrationMatrix
-        The pedestal calibration matrix to use for the analysis.
-
-    equalization_matrix : CalibrationMatrix
-        The equalization calibration matrix to use for the analysis.
-
-    num_bins : int
-        The number of bins to be used in the calibration.
-
-    zero_sup_threshold : float
-        The zero-suppression threshold as a multiple of the noise.
-    """
-    input_file, header, readout_mode = open_file(input_file_path)
-    args = (
-        HexagonalLayout(header["layout"]),
-        header["num_cols"],
-        header["num_rows"],
-        header["pitch"],
-        noise_matrix,
-        equalization_matrix,
-        pedestal_matrix,
-    )
-    readout = create_readout(readout_mode, header, *args)
-    clustering = ClusteringNN(
-        readout, zero_sup_threshold, num_neighbors=6, pos_recon_algorithm="centroid"
-    )
-    # Create the lists to store the data.
-    size_list, photon_pos_list, versors_list, eta_list = [], [], [], []
-    # Loop over the events and calculate the interesting quantities.
-    for i, event in tqdm(enumerate(input_file)):
-        try:
-            cluster = clustering.run(event)
-        except IndexError:
-            continue
-        # Analyze only 2-pixel and 3-pixel events.
-        if cluster is not None and (cluster.size() == 2 or cluster.size() == 3):
-            mc_event = input_file.mc_event(i)
-            size_list.append(cluster.size())
-            # Calculate the photon position with respect to the most charged pixel
-            ph_pos = (
-                np.array([mc_event.absx - cluster.x[0], mc_event.absy - cluster.y[0]])
-                / header["pitch"]
-            )
-            photon_pos_list.append(ph_pos)
-            eta_list.append(cluster.calculate_eta())
-            versors_list.append(cluster.versors())
-    input_file.close()
-    # Convert the lists to numpy arrays
-    size = np.asarray(size_list, dtype=int)
-    photon_pos = np.asarray(photon_pos_list, dtype=float)
-    versors = np.asarray(versors_list, dtype=float)
-    eta = np.asarray(eta_list, dtype=object)
-
-    # 2-pixel events calibration
-    mask_2pix = size == 2
-    eta_2pix = eta[mask_2pix].flatten()
-    dr_2pix = distance(photon_pos[mask_2pix], versors[mask_2pix, 0])
-    calibrate_dr_2pix(eta_2pix, dr_2pix, nbins=num_bins)
-
-    # 3-pixel events calibration
-    mask_3pix = size == 3
-    eta_3pix = np.stack(eta[mask_3pix])
-    dr_3pix = distance(photon_pos[mask_3pix])
-    theta_3pix = angle(photon_pos[mask_3pix], versors[mask_3pix])
-    calibrate_dr_3pix(eta_3pix, dr_3pix, nbins=num_bins)
-    calibrate_theta_3pix(eta_3pix, dr_3pix, theta_3pix, nbins=num_bins)
-    plt.show()
 
 
 @dataclass(frozen=True)
@@ -916,6 +802,7 @@ class DisplayDefaults:
     noise_matrix: Optional[CalibrationMatrix] = None
     pedestal_matrix: Optional[CalibrationMatrix] = None
     equalization_matrix: Optional[CalibrationMatrix] = None
+    position_cal: Optional[PositionCalibrationData] = None
 
 
 def display(
@@ -923,6 +810,7 @@ def display(
     noise_matrix: Optional[CalibrationMatrix] = DisplayDefaults.noise_matrix,
     pedestal_matrix: Optional[CalibrationMatrix] = DisplayDefaults.pedestal_matrix,
     equalization_matrix: Optional[CalibrationMatrix] = DisplayDefaults.equalization_matrix,
+    position_cal: Optional[PositionCalibrationData] = DisplayDefaults.position_cal,
 ) -> None:
     """Display events from a digi file.
 
@@ -939,6 +827,9 @@ def display(
 
     equalization_matrix : CalibrationMatrix, optional
         The equalization calibration matrix to use for the display.
+    
+    position_cal : PositionCalibrationData, optional
+        The position calibration data to use for the display.
     """
     # Open the input file and extract the header and the readout information.
     input_file, header, readout_mode = open_file(input_file_path)
@@ -965,15 +856,11 @@ def display(
     else:
         readout_args = (*grid_args, *cal_matrices)
         grid = create_readout(readout_mode, header, *readout_args)
-        recon_defaults = ReconstructionDefaults
         recon_pars = dict(
-            eta_2pix_rad_sigma=recon_defaults.eta_2pix_rad_sigma,
-            eta_2pix_rad_pivot=recon_defaults.eta_2pix_rad_pivot,
-            eta_3pix_rad_offset=recon_defaults.eta_3pix_rad_offset,
-            eta_3pix_rad_sigma=recon_defaults.eta_3pix_rad_sigma,
-            eta_3pix_rad_pivot=recon_defaults.eta_3pix_rad_pivot,
-            eta_3pix_theta_sigma=recon_defaults.eta_3pix_theta_sigma,
+            position_cal=position_cal,
             pitch=header["pitch"],
+            noise_matrix=noise_matrix,
+            equalization_matrix=equalization_matrix
         )
     # Create the event display and show the events.
     EventDisplay(input_file, grid, recon_pars=recon_pars)
