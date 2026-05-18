@@ -104,8 +104,10 @@ def versor_2pix(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     # Calculate the vector.
     versor = np.array([x[1] - x[0], y[1] - y[0]])
     # Normalize it to get the versor.
-    versor /= np.hypot(versor[0], versor[1])
-    return versor
+    norm = np.hypot(versor[0], versor[1])
+    if norm == 0:
+        return np.zeros(2)
+    return versor / norm
 
 
 def versor_3pix(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -134,7 +136,10 @@ def versor_3pix(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     # Calculate the first vector.
     u = np.array([x[1] + x[2] - 2 * x[0], y[1] + y[2] - 2 * y[0]])
     # Normalize it to get the versor.
-    u /= np.hypot(u[0], u[1])
+    norm = np.hypot(u[0], u[1])
+    if norm == 0:
+        return np.zeros(2), np.zeros(2)
+    u /= norm
     # Calculate the second vector as the orthogonal to the first one.
     v = np.array([-u[1], u[0]])
     # Verify that it point towards the second higher-pha pixel. If not, invert it.

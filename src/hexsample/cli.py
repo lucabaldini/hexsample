@@ -315,7 +315,7 @@ class CliArgumentParser(argparse.ArgumentParser):
                             required=required, help="path to a file containing the gain " \
                             "calibration data or name of a calibration file inside the " \
                             "caldb/gain folder.")
-    
+
     @staticmethod
     def add_cal_position_file(parser: argparse.ArgumentParser, default: str,
                           required: bool = False) -> None:
@@ -497,7 +497,7 @@ class CliArgumentParser(argparse.ArgumentParser):
         defaults = tasks.SynthesizeCalibrationDefaults
         cal_type = calibration.CalibrationType
         parser.add_argument("calibration_type", type=calibration.CalibrationType,
-                            choices=[c.value for c in cal_type if c not in (cal_type.POSITION)],
+                            choices=[c.value for c in cal_type if c != cal_type.POSITION],
                             help="type of calibration file to be generated")
         parser.add_argument("mean", type=float,
                             help="mean value of the calibration parameter.")

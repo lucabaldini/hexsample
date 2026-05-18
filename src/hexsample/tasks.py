@@ -413,7 +413,7 @@ def calibrate_position(
     readout = create_readout(readout_mode, header, *readout_args)
     # To correctly analyze every type of event, we need a zero suppression threshold
     # of 0, because the calibration should be performed on zero-noise simulations.
-    clustering = ClusteringHex(readout, zero_sup_threshold=0)
+    clustering = ClusteringHex(readout, zero_sup_threshold=0.)
     clustering_nn = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold,
                                  num_neighbors=6, pos_recon_algorithm="centroid")
     # Initialize the position calibrator and run the event loop.
@@ -422,6 +422,8 @@ def calibrate_position(
     for i, event in tqdm(enumerate(input_file)):
         cluster = clustering.run(event)
         cluster_nn = clustering_nn.run(event)
+        if cluster is None or cluster_nn is None:
+            continue
         mc_event = input_file.mc_event(i)
         position_calibrator.analyze_hex_cluster(cluster, mc_event)
         position_calibrator.analyze_nn_cluster(cluster_nn, mc_event)

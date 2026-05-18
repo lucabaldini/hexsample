@@ -80,6 +80,6 @@ class CalDB:
 
     @classmethod
     def open_position(cls, designator: str) -> PositionCalibrationData:
-        """Open the MLE calibration file for the given designation.
+        """Open the position calibration file for the given designation.
         """
         return cls._open(CalibrationType.POSITION, designator, PositionCalibrationData)

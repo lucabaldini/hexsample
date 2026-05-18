@@ -153,10 +153,9 @@ class Cluster:
         algorithm specified in the constructor.
         """
         # Get the reconstruction algorithm callable from the class attributes.
-        recon_algorithm = getattr(self, self.pos_recon_algorithm)
-        # Check if it is actually callable, otherwise raise an error.
-        if not callable(recon_algorithm):
-            raise RuntimeError(f"Invalid position reconstruction algorithm \
+        recon_algorithm = getattr(self, self.pos_recon_algorithm, None)
+        if recon_algorithm is None:
+            raise AttributeError(f"Invalid position reconstruction algorithm \
                                 {self.pos_recon_algorithm}")
         # Get the arguments of the reconstruction algorithm method.
         args = inspect.signature(recon_algorithm).parameters.keys()

@@ -162,7 +162,8 @@ def display(**kwargs) -> None:
     equalization_matrix = kwargs["equalization"]
     noise_matrix = kwargs["noise"]
     pedestal_matrix = kwargs["pedestal"]
-    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix
+    position_cal = kwargs["position_cal"]
+    args = input_file_path, noise_matrix, pedestal_matrix, equalization_matrix, position_cal
     return tasks.display(*args)
 
 
