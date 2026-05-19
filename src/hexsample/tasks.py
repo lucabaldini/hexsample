@@ -33,6 +33,7 @@ from tqdm import tqdm
 
 from . import rng
 from .analysis import create_histogram
+from .caldb import CalDB
 from .calibration import (
     CALIBRATION_UNITS,
     CalibrateDark,
@@ -311,6 +312,8 @@ def reconstruct(
     for i, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
+            if cluster.pulse_height() == 0:
+                continue
         except IndexError as e:
             logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
         if cluster is not None and (cluster.size() in size):
@@ -709,21 +712,18 @@ def calibrate_equalization(
     num_cols, num_rows = header["num_cols"], header["num_rows"]
     # Define the arguments to create the readout object with uniform pixel equalization,
     # necessary for the calibration.
-    unit_gain_map = CalibrationMatrix(num_cols, num_rows)
-    unit_gain_map.set_value(1.0)
-    unit_gain_map.update_metadata(CalibrationMetadata.ADC_TO_EV, 1.0)
+    unit_equalization_matrix = CalDB.open_equalization("sim_xpol3_equalization-1_uniform_v001")
     args = (
         HexagonalLayout(header["layout"]),
         num_cols,
         num_rows,
         header["pitch"],
         noise_matrix,
-        unit_gain_map,
+        unit_equalization_matrix,
         pedestal_matrix,
     )
     readout = create_readout(readout_mode, header, *args)
     # Initialize the equalization matrix and run the calibration.
-    equalization_calibration = CalibrateEqualization(header["num_cols"], header["num_rows"], pdf)
     clustering = ClusteringNN(
         readout,
         zero_sup_threshold=zero_sup_threshold,

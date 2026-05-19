@@ -3,6 +3,11 @@
 Release notes
 =============
 
+* Minor bug fixes to equalization calibration.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/137
+
 
 Version 0.17.0 (2026-05-18)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
