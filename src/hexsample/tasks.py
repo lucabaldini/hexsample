@@ -312,6 +312,8 @@ def reconstruct(
     for i, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
+            if cluster.pulse_height() == 0:
+                continue
         except IndexError as e:
             logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
         if cluster is not None and (cluster.size() in size):
