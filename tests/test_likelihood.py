@@ -23,7 +23,7 @@ from hexsample.caldb import CalDB
 from hexsample.likelihood import nll_numba
 
 
-def test_nll_numba(test_data_path):
+def test_nll_numba():
     """Test the nll_numba function.
     """
     # Test a simple case, this pha is taken from an event with 20 ENC noise, offset set to 512.
