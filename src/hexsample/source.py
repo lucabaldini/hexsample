@@ -141,6 +141,38 @@ class LineForest(AbstractSpectrum):
 
 
 @dataclass
+class GaussianSpectrum(AbstractSpectrum):
+
+    """Class describing a Gaussian X-ray spectrum.
+
+    Arguments
+    ---------
+    energy : float
+        The mean energy in eV.
+    
+    e_sigma : float
+        The energy sigma in eV.
+    """
+
+    energy: float = 6000.0
+    e_sigma : float = 1000.0
+
+    def rvs(self, size: int = 1) -> np.ndarray:
+        """Overloaded method.
+        """
+        return rng.generator.normal(self.energy, self.e_sigma, size)
+
+    def render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
+        """Overloaded method.
+        """
+        x = np.linspace(self.energy - 5 * self.e_sigma, self.energy + 5 * self.e_sigma, 1000)
+        y = np.exp(-0.5 * ((x - self.energy) / self.e_sigma) ** 2)
+        kwargs.setdefault("color", "black")
+        axes.plot(x, y, **kwargs)
+        setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
+
+
+@dataclass
 class AbstractBeam(AbstractRandomGenerator):
 
     """Abstract base class for all the X-ray beam shapes.
@@ -325,7 +357,7 @@ class SlitBeam(AbstractBeam):
 
     height: float = 0.01
     width: float = 1.
-    theta: float = 1.
+    theta: float = 11.
 
     def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
         """Overloaded method.
@@ -432,6 +464,7 @@ class HexagonalBeam(AbstractBeam):
 SpectrumProxy = TypeProxy("spectrum") # pylint: disable=invalid-name
 SpectrumProxy.register("line", Line, default=True)
 SpectrumProxy.register("forest", LineForest)
+SpectrumProxy.register("gaussian", GaussianSpectrum)
 
 
 # Definition of the type proxies for beam types.

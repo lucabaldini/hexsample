@@ -193,3 +193,20 @@ def calibview(**kwargs) -> None:
     upper_quantile = kwargs.get("upper_quantile", tasks.CalibviewDefaults.upper_quantile)
     args = matrix, mc_matrix, min_hits, rel_error, lower_quantile, upper_quantile
     return tasks.calibview(*args)
+
+
+def mtf(**kwargs) -> None:
+    """Calculate the modulation transfer function from a recon file of a slanted edge.
+    """
+    defaults = tasks.MTFDefaults
+    input_file_paths = kwargs["input_file_paths"]
+    ymin = kwargs.get("ymin", defaults.ymin)
+    ymax = kwargs.get("ymax", defaults.ymax)
+    aligner_bin_size = kwargs.get("aligner_bin_size", defaults.aligner_bin_size)
+    sigma_aligner = kwargs.get("sigma_aligner", defaults.sigma_aligner)
+    edge_bin_size = kwargs.get("edge_bin_size", defaults.edge_bin_size)
+    sigma_edge = kwargs.get("sigma_edge", defaults.sigma_edge)
+    angle = kwargs.get("angle", defaults.angle)
+    args_dict = dict(ymin=ymin, ymax=ymax, aligner_bin_size=aligner_bin_size, sigma_aligner=sigma_aligner,
+                     edge_bin_size=edge_bin_size, sigma_edge=sigma_edge, angle=angle)
+    return tasks.mtf(*input_file_paths, **args_dict)

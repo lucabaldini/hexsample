@@ -203,6 +203,13 @@ class CliArgumentParser(argparse.ArgumentParser):
         self.add_logging_level(convert)
         convert.set_defaults(runner=pipeline.mdat3_to_digi)
 
+        mtf = subparsers.add_parser("mtf",
+            help="calculate the MTF from a slanted edge measurement",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_mtf_options(mtf)
+        self.add_logging_level(mtf)
+        mtf.set_defaults(runner=pipeline.mtf)
+
     @staticmethod
     def add_input_file(parser: argparse.ArgumentParser) -> None:
         """Add an option for the input file.
@@ -344,6 +351,8 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="spectrum of the X-ray source")
         group.add_argument("--energy", type=float, default=source.Line.energy,
                            help="line energy in eV")
+        group.add_argument("--e_sigma", type=float, default=source.GaussianSpectrum.e_sigma,
+                            help="standard deviation of the gaussian spectrum in eV")
         group.add_argument("--element", type=str, default=source.LineForest.element,
                            help="element generating the line forest")
         group.add_argument("--initial_level", type=str, default=source.LineForest.initial_level,
@@ -560,6 +569,20 @@ class CliArgumentParser(argparse.ArgumentParser):
                             help="lower quantile for a pixel to be included in the statistics")
         parser.add_argument("--upper_quantile", type=float, default=defaults.upper_quantile,
                             help="upper quantile for a pixel to be included in the statistics")
+
+    def add_mtf_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the MTF calculation properties.
+        """
+        defaults = tasks.MTFDefaults
+        parser.add_argument("input_file_paths", type=str, nargs="+",
+                            help="path to one or more recon files containing the slanted edge" \
+                            " measurement to be analyzed")
+        parser.add_argument("--ymin", type=float, default=defaults.ymin,
+                            help="minimum y value to be included in the MTF calculation, in um")
+        parser.add_argument("--ymax", type=float, default=defaults.ymax,
+                            help="maximum y value to be included in the MTF calculation, in um")
+        parser.add_argument("--angle", type=float, default=defaults.angle,
+                            help="angle of the slanted edge in degrees, counterclockwise from the x-axis")
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.

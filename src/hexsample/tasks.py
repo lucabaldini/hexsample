@@ -70,6 +70,7 @@ from .readout import (
     HexagonalReadoutRectangular,
 )
 from .recon import ReconEvent
+from .resolution import SlantedEdgeResolution, SlitsAligner
 from .sensor import Sensor
 from .source import Source
 from .xpol import chip_descriptor
@@ -312,11 +313,11 @@ def reconstruct(
     for i, event in tqdm(enumerate(input_file)):
         try:
             cluster = clustering.run(event)
-            if cluster.pulse_height() == 0:
-                continue
         except IndexError as e:
             logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
         if cluster is not None and (cluster.size() in size):
+            if cluster.pulse_height() == 0:
+                continue
             # Need to pass the recon method and other stuff as argument to ReconEvent
             args = event.trigger_id, event.timestamp(), event.livetime, cluster
             recon_event = ReconEvent(*args)
@@ -875,6 +876,24 @@ class QuickLookDefaults:
     """
 
 
+from aptapy.modeling import line_forest, GaussianForestBase
+import scipy.integrate
+
+@line_forest(9.71, 11.4)
+class AuForest(GaussianForestBase):
+
+    TABULATED_KB_INTENSITY = 0.45
+
+    def init_parameters(self, xdata, ydata, sigma = 1.) -> None:
+        """Overloaded method.
+        """
+        # pylint: disable=no-member
+        mu0 = xdata[np.argmax(ydata)]
+        self.amplitude.init(scipy.integrate.trapezoid(ydata, xdata))
+        self.intensity1.init(self.TABULATED_KB_INTENSITY)
+        self.energy_scale.init(self.energies[0] / mu0)
+        self.sigma.init(np.sqrt(np.average((xdata - mu0)**2, weights=ydata)))
+
 def quicklook(input_file_path: str) -> None:
     """Quicklook at events from a recon file.
 
@@ -890,13 +909,25 @@ def quicklook(input_file_path: str) -> None:
     name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     input_file = ReconInputFile(input_file_path)
+    cluster_size = input_file.column("cluster_size")
     # Plotting the reconstructed energy and the true energy
-    histo = create_histogram(input_file, "energy", mc=False)
-    mc_histo = create_histogram(input_file, "energy", mc=True, binning=histo.bin_edges())
-    plt.figure("Photons energy")
-    histo.plot(label="Reconstructed")
-    mc_histo.plot(label="MonteCarlo")
-    plt.xlabel("Energy [eV]")
+    # histo = create_histogram(input_file, "energy", mc=False)
+    # mc_histo = create_histogram(input_file, "energy", mc=True, binning=histo.bin_edges())
+    # plt.figure("Photons energy")
+    # histo.plot(label="Reconstructed")
+    # mc_histo.plot(label="MonteCarlo")
+    # plt.xlabel("Energy [eV]")
+    # plt.legend()
+    mask = cluster_size == 1
+    adc = input_file.column("adc")#[mask]
+    plt.figure("ADC distribution")
+    binning = np.arange(adc.min() - 0.5, adc.max() + 1.5, 1)
+    histo = Histogram1d(binning, xlabel="ADC").fill(adc)
+    model = AuForest()
+    # model.intensity1.freeze(0.45)
+    model.fit_iterative(histo, xmin=240, xmax=320, p0=(2e4, 0.45, 0.04, 1.,), num_sigma_left=1.5, num_sigma_right=1.5)
+    histo.plot()
+    model.plot(fit_output=True)
     plt.legend()
 
     # Plotting the reconstructed x and y position and the true position.
@@ -914,14 +945,17 @@ def quicklook(input_file_path: str) -> None:
     histo_mc.plot()
     setup_gca(xlabel="x [cm]", ylabel="y [cm]")
     # Closing the file and showing the figures.
-    plt.figure("x-direction resolution")
-    binning = np.linspace((x - x_mc).min(), (x - x_mc).max(), 100)
-    histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x - x_mc)
-    histx.plot()
-    plt.figure("y-direction resolution")
-    binning = np.linspace((y - y_mc).min(), (y - y_mc).max(), 100)
-    histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y - y_mc)
-    histy.plot()
+    # plt.figure("x-direction resolution")
+    # binning = np.linspace((x - x_mc).min(), (x - x_mc).max(), 100)
+    # histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x - x_mc)
+    # histx.plot()
+    # plt.figure("y-direction resolution")
+    # binning = np.linspace((y - y_mc).min(), (y - y_mc).max(), 100)
+    # histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y - y_mc)
+    # histy.plot()
+    cluster_size = input_file.column("cluster_size")
+    plt.figure("Cluster size distribution")
+    plt.hist(cluster_size, bins=np.arange(cluster_size.min() - 0.5, cluster_size.max() + 1.5, 1), density=True)
     input_file.close()
     plt.show()
 
@@ -983,6 +1017,21 @@ def calibview(
             key = key.value
         logger.info(f"  {key}: {value}")
     unit = CALIBRATION_UNITS.get(matrix.metadata["calibration_type"]).value
+
+    # Plot mc matrix.
+    if np.array_equal(matrix.entries, np.zeros_like(matrix.entries)):
+        plt.figure()
+        plt.imshow(matrix.values, origin="upper")
+        plt.xlabel("Column")
+        plt.ylabel("Row")
+        plt.colorbar(label=unit)
+
+        plt.figure()
+        plt.hist(matrix.values.flatten(), bins=100, density=True)
+        plt.xlabel(unit)
+        plt.show()
+        return
+
     # Calculate the quantiles of the values in the matrix to set the limits for the plots.
     rel_error_mask = abs(matrix.errors / matrix.values) < rel_error
     hits_mask = matrix.entries >= min_hits
@@ -1038,15 +1087,15 @@ def calibview(
         # Plot the correlation between the calibrated values and the Monte Carlo truth values.
         plt.figure("Correlation between calibrated values and Monte Carlo truth values")
         plt.scatter(vals, mc_vals[mask.flatten()], alpha=0.1, s=10)
-        line = Line()
-        line.intercept.freeze(0.0)
-        line.fit(vals, mc_vals[mask.flatten()])
-        label = f"Slope: {line.slope.ufloat()}"
-        line.plot(
-            label=label,
-            color="black",
-            linestyle="--",
-        )
+        # line = Line()
+        # line.intercept.freeze(0.0)
+        # line.fit(vals, mc_vals[mask.flatten()])
+        # label = f"Slope: {line.slope.ufloat()}"
+        # line.plot(
+        #     label=label,
+        #     color="black",
+        #     linestyle="--",
+        # )
         plt.legend()
         plt.xlabel(f"Calibrated values [{unit}]")
         plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
@@ -1066,5 +1115,91 @@ def calibview(
         pull_hist = Histogram1d(pull_edges, label="Pull", xlabel="Pull").fill(pull)
         plt.figure("Pull distribution")
         pull_hist.plot(statistics=True)
+        plt.legend()
+    plt.show()
+
+
+@dataclass
+class MTFDefaults:
+    """Default parameters for the MTF task.
+
+    This is a small helper dataclass to help ensure consistency between the main task
+    definition in this Python module and the command-line interface.
+    """
+
+    ymin: float = -np.inf
+    ymax: float = np.inf
+    aligner_bin_size: float = 10
+    sigma_aligner: float = 3
+    edge_bin_size: float = 3.
+    sigma_edge: float = 2.
+    angle: Optional[float] = None
+
+
+def mtf(
+        *input_file_paths: str,
+        ymin: float = MTFDefaults.ymin,
+        ymax: float = MTFDefaults.ymax,
+        aligner_bin_size: float = MTFDefaults.aligner_bin_size,
+        sigma_aligner: float = MTFDefaults.sigma_aligner,
+        edge_bin_size: float = MTFDefaults.edge_bin_size,
+        sigma_edge: float = MTFDefaults.sigma_edge,
+        angle: Optional[float] = MTFDefaults.angle,
+) -> None:
+    """Analyze a recon file containing a slanted edge image and calculate the
+    modulation transfer function (MTF) of the detector.
+
+    Arguments
+    ---------
+    input_file_paths : str
+        The paths to the input recon files.
+    
+    ymin : float, optional
+        The minimum y value to consider for the analysis. This is useful to select
+        a single edge when there are multiple edges in the image.
+    
+    ymax : float, optional
+        The maximum y value to consider for the analysis. This is useful to select
+        a single edge when there are multiple edges in the image.
+    
+    angle : float, optional
+        The angle of the edge with respect to the x-axis, in degrees. If not provided,
+        the angle is estimated from the data.
+    """
+    name = inspect.currentframe().f_code.co_name
+    logger.info(f"Running {__name__}.{name}...")
+    # Loop over the input files and analyze each of them.
+    for input_file_path in input_file_paths:
+        # Open the file.
+        input_file = ReconInputFile(input_file_path)
+        # Read the x and y positions (in cm) and convert them to microns.
+        x = input_file.column("posx") * 1e4
+        y = input_file.column("posy") * 1e4
+        input_file.close()
+        # Find the angle of the edge and align it with the x-axis.
+        _angle = np.deg2rad(angle) if angle is not None else None
+        aligner = SlitsAligner(aligner_bin_size, sigma_aligner, angle=_angle)
+        _, y_rot = aligner.align(x, y)
+        logger.info(f"Aligned with angle {np.rad2deg(aligner.angle):.2f} degrees...")
+        # If ymin and ymax are provided, mask the data to select only the edge of
+        # interest.
+        mask = (y_rot > ymin) & (y_rot < ymax)
+        # Analyze the slanted edge and calculate the MTF
+        slanted_edge = SlantedEdgeResolution(y_rot[mask], edge_bin_size, sigma_edge)
+        # logger.info(f"Resolution from slanted edge: {slanted_edge.resolution:.2f} microns")
+        # Plot the edge spread function (ESF) and the MTF.
+        plt.figure(f"esf_{input_file_path}")
+        esf = slanted_edge.esf
+        esf.plot()
+        plt.xlabel("Distance from the center of the edge [microns]")
+        plt.figure(f"lsf_{input_file_path}")
+        lsf = slanted_edge.lsf
+        lsf.plot()
+        plt.xlabel("Distance from the center of the edge [microns]")
+        plt.figure(f"mtf")
+        mtf, freq = slanted_edge.mtf()
+        plt.plot(freq*1000, mtf, label=input_file_path)
+        plt.xlabel("Spatial frequency [cycles/mm]")
+        plt.ylabel("MTF")
         plt.legend()
     plt.show()

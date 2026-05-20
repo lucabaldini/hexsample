@@ -246,6 +246,18 @@ class SlantedEdgeResolution:
         # Normalize the LSF histogram, so that the MTF maximum is 1.
         lsf /= np.sum(lsf) * self.bin_size
         return lsf, edges
+    
+    def _interpolated_esf(self):
+        esf, esf_edges = self._esf()
+        centers = (esf_edges[:-1] + esf_edges[1:]) / 2
+        from scipy.interpolate import UnivariateSpline
+        s = np.var(esf) * 0.1
+        spline = UnivariateSpline(centers, esf, s=s)
+        xx = np.linspace(centers.min(), centers.max(), 1024)
+        
+        return spline
+
+
 
     @property
     def lsf(self) -> Histogram1d:

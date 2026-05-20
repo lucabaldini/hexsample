@@ -26,6 +26,7 @@ from hexsample.logging_ import logger
 from hexsample.source import (
     DiskBeam,
     GaussianBeam,
+    GaussianSpectrum,
     HexagonalBeam,
     Line,
     LineForest,
@@ -96,6 +97,23 @@ def test_mn_k_forest():
     """
     _test_forest("Mn", chisq_test=False)
 
+
+def test_au_l_forest():
+    """Test the Au L forest.
+    """
+    _test_forest("Au", initial_level="L1", chisq_test=False)
+
+def test_gaussian_spectrum():
+    """Test the GaussianSpectrum class.
+    """
+    energy = 220.
+    sigma = 30.
+    num_events = 100000
+    spectrum = GaussianSpectrum(energy, sigma)
+    rvs = spectrum.rvs(num_events)
+    assert len(rvs) == num_events
+    plt.figure("Gaussian spectrum")
+    spectrum.plot()
 
 def test_point_beam(x0 : float = 1., y0 : float = -1., num_photons : int = 1000):
     """Unit test for the point beam.
