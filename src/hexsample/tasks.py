@@ -881,6 +881,9 @@ class QuickLookDefaults:
     p0: Optional[Sequence[float]] = None
     xmin: Optional[float] = None
     xmax: Optional[float] = None
+    iterative: bool = False
+    num_sigma_left: float = 1.5
+    num_sigma_right: float = 1.5
 
 
 def quicklook(
@@ -891,6 +894,9 @@ def quicklook(
         p0: Optional[Sequence[float]] = QuickLookDefaults.p0,
         xmin: Optional[float] = QuickLookDefaults.xmin,
         xmax: Optional[float] = QuickLookDefaults.xmax,
+        iterative: bool = QuickLookDefaults.iterative,
+        num_sigma_left: float = QuickLookDefaults.num_sigma_left,
+        num_sigma_right: float = QuickLookDefaults.num_sigma_right,
         ) -> None:
     """Quicklook at events from a recon file.
 
@@ -902,6 +908,7 @@ def quicklook(
     file_path : str
         The path to the input recon file.
     """
+    # pylint: disable=too-many-statements
     # Open the input file
     name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
@@ -918,19 +925,26 @@ def quicklook(
 
     mask = cluster_size == size if size > 0 else np.ones_like(cluster_size, dtype=bool)
     # ADC counts distribution
+    plt.figure("ADC counts distribution")
     adc = input_file.column("adc")
     adc_binning = np.arange(adc.min() - 0.5, adc.max() + 1.5)
     adc_histo = create_histogram(input_file, "adc", binning=adc_binning, mask=mask)
     if fit_model is not None:
         model = getattr(aptapy.models, fit_model, None)
         if model:
+            model = model()
             logger.info(f"Fitting {fit_model} model to ADC distribution...")
-            model.fit(adc_histo, p0=p0, xmin=xmin, xmax=xmax)
+            if hasattr(model, "fit_iterative") and iterative:
+                model.fit_iterative(adc_histo, num_sigma_left=num_sigma_left,
+                                    num_sigma_right=num_sigma_right, p0=p0, xmin=xmin, xmax=xmax)
+            else:
+                model.fit(adc_histo, p0=p0, xmin=xmin, xmax=xmax)
+            model.plot(fit_output=True)
         else:
             logger.warning(f"Model {fit_model} not found in aptapy.models. Skipping fit.")
     adc_histo.xlabel = "Channel"
-    plt.figure("ADC counts distribution")
     adc_histo.plot(label="ADC counts")
+    plt.legend()
 
     # Plotting the reconstructed energy and the true energy
     energy_histo = create_histogram(input_file, "energy", mc=False, mask=mask)

@@ -559,6 +559,14 @@ class CliArgumentParser(argparse.ArgumentParser):
                             help="lower bound of the fit range for the ADC distribution")
         parser.add_argument("--xmax", type=float, default=defaults.xmax,
                             help="upper bound of the fit range for the ADC distribution")
+        parser.add_argument("--iterative", action="store_true", default=defaults.iterative,
+                            help="if specified, the fit will be performed iteratively")
+        parser.add_argument("--num_sigma_left", type=float, default=defaults.num_sigma_left,
+                            help="number of sigma to the left of the peak to be " \
+                                "included in the fit")
+        parser.add_argument("--num_sigma_right", type=float, default=defaults.num_sigma_right,
+                            help="number of sigma to the right of the peak to be " \
+                                "included in the fit")
 
     def add_calibview_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the calibration view properties.

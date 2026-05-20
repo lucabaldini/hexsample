@@ -177,7 +177,11 @@ def quicklook(**kwargs) -> None:
     p0 = kwargs.get("p0", tasks.QuickLookDefaults.p0)
     xmin = kwargs.get("xmin", tasks.QuickLookDefaults.xmin)
     xmax = kwargs.get("xmax", tasks.QuickLookDefaults.xmax)
-    args = input_file_path, size, mc, fit_model, p0, xmin, xmax
+    iterative = kwargs.get("iterative", tasks.QuickLookDefaults.iterative)
+    num_sigma_left = kwargs.get("num_sigma_left", tasks.QuickLookDefaults.num_sigma_left)
+    num_sigma_right = kwargs.get("num_sigma_right", tasks.QuickLookDefaults.num_sigma_right)
+    args = input_file_path, size, mc, fit_model, p0, xmin, xmax, iterative, \
+        num_sigma_left, num_sigma_right
     return tasks.quicklook(*args)
 
 
