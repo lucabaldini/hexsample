@@ -907,6 +907,37 @@ def quicklook(
     ---------
     file_path : str
         The path to the input recon file.
+
+    size : int, optional
+        If specified, only show events with the given cluster size in the ADC and
+        energy spectra.
+
+    mc : bool, optional
+        Whether to show the Monte Carlo truth information, if available.
+
+    fit_model : str, optional
+        The name of the model to fit to the ADC distribution. The model must
+        be defined in the `aptapy.models` module.
+
+    p0 : Sequence[float], optional
+        The initial parameters to use for the fit.
+    
+    xmin : float, optional
+        The minimum x value to use for the fit.
+    
+    xmax : float, optional
+        The maximum x value to use for the fit.
+    
+    iterative : bool, optional
+        Whether to use the iterative fitting procedure, if supported by the model.
+    
+    num_sigma_left : float, optional
+        The number of sigma on the left of the peak to be used to define the
+            fitting range.
+    
+    num_sigma_right : float, optional
+        The number of sigma on the right of the peak to be used to define the
+            fitting range.
     """
     # pylint: disable=too-many-statements
     # Open the input file
@@ -923,7 +954,10 @@ def quicklook(
     plt.figure("Cluster size distribution")
     cluster_size_histo.plot(label="Cluster size")
 
-    mask = cluster_size == size if size > 0 else np.ones_like(cluster_size, dtype=bool)
+    mask = cluster_size == size if size != -1 else np.ones_like(cluster_size, dtype=bool)
+    if mask.sum() == 0:
+        logger.error(f"No events with cluster size {size} found in the input file.")
+        raise RuntimeError
     # ADC counts distribution
     plt.figure("ADC counts distribution")
     adc = input_file.column("adc")
