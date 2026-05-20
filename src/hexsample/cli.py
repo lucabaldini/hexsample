@@ -191,6 +191,7 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="run a quick-look analysis of a recon file",
             formatter_class=self._FORMATTER_CLASS)
         self.add_input_file(quicklook)
+        self.add_quicklook_options(quicklook)
         self.add_logging_level(quicklook)
         quicklook.set_defaults(runner=pipeline.quicklook)
 
@@ -539,6 +540,33 @@ class CliArgumentParser(argparse.ArgumentParser):
         CliArgumentParser.add_cal_pedestal_file(parser, default=default.pedestal_matrix)
         CliArgumentParser.add_cal_equalization_file(parser, default=default.equalization_matrix)
         CliArgumentParser.add_cal_position_file(parser, default=default.position_cal)
+
+    def add_quicklook_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the quicklook properties.
+        """
+        defaults = tasks.QuickLookDefaults
+        parser.add_argument("--size", type=int, default=defaults.size,
+                            help="event cluster size to be displayed in the spectra")
+        parser.add_argument("--mc", action="store_true", default=defaults.mc,
+                            help="if specified, the Monte Carlo truth information will be "
+                            "displayed along with the reconstructed one")
+        parser.add_argument("--fit_model", type=str, default=defaults.fit_model,
+                            help="if specified, the name of a model in aptapy.models to be fitted" \
+                            " to the ADC distribution")
+        parser.add_argument("--p0", type=float, nargs="+", default=defaults.p0,
+                            help="initial parameters for the fit model, if specified")
+        parser.add_argument("--xmin", type=float, default=defaults.xmin,
+                            help="lower bound of the fit range for the ADC distribution")
+        parser.add_argument("--xmax", type=float, default=defaults.xmax,
+                            help="upper bound of the fit range for the ADC distribution")
+        parser.add_argument("--iterative", action="store_true", default=defaults.iterative,
+                            help="if specified, the fit will be performed iteratively")
+        parser.add_argument("--num_sigma_left", type=float, default=defaults.num_sigma_left,
+                            help="number of sigma to the left of the peak to be " \
+                                "included in the fit")
+        parser.add_argument("--num_sigma_right", type=float, default=defaults.num_sigma_right,
+                            help="number of sigma to the right of the peak to be " \
+                                "included in the fit")
 
     def add_calibview_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the calibration view properties.

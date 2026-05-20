@@ -4,8 +4,10 @@ Release notes
 =============
 
 * Minor bug fixes to equalization calibration.
+* `quicklook` task modified to support spectrum fitting and cluster size filtering.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/138
   - https://github.com/lucabaldini/hexsample/pull/137
 
 

@@ -23,8 +23,9 @@ import inspect
 import pathlib
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union
 
+import aptapy.models
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.models import Line
@@ -874,8 +875,29 @@ class QuickLookDefaults:
     definition in this Python module and the command-line interface.
     """
 
+    size: int = -1
+    mc: bool = False
+    fit_model: Optional[str] = None
+    p0: Optional[Sequence[float]] = None
+    xmin: Optional[float] = None
+    xmax: Optional[float] = None
+    iterative: bool = False
+    num_sigma_left: float = 1.5
+    num_sigma_right: float = 1.5
 
-def quicklook(input_file_path: str) -> None:
+
+def quicklook(
+        input_file_path: str,
+        size: int = QuickLookDefaults.size,
+        mc: bool = QuickLookDefaults.mc,
+        fit_model: Optional[str] = QuickLookDefaults.fit_model,
+        p0: Optional[Sequence[float]] = QuickLookDefaults.p0,
+        xmin: Optional[float] = QuickLookDefaults.xmin,
+        xmax: Optional[float] = QuickLookDefaults.xmax,
+        iterative: bool = QuickLookDefaults.iterative,
+        num_sigma_left: float = QuickLookDefaults.num_sigma_left,
+        num_sigma_right: float = QuickLookDefaults.num_sigma_right,
+        ) -> None:
     """Quicklook at events from a recon file.
 
     .. warning::
@@ -885,21 +907,91 @@ def quicklook(input_file_path: str) -> None:
     ---------
     file_path : str
         The path to the input recon file.
+
+    size : int, optional
+        If specified, only show events with the given cluster size in the ADC and
+        energy spectra.
+
+    mc : bool, optional
+        Whether to show the Monte Carlo truth information, if available.
+
+    fit_model : str, optional
+        The name of the model to fit to the ADC distribution. The model must
+        be defined in the `aptapy.models` module.
+
+    p0 : Sequence[float], optional
+        The initial parameters to use for the fit.
+    
+    xmin : float, optional
+        The minimum x value to use for the fit.
+    
+    xmax : float, optional
+        The maximum x value to use for the fit.
+    
+    iterative : bool, optional
+        Whether to use the iterative fitting procedure, if supported by the model.
+    
+    num_sigma_left : float, optional
+        The number of sigma on the left of the peak to be used to define the
+            fitting range.
+    
+    num_sigma_right : float, optional
+        The number of sigma on the right of the peak to be used to define the
+            fitting range.
     """
+    # pylint: disable=too-many-statements
     # Open the input file
     name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     input_file = ReconInputFile(input_file_path)
+
+    # Cluster size distribution
+    cluster_size = input_file.column("cluster_size")
+    cluster_size_binning = np.arange(cluster_size.min() - 0.5, cluster_size.max() + 1.5)
+    cluster_size_histo = create_histogram(input_file, "cluster_size", mc=False,
+                                          binning=cluster_size_binning)
+    cluster_size_histo.xlabel = "Cluster size [pixels]"
+    plt.figure("Cluster size distribution")
+    cluster_size_histo.plot(label="Cluster size")
+
+    mask = cluster_size == size if size != -1 else np.ones_like(cluster_size, dtype=bool)
+    if mask.sum() == 0:
+        logger.error(f"No events with cluster size {size} found in the input file.")
+        raise RuntimeError
+    # ADC counts distribution
+    plt.figure("ADC counts distribution")
+    adc = input_file.column("adc")
+    adc_binning = np.arange(adc.min() - 0.5, adc.max() + 1.5)
+    adc_histo = create_histogram(input_file, "adc", binning=adc_binning, mask=mask)
+    if fit_model is not None:
+        model = getattr(aptapy.models, fit_model, None)
+        if model:
+            model = model()
+            logger.info(f"Fitting {fit_model} model to ADC distribution...")
+            if hasattr(model, "fit_iterative") and iterative:
+                model.fit_iterative(adc_histo, num_sigma_left=num_sigma_left,
+                                    num_sigma_right=num_sigma_right, p0=p0, xmin=xmin, xmax=xmax)
+            else:
+                model.fit(adc_histo, p0=p0, xmin=xmin, xmax=xmax)
+            model.plot(fit_output=True)
+        else:
+            logger.warning(f"Model {fit_model} not found in aptapy.models. Skipping fit.")
+    adc_histo.xlabel = "Channel"
+    adc_histo.plot(label="ADC counts")
+    plt.legend()
+
     # Plotting the reconstructed energy and the true energy
-    histo = create_histogram(input_file, "energy", mc=False)
-    mc_histo = create_histogram(input_file, "energy", mc=True, binning=histo.bin_edges())
+    energy_histo = create_histogram(input_file, "energy", mc=False, mask=mask)
     plt.figure("Photons energy")
-    histo.plot(label="Reconstructed")
-    mc_histo.plot(label="MonteCarlo")
+    if mc:
+        energy_mc_histo = create_histogram(input_file, "energy", mc=True,
+                                           binning=energy_histo.bin_edges())
+        energy_mc_histo.plot(label="MonteCarlo")
+    energy_histo.plot(label="Reconstructed")
     plt.xlabel("Energy [eV]")
     plt.legend()
 
-    # Plotting the reconstructed x and y position and the true position.
+    # Plotting the reconstructed x and y position.
     plt.figure("Reconstructed photons position")
     binning = np.linspace(-5.0 * 0.2, 5.0 * 0.2, 100)
     x = input_file.column("posx")
@@ -907,21 +999,25 @@ def quicklook(input_file_path: str) -> None:
     histo = Histogram2d(binning, binning).fill(x, y)
     histo.plot()
     setup_gca(xlabel="x [cm]", ylabel="y [cm]")
-    plt.figure("True photons position")
-    x_mc = input_file.mc_column("absx")
-    y_mc = input_file.mc_column("absy")
-    histo_mc = Histogram2d(binning, binning).fill(x_mc, y_mc)
-    histo_mc.plot()
-    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
-    # Closing the file and showing the figures.
-    plt.figure("x-direction resolution")
-    binning = np.linspace((x - x_mc).min(), (x - x_mc).max(), 100)
-    histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x - x_mc)
-    histx.plot()
-    plt.figure("y-direction resolution")
-    binning = np.linspace((y - y_mc).min(), (y - y_mc).max(), 100)
-    histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y - y_mc)
-    histy.plot()
+    # If the Monte Carlo truth is available, plot the true positions and the
+    # difference between the reconstructed and the true positions.
+    if mc:
+        plt.figure("True photons position")
+        x_mc = input_file.mc_column("absx")
+        y_mc = input_file.mc_column("absy")
+        histo_mc = Histogram2d(binning, binning).fill(x_mc, y_mc)
+        histo_mc.plot()
+
+        setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+        # Closing the file and showing the figures.
+        plt.figure("x-direction resolution")
+        binning = np.linspace((x - x_mc).min(), (x - x_mc).max(), 100)
+        histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x - x_mc)
+        histx.plot()
+        plt.figure("y-direction resolution")
+        binning = np.linspace((y - y_mc).min(), (y - y_mc).max(), 100)
+        histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y - y_mc)
+        histy.plot()
     input_file.close()
     plt.show()
 
