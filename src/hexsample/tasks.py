@@ -874,8 +874,15 @@ class QuickLookDefaults:
     definition in this Python module and the command-line interface.
     """
 
+    size: int = -1
+    mc: bool = False
 
-def quicklook(input_file_path: str) -> None:
+
+def quicklook(
+        input_file_path: str,
+        size: int = QuickLookDefaults.size,
+        mc: bool = QuickLookDefaults.mc,
+        ) -> None:
     """Quicklook at events from a recon file.
 
     .. warning::
@@ -890,16 +897,37 @@ def quicklook(input_file_path: str) -> None:
     name, args = current_call(1)
     logger.info(f"Running {__name__}.{name} with arguments {args}...")
     input_file = ReconInputFile(input_file_path)
+
+    # Cluster size distribution
+    cluster_size = input_file.column("cluster_size")
+    cluster_size_binning = np.arange(cluster_size.min() - 0.5, cluster_size.max() + 1.5)
+    cluster_size_histo = create_histogram(input_file, "cluster_size", mc=False,
+                                          binning=cluster_size_binning)
+    cluster_size_histo.xlabel = "Cluster size [pixels]"
+    plt.figure("Cluster size distribution")
+    cluster_size_histo.plot(label="Cluster size")
+
+    mask = cluster_size == size if size > 0 else np.ones_like(cluster_size, dtype=bool)
+    # ADC counts distribution
+    adc = input_file.column("adc")
+    adc_binning = np.arange(adc.min() - 0.5, adc.max() + 1.5)
+    adc_histo = create_histogram(input_file, "adc", binning=adc_binning, mask=mask)
+    adc_histo.xlabel = "Channel"
+    plt.figure("ADC counts distribution")
+    adc_histo.plot(label="ADC counts")
+
     # Plotting the reconstructed energy and the true energy
-    histo = create_histogram(input_file, "energy", mc=False)
-    mc_histo = create_histogram(input_file, "energy", mc=True, binning=histo.bin_edges())
+    energy_histo = create_histogram(input_file, "energy", mc=False, mask=mask)
     plt.figure("Photons energy")
-    histo.plot(label="Reconstructed")
-    mc_histo.plot(label="MonteCarlo")
+    if mc:
+        energy_mc_histo = create_histogram(input_file, "energy", mc=True,
+                                           binning=energy_histo.bin_edges())
+        energy_mc_histo.plot(label="MonteCarlo")
+    energy_histo.plot(label="Reconstructed")
     plt.xlabel("Energy [eV]")
     plt.legend()
 
-    # Plotting the reconstructed x and y position and the true position.
+    # Plotting the reconstructed x and y position.
     plt.figure("Reconstructed photons position")
     binning = np.linspace(-5.0 * 0.2, 5.0 * 0.2, 100)
     x = input_file.column("posx")
@@ -907,21 +935,25 @@ def quicklook(input_file_path: str) -> None:
     histo = Histogram2d(binning, binning).fill(x, y)
     histo.plot()
     setup_gca(xlabel="x [cm]", ylabel="y [cm]")
-    plt.figure("True photons position")
-    x_mc = input_file.mc_column("absx")
-    y_mc = input_file.mc_column("absy")
-    histo_mc = Histogram2d(binning, binning).fill(x_mc, y_mc)
-    histo_mc.plot()
-    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
-    # Closing the file and showing the figures.
-    plt.figure("x-direction resolution")
-    binning = np.linspace((x - x_mc).min(), (x - x_mc).max(), 100)
-    histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x - x_mc)
-    histx.plot()
-    plt.figure("y-direction resolution")
-    binning = np.linspace((y - y_mc).min(), (y - y_mc).max(), 100)
-    histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y - y_mc)
-    histy.plot()
+    # If the Monte Carlo truth is available, plot the true positions and the
+    # difference between the reconstructed and the true positions.
+    if mc:
+        plt.figure("True photons position")
+        x_mc = input_file.mc_column("absx")
+        y_mc = input_file.mc_column("absy")
+        histo_mc = Histogram2d(binning, binning).fill(x_mc, y_mc)
+        histo_mc.plot()
+
+        setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+        # Closing the file and showing the figures.
+        plt.figure("x-direction resolution")
+        binning = np.linspace((x - x_mc).min(), (x - x_mc).max(), 100)
+        histx = Histogram1d(binning, xlabel=r"$x - x_{MC}$ [cm]").fill(x - x_mc)
+        histx.plot()
+        plt.figure("y-direction resolution")
+        binning = np.linspace((y - y_mc).min(), (y - y_mc).max(), 100)
+        histy = Histogram1d(binning, xlabel=r"$y - y_{MC}$ [cm]").fill(y - y_mc)
+        histy.plot()
     input_file.close()
     plt.show()
 

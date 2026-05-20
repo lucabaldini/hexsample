@@ -191,6 +191,7 @@ class CliArgumentParser(argparse.ArgumentParser):
             help="run a quick-look analysis of a recon file",
             formatter_class=self._FORMATTER_CLASS)
         self.add_input_file(quicklook)
+        self.add_quicklook_options(quicklook)
         self.add_logging_level(quicklook)
         quicklook.set_defaults(runner=pipeline.quicklook)
 
@@ -539,6 +540,16 @@ class CliArgumentParser(argparse.ArgumentParser):
         CliArgumentParser.add_cal_pedestal_file(parser, default=default.pedestal_matrix)
         CliArgumentParser.add_cal_equalization_file(parser, default=default.equalization_matrix)
         CliArgumentParser.add_cal_position_file(parser, default=default.position_cal)
+
+    def add_quicklook_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the quicklook properties.
+        """
+        defaults = tasks.QuickLookDefaults
+        parser.add_argument("--size", type=int, default=defaults.size,
+                            help="event cluster size to be displayed in the spectra")
+        parser.add_argument("--mc", action="store_true", default=defaults.mc,
+                            help="if specified, the Monte Carlo truth information will be "
+                            "displayed along with the reconstructed one")
 
     def add_calibview_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the calibration view properties.

@@ -171,7 +171,10 @@ def quicklook(**kwargs) -> None:
     """Quicklook at events from a recon file.
     """
     input_file_path = kwargs["input_file"]
-    return tasks.quicklook(input_file_path)
+    size = kwargs.get("size", tasks.QuickLookDefaults.size)
+    mc = kwargs.get("mc", tasks.QuickLookDefaults.mc)
+    args = input_file_path, size, mc
+    return tasks.quicklook(*args)
 
 
 def mdat3_to_digi(**kwargs) -> None:
