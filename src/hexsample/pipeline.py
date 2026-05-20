@@ -173,7 +173,11 @@ def quicklook(**kwargs) -> None:
     input_file_path = kwargs["input_file"]
     size = kwargs.get("size", tasks.QuickLookDefaults.size)
     mc = kwargs.get("mc", tasks.QuickLookDefaults.mc)
-    args = input_file_path, size, mc
+    fit_model = kwargs.get("fit_model", tasks.QuickLookDefaults.fit_model)
+    p0 = kwargs.get("p0", tasks.QuickLookDefaults.p0)
+    xmin = kwargs.get("xmin", tasks.QuickLookDefaults.xmin)
+    xmax = kwargs.get("xmax", tasks.QuickLookDefaults.xmax)
+    args = input_file_path, size, mc, fit_model, p0, xmin, xmax
     return tasks.quicklook(*args)
 
 

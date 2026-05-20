@@ -23,8 +23,9 @@ import inspect
 import pathlib
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union
 
+import aptapy.models
 import numpy as np
 from aptapy.hist import Histogram1d, Histogram2d
 from aptapy.models import Line
@@ -876,12 +877,20 @@ class QuickLookDefaults:
 
     size: int = -1
     mc: bool = False
+    fit_model: Optional[str] = None
+    p0: Optional[Sequence[float]] = None
+    xmin: Optional[float] = None
+    xmax: Optional[float] = None
 
 
 def quicklook(
         input_file_path: str,
         size: int = QuickLookDefaults.size,
         mc: bool = QuickLookDefaults.mc,
+        fit_model: Optional[str] = QuickLookDefaults.fit_model,
+        p0: Optional[Sequence[float]] = QuickLookDefaults.p0,
+        xmin: Optional[float] = QuickLookDefaults.xmin,
+        xmax: Optional[float] = QuickLookDefaults.xmax,
         ) -> None:
     """Quicklook at events from a recon file.
 
@@ -912,6 +921,13 @@ def quicklook(
     adc = input_file.column("adc")
     adc_binning = np.arange(adc.min() - 0.5, adc.max() + 1.5)
     adc_histo = create_histogram(input_file, "adc", binning=adc_binning, mask=mask)
+    if fit_model is not None:
+        model = getattr(aptapy.models, fit_model, None)
+        if model:
+            logger.info(f"Fitting {fit_model} model to ADC distribution...")
+            model.fit(adc_histo, p0=p0, xmin=xmin, xmax=xmax)
+        else:
+            logger.warning(f"Model {fit_model} not found in aptapy.models. Skipping fit.")
     adc_histo.xlabel = "Channel"
     plt.figure("ADC counts distribution")
     adc_histo.plot(label="ADC counts")
