@@ -348,6 +348,10 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="element generating the line forest")
         group.add_argument("--initial_level", type=str, default=source.LineForest.initial_level,
                            help="initial level for the line forest")
+        group.add_argument("--emin", type=float, default=source.UniformSpectrum.emin,
+                           help="minimum energy of the uniform spectrum in eV")
+        group.add_argument("--emax", type=float, default=source.UniformSpectrum.emax,
+                           help="maximum energy of the uniform spectrum in eV")
         # ... morphological part...
         group.add_argument(f"--{source.BeamProxy.key()}", type=str,
                            choices=source.BeamProxy.choices(),

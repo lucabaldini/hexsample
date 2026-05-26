@@ -464,6 +464,7 @@ class HexagonalBeam(AbstractBeam):
 SpectrumProxy = TypeProxy("spectrum") # pylint: disable=invalid-name
 SpectrumProxy.register("line", Line, default=True)
 SpectrumProxy.register("forest", LineForest)
+SpectrumProxy.register("uniform", UniformSpectrum)
 
 
 # Definition of the type proxies for beam types.
