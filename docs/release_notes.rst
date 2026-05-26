@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.17.1 (2026-05-26)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Uniform spectrum added to the `source.py` module.
 * Minor bug fixes to equalization calibration.
 * Pull requests merged and issues closed:
