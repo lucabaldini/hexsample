@@ -35,6 +35,7 @@ from hexsample.source import (
     Source,
     SquareBeam,
     TriangularBeam,
+    UniformSpectrum,
 )
 
 rng.initialize()
@@ -95,6 +96,17 @@ def test_mn_k_forest():
     same energy, and the thing would require extra code to deal with that.
     """
     _test_forest("Mn", chisq_test=False)
+
+
+def test_uniform_spectrum(emin: float = 1000., emax: float = 10000., num_events: int = 10000):
+    """Test the uniform spectrum.
+    """
+    spectrum = UniformSpectrum(emin=emin, emax=emax)
+    rvs = spectrum.rvs(num_events)
+    assert len(rvs) == num_events
+    assert np.all((rvs >= emin) & (rvs <= emax))
+    plt.figure("Uniform spectrum")
+    spectrum.plot()
 
 
 def test_point_beam(x0 : float = 1., y0 : float = -1., num_photons : int = 1000):

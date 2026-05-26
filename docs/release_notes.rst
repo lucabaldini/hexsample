@@ -3,9 +3,11 @@
 Release notes
 =============
 
+* Uniform spectrum added to the `source.py` module.
 * Minor bug fixes to equalization calibration.
 * Pull requests merged and issues closed:
 
+  - https://github.com/lucabaldini/hexsample/pull/140
   - https://github.com/lucabaldini/hexsample/pull/137
 
 
