@@ -44,6 +44,7 @@ __all__ = [
     "SpectrumProxy",
     "BeamProxy",
     "Source",
+    "UniformSpectrum",
 ]
 
 
@@ -138,6 +139,37 @@ class LineForest(AbstractSpectrum):
             label = f"{name} ({y:.2e} @ {x:.0f} eV)"
             axes.text(x, 1.2 * y, label, ha="center", size="small")
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
+
+
+@dataclass
+class UniformSpectrum(AbstractSpectrum):
+
+    """Class describing a uniform X-ray energy spectrum between a minimum
+    and a maximum energy.
+
+    Arguments
+    ---------
+    emin : float
+        The minimum energy in eV.
+
+    emax : float
+        The maximum energy in eV.
+    """
+
+    emin: float = 1000.
+    emax: float = 10000.
+
+    def rvs(self, size: int = 1) -> np.ndarray:
+        """Overloaded method.
+        """
+        return rng.generator.uniform(self.emin, self.emax, size=size)
+
+    def render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
+        """Overloaded method.
+        """
+        kwargs.setdefault("color", "black")
+        axes.hlines(1., self.emin, self.emax, **kwargs)
+        setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", grids=True)
 
 
 @dataclass
