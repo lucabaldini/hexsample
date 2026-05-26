@@ -125,65 +125,65 @@ _NEIGHBORS_PROXY_DICT = {
 
 
 _N_ADC_CHANNELS = 7
-_ADC_SEQUENCE_EVEN = (0, 2, 5, 0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4)
-_ADC_SEQUENCE_ODD = (0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4, 0, 2, 5)
+_ADC_SEQUENCE_EVEN = np.array([0, 2, 5, 0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4])
+_ADC_SEQUENCE_ODD = np.array([0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4, 0, 2, 5])
 _ADC_SEQUENCE_LENGTH = len(_ADC_SEQUENCE_EVEN)
 
 
-def adc_channel_odd_r(col: int, row: int) -> int:
+def adc_channel_odd_r(col: np.ndarray, row: np.ndarray) -> np.ndarray:
     """Transformation from offset coordinates (col, row) into 7-adc channel label,
     that is an int between 0 and 6, for ODD_R grid layout.
 
     Arguments
     ---------
-    col: int
+    col: np.ndarray
         column pixel logical coordinate
-    row: int
+    row: np.ndarray
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_ODD[row % _ADC_SEQUENCE_LENGTH]
     index = (col + start) % _N_ADC_CHANNELS
     return index
 
-def adc_channel_even_r(col: int, row: int) -> int:
+def adc_channel_even_r(col: np.ndarray, row: np.ndarray) -> np.ndarray:
     """Transformation from offset coordinates (col, row) into 7-adc channel label,
     that is an int between 0 and 6, for EVEN_R grid layout.
 
     Arguments
     ---------
-    col: int
+    col: np.ndarray
         column pixel logical coordinate
-    row: int
+    row: np.ndarray
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_EVEN[row % _ADC_SEQUENCE_LENGTH]
     index = (col + start) % _N_ADC_CHANNELS
     return index
 
-def adc_channel_odd_q(col: int, row: int) -> int:
+def adc_channel_odd_q(col: np.ndarray, row: np.ndarray) -> np.ndarray:
     """Transformation from offset coordinates (col, row) into 7-adc channel label,
     that is an int between 0 and 6, for ODD_Q grid layout.
 
     Arguments
     ---------
-    col: int
+    col: np.ndarray
         column pixel logical coordinate
-    row: int
+    row: np.ndarray
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_ODD[col % _ADC_SEQUENCE_LENGTH]
     index = (row + start) % _N_ADC_CHANNELS
     return index
 
-def adc_channel_even_q(col: int, row: int) -> int:
+def adc_channel_even_q(col: np.ndarray, row: np.ndarray) -> np.ndarray:
     """Transformation from offset coordinates (col, row) into 7-adc channel label,
     that is an int between 0 and 6, for EVEN_Q grid layout.
 
     Arguments
     ---------
-    col: int
+    col: np.ndarray
         column pixel logical coordinate
-    row: int
+    row: np.ndarray
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_EVEN[col % _ADC_SEQUENCE_LENGTH]
