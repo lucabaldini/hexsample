@@ -136,9 +136,9 @@ def adc_channel_odd_r(col: np.ndarray, row: np.ndarray) -> np.ndarray:
 
     Arguments
     ---------
-    col: np.ndarray
+    col: array_like
         column pixel logical coordinate
-    row: np.ndarray
+    row: array_like
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_ODD[row % _ADC_SEQUENCE_LENGTH]
@@ -151,9 +151,9 @@ def adc_channel_even_r(col: np.ndarray, row: np.ndarray) -> np.ndarray:
 
     Arguments
     ---------
-    col: np.ndarray
+    col: array_like
         column pixel logical coordinate
-    row: np.ndarray
+    row: array_like
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_EVEN[row % _ADC_SEQUENCE_LENGTH]
@@ -166,9 +166,9 @@ def adc_channel_odd_q(col: np.ndarray, row: np.ndarray) -> np.ndarray:
 
     Arguments
     ---------
-    col: np.ndarray
+    col: array_like
         column pixel logical coordinate
-    row: np.ndarray
+    row: array_like
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_ODD[col % _ADC_SEQUENCE_LENGTH]
@@ -181,9 +181,9 @@ def adc_channel_even_q(col: np.ndarray, row: np.ndarray) -> np.ndarray:
 
     Arguments
     ---------
-    col: np.ndarray
+    col: array_like
         column pixel logical coordinate
-    row: np.ndarray
+    row: array_like
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_EVEN[col % _ADC_SEQUENCE_LENGTH]
