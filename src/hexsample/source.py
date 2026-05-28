@@ -26,6 +26,7 @@ from typing import Tuple, Union
 import matplotlib
 import numpy as np
 import xraydb
+from aptapy.models import AuForest
 from aptapy.plotting import setup_gca
 
 from . import rng
@@ -136,6 +137,40 @@ class LineForest(AbstractSpectrum):
         kwargs.setdefault("color", "black")
         axes.bar(self._energies, self._probs, **kwargs)
         for x, y, name in zip(self._energies, self._probs, self.line_dict.keys()):
+            label = f"{name} ({y:.2e} @ {x:.0f} eV)"
+            axes.text(x, 1.2 * y, label, ha="center", size="small")
+        setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
+
+
+@dataclass
+class GoldForest(AbstractSpectrum):
+
+    """Class describing a simplified gold X-ray line forest.
+
+    This forest consists of only two lines, the Lα1 and Lβ1, with relative
+    intensities adjusted to match data from X-ray tube.
+    """
+
+    def __post_init__(self) -> None:
+        """Post-initialization.
+        """
+        model = AuForest()
+        intensity = model.LB_INTENSITY
+        self._energies = np.array(model.energies) * 1000
+        self._probs = np.array([1 - intensity, intensity])
+
+    def rvs(self, size: int = 1) -> np.ndarray:
+        """Overloaded method.
+        """
+        return rng.generator.choice(self._energies, size, replace=True, p=self._probs)
+
+    def render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
+        """Overloaded method.
+        """
+        kwargs.setdefault("width", 0.01)
+        kwargs.setdefault("color", "black")
+        axes.bar(self._energies, self._probs, **kwargs)
+        for x, y, name in zip(self._energies, self._probs):
             label = f"{name} ({y:.2e} @ {x:.0f} eV)"
             axes.text(x, 1.2 * y, label, ha="center", size="small")
         setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", logy=True, grids=True)
@@ -464,6 +499,7 @@ class HexagonalBeam(AbstractBeam):
 SpectrumProxy = TypeProxy("spectrum") # pylint: disable=invalid-name
 SpectrumProxy.register("line", Line, default=True)
 SpectrumProxy.register("forest", LineForest)
+SpectrumProxy.register("gold_forest", GoldForest)
 SpectrumProxy.register("uniform", UniformSpectrum)
 
 

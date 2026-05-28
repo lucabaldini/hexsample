@@ -3,6 +3,12 @@
 Release notes
 =============
 
+* Added `GoldForest` class to the `source.py` module, containing the two
+  major gold lines (Lα and Lβ).
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/
+   
 
 Version 0.17.1 (2026-05-26)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

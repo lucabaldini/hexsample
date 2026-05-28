@@ -26,6 +26,7 @@ from hexsample.logging_ import logger
 from hexsample.source import (
     DiskBeam,
     GaussianBeam,
+    GoldForest,
     HexagonalBeam,
     Line,
     LineForest,
@@ -96,6 +97,13 @@ def test_mn_k_forest():
     same energy, and the thing would require extra code to deal with that.
     """
     _test_forest("Mn", chisq_test=False)
+
+
+def test_gold_forest():
+    """Test the gold forest.
+    """
+    plt.figure("Gold forest")
+    GoldForest().plot()
 
 
 def test_uniform_spectrum(emin: float = 1000., emax: float = 10000., num_events: int = 10000):
