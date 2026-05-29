@@ -879,8 +879,8 @@ class QuickLookDefaults:
     mc: bool = False
     fit_model: Optional[str] = None
     p0: Optional[Sequence[float]] = None
-    xmin: Optional[float] = None
-    xmax: Optional[float] = None
+    xmin: Optional[float] = -np.inf
+    xmax: Optional[float] = np.inf
     iterative: bool = False
     num_sigma_left: float = 1.5
     num_sigma_right: float = 1.5
@@ -963,6 +963,7 @@ def quicklook(
     adc = input_file.column("adc")
     adc_binning = np.arange(adc.min() - 0.5, adc.max() + 1.5)
     adc_histo = create_histogram(input_file, "adc", binning=adc_binning, mask=mask)
+    adc_histo.plot(label="ADC counts")
     if fit_model is not None:
         model = getattr(aptapy.models, fit_model, None)
         if model:
@@ -977,7 +978,6 @@ def quicklook(
         else:
             logger.warning(f"Model {fit_model} not found in aptapy.models. Skipping fit.")
     adc_histo.xlabel = "Channel"
-    adc_histo.plot(label="ADC counts")
     plt.legend()
 
     # Plotting the reconstructed energy and the true energy
