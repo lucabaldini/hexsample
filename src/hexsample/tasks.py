@@ -300,7 +300,7 @@ def reconstruct(
         equalization_matrix=equalization_matrix
         )
     if pos_recon_algorithm == "mle":
-        clustering = ClusteringHex(readout, 0, pos_recon_algorithm, recon_pars)
+        clustering = ClusteringHex(readout, -5, pos_recon_algorithm, recon_pars)
         num_neighbors = 6
     else:
         clustering = ClusteringNN(

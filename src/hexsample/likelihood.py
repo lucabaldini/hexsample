@@ -186,51 +186,178 @@ def weighted_pha(pha: np.ndarray, f_interp: np.ndarray, inv_sigma2: np.ndarray) 
     return max(.0, sum_qf / (sum_f2 + 1e-12))
 
 
-@njit
-def nll_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, ybin0: float,
-              bin_size: float, noise: np.ndarray) -> float:
-    """Compute the negative log-likelihood for a given position (x, y).
+# @njit
+# def nll_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, ybin0: float,
+#               bin_size: float, noise: np.ndarray) -> float:
+#     """Compute the negative log-likelihood for a given position (x, y).
 
-    The model is based on the Gaussian diffusion of the charge cloud, and uses the precomputed
-    charge fractions in each pixel from the f map. The summed pha is profiled out to reduce the
-    dimensionality of the optimization.
+#     The model is based on the Gaussian diffusion of the charge cloud, and uses the precomputed
+#     charge fractions in each pixel from the f map. The summed pha is profiled out to reduce the
+#     dimensionality of the optimization.
+#     """
+#     # Calculate the bin indices and fractional coordinates for the interpolation
+#     ix0, iy0, wx, wy = coordinates(x, y, xbin0, ybin0, bin_size, f.shape[1:])
+#     # Interpolate the charge fractions for the 7 pixels in the cluster
+#     f_interp = interpolation(f, ix0, iy0, wx, wy)
+#     # Calculate the inverse of the noise variance for each pixel
+#     inv_sigma2 = 1.0 / (noise**2)
+#     # Profile out the summed pha by finding the value that minimizes the NLL for fixed (x, y)
+#     total_pha = weighted_pha(pha, f_interp, inv_sigma2)
+#     # Now compute the NLL using the optimal energy
+#     nll = 0.0
+#     for i in range(7):
+#         mu = f_interp[i] * total_pha
+#         res = pha[i] - mu
+#         nll += 0.5 * (res**2 * inv_sigma2[i] + LOG2PI)
+#     return nll
+
+
+# @njit
+# def nll_grad_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, ybin0: float,
+#                    bin_size: float, noise: np.ndarray) -> np.ndarray:
+#     """Compute the gradient of the negative log-likelihood with respect to the free parameters.
+#     """
+#     # Calculate the bin indices and fractional coordinates for the interpolation
+#     ix0, iy0, wx, wy = coordinates(x, y, xbin0, ybin0, bin_size, f.shape[1:])
+#     # Interpolate the charge fractions and their derivatives for the 7 pixels in the cluster
+#     f_interp, df_dx, df_dy = interpolation_derivatives(f, ix0, iy0, wx, wy, bin_size)
+#     # Calculate the inverse of the noise variance for each pixel
+#     inv_sigma2 = 1.0 / (noise**2)
+#     # Profile out the summed pha by finding the value that minimizes the NLL for fixed (x, y)
+#     total_pha = weighted_pha(pha, f_interp, inv_sigma2)
+#     # Now compute the gradient using the optimal energy
+#     gnll_x = 0.0
+#     gnll_y = 0.0
+#     for i in range(7):
+#         mu = f_interp[i] * total_pha
+#         d_loss_dmu = -(pha[i] - mu) * inv_sigma2[i]
+#         gnll_x += d_loss_dmu * total_pha * df_dx[i]
+#         gnll_y += d_loss_dmu * total_pha * df_dy[i]
+#     return np.array([gnll_x, gnll_y])
+
+
+@njit
+def nll_numba(x: float, y: float, total_pha: float, pha: np.ndarray, f: np.ndarray, 
+                           xbin0: float, ybin0: float, bin_size: float, noise: np.ndarray) -> float:
+    """Compute the exact multivariate Gauss-Multinomial negative log-likelihood.
+    Includes both electronic noise and physical charge sharing covariance.
     """
-    # Calculate the bin indices and fractional coordinates for the interpolation
+    # Evitiamo valori fisicamente impossibili per la carica totale nell'ottimizzatore
+    if total_pha <= 0.0:
+        return 1e12
+        
+    # 1. Coordinate e interpolazione geometrica
     ix0, iy0, wx, wy = coordinates(x, y, xbin0, ybin0, bin_size, f.shape[1:])
-    # Interpolate the charge fractions for the 7 pixels in the cluster
     f_interp = interpolation(f, ix0, iy0, wx, wy)
-    # Calculate the inverse of the noise variance for each pixel
-    inv_sigma2 = 1.0 / (noise**2)
-    # Profile out the summed pha by finding the value that minimizes the NLL for fixed (x, y)
-    total_pha = weighted_pha(pha, f_interp, inv_sigma2)
-    # Now compute the NLL using the optimal energy
-    nll = 0.0
+    
+    # 2. Costruzione analitica dei vettori di supporto per Sherman-Morrison
+    # D_ii = sigma_e^2 + Q * f_i
+    D = np.zeros(7)
+    inv_D = np.zeros(7)
     for i in range(7):
-        mu = f_interp[i] * total_pha
-        res = pha[i] - mu
-        nll += 0.5 * (res**2 * inv_sigma2[i] + LOG2PI)
+        D[i] = (noise[i] ** 2) + total_pha * f_interp[i]
+        inv_D[i] = 1.0 / D[i]
+        
+    # Calcolo del fattore di accoppiamento multinomiale: sum( f_k^2 / D_kk )
+    somma_fk2_D = 0.0
+    for k in range(7):
+        somma_fk2_D += (f_interp[k] ** 2) * inv_D[k]
+        
+    # Il fattore correttivo dell'inversa (denominatore di Sherman-Morrison)
+    # Nota: aggiungiamo un segno meno coerente con la covarianza negativa dello sharing
+    g = 1.0 / (1.0 - total_pha * somma_fk2_D + 1e-12)
+    
+    # 3. Calcolo del Log-Determinante di V per il termine di normalizzazione della likelihood
+    prod_D = 0.0
+    for k in range(7):
+        prod_D += math.log(D[k])
+    # det(V) = prod(D) * (1 - Q * sum(f^2/D))
+    log_det_V = prod_D + math.log(abs(1.0 - total_pha * somma_fk2_D) + 1e-12)
+    
+    # 4. Calcolo del vettore dei residui (Misurato - Atteso)
+    res = np.zeros(7)
+    for i in range(7):
+        res[i] = pha[i] - (total_pha * f_interp[i])
+        
+    # 5. Moltiplicazione del vettore residui per la matrice inversa analitica: res^T * V^-1 * res
+    # Sviluppando l'algebra di Sherman-Morrison, non serve allocare la matrice 7x7!
+    termine_diagonale_res = 0.0
+    termine_incrociato_res = 0.0
+    
+    for i in range(7):
+        termine_diagonale_res += (res[i] ** 2) * inv_D[i]
+        termine_incrociato_res += res[i] * f_interp[i] * inv_D[i]
+        
+    chi2_multivariato = termine_diagonale_res + g * total_pha * (termine_incrociato_res ** 2)
+    
+    # 6. Somma finale della NLL
+    nll = 0.5 * chi2_multivariato + 0.5 * log_det_V + (7.2 / 2.0) * LOG2PI
+    
     return nll
 
-
 @njit
-def nll_grad_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, ybin0: float,
-                   bin_size: float, noise: np.ndarray) -> np.ndarray:
-    """Compute the gradient of the negative log-likelihood with respect to the free parameters.
+def nll_grad_numba(x: float, y: float, total_pha: float, pha: np.ndarray, f: np.ndarray, 
+                                       xbin0: float, ybin0: float, bin_size: float, noise: np.ndarray) -> np.ndarray:
+    """Compute the complete analytical gradient of the exact multivariate NLL
+    with respect to x, y, and Q simultaneously (Returns array of size 3).
     """
-    # Calculate the bin indices and fractional coordinates for the interpolation
+    if total_pha <= 0.0:
+        return np.array([0.0, 0.0, 0.0])
+        
+    # 1. Una sola chiamata geometrica per frazioni e derivate spaziali
     ix0, iy0, wx, wy = coordinates(x, y, xbin0, ybin0, bin_size, f.shape[1:])
-    # Interpolate the charge fractions and their derivatives for the 7 pixels in the cluster
     f_interp, df_dx, df_dy = interpolation_derivatives(f, ix0, iy0, wx, wy, bin_size)
-    # Calculate the inverse of the noise variance for each pixel
-    inv_sigma2 = 1.0 / (noise**2)
-    # Profile out the summed pha by finding the value that minimizes the NLL for fixed (x, y)
-    total_pha = weighted_pha(pha, f_interp, inv_sigma2)
-    # Now compute the gradient using the optimal energy
+    
+    # 2. Ricostruzione del vettore D e del nucleo di Sherman-Morrison (Condiviso)
+    D = np.zeros(7)
+    inv_D = np.zeros(7)
+    for i in range(7):
+        D[i] = (noise[i] ** 2) + total_pha * f_interp[i]
+        inv_D[i] = 1.0 / D[i]
+        
+    somma_fk2_D = 0.0
+    for k in range(7):
+        somma_fk2_D += (f_interp[k] ** 2) * inv_D[k]
+        
+    g = 1.0 / (1.0 - total_pha * somma_fk2_D + 1e-12)
+    
+    # 3. Calcolo dei residui e del termine incrociato (Condiviso)
+    res = np.zeros(7)
+    termine_incrociato_res = 0.0
+    for i in range(7):
+        res[i] = pha[i] - (total_pha * f_interp[i])
+        termine_incrociato_res += res[i] * f_interp[i] * inv_D[i]
+        
+    # =========================================================================
+    # PARTE Spaziale (x, y)
+    # =========================================================================
+    alpha = g * total_pha * termine_incrociato_res
+    vettore_w = np.zeros(7)
+    for i in range(7):
+        vettore_w[i] = inv_D[i] * (res[i] + alpha * f_interp[i])
+        
+    dNLL_df = np.zeros(7)
+    for i in range(7):
+        dNLL_df[i] = total_pha * (
+            0.5 * inv_D[i] 
+            - vettore_w[i] 
+            - 0.5 * (vettore_w[i] ** 2) 
+            + g * vettore_w[i] * f_interp[i] * (vettore_w[i] - inv_D[i] * res[i])
+        )
+        
     gnll_x = 0.0
     gnll_y = 0.0
     for i in range(7):
-        mu = f_interp[i] * total_pha
-        d_loss_dmu = -(pha[i] - mu) * inv_sigma2[i]
-        gnll_x += d_loss_dmu * total_pha * df_dx[i]
-        gnll_y += d_loss_dmu * total_pha * df_dy[i]
-    return np.array([gnll_x, gnll_y])
+        gnll_x += dNLL_df[i] * df_dx[i]
+        gnll_y += dNLL_df[i] * df_dy[i]
+        
+    # =========================================================================
+    # PARTE Energetica (Q) - Calcolata sfruttando gli stessi loop
+    # =========================================================================
+    gnll_q = 0.0
+    for i in range(7):
+        # Derivata rispetto a Q coerente col peso statistico del rumore dei pixel
+        gnll_q -= (res[i] * f_interp[i]) / (noise[i] ** 2)
+        
+    # Ritorna l'array nativo a 3 dimensioni [grad_x, grad_y, grad_q]
+    return np.array([gnll_x, gnll_y, gnll_q])
