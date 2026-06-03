@@ -997,16 +997,23 @@ def calibview(
         f"lower_quantile={lower_quantile}, upper_quantile={upper_quantile}"
     )
     logger.info(f"Number of calibrated pixels after quality cuts: {np.sum(mask)}")
+    mask  = mask & (matrix.values >= lower_bound) & (matrix.values <= upper_bound)
     # Plot the values matrix.
     plt.figure(f"Calibrated matrix: {matrix.metadata['file_name']}")
     plt.imshow(matrix.values, origin="upper", vmin=lower_bound, vmax=upper_bound)
     plt.xlabel("Column")
     plt.ylabel("Row")
     plt.colorbar(label=unit)
+    # Plot the entries matrix.
+    plt.figure(f"Entries matrix: {matrix.metadata['file_name']}")
+    plt.imshow(matrix.entries, origin="upper")
+    plt.xlabel("Column")
+    plt.ylabel("Row")
+    plt.colorbar(label="Entries")
     # Plot the distribution of the calibrated values.
     vals = matrix.values.flatten()[mask.flatten()]
     edges = np.linspace(lower_bound, upper_bound, 100)
-    vals_hist = Histogram1d(edges, label="Distribution", xlabel=unit).fill(vals)
+    vals_hist = Histogram1d(edges, label="Values distribution", xlabel=unit).fill(vals)
     plt.figure("Distribution of calibrated values")
     vals_hist.plot(statistics=True)
     plt.legend()
@@ -1051,10 +1058,10 @@ def calibview(
         plt.xlabel(f"Calibrated values [{unit}]")
         plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
         # Plot the residuals distribution.
-        residuals = (vals - mc_vals[mask.flatten()]) / mc_vals[mask.flatten()]
+        residuals = vals - mc_vals[mask.flatten()]
         residual_edges = np.linspace(np.nanmin(residuals), np.nanmax(residuals), 100)
         residual_hist = Histogram1d(
-            residual_edges, label="Residuals", xlabel="Relative Residual"
+            residual_edges, label="Residuals distribution", xlabel=f"Residuals [{unit}]"
         ).fill(residuals)
         plt.figure("Relative residuals distribution")
         residual_hist.plot(statistics=True)

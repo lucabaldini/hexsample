@@ -297,12 +297,17 @@ class ClusteringNN(ClusteringBase):
             # and applying pedestal and gain correction.
             pha = (event.pha[adc_channel_order] - pedestal(col, row)) / gain(col, row)
         elif isinstance(event, DigiEventRectangular):
+            rows, cols = np.mgrid[event.roi.min_row:event.roi.max_row + 1,
+                      event.roi.min_col:event.roi.max_col + 1]
+            cols = cols.flatten()
+            rows = rows.flatten()
+            event.pha = event.pha - pedestal(cols.ravel(), rows.ravel()).reshape(event.roi.shape())
             seed_coords = event.highest_pixel()
             if self.readout.is_at_border(*seed_coords):
                 return None
             neigh_coords = self.readout.neighbors(*seed_coords)
             col, row = np.vstack((seed_coords, neigh_coords)).T
-            pha = (event(col, row) - pedestal(col, row)) / gain(col, row)
+            pha = event(col, row) / gain(col, row)
         else:
             raise RuntimeError(f"Unsupported event type {type(event)} for clustering")
         # Zero suppressing the event (whatever the readout type)...
