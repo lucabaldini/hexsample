@@ -249,12 +249,13 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         pha = np.empty(self.NUM_PIXELS)
         coords = np.empty((self.NUM_PIXELS, 2), dtype=int)
         # Implementing 1% crosstalk from the central pixel to its neighbors
-        pha[adc_max] = sparse_signal[coord_max] * 0.94
+        CROSSTALK = 0.0
+        pha[adc_max] = sparse_signal[coord_max] * (1 - 6 * CROSSTALK)
         coords[adc_max] = coord_max
         # ... identifying the 6 neighbors of the central pixel and saving the signal pixels
         # prepending the coordinates of the highest one...
         for _coords in self.neighbors(*coord_max):
-            pha[self.adc_channel(*_coords)] = sparse_signal[_coords] + sparse_signal[coord_max] * 0.01
+            pha[self.adc_channel(*_coords)] = sparse_signal[_coords] + sparse_signal[coord_max] * CROSSTALK
             coords[self.adc_channel(*_coords)] = _coords
         # Not sure the trigger is needed, the highest px passed
         # necessarily the trigger or there is no event
