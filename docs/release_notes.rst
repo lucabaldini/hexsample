@@ -9,9 +9,10 @@ Version 0.17.1 (2026-05-26)
 
 * Uniform spectrum added to the `source.py` module.
 * Minor bug fixes to equalization calibration.
+* `quicklook` task modified to support spectrum fitting and cluster size filtering.
 * Pull requests merged and issues closed:
 
-  - https://github.com/lucabaldini/hexsample/pull/140
+  - https://github.com/lucabaldini/hexsample/pull/138
   - https://github.com/lucabaldini/hexsample/pull/137
 
 

@@ -249,7 +249,7 @@ class HexagonalReadoutCircular(HexagonalReadoutBase):
         pha = np.empty(self.NUM_PIXELS)
         coords = np.empty((self.NUM_PIXELS, 2), dtype=int)
         # Implementing 1% crosstalk from the central pixel to its neighbors
-        CROSSTALK = 0.015
+        CROSSTALK = 0.0
         pha[adc_max] = sparse_signal[coord_max] * (1 - 6 * CROSSTALK)
         coords[adc_max] = coord_max
         # ... identifying the 6 neighbors of the central pixel and saving the signal pixels

@@ -171,7 +171,18 @@ def quicklook(**kwargs) -> None:
     """Quicklook at events from a recon file.
     """
     input_file_path = kwargs["input_file"]
-    return tasks.quicklook(input_file_path)
+    size = kwargs.get("size", tasks.QuickLookDefaults.size)
+    mc = kwargs.get("mc", tasks.QuickLookDefaults.mc)
+    fit_model = kwargs.get("fit_model", tasks.QuickLookDefaults.fit_model)
+    p0 = kwargs.get("p0", tasks.QuickLookDefaults.p0)
+    xmin = kwargs.get("xmin", tasks.QuickLookDefaults.xmin)
+    xmax = kwargs.get("xmax", tasks.QuickLookDefaults.xmax)
+    iterative = kwargs.get("iterative", tasks.QuickLookDefaults.iterative)
+    num_sigma_left = kwargs.get("num_sigma_left", tasks.QuickLookDefaults.num_sigma_left)
+    num_sigma_right = kwargs.get("num_sigma_right", tasks.QuickLookDefaults.num_sigma_right)
+    args = input_file_path, size, mc, fit_model, p0, xmin, xmax, iterative, \
+        num_sigma_left, num_sigma_right
+    return tasks.quicklook(*args)
 
 
 def mdat3_to_digi(**kwargs) -> None:
