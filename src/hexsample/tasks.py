@@ -948,8 +948,11 @@ def quicklook(
     # Cluster size distribution
     cluster_size = input_file.column("cluster_size")
     cluster_size_binning = np.arange(cluster_size.min() - 0.5, cluster_size.max() + 1.5)
-    cluster_size_histo = create_histogram(input_file, "cluster_size", mc=False,
-                                          binning=cluster_size_binning)
+    # cluster_size_histo = create_histogram(input_file, "cluster_size", mc=False,
+    #                                       binning=cluster_size_binning)
+    cluster_size_h = np.histogram(cluster_size, bins=cluster_size_binning, density=True)
+    cluster_size_histo = Histogram1d(cluster_size_binning)
+    cluster_size_histo.set_content(cluster_size_h[0])
     cluster_size_histo.xlabel = "Cluster size [pixels]"
     plt.figure("Cluster size distribution")
     cluster_size_histo.plot(label="Cluster size")
