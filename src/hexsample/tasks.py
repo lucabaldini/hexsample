@@ -416,7 +416,7 @@ def calibrate_position(
     readout = create_readout(readout_mode, header, *readout_args)
     # To correctly analyze every type of event, we need a zero suppression threshold
     # of 0, because the calibration should be performed on zero-noise simulations.
-    clustering = ClusteringHex(readout, zero_sup_threshold=0.)
+    clustering = ClusteringHex(readout, zero_sup_threshold=-5.)
     clustering_nn = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold,
                                  num_neighbors=6, pos_recon_algorithm="centroid")
     # Initialize the position calibrator and run the event loop.

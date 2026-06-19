@@ -386,7 +386,6 @@ def mle(
     m.limits["x"] = (xmin, xmax)
     m.limits["y"] = (ymin, ymax)
     m.limits["q"] = (np.sum(pha) * 0.5, np.sum(pha) * 1.5) 
-    # m.fixed["q"] = True
     # Set the initial step sizes for the minimizer. We choose half the bin
     # size as default value. This value is automatically adjusted by the
     # minimizer during the fit, so it is not critical to choose a very
