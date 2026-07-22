@@ -25,8 +25,10 @@ classifiers = [
 ]
 authors = [
   { name = "Luca Baldini", email = "luca.baldini@unipi.it" },
-  { name = "Chiara Tomaiuolo", email = "chiaratomaiuolo98@gmail.com"},
-  { name = "Augusto Cattafesta", email = "a.cattafesta@studenti.unipi.it"}
+  { name = "Augusto Cattafesta", email = "a.cattafesta@studenti.unipi.it" },
+  { name = "Juan Sebastian Hincapie Tarquino", email = "sebastian.hincapie@pi.infn.it" },
+  { name = "Eleonora Ravera", email = "eleonora.ravera@pi.infn.it" },
+  { name = "Chiara Tomaiuolo", email = "chiaratomaiuolo98@gmail.com" }
   ]
 
 # start-deps (do not remove this, as it is used in a sphinx literalinclude)
