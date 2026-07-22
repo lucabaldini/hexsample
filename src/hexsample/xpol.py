@@ -17,22 +17,58 @@
 # with this program; if not, write to the Free Software Foundation Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-"""Quantities related to the XPOL readout chip.
+"""Quantities related to the family of XPOL readout chips.
 """
+
+from dataclasses import dataclass
+from typing import Tuple
 
 from .hexagon import HexagonalLayout
 from .roi import Padding
 
-# Chip size for the two generations.
-XPOL1_SIZE = (300, 352)
-XPOL1_LAYOUT = HexagonalLayout.EVEN_R
 
-XPOL3_SIZE = (304, 352)
-XPOL3_LAYOUT = HexagonalLayout.ODD_R
+@dataclass(frozen=True)
+class XPOL1:
 
-# Pixel pitch in cm.
-XPOL_PITCH = 0.005
+    """XPOL1 chip properties.
+    """
 
-# Convenience constants for the XPOL1 default paddings.
-XPOL1_SMALL_PADDING = Padding(10, 8, 10, 8)
-XPOL1_LARGE_PADDING = Padding(20, 16, 20, 16)
+    size: Tuple[int, int] = (300, 352)
+    layout: HexagonalLayout = HexagonalLayout.EVEN_R
+    pitch: float = 0.005
+    small_padding: Padding = Padding(10, 8, 10, 8)
+    large_padding: Padding = Padding(20, 16, 20, 16)
+
+
+@dataclass(frozen=True)
+class XPOL3:
+
+    """XPOL3 chip properties.
+    """
+
+    size: Tuple[int, int] = (304, 352)
+    layout: HexagonalLayout = HexagonalLayout.ODD_R
+    pitch: float = 0.005
+
+
+
+_XPOL_DICT = {
+    "xpol1": XPOL1,
+    "xpol3": XPOL3,
+}
+
+
+def chip_names() -> Tuple[str, ...]:
+    """Return a tuple containing all the possible XPOL chip names.
+    """
+    return tuple(_XPOL_DICT.keys())
+
+
+def chip_descriptor(name: str):
+    """Return the XPOL chip readout descriptor corresponding to the given name.
+    """
+    try:
+        return _XPOL_DICT[name]
+    except KeyError as err:
+        raise ValueError(f"Unknown XPOL chip name: {name!r}. "
+            f"Valid names are: {', '.join(chip_names())}.") from err

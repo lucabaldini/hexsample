@@ -44,6 +44,7 @@ __all__ = [
     "SpectrumProxy",
     "BeamProxy",
     "Source",
+    "UniformSpectrum",
 ]
 
 
@@ -141,6 +142,37 @@ class LineForest(AbstractSpectrum):
 
 
 @dataclass
+class UniformSpectrum(AbstractSpectrum):
+
+    """Class describing a uniform X-ray energy spectrum between a minimum
+    and a maximum energy.
+
+    Arguments
+    ---------
+    emin : float
+        The minimum energy in eV.
+
+    emax : float
+        The maximum energy in eV.
+    """
+
+    emin: float = 1000.
+    emax: float = 10000.
+
+    def rvs(self, size: int = 1) -> np.ndarray:
+        """Overloaded method.
+        """
+        return rng.generator.uniform(self.emin, self.emax, size=size)
+
+    def render(self, axes: matplotlib.axes.Axes, **kwargs) -> None:
+        """Overloaded method.
+        """
+        kwargs.setdefault("color", "black")
+        axes.hlines(1., self.emin, self.emax, **kwargs)
+        setup_gca(xlabel="Energy [eV]", ylabel="Relative intensity", grids=True)
+
+
+@dataclass
 class AbstractBeam(AbstractRandomGenerator):
 
     """Abstract base class for all the X-ray beam shapes.
@@ -182,6 +214,64 @@ class PointBeam(AbstractBeam):
         """
         x = np.full(size, self.x0)
         y = np.full(size, self.y0)
+        return x, y
+
+
+@dataclass
+class SquareBeam(AbstractBeam):
+
+    """Square uniform X-ray beam.
+
+    Arguments
+    ---------
+    x0 : float
+        The x-coordinate of the beam centroid in cm.
+
+    y0 : float
+        The y-coordinate of the beam centroid in cm.
+
+    side : float
+        The square width in cm.
+    """
+
+    side: float = 1.52
+
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+        """Overloaded method.
+        """
+        x = rng.generator.uniform(self.x0 - self.side/2., self.x0 + self.side/2., size=size)
+        y = rng.generator.uniform(self.y0 - self.side/2., self.y0 + self.side/2., size=size)
+        return x, y
+
+
+@dataclass
+class RectangleBeam(AbstractBeam):
+
+    """Rectangle uniform X-ray beam.
+
+    Arguments
+    ---------
+    x0 : float
+        The x-coordinate of the beam centroid in cm.
+
+    y0 : float
+        The y-coordinate of the beam centroid in cm.
+    
+    width : float
+        The rectangle width in cm.
+    
+    height : float
+        The rectangle height in cm.
+    """
+
+    width: float = 1.52
+    height: float = 1.52
+
+    def rvs(self, size: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+        """Overloaded method.
+        """
+        x = rng.generator.uniform(self.x0 - self.width/2., self.x0 + self.width/2., size=size)
+        y = rng.generator.uniform(self.y0 - self.height/2., self.y0 + self.height/2., size=size)
         return x, y
 
 
@@ -374,6 +464,7 @@ class HexagonalBeam(AbstractBeam):
 SpectrumProxy = TypeProxy("spectrum") # pylint: disable=invalid-name
 SpectrumProxy.register("line", Line, default=True)
 SpectrumProxy.register("forest", LineForest)
+SpectrumProxy.register("uniform", UniformSpectrum)
 
 
 # Definition of the type proxies for beam types.
@@ -384,6 +475,8 @@ BeamProxy.register("gaussian", GaussianBeam, default=True)
 BeamProxy.register("slit", SlitBeam)
 BeamProxy.register("triangular", TriangularBeam)
 BeamProxy.register("hexagonal", HexagonalBeam)
+BeamProxy.register("square", SquareBeam)
+BeamProxy.register("rectangle", RectangleBeam)
 
 
 @dataclass

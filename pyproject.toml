@@ -37,12 +37,16 @@ dependencies = [
     "numpy",
     "pydata-sphinx-theme",
     "scipy",
+    "h5py",
     "tables",
     "tqdm",
     "uncertainties",
     "xraydb",
     "aptapy>=0.18.0",
     "scikit-image",
+    "iminuit",
+    "joblib",
+    "numba",
   ]
 
 [project.optional-dependencies]

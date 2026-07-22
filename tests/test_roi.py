@@ -16,6 +16,7 @@
 """Test suite for hexsample.roi
 """
 
+import numpy as np
 
 from hexsample.roi import Padding, RegionOfInterest
 
@@ -76,3 +77,18 @@ def test_roi_comparison():
     roi3 = RegionOfInterest(10, 13, 20, 23, Padding(0, 0, 0, 0))
     assert roi1 == roi2
     assert roi1 != roi3
+
+
+def test_rot():
+    """Test the outer_mask method of the RegionOfInterest class.
+    """
+    roi = RegionOfInterest(10, 20, 20, 30, Padding(2, 2, 2, 2))
+    rot_mask = roi.rot_mask()
+    outer_mask = roi.outer_mask(margin=0)
+    assert np.array_equal(rot_mask, ~outer_mask)
+    outer_mask = roi.outer_mask(margin=1)
+    assert not np.array_equal(rot_mask, ~outer_mask)
+    outer_mask = roi.outer_mask(margin=10)
+    assert np.array_equal(outer_mask, np.zeros(roi.shape(), dtype=bool))
+    outer_mask = roi.outer_mask(margin=-5)
+    assert np.array_equal(outer_mask, np.ones(roi.shape(), dtype=bool))
