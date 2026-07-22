@@ -3,6 +3,10 @@
 Release notes
 =============
 
+
+Version 0.17.2 (2026-07-22)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Eleonora and Juan Sebastian added to the team.
 * Pull requests merged and issues closed:
 
