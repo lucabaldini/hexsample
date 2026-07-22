@@ -4,6 +4,16 @@ Release notes
 =============
 
 
+Version 0.17.2 (2026-07-22)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Eleonora and Juan Sebastian added to the team.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/143
+  - https://github.com/lucabaldini/hexsample/issues/142
+
+
 Version 0.17.1 (2026-05-26)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -54,7 +64,7 @@ Version 0.16.3 (2026-05-14)
   - https://github.com/lucabaldini/hexsample/pull/135
   - https://github.com/lucabaldini/hexsample/pull/134
   - https://github.com/lucabaldini/hexsample/issues/133
-  - https://github.com/lucabaldini/hexsample/issues/125  
+  - https://github.com/lucabaldini/hexsample/issues/125
 
 
 Version 0.16.2 (2026-05-12)
@@ -78,7 +88,7 @@ Version 0.16.2 (2026-05-12)
 * Added `calibspec` CLI command to create a source spectrum PDF file from a reconstructed event
   file. The PDF is saved as a `.npz` file.
 * New `adc` method to calculate the total ADC counts of the event added to `ReconEvent`. Now a
-  reconstructed file contains both the ADC counts and the energy in eV of the events (if the 
+  reconstructed file contains both the ADC counts and the energy in eV of the events (if the
   conversion factor from ADC to eV is available in the equalization calibration file).
 * New `energy` method to calculate the total energy of the event added to `Cluster`. The
   conversion factor from ADC to eV is passed by `ClusteringNN`.
