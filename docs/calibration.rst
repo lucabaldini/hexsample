@@ -1,28 +1,28 @@
-:mod:`~hexsample.calibration` 
+:mod:`~hexsample.calibration`
 ==========================================
 
 The :mod:`hexsample.calibration` module provides the data structures and algorithms required to calibrate the detector. It defines a common format for representing calibration results and provides facilities for saving calibration data to, and loading them from, HDF5 files.
 
-The module contains fourteen classes that can be divided into three main categories. 
+The module contains fourteen classes that can be divided into three main categories.
 
 1) Enumerations and metadata
 -------------------------
 
 These classes define a common vocabulary for describing calibration products, including the calibration type, the associated metadata, and the corresponding units of measurement. They do not perform any calibration themselves.
 
-* ``CalibrationType``
-* ``CalibrationMetadata``
-* ``PositionCalibrationMetadata``
-* ``CalibrationUnits``
+* :class:`~hexsample.calibration.CalibrationType`
+* :class:`~hexsample.calibration.CalibrationMetadata`
+* :class:`~hexsample.calibration.PositionCalibrationMetadata`
+* :class:`~hexsample.calibration.CalibrationUnits`
 
 2) Calibration result containers
 -----------------------------
 
 These classes define how calibration results are represented and stored.
 
-* ``CalibrationBase``
-* ``CalibrationMatrix``
-* ``PositionCalibrationData``
+* :class:`~hexsample.calibration.CalibrationBase`
+* :class:`~hexsample.calibration.CalibrationMatrix`
+* :class:`~hexsample.calibration.PositionCalibrationData`
 
 Most pixel-based calibrations use ``CalibrationMatrix``, which organizes the calibration values, uncertainties, and number of entries into arrays matching the detector geometry. Position-reconstruction calibration is an exception and uses ``PositionCalibrationData``, since its results cannot be represented by a single value for each detector pixel.
 
@@ -31,15 +31,15 @@ Both data containers inherit from ``CalibrationBase``, which provides common fun
 
 3) Calibration algorithms
 ----------------------
-These classes implement the procedures used to produce calibration results. 
+These classes implement the procedures used to produce calibration results.
 
-* ``CalibrateBase``
-* ``CalibrateNoise``
-* ``CalibrateDark``
-* ``CalibrateEqualization``
-* ``CalibrateGain``
-* ``CalibrateENC``
-* ``CalibratePosition``
+* :class:`~hexsample.calibration.CalibrateBase`
+* :class:`~hexsample.calibration.CalibrateNoise`
+* :class:`~hexsample.calibration.CalibrateDark`
+* :class:`~hexsample.calibration.CalibrateEqualization`
+* :class:`~hexsample.calibration.CalibrateGain`
+* :class:`~hexsample.calibration.CalibrateENC`
+* :class:`~hexsample.calibration.CalibratePosition`
 
 Depending on the type of calibration, they either analyze detector events and progressively accumulate information (``CalibrateNoise``, ``CalibrateDark``, ``CalibrateEqualization``, and ``CalibratePosition``) or combine the results of previous calibrations (``CalibrateGain`` and ``CalibrateENC``).
 
@@ -96,13 +96,13 @@ CalibrateEqualization
 ~~~~~~~~~~~~~
 ``CalibrateEqualization`` estimates the pixel-to-pixel response variations of the detector using preprocessed event clusters. Each event is passed to ``analyze_cluster()`` as a ``Cluster`` object containing the coordinates and PHA values of the pixels identified as belonging to the signal. This allows the equalization algorithms to operate on data for which the pedestal has already been subtracted and a noise-dependent zero-suppression threshold has already been applied.
 
-Two equalization algorithms are available: ``relative`` and ``absolute``. 
+Two equalization algorithms are available: ``relative`` and ``absolute``.
 * The ``relative`` algorithm measures relative pixel-to-pixel response variations using only single-pixel clusters, for which the signal is assumed to be entirely contained within one pixel. For each pixel, it calculates the mean PHA of the selected events. These pixel means are then normalized by their detector-wide average, producing equalization values with a mean of one over the calibrated pixels.
 * The ``absolute`` algorithm uses both single-pixel and multi-pixel clusters. It performs a likelihood fit that compares the equalized total PHA of each event with the known probability density function of the calibration-source spectrum. The equalization factors of multiple pixels are fitted simultaneously within overlapping regions of the detector. Unlike the ``relative`` algorithm, it can therefore use charge-sharing events and determine the global conversion factor from ADC counts to energy. This method requires a ``SpectrumPDF`` describing the source spectrum and is computationally more demanding.
 
 .. note::
 
-   Some of the functions used by the ``absolute`` equalization algorithm are defined at module level rather than as methods of ``CalibrateEqualization``. This allows the block fits to be serialized and executed in parallel. 
+   Some of the functions used by the ``absolute`` equalization algorithm are defined at module level rather than as methods of ``CalibrateEqualization``. This allows the block fits to be serialized and executed in parallel.
 
 CalibrateGain
 ~~~~~~~~~~~~~
@@ -110,12 +110,12 @@ CalibrateGain
 
 .. warning::
 
-   The gain has a physically meaningful absolute scale only when the input matrix was produced using the ``absolute`` equalization algorithm. 
+   The gain has a physically meaningful absolute scale only when the input matrix was produced using the ``absolute`` equalization algorithm.
 
 
 CalibrateENC
 ~~~~~~~~~~~~
-``CalibrateENC`` calculate the equivalent noise charge of each pixel from the noise and gain calibration matrices. The ENC, expressed in electrons, is obtained as the ratio between the RMS noise, expressed in ADC counts, and the pixel gain, expressed in ADC counts per electron. 
+``CalibrateENC`` calculate the equivalent noise charge of each pixel from the noise and gain calibration matrices. The ENC, expressed in electrons, is obtained as the ratio between the RMS noise, expressed in ADC counts, and the pixel gain, expressed in ADC counts per electron.
 
 
 
