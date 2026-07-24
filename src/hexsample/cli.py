@@ -23,7 +23,21 @@
 import argparse
 
 from hexsample import __name__ as __package_name__
-from hexsample import __version__, hexagon, logging_, pipeline, readout, roi, sensor, source, tasks
+from hexsample import (
+    __version__,
+    caldb,
+    calibration,
+    hexagon,
+    logging_,
+    pdf,
+    pipeline,
+    readout,
+    roi,
+    sensor,
+    source,
+    tasks,
+    xpol,
+)
 
 
 def start_message() -> None:
@@ -55,6 +69,7 @@ class _Formatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaults
     """
 
 
+# pylint: disable=too-many-public-methods
 class CliArgumentParser(argparse.ArgumentParser):
 
     """Application-wide argument parser.
@@ -99,41 +114,76 @@ class CliArgumentParser(argparse.ArgumentParser):
         recon.set_defaults(runner=pipeline.reconstruct)
 
         # Run the chip calibration?
-        calibrate = subparsers.add_parser("calibrate",
-            help="run chip calibration tasks",
+        calibrate = subparsers.add_parser("calibgen",
+            help="generate detector calibration files",
             formatter_class=self._FORMATTER_CLASS)
-
         calibrate_subparsers = calibrate.add_subparsers(required=True, help="calibration mode")
-        # Eta function calibration
-        eta = calibrate_subparsers.add_parser("eta", help="calibrate the eta function")
-        self.add_input_file(eta)
-        self.add_num_bins(eta, default=tasks.CalibrationEtaDefaults.num_bins)
-        self.add_zero_sup_threshold(eta, default=tasks.CalibrationEtaDefaults.zero_sup_threshold)
-        self.add_logging_level(eta)
-        eta.set_defaults(runner=pipeline.calibrate_eta)
+
+        # Dark calibration
+        dark = calibrate_subparsers.add_parser("dark", help="calibrate the chip noise and pedestal")
+        self.add_input_file(dark)
+        self.add_calibrate_dark_options(dark)
+        self.add_logging_level(dark)
+        dark.set_defaults(runner=pipeline.calibrate_dark)
+        # ENC calibration
+        enc = calibrate_subparsers.add_parser("enc", help="calibrate the chip ENC")
+        self.add_enc_calibration_options(enc)
+        self.add_logging_level(enc)
+        enc.set_defaults(runner=pipeline.calibrate_enc)
+        # Pixel equalization calibration
+        equalization = calibrate_subparsers.add_parser("equalization",
+                                                    help="calibrate the chip pixel equalization")
+        self.add_input_file(equalization)
+        self.add_calibrate_equalization_options(equalization)
+        self.add_logging_level(equalization)
+        equalization.set_defaults(runner=pipeline.calibrate_equalization)
+        # Gain calibration
+        gain = calibrate_subparsers.add_parser("gain", help="calibrate the chip gain")
+        self.add_gain_calibration_options(gain)
+        self.add_logging_level(gain)
+        gain.set_defaults(runner=pipeline.calibrate_gain)
         # Noise calibration
         noise = calibrate_subparsers.add_parser("noise", help="calibrate the chip noise")
         self.add_input_file(noise)
         self.add_logging_level(noise)
         noise.set_defaults(runner=pipeline.calibrate_noise)
-        # Gain calibration
-        gain = calibrate_subparsers.add_parser("gain", help="calibrate the chip gain")
-        self.add_input_file(gain)
-        self.add_energy(gain)
-        self.add_num_events(gain, default=tasks.CalibrationGainDefaults.num_events,
-                            intent="used for the gain calibration")
-        self.add_enc(gain, default=tasks.CalibrationGainDefaults.enc)
-        self.add_zero_sup_threshold(gain, default=tasks.CalibrationGainDefaults.zero_sup_threshold)
-        self.add_logging_level(gain)
-        gain.set_defaults(runner=pipeline.calibrate_gain)
+        # Position reconstruction calibration
+        position = calibrate_subparsers.add_parser("position",
+                                    help="calibrate the position reconstruction algorithms")
+        self.add_input_file(position)
+        self.add_calibrate_position_options(position)
+        self.add_logging_level(position)
+        position.set_defaults(runner=pipeline.calibrate_position)
+        # Synthesize calibration files
+        synthesize = calibrate_subparsers.add_parser("synthesize",
+            help="generate synthetic calibration files")
+        self.add_synthesize_calibration_file_options(synthesize)
+        self.add_logging_level(synthesize)
+        synthesize.set_defaults(runner=pipeline.synthesize_calibration_file)
+
+        # Fit a spectrum to generate a PDF for the gain calibration?
+        calibspec = subparsers.add_parser("calibspec",
+            help="generate a pdf from a spectrum to use in the gain calibration",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_input_file(calibspec)
+        self.add_logging_level(calibspec)
+        calibspec.set_defaults(runner=pipeline.calibspec)
+
+        # Inspect a calibration matrix?
+        calibview = subparsers.add_parser("calibview",
+            help="inspect a calibration matrix",
+            formatter_class=self._FORMATTER_CLASS)
+        self.add_calibview_options(calibview)
+        self.add_logging_level(calibview)
+        calibview.set_defaults(runner=pipeline.calibview)
 
         # Run the single-event display?
         display = subparsers.add_parser("display",
             help="run the single-event display",
             formatter_class=self._FORMATTER_CLASS)
         self.add_input_file(display)
-        self.add_logging_level(display)
         self.add_display_options(display)
+        self.add_logging_level(display)
         display.set_defaults(runner=pipeline.display)
 
         # Run the quicklook?
@@ -203,32 +253,78 @@ class CliArgumentParser(argparse.ArgumentParser):
                             help="suffix for the output file")
 
     @staticmethod
-    def add_energy(parser: argparse.ArgumentParser) -> None:
-        """Add an option for the energy of the X-ray photons.
-        """
-        parser.add_argument("energy", type=float,
-                            help="line energy in eV")
-
-    @staticmethod
-    def add_enc(parser: argparse.ArgumentParser, default: int) -> None:
-        """Add an option for the equivalent noise charge of the readout.
-        """
-        parser.add_argument("--enc", type=int, default=default,
-                            help="equivalent noise charge in electrons")
-
-    @staticmethod
     def add_num_bins(parser: argparse.ArgumentParser, default: int) -> None:
-        """Add an option for the number of bins to be used in the eta function calibration.
+        """Add an option for the number of bins to be used in different calibrations.
         """
         parser.add_argument("--num_bins", type=int, default=default,
-                            help="number of bins to be used in the eta function calibration")
+                            help="number of bins to be used in the calibration")
 
     @staticmethod
-    def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: int) -> None:
+    def add_zero_sup_threshold(parser: argparse.ArgumentParser, default: float) -> None:
         """Add an option for the zero-suppression threshold.
         """
-        parser.add_argument("--zero_sup_threshold", type=int, default=default,
-                            help="zero-suppression threshold in ADC counts")
+        parser.add_argument("--zero_sup_threshold", type=float, default=default,
+                            help="zero-suppression threshold expressed as sigma of noise")
+
+    @staticmethod
+    def add_cal_enc_file(parser: argparse.ArgumentParser, default: str,
+                         required: bool = False) -> None:
+        """Add an option for the ENC calibration file.
+        """
+        parser.add_argument("--enc", type=caldb.CalDB.open_enc, default=default,
+                            required=required, help="path to a file containing the ENC " \
+                            "calibration data or name of a calibration file inside the " \
+                            "caldb/enc folder.")
+
+    @staticmethod
+    def add_cal_noise_file(parser: argparse.ArgumentParser, default: str,
+                           required: bool = False) -> None:
+        """Add an option for the noise calibration file.
+        """
+        parser.add_argument("--noise", type=caldb.CalDB.open_noise, default=default,
+                            required=required, help="path to a file containing the noise " \
+                            "calibration data or name of a calibration file inside the " \
+                            "caldb/noise folder.")
+
+    @staticmethod
+    def add_cal_pedestal_file(parser: argparse.ArgumentParser, default: str,
+                              required: bool = False) -> None:
+        """Add an option for the pedestal calibration file.
+        """
+        parser.add_argument("--pedestal", type=caldb.CalDB.open_pedestal, default=default,
+                            required=required, help="path to a file containing the pedestal " \
+                            "calibration data or name of a calibration file inside the " \
+                            "caldb/pedestal folder.")
+
+    @staticmethod
+    def add_cal_equalization_file(parser: argparse.ArgumentParser, default: str,
+                                  required: bool = False) -> None:
+        """Add an option for the equalization calibration file.
+        """
+        parser.add_argument("--equalization", type=caldb.CalDB.open_equalization, default=default,
+                            required=required, help="path to a file containing the equalization " \
+                            "calibration data or name of a calibration file inside the " \
+                            "caldb/equalization folder.")
+
+    @staticmethod
+    def add_cal_gain_file(parser: argparse.ArgumentParser, default: str,
+                          required: bool = False) -> None:
+        """Add an option for the gain calibration file.
+        """
+        parser.add_argument("--gain", type=caldb.CalDB.open_gain, default=default,
+                            required=required, help="path to a file containing the gain " \
+                            "calibration data or name of a calibration file inside the " \
+                            "caldb/gain folder.")
+
+    @staticmethod
+    def add_cal_position_file(parser: argparse.ArgumentParser, default: str,
+                          required: bool = False) -> None:
+        """Add an option for the position calibration file.
+        """
+        parser.add_argument("--position_cal", type=caldb.CalDB.open_position, default=default,
+                            required=required, help="path to a file containing the position " \
+                            "calibration data or name of a calibration file inside the " \
+                            "caldb/position folder.")
 
     @staticmethod
     def add_source_options(parser: argparse.ArgumentParser) -> None:
@@ -252,6 +348,10 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="element generating the line forest")
         group.add_argument("--initial_level", type=str, default=source.LineForest.initial_level,
                            help="initial level for the line forest")
+        group.add_argument("--emin", type=float, default=source.UniformSpectrum.emin,
+                           help="minimum energy of the uniform spectrum in eV")
+        group.add_argument("--emax", type=float, default=source.UniformSpectrum.emax,
+                           help="maximum energy of the uniform spectrum in eV")
         # ... morphological part...
         group.add_argument(f"--{source.BeamProxy.key()}", type=str,
                            choices=source.BeamProxy.choices(),
@@ -263,6 +363,12 @@ class CliArgumentParser(argparse.ArgumentParser):
                            help="y-coordinate of the beam centroid in cm")
         group.add_argument("--radius", type=float, default=source.DiskBeam.radius,
                            help="radius of the disk beam in cm")
+        group.add_argument("--side", type=float, default=source.SquareBeam.side,
+                           help="side of the square beam in cm")
+        group.add_argument("--width", type=float, default=source.RectangleBeam.width,
+                           help="width of the rectangle beam in cm")
+        group.add_argument("--height", type=float, default=source.RectangleBeam.height,
+                           help="height of the rectangle beam in cm")
         group.add_argument("--sigma", type=float, default=source.GaussianBeam.sigma,
                            help="standard deviation of the gaussian beam in cm")
         # ... and overall rate.
@@ -289,24 +395,21 @@ class CliArgumentParser(argparse.ArgumentParser):
         """Add an option group for the readout properties.
         """
         group = parser.add_argument_group("readout", "Redout configuration")
+        CliArgumentParser.add_cal_enc_file(
+            group, default="sim_xpol3_enc-20_uniform_v001", required=False)
+        CliArgumentParser.add_cal_pedestal_file(
+            group, default="sim_xpol3_pedestal-1000_uniform_v001", required=False)
+        CliArgumentParser.add_cal_gain_file(
+            group, default="sim_xpol3_gain-1_uniform_v001", required=False)
         group.add_argument("--layout", type=str, choices=hexagon.HexagonalLayout.values(),
                            default=hexagon.HexagonalGrid.layout,
                            help="chip layout")
         group.add_argument("--num_cols", type=int, default=hexagon.HexagonalGrid.num_cols,
-                           help="number of colums in the readout chip")
+                           help="number of columns in the readout chip")
         group.add_argument("--num_rows", type=int, default=hexagon.HexagonalGrid.num_rows,
                            help="number of rows in the readout chip")
         group.add_argument("--pitch", type=float, default=hexagon.HexagonalGrid.pitch,
                            help="pitch of the readout chip in cm")
-        group.add_argument("--enc", type=float, default=readout.HexagonalReadoutBase.enc,
-                           help="equivalent noise charge in electrons")
-        group.add_argument("--gain", type=float, default=readout.HexagonalReadoutBase.gain,
-                           help="conversion factor between electron equivalent and ADC counts")
-        group.add_argument("--map_gain_file", type=str, default=None,
-                           help="path to a file containing the gain map. If not specified, the" \
-                           " gain value of the --gain argument is used for all the pixels.")
-        group.add_argument("--offset", type=int, default=readout.HexagonalReadoutBase.offset,
-                           help="offset in ADC counts to be applied before the zero suppression")
         group.add_argument(f"--{readout.ReadoutProxy.key()}", type=str,
                            choices=readout.ReadoutProxy.choices(),
                            default=readout.ReadoutProxy.default(),
@@ -327,46 +430,140 @@ class CliArgumentParser(argparse.ArgumentParser):
         """
         defaults = tasks.ReconstructionDefaults
         group = parser.add_argument_group("reconstruction", "Reconstruction configuration")
-        group.add_argument("--zero_sup_threshold", type=int, default=0,
-                           help="zero-suppression threshold in ADC counts")
+        CliArgumentParser.add_zero_sup_threshold(group, default=defaults.zero_sup_threshold)
         group.add_argument("--num_neighbors", type=int, default=2,
                            help="number of neighbors to be considered (0--6)")
         group.add_argument("--max_neighbors", type=int, default=-1,
                            help="maximum number of neighbors to be considered")
-        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta"],
+        CliArgumentParser.add_cal_noise_file(group, default=None, required=True)
+        CliArgumentParser.add_cal_pedestal_file(group, default=None, required=True)
+        CliArgumentParser.add_cal_equalization_file(group, default=None, required=True)
+        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
                            type=str, default="centroid", help="How to reconstruct position")
-        group.add_argument("--map_gain_file", type=str, default=None,
-                           help="path to a file containing the gain map. If not specified, the" \
-                           " gain value stored in the DigiFile header will be used for all" \
-                           " the pixels.")
-        group.add_argument("--eta_2pix_rad_sigma", default=defaults.eta_2pix_rad_sigma, type=float,
-                           help="probit function sigma parameter for two pixel" \
-                           "events eta reconstruction")
-        group.add_argument("--eta_2pix_rad_pivot", default=defaults.eta_2pix_rad_pivot, type=float,
-                           help="transition value from linear (0 to pivot) to probit (> pivot) " \
-                           "for two pixel events eta reconstruction")
-        group.add_argument("--eta_3pix_rad_offset", default=defaults.eta_3pix_rad_offset,
-                           type=float, help="probit function offset parameter for three pixel" \
-                           "events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_rad_sigma", default=defaults.eta_3pix_rad_sigma, type=float,
-                           help="probit function sigma parameter for three pixel " \
-                           "events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_rad_pivot", default=defaults.eta_3pix_rad_pivot, type=float,
-                           help="transition value from linear (0 to pivot) to probit (> pivot) " \
-                           "for three pixel events radial component eta reconstruction")
-        group.add_argument("--eta_3pix_theta_sigma", default=defaults.eta_3pix_theta_sigma,
-                           type=float, help="probit function sigma parameter for three pixel " \
-                           "events angular component eta reconstruction")
+        CliArgumentParser.add_cal_position_file(group, default=None)
+
+    def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the dark calibration properties.
+        """
+        defaults = tasks.CalibrationDarkDefaults
+        parser.add_argument("--algorithm", type=str, choices=["welford", "fit"],
+                            default=defaults.algorithm,
+                            help="algorithm to be used for the dark calibration")
+        parser.add_argument("--no_source", action="store_false", dest="has_source",
+                            default=defaults.has_source,
+                            help="if specified, events are considered to be without source")
+        parser.add_argument("--batch_size", type=int,
+                            default=defaults.batch_size,
+                            help="number of events to be analyzed in a batch for the dark" \
+                            " calibration")
+
+    def add_calibrate_equalization_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the gain calibration properties.
+        """
+        defaults = tasks.CalibrationEqualizationDefaults
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
+        parser.add_argument("--algorithm", type=str, choices=["relative", "absolute"],
+                            default=defaults.algorithm,
+                            help="algorithm to be used for the equalization calibration")
+        parser.add_argument("--pdf", type=pdf.SpectrumPDF.from_file, default=defaults.pdf,
+                            help="path to the spectrum PDF file")
+        parser.add_argument("--size", type=int, default=defaults.size,
+                            help="length of the square region of the chip to fit simultaneously")
+        CliArgumentParser.add_zero_sup_threshold(parser, default=defaults.zero_sup_threshold)
+
+    def add_enc_calibration_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the ENC calibration properties.
+        """
+        defaults = tasks.CalibrationEncDefaults
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_gain_file(parser, default=None, required=True)
+        parser.add_argument("--output_dir", type=str, default=defaults.output_dir,
+                            help="directory where the generated ENC calibration file" \
+                            " will be saved")
+
+    def add_gain_calibration_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the gain calibration properties.
+        """
+        defaults = tasks.CalibrationGainDefaults
+        CliArgumentParser.add_cal_equalization_file(parser, default=None, required=True)
+        parser.add_argument("--material_symbol", type=str,
+                            choices=sensor.material_symbols(),
+                            default=defaults.material_symbol,
+                            help="active sensor material")
+        parser.add_argument("--output_dir", type=str, default=defaults.output_dir,
+                            help="directory where the generated gain calibration file" \
+                            " will be saved")
+
+    def add_synthesize_calibration_file_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group to generate calibration files.
+        """
+        defaults = tasks.SynthesizeCalibrationDefaults
+        cal_type = calibration.CalibrationType
+        parser.add_argument("calibration_type", type=calibration.CalibrationType,
+                            choices=[c.value for c in cal_type if c != cal_type.POSITION],
+                            help="type of calibration file to be generated")
+        parser.add_argument("mean", type=float,
+                            help="mean value of the calibration parameter.")
+        parser.add_argument("--percent_rms", type=int, default=defaults.percent_rms,
+                            help="relative RMS (as percentage of the mean) of the gaussian" \
+                            " distribution. A value of 0 generates a uniform distribution.")
+        parser.add_argument("--chip_name", type=str, choices=xpol.chip_names(),
+                            default=defaults.chip_name,
+                            help="XPOL chip name for which the calibration file is generated." \
+                            " This parameter is used to determine the size of the calibration" \
+                            " matrix.")
+        parser.add_argument("--output_dir", type=str, default=defaults.output_dir,
+                            help="directory where the generated calibration file will be saved")
+        parser.add_argument("--version", type=int, default=defaults.version,
+                            help="version number to be included in the generated calibration" \
+                            " file name")
+        parser.add_argument("--random_seed", type=int, default=defaults.random_seed,
+                            help="random seed for the generation of the calibration values")
+
+    def add_calibrate_position_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the MLE position reconstruction calibration properties.
+        """
+        defaults = tasks.CalibrationPositionDefaults
+        CliArgumentParser.add_cal_noise_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_pedestal_file(parser, default=None, required=True)
+        CliArgumentParser.add_cal_equalization_file(parser, default=None, required=True)
+        parser.add_argument("--bin_size", type=float, default=defaults.bin_size,
+                            help="bin size to be used in the calibration, in units of pixel pitch")
+        parser.add_argument("--num_bins", type=int,
+                            default=defaults.num_bins,
+                            help="number of bins to be used in the eta function calibration")
+        CliArgumentParser.add_zero_sup_threshold(parser, default=defaults.zero_sup_threshold)
 
     def add_display_options(self, parser: argparse.ArgumentParser) -> None:
-        """Add an option group for the event display.
+        """Add an option group for the single-event display properties.
         """
-        group = parser.add_argument_group("display", "Event display configuration")
-        CliArgumentParser.add_zero_sup_threshold(group,
-                           default=tasks.DisplayDefaults.zero_sup_threshold)
-        group.add_argument("--event_id", type=int,
-                           default=tasks.DisplayDefaults.event_id,
-                           help="ID of the event to display")
+        default = tasks.DisplayDefaults
+        CliArgumentParser.add_cal_noise_file(parser, default=default.noise_matrix)
+        CliArgumentParser.add_cal_pedestal_file(parser, default=default.pedestal_matrix)
+        CliArgumentParser.add_cal_equalization_file(parser, default=default.equalization_matrix)
+        CliArgumentParser.add_cal_position_file(parser, default=default.position_cal)
+
+    def add_calibview_options(self, parser: argparse.ArgumentParser) -> None:
+        """Add an option group for the calibration view properties.
+        """
+        defaults = tasks.CalibviewDefaults
+        parser.add_argument("matrix", type=calibration.CalibrationMatrix.from_hdf5,
+                            help="path to a calibration matrix to be analyzed")
+        parser.add_argument("--mc_matrix", type=calibration.CalibrationMatrix.from_hdf5,
+                            default=defaults.mc_matrix,
+                            help="path to a calibration matrix containing the Monte Carlo truth" \
+                            " matrix to be compared with the main matrix")
+        parser.add_argument("--min_hits", type=int, default=defaults.min_hits,
+                            help="minimum number of entries for a pixel to be included in" \
+                            " the statistics")
+        parser.add_argument("--rel_error", type=float, default=defaults.rel_error,
+                            help="maximum relative error threshold for a pixel to be included"
+                            " in the statistics")
+        parser.add_argument("--lower_quantile", type=float, default=defaults.lower_quantile,
+                            help="lower quantile for a pixel to be included in the statistics")
+        parser.add_argument("--upper_quantile", type=float, default=defaults.upper_quantile,
+                            help="upper quantile for a pixel to be included in the statistics")
 
     def run(self) -> None:
         """Run the actual command tied to the specific options.

@@ -23,11 +23,8 @@
 from dataclasses import dataclass
 from typing import Tuple
 
-import xraydb
-
 from .clustering import Cluster
 
-DEFAULT_IONIZATION_POTENTIAL = xraydb.ionization_potential("Si")
 
 @dataclass
 class ReconEventBase:
@@ -54,15 +51,15 @@ class ReconEventBase:
     livetime: int
     cluster: Cluster
 
-    def energy(self, ionization_potential: float = DEFAULT_IONIZATION_POTENTIAL) -> float:
-        """Return the energy of the event in eV.
-
-        .. warning::
-           This is currently using the ionization energy of Silicon to do the
-           conversion, assuming a detector gain of 1. We will need to do some
-           bookkeeping, here, to make this work reliably.
+    def adc(self) -> int:
+        """Return the total ADC count for the event.
         """
-        return ionization_potential * self.cluster.pulse_height()
+        return self.cluster.pulse_height()
+
+    def energy(self) -> float:
+        """Return the energy of the event in eV.
+        """
+        return self.cluster.energy()
 
     def position(self) -> Tuple[float, float]:
         """Return the reconstructed position of the event.
@@ -100,15 +97,15 @@ class ReconEvent:
     #roi_size: int
     cluster: Cluster
 
-    def energy(self, ionization_potential: float = DEFAULT_IONIZATION_POTENTIAL) -> float:
-        """Return the energy of the event in eV.
-
-        .. warning::
-           This is currently using the ionization energy of Silicon to do the
-           conversion, assuming a detector gain of 1. We will need to do some
-           bookkeeping, here, to make this work reliably.
+    def adc(self) -> int:
+        """Return the total ADC counts for the event.
         """
-        return ionization_potential * self.cluster.pulse_height()
+        return self.cluster.pulse_height()
+
+    def energy(self) -> float:
+        """Return the energy of the event in eV.
+        """
+        return self.cluster.energy()
 
     def position(self) -> Tuple[float, float]:
         """Return the reconstructed position of the event.

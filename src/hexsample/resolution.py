@@ -326,6 +326,11 @@ def dist_residual(input_file: ReconInputFile) -> np.ndarray:
     # Access the reconstructed positions
     x = input_file.column("posx")
     y = input_file.column("posy")
+    mask = ~np.isnan(x) & ~np.isnan(y)
+    x = x[mask]
+    y = y[mask]
+    x_mc = x_mc[mask]
+    y_mc = y_mc[mask]
     # Calculate the distance residuals
     dr = np.sqrt((x - x_mc) ** 2 + (y - y_mc) ** 2)
     return dr
@@ -387,6 +392,8 @@ def hist_distance_residuals(input_file: ReconInputFile, num_neighbors: int = 0,
     pitch = input_file.digi_header["pitch"]
     # Calculate the distance residuals normalized to pitch
     dr = dist_residual(input_file) / pitch
+    mask_finite = np.isfinite(dr)
+    mask = mask & mask_finite
     # Create the histogram to calculate the EEF. The binning is taken in a way that
     # spans all the pitch.
     dr_binning = np.linspace(0., 1., 101)

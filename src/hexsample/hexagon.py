@@ -125,65 +125,65 @@ _NEIGHBORS_PROXY_DICT = {
 
 
 _N_ADC_CHANNELS = 7
-_ADC_SEQUENCE_EVEN = (0, 2, 5, 0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4)
-_ADC_SEQUENCE_ODD = (0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4, 0, 2, 5)
+_ADC_SEQUENCE_EVEN = np.array([0, 2, 5, 0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4])
+_ADC_SEQUENCE_ODD = np.array([0, 3, 5, 1, 3, 6, 1, 4, 6, 2, 4, 0, 2, 5])
 _ADC_SEQUENCE_LENGTH = len(_ADC_SEQUENCE_EVEN)
 
 
-def adc_channel_odd_r(col: int, row: int) -> int:
+def adc_channel_odd_r(col: np.ndarray, row: np.ndarray) -> np.ndarray:
     """Transformation from offset coordinates (col, row) into 7-adc channel label,
     that is an int between 0 and 6, for ODD_R grid layout.
 
     Arguments
     ---------
-    col: int
+    col: array_like
         column pixel logical coordinate
-    row: int
+    row: array_like
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_ODD[row % _ADC_SEQUENCE_LENGTH]
     index = (col + start) % _N_ADC_CHANNELS
     return index
 
-def adc_channel_even_r(col: int, row: int) -> int:
+def adc_channel_even_r(col: np.ndarray, row: np.ndarray) -> np.ndarray:
     """Transformation from offset coordinates (col, row) into 7-adc channel label,
     that is an int between 0 and 6, for EVEN_R grid layout.
 
     Arguments
     ---------
-    col: int
+    col: array_like
         column pixel logical coordinate
-    row: int
+    row: array_like
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_EVEN[row % _ADC_SEQUENCE_LENGTH]
     index = (col + start) % _N_ADC_CHANNELS
     return index
 
-def adc_channel_odd_q(col: int, row: int) -> int:
+def adc_channel_odd_q(col: np.ndarray, row: np.ndarray) -> np.ndarray:
     """Transformation from offset coordinates (col, row) into 7-adc channel label,
     that is an int between 0 and 6, for ODD_Q grid layout.
 
     Arguments
     ---------
-    col: int
+    col: array_like
         column pixel logical coordinate
-    row: int
+    row: array_like
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_ODD[col % _ADC_SEQUENCE_LENGTH]
     index = (row + start) % _N_ADC_CHANNELS
     return index
 
-def adc_channel_even_q(col: int, row: int) -> int:
+def adc_channel_even_q(col: np.ndarray, row: np.ndarray) -> np.ndarray:
     """Transformation from offset coordinates (col, row) into 7-adc channel label,
     that is an int between 0 and 6, for EVEN_Q grid layout.
 
     Arguments
     ---------
-    col: int
+    col: array_like
         column pixel logical coordinate
-    row: int
+    row: array_like
         row pixel logical coordinate
     """
     start = _ADC_SEQUENCE_EVEN[col % _ADC_SEQUENCE_LENGTH]
@@ -383,7 +383,34 @@ class HexagonalGrid:
             row = r + (q + self._parity_offset(q)) // 2
         return col, row
 
-    def world_to_pixel(self, x: np.array, y: np.array) -> Tuple[np.array, np.array]:
+    def is_in_bounds(self, col: np.array, row: np.array) -> np.array:
+        """Check if the given pixels are inside the hexagonal grid bounds.
+
+        Arguments
+        ---------
+        col : array_like
+            The column pixel coordinate(s).
+
+        row : array_like
+            The row pixel coordinate(s).
+        """
+        return (col >= 0) & (col < self.num_cols) & (row >= 0) & (row < self.num_rows)
+
+    def is_at_border(self, col: np.array, row: np.array) -> np.array:
+        """Check if the given pixels are at the border of the hexagonal grid.
+
+        Arguments
+        ---------
+        col : array_like
+            The column pixel coordinate(s).
+
+        row : array_like
+            The row pixel coordinate(s).
+        """
+        return (col == 0) | (col == self.num_cols - 1) | (row == 0) | (row == self.num_rows - 1)
+
+    def world_to_pixel(self, x: np.array, y: np.array,
+                       in_bounds: bool = False) -> Tuple[np.array, np.array]:
         """Transform world coordinates to pixel coordinates.
 
         This proceeds in three basic steps (conversion to fractional axial coordinates,
@@ -398,6 +425,10 @@ class HexagonalGrid:
 
         y : array_like
             The input y coordinate(s).
+        
+        in_bounds : bool, optional
+            If True, mask the output arrays to return only the pixels that are inside
+            the grid bounds.
         """
         # pylint: disable = invalid-name
         # Add back the offsets---and remember the y axis is running from the
@@ -411,6 +442,12 @@ class HexagonalGrid:
         q, r = self._axial_round(q, r)
         # ... and convert to offset coordinates.
         col, row = self._axial_to_offset(q, r)
+        # If requested, mask the output arrays to return only the pixels that are inside
+        # the grid bounds.
+        if in_bounds:
+            mask = self.is_in_bounds(col, row)
+            col = col[mask]
+            row = row[mask]
         return col, row
 
     def pixel_logical_coordinates(self) -> Tuple[np.array, np.array]:

@@ -60,6 +60,19 @@ def test_coordinate_transform(nside: int = 10, pitch: float = 0.1):
         for col, row in test_pixels:
             x, y = grid.pixel_to_world(col, row)
             assert grid.world_to_pixel(x, y) == (col, row)
+    # Test masking points outside the grid bounds.
+    x = np.array([0., 100.])
+    y = np.array([0., 0.])
+    col, row = grid.world_to_pixel(x, y, in_bounds=True)
+    assert col.size == 1
+    assert row.size == 1
+    # Test if the method works properly when the input is a single point.
+    col, row = grid.world_to_pixel(0., 100., in_bounds=True)
+    assert col.size == 0
+    assert row.size == 0
+    col, row = grid.world_to_pixel(0., 0., in_bounds=True)
+    assert col.size == 1
+    assert row.size == 1
 
 def test_display(nside: int = 10, pitch: float = 0.1):
     """Display all the four possible layout in a small arrangement.

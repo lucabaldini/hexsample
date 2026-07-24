@@ -30,9 +30,12 @@ from hexsample.source import (
     Line,
     LineForest,
     PointBeam,
+    RectangleBeam,
     SlitBeam,
     Source,
+    SquareBeam,
     TriangularBeam,
+    UniformSpectrum,
 )
 
 rng.initialize()
@@ -95,6 +98,17 @@ def test_mn_k_forest():
     _test_forest("Mn", chisq_test=False)
 
 
+def test_uniform_spectrum(emin: float = 1000., emax: float = 10000., num_events: int = 10000):
+    """Test the uniform spectrum.
+    """
+    spectrum = UniformSpectrum(emin=emin, emax=emax)
+    rvs = spectrum.rvs(num_events)
+    assert len(rvs) == num_events
+    assert np.all((rvs >= emin) & (rvs <= emax))
+    plt.figure("Uniform spectrum")
+    spectrum.plot()
+
+
 def test_point_beam(x0 : float = 1., y0 : float = -1., num_photons : int = 1000):
     """Unit test for the point beam.
     """
@@ -150,6 +164,30 @@ def test_slit_beam(num_photons: int = 10000):
     binning_x = np.linspace(min(x), max(x), 100)
     binning_y = np.linspace(min(y), max(y), 100)
     plt.figure("Slit beam")
+    Histogram2d(binning_x, binning_y).fill(x, y).plot()
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+
+
+def test_square_beam(num_photons: int = 10000):
+    """Test for SquareBeam class
+    """
+    beam = SquareBeam(side=1.0)
+    x, y = beam.rvs(num_photons)
+    binning_x = np.linspace(min(x), max(x), 100)
+    binning_y = np.linspace(min(y), max(y), 100)
+    plt.figure("Square beam")
+    Histogram2d(binning_x, binning_y).fill(x, y).plot()
+    setup_gca(xlabel="x [cm]", ylabel="y [cm]")
+
+
+def test_rectangle_beam(num_photons: int = 10000):
+    """Test for RectangleBeam class
+    """
+    beam = RectangleBeam(width=1.0, height=0.5)
+    x, y = beam.rvs(num_photons)
+    binning_x = np.linspace(min(x), max(x), 100)
+    binning_y = np.linspace(min(y), max(y), 100)
+    plt.figure("Rectangle beam")
     Histogram2d(binning_x, binning_y).fill(x, y).plot()
     setup_gca(xlabel="x [cm]", ylabel="y [cm]")
 

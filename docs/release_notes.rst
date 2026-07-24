@@ -4,6 +4,165 @@ Release notes
 =============
 
 
+Version 0.17.2 (2026-07-22)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Eleonora and Juan Sebastian added to the team.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/143
+  - https://github.com/lucabaldini/hexsample/issues/142
+
+
+Version 0.17.1 (2026-05-26)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Uniform spectrum added to the `source.py` module.
+* Minor bug fixes to equalization calibration.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/140
+  - https://github.com/lucabaldini/hexsample/pull/137
+
+
+Version 0.17.0 (2026-05-18)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* New position reconstruction algorithm based on the likelihood of the charge
+  diffusion model implemented.
+* New module `likelihood.py` containing the code for the likelihood evaluation
+  added.
+* Unified position reconstruction algorithms calibration file and the command
+  into `calibgen position`.
+* New clustering algorithm `ClusteringHex` implemented. This clustering always
+  contains seven pixels: the seed pixel and all its six neighbors.
+* New module `position.py` containing the core implementation of the position
+  reconstruction algorithms added. As a consequence, the `eta.py` module has
+  been deleted.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/136
+  - https://github.com/lucabaldini/hexsample/pull/106
+  - https://github.com/lucabaldini/hexsample/issues/126
+
+
+Version 0.16.3 (2026-05-14)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Refactored zero suppression threshold to be interpreted as number of standard deviations of
+  the noise instead of a fixed number.
+* Added check of the calibration matrices at the readout initialization to fill the empty
+  pixels, in order to avoid problems in the reconstruction.
+* New algorithm added to calibrate the pixel equalization factors. This algorithm calculates
+  the gain equalization factors without any assumption on the source spectrum, by analyzing
+  the energy distributions of one-pixel events and comparing them across the pixels.
+* `calibgen equalization` now accepts the argument `algorithm` to choose between two different
+  calibration algorithms: "relative", without using the source spectrum, and "absolute", that
+  needs the source spectrum PDF to be passed as an argument.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/135
+  - https://github.com/lucabaldini/hexsample/pull/134
+  - https://github.com/lucabaldini/hexsample/issues/133
+  - https://github.com/lucabaldini/hexsample/issues/125
+
+
+Version 0.16.2 (2026-05-12)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Package dependencies updated: `joblib` and `iminuit` added.
+* New calibration matrix type `equalization` added in `caldb.py` to store the pixel equalization
+  factors.
+* New `CalibrateEqualization` class to calibrate the pixel equalization factors. This is
+  performed with a likelihood fit using the source spectrum probability density function (PDF)
+  and the observed energy of the events. Corresponding CLI command `calibgen equalization` added
+  to generate equalization calibration files from event files.
+* The `CalibrateGain` class has been refactored. Now it produces a gain calibration matrix from
+  an equalization calibration matrix, by using the ADC to eV conversion and the chip sensor
+  material. The gain matrix is expressed in ADC counts per electron. Corresponding CLI command
+  `calibgen gain` refactored to reflect this change.
+* Some CLI commands refactored to use the equalization calibration file instead of the gain
+  calibration file (`reconstruct`, `display`, `calibgen eta`).
+* New `pdf.py` module containing facilities to calculate the PDF of the source spectrum and store
+  it in a `.npz` file.
+* Added `calibspec` CLI command to create a source spectrum PDF file from a reconstructed event
+  file. The PDF is saved as a `.npz` file.
+* New `adc` method to calculate the total ADC counts of the event added to `ReconEvent`. Now a
+  reconstructed file contains both the ADC counts and the energy in eV of the events (if the
+  conversion factor from ADC to eV is available in the equalization calibration file).
+* New `energy` method to calculate the total energy of the event added to `Cluster`. The
+  conversion factor from ADC to eV is passed by `ClusteringNN`.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/132
+  - https://github.com/lucabaldini/hexsample/issues/129
+
+
+Version 0.16.1 (2026-05-12)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* New `stats.py` module with some common statistical functions, most notably
+  a class to accumulate the running statistics using the Welford algorithm.
+* `calibgen dark` now accepts the argument `algorithm` to choose between two different algorithms
+  to calibrate the noise and pedestal of the readout chip: "welford", to use Welford's online
+  algorithm, that updates the mean and variance of the counts distribution on the fly, and "fit",
+  that updates a 3D histogram of the counts distribution and fits it with a Gaussian to extract
+  the noise and pedestal.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/131
+  - https://github.com/lucabaldini/hexsample/issues/130
+
+
+Version 0.16.0 (2026-05-05)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* `display` command modified to plot just the events when no calibration files are provided,
+  otherwise the reconstructed and Monte Carlo positions are calculated and plotted.
+* Minor changes to `CalibrateDark` and `CalibrateNoise` signal removal.
+* New `calibview` command to visualize calibration files and compare them with Montecarlo truth.
+* New beam shapes added: `SquareBeam` and `RectangleBeam`.
+* Fixed a bug in digitization of events outside and at the border of the readout chip. For
+  rectangular readout, this problem is solved by masking out all the electrons that fall outside
+  the chip during the readout. For circular readout, we also exclude events with the seed pixel
+  at the border of the readout chip.
+* New dataclasses in `xpol.py` to store properties of the readout chips (XPOL1 and XPOL3).
+* Introduced the CalibrationDataBase (CalDB) to store and manage calibration files, along wit the
+  dedicated module `caldb.py` to handle operations on the CalDB.
+* New `calibgen synthesize` command to generate synthetic calibration files with user-defined
+  properties for testing and simulation purposes.
+* Refactoring of the calibration CLI commands, with the introduction of the `calibgen` command and
+  the respective subcommands to produce calibration files from event files.
+* Support for scalar properties in the readout chip (ENC, noise, pedestal, gain) has been removed
+  in favor of the calibration files that store this information. All the CLI commands that need
+  readout chip properties now require the corresponding calibration files to be passed as
+  arguments.
+* Added classes `CalibrateGain`, `CalibrateDark` and `CalibrateENC` to create gain, noise, pedestal
+  and ENC calibration files.
+* Refactoring of the calibration matrices classes, with the introduction of a new unified
+  `CalibrationMatrix` class, and the deprecation of the old `CalibrationMatrixGain` and
+  `CalibrationMatrixNoise` classes. This class is intended to store all the calibration information
+  needed for every feature of the readout chip.
+* Pull requests merged and issues closed:
+
+  - https://github.com/lucabaldini/hexsample/pull/128
+  - https://github.com/lucabaldini/hexsample/pull/127
+  - https://github.com/lucabaldini/hexsample/pull/124
+  - https://github.com/lucabaldini/hexsample/pull/122
+  - https://github.com/lucabaldini/hexsample/pull/121
+  - https://github.com/lucabaldini/hexsample/pull/118
+  - https://github.com/lucabaldini/hexsample/pull/111
+  - https://github.com/lucabaldini/hexsample/pull/123
+  - https://github.com/lucabaldini/hexsample/issues/120
+  - https://github.com/lucabaldini/hexsample/issues/117
+  - https://github.com/lucabaldini/hexsample/issues/116
+  - https://github.com/lucabaldini/hexsample/issues/115
+  - https://github.com/lucabaldini/hexsample/issues/113
+  - https://github.com/lucabaldini/hexsample/issues/112
+  - https://github.com/lucabaldini/hexsample/issues/99
+  - https://github.com/lucabaldini/hexsample/issues/7
+
+
 Version 0.15.0 (2026-04-23)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
