@@ -324,6 +324,7 @@ class EventReader:
         self.f.close()
 
 
+
 if __name__ == "__main__":
     writer = EventWriter("events.h5")
 
