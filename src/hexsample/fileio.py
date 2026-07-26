@@ -245,9 +245,9 @@ def _fill_recon_row(row: tables.tableextension.Row, event: ReconEvent) -> None:
     row["livetime"] = event.livetime
     #row["roi_size"] = event.roi_size
     row["cluster_size"] = event.cluster.size()
+    row["posx"], row["posy"] = event.position()
     row["adc"] = event.adc()
     row["energy"] = event.energy()
-    row["posx"], row["posy"] = event.position()
     row.append()
 
 

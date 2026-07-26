@@ -52,6 +52,7 @@ class Cluster:
     adc_to_ev: float
     pos_recon_algorithm: str
     recon_pars: Optional[dict] = None
+    _pulse_height = None
 
     def __post_init__(self) -> None:
         """Small cross check on the dimensions of the arrays passed in the constructor.
@@ -67,7 +68,9 @@ class Cluster:
     def pulse_height(self) -> float:
         """Return the total pulse height of the cluster.
         """
-        return self.pha.sum()
+        if self._pulse_height is None:
+            self._pulse_height = self.pha.sum()
+        return self._pulse_height
 
     def energy(self) -> float:
         """Return the energy of the cluster in eV.
@@ -146,6 +149,7 @@ class Cluster:
         m = mle(self.pha, equal_noise, position_cal.values, position_cal.bin_size,
                 position_cal.xlims, position_cal.ylims, p0=p0)
         # Calculate the absolute position of the photon from the fit results.
+        self._pulse_height = m.values["q"]
         return self.x[0] + m.values["x"] * pitch, self.y[0] + m.values["y"] * pitch
 
     def position(self) -> Tuple[float, float]:
