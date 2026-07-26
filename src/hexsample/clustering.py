@@ -52,6 +52,7 @@ class Cluster:
     adc_to_ev: float
     pos_recon_algorithm: str
     recon_pars: Optional[dict] = None
+    _pulse_height = None
 
     def __post_init__(self) -> None:
         """Small cross check on the dimensions of the arrays passed in the constructor.
@@ -67,7 +68,9 @@ class Cluster:
     def pulse_height(self) -> float:
         """Return the total pulse height of the cluster.
         """
-        return self.pha.sum()
+        if self._pulse_height is None:
+            self._pulse_height = self.pha.sum()
+        return self._pulse_height
 
     def energy(self) -> float:
         """Return the energy of the cluster in eV.
@@ -146,6 +149,7 @@ class Cluster:
         m = mle(self.pha, equal_noise, position_cal.values, position_cal.bin_size,
                 position_cal.xlims, position_cal.ylims, p0=p0)
         # Calculate the absolute position of the photon from the fit results.
+        self._pulse_height = m.values["q"]
         return self.x[0] + m.values["x"] * pitch, self.y[0] + m.values["y"] * pitch
 
     def position(self) -> Tuple[float, float]:
@@ -297,12 +301,17 @@ class ClusteringNN(ClusteringBase):
             # and applying pedestal and gain correction.
             pha = (event.pha[adc_channel_order] - pedestal(col, row)) / gain(col, row)
         elif isinstance(event, DigiEventRectangular):
+            rows, cols = np.mgrid[event.roi.min_row:event.roi.max_row + 1,
+                      event.roi.min_col:event.roi.max_col + 1]
+            cols = cols.flatten()
+            rows = rows.flatten()
+            event.pha = event.pha - pedestal(cols.ravel(), rows.ravel()).reshape(event.roi.shape())
             seed_coords = event.highest_pixel()
             if self.readout.is_at_border(*seed_coords):
                 return None
             neigh_coords = self.readout.neighbors(*seed_coords)
             col, row = np.vstack((seed_coords, neigh_coords)).T
-            pha = (event(col, row) - pedestal(col, row)) / gain(col, row)
+            pha = event(col, row) / gain(col, row)
         else:
             raise RuntimeError(f"Unsupported event type {type(event)} for clustering")
         # Zero suppressing the event (whatever the readout type)...

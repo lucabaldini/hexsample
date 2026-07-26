@@ -300,7 +300,7 @@ def reconstruct(
         equalization_matrix=equalization_matrix
         )
     if pos_recon_algorithm == "mle":
-        clustering = ClusteringHex(readout, 0, pos_recon_algorithm, recon_pars)
+        clustering = ClusteringHex(readout, -5, pos_recon_algorithm, recon_pars)
         num_neighbors = 6
     else:
         clustering = ClusteringNN(
@@ -416,7 +416,7 @@ def calibrate_position(
     readout = create_readout(readout_mode, header, *readout_args)
     # To correctly analyze every type of event, we need a zero suppression threshold
     # of 0, because the calibration should be performed on zero-noise simulations.
-    clustering = ClusteringHex(readout, zero_sup_threshold=0.)
+    clustering = ClusteringHex(readout, zero_sup_threshold=-5.)
     clustering_nn = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold,
                                  num_neighbors=6, pos_recon_algorithm="centroid")
     # Initialize the position calibrator and run the event loop.
@@ -997,16 +997,23 @@ def calibview(
         f"lower_quantile={lower_quantile}, upper_quantile={upper_quantile}"
     )
     logger.info(f"Number of calibrated pixels after quality cuts: {np.sum(mask)}")
+    mask  = mask & (matrix.values >= lower_bound) & (matrix.values <= upper_bound)
     # Plot the values matrix.
     plt.figure(f"Calibrated matrix: {matrix.metadata['file_name']}")
     plt.imshow(matrix.values, origin="upper", vmin=lower_bound, vmax=upper_bound)
     plt.xlabel("Column")
     plt.ylabel("Row")
     plt.colorbar(label=unit)
+    # Plot the entries matrix.
+    plt.figure(f"Entries matrix: {matrix.metadata['file_name']}")
+    plt.imshow(matrix.entries, origin="upper")
+    plt.xlabel("Column")
+    plt.ylabel("Row")
+    plt.colorbar(label="Entries")
     # Plot the distribution of the calibrated values.
     vals = matrix.values.flatten()[mask.flatten()]
     edges = np.linspace(lower_bound, upper_bound, 100)
-    vals_hist = Histogram1d(edges, label="Distribution", xlabel=unit).fill(vals)
+    vals_hist = Histogram1d(edges, label="Values distribution", xlabel=unit).fill(vals)
     plt.figure("Distribution of calibrated values")
     vals_hist.plot(statistics=True)
     plt.legend()
@@ -1051,10 +1058,10 @@ def calibview(
         plt.xlabel(f"Calibrated values [{unit}]")
         plt.ylabel(f"Monte Carlo truth values [{mc_unit}]")
         # Plot the residuals distribution.
-        residuals = (vals - mc_vals[mask.flatten()]) / mc_vals[mask.flatten()]
+        residuals = vals - mc_vals[mask.flatten()]
         residual_edges = np.linspace(np.nanmin(residuals), np.nanmax(residuals), 100)
         residual_hist = Histogram1d(
-            residual_edges, label="Residuals", xlabel="Relative Residual"
+            residual_edges, label="Residuals distribution", xlabel=f"Residuals [{unit}]"
         ).fill(residuals)
         plt.figure("Relative residuals distribution")
         residual_hist.plot(statistics=True)

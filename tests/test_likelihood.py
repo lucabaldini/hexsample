@@ -44,7 +44,7 @@ def test_nll_numba():
     nll = np.zeros((len(x), len(y)))
     for i_x, _x in enumerate(x):
         for i_y, _y in enumerate(y):
-            nll[i_x, i_y] = nll_numba(_x, _y, pha, f, xbin0, ybin0, bin_size, sigma)
+            nll[i_x, i_y] = nll_numba(_x, _y, np.sum(pha),pha, f, xbin0, ybin0, bin_size, sigma)
     plt.figure("test_negative_log_likelihood")
     plt.imshow(nll.T, extent=(x[0], x[-1], y[0], y[-1]), origin="lower")
     plt.colorbar(label="Negative log-likelihood")

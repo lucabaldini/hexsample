@@ -187,50 +187,104 @@ def weighted_pha(pha: np.ndarray, f_interp: np.ndarray, inv_sigma2: np.ndarray) 
 
 
 @njit
-def nll_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, ybin0: float,
-              bin_size: float, noise: np.ndarray) -> float:
+def sherman_morrison_inverse(res: np.ndarray, f_interp: np.ndarray, total_pha: float,
+                             noise: np.ndarray):
+    """Compute the chi2 (res^T * V^-1 * res) and log-determinant of the covariance
+    matrix V using the Sherman-Morrison formula and the matrix determinant lemma.
+
+    This avoids the explicit inversion of the 7x7 matrix and allows to save space and time.
+    """
+    # First we compute the diagonal elements of D, given by the square sum of electronic
+    # noise and statistical fluctuations, and their inverses.
+    d_matrix = np.zeros(7)
+    inv_d_matrix = np.zeros(7)
+    for i in range(7):
+        d_matrix[i] = (noise[i] ** 2) + total_pha * f_interp[i]
+        inv_d_matrix[i] = 1.0 / d_matrix[i]
+    # Then we calculate the term at the denominator.
+    sum_fk2_d = 0.0
+    for k in range(7):
+        sum_fk2_d += (f_interp[k] ** 2) * inv_d_matrix[k]
+    # The final denominator term.
+    g = 1.0 / (1.0 - total_pha * sum_fk2_d + 1e-12)
+    # Calculate the log determinant of V using the matrix determinant lemma.
+    prod_d = 0.0
+    for k in range(7):
+        prod_d += math.log(d_matrix[k])
+    log_det_v = prod_d + math.log(abs(1.0 - total_pha * sum_fk2_d) + 1e-12)
+    # Calculate the quadratic form res^T * V^-1 * res using Sherman-Morrison algebra.
+    diagional_term = 0.0
+    cross_term = 0.0
+    for i in range(7):
+        diagional_term += (res[i] ** 2) * inv_d_matrix[i]
+        cross_term += res[i] * f_interp[i] * inv_d_matrix[i]
+    # Final chi2 value.
+    chi2 = diagional_term + g * total_pha * (cross_term ** 2)
+    # Calculate the vector w = V^-1 * res for the gradient calculation.
+    alpha = g * total_pha * cross_term
+    vettore_w = np.zeros(7)
+    for i in range(7):
+        vettore_w[i] = inv_d_matrix[i] * (res[i] + alpha * f_interp[i])
+    dnll_df = np.zeros(7)
+    for i in range(7):
+        dnll_df[i] = total_pha * (
+            0.5 * inv_d_matrix[i]
+            - vettore_w[i]
+            - 0.5 * (vettore_w[i] ** 2)
+            + g * vettore_w[i] * f_interp[i] * (vettore_w[i] - inv_d_matrix[i] * res[i])
+        )
+    return chi2, log_det_v, dnll_df
+
+
+@njit
+def nll_numba(x: float, y: float, total_pha: float, pha: np.ndarray, f: np.ndarray,
+              xbin0: float, ybin0: float, bin_size: float, noise: np.ndarray) -> float:
     """Compute the negative log-likelihood for a given position (x, y).
 
     The model is based on the Gaussian diffusion of the charge cloud, and uses the precomputed
-    charge fractions in each pixel from the f map. The summed pha is profiled out to reduce the
-    dimensionality of the optimization.
+    charge fractions in each pixel from the f map.
     """
     # Calculate the bin indices and fractional coordinates for the interpolation
     ix0, iy0, wx, wy = coordinates(x, y, xbin0, ybin0, bin_size, f.shape[1:])
     # Interpolate the charge fractions for the 7 pixels in the cluster
     f_interp = interpolation(f, ix0, iy0, wx, wy)
-    # Calculate the inverse of the noise variance for each pixel
-    inv_sigma2 = 1.0 / (noise**2)
-    # Profile out the summed pha by finding the value that minimizes the NLL for fixed (x, y)
-    total_pha = weighted_pha(pha, f_interp, inv_sigma2)
-    # Now compute the NLL using the optimal energy
-    nll = 0.0
+    # We need to invert the covariance matrix V. We use the Sherman-Morrison formula
+    # to avoid inverting a full 7x7 matrix. This is possible because V is a diagonal
+    # matrix D plus a rank 1 matrix.
+    res = np.zeros(7)
     for i in range(7):
-        mu = f_interp[i] * total_pha
-        res = pha[i] - mu
-        nll += 0.5 * (res**2 * inv_sigma2[i] + LOG2PI)
+        res[i] = pha[i] - (total_pha * f_interp[i])
+    chi2, log_det_v, _ = sherman_morrison_inverse(res, f_interp, total_pha, noise)
+    # Finally we compute the negative log-likelihood using the chi2 and the log-determinant of V.
+    nll = 0.5 * chi2 + 0.5 * log_det_v
     return nll
 
 
 @njit
-def nll_grad_numba(x: float, y: float, pha: np.ndarray, f: np.ndarray, xbin0: float, ybin0: float,
-                   bin_size: float, noise: np.ndarray) -> np.ndarray:
-    """Compute the gradient of the negative log-likelihood with respect to the free parameters.
+def nll_grad_numba(x: float, y: float, total_pha: float, pha: np.ndarray, f: np.ndarray,
+                   xbin0: float, ybin0: float, bin_size: float, noise: np.ndarray) -> np.ndarray:
+    """Compute the complete analytical gradient of the exact multivariate NLL with
+    respect to x, y, and Q simultaneously (Returns array of size 3).
     """
     # Calculate the bin indices and fractional coordinates for the interpolation
     ix0, iy0, wx, wy = coordinates(x, y, xbin0, ybin0, bin_size, f.shape[1:])
     # Interpolate the charge fractions and their derivatives for the 7 pixels in the cluster
     f_interp, df_dx, df_dy = interpolation_derivatives(f, ix0, iy0, wx, wy, bin_size)
-    # Calculate the inverse of the noise variance for each pixel
-    inv_sigma2 = 1.0 / (noise**2)
-    # Profile out the summed pha by finding the value that minimizes the NLL for fixed (x, y)
-    total_pha = weighted_pha(pha, f_interp, inv_sigma2)
-    # Now compute the gradient using the optimal energy
+    # Calculate the residuals for the 7 pixels in the cluster.
+    res = np.zeros(7)
+    for i in range(7):
+        res[i] = pha[i] - (total_pha * f_interp[i])
+    # We need to invert the covariance matrix V. We use the Sherman-Morrison formula
+    # to avoid inverting a full 7x7 matrix.
+    _, _, dnll_df = sherman_morrison_inverse(res, f_interp, total_pha, noise)
+    # Finally we compute the gradient of the negative log-likelihood with respect to x, y, and Q.
     gnll_x = 0.0
     gnll_y = 0.0
     for i in range(7):
-        mu = f_interp[i] * total_pha
-        d_loss_dmu = -(pha[i] - mu) * inv_sigma2[i]
-        gnll_x += d_loss_dmu * total_pha * df_dx[i]
-        gnll_y += d_loss_dmu * total_pha * df_dy[i]
-    return np.array([gnll_x, gnll_y])
+        gnll_x += dnll_df[i] * df_dx[i]
+        gnll_y += dnll_df[i] * df_dy[i]
+    gnll_q = 0.0
+    for i in range(7):
+        gnll_q -= (res[i] * f_interp[i]) / (noise[i] ** 2)
+    # Return the gradient as a numpy array of size 3.
+    return np.array([gnll_x, gnll_y, gnll_q])

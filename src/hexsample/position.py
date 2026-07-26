@@ -329,24 +329,27 @@ def mle(
     ymin, ymax = ylims
     # Define the objective functions for the optimization, which are the
     # negative log-likelihood...
-    def nll(x: float, y: float) -> float:
-        return nll_numba(x, y, pha, f, xmin, ymin, bin_size, noise)
+    def nll(x: float, y: float, q: float) -> float:
+        return nll_numba(x, y, q, pha, f, xmin, ymin, bin_size, noise)
     # ... and its gradient.
-    def nll_grad(x: float, y: float) -> Tuple[float, float]:
-        return nll_grad_numba(x, y, pha, f, xmin, ymin, bin_size, noise)
+    def nll_grad(x: float, y: float, q: float) -> Tuple[float, float]:
+        return nll_grad_numba(x, y, q, pha, f, xmin, ymin, bin_size, noise)
     # Assign a name to the free parameters.
-    parnames = ["x", "y"]
+    parnames = ["x", "y", "q"]
     # Initialize the minimizer.
+    p0 = (*p0, np.sum(pha))
     m = Minuit(nll, *p0, grad=nll_grad, name=parnames)
     # Set the limits for the free parameters.
     m.limits["x"] = (xmin, xmax)
     m.limits["y"] = (ymin, ymax)
+    m.limits["q"] = (np.sum(pha) * 0.5, np.sum(pha) * 1.5)
     # Set the initial step sizes for the minimizer. We choose half the bin
     # size as default value. This value is automatically adjusted by the
     # minimizer during the fit, so it is not critical to choose a very
     # precise value.
     m.errors["x"] = bin_size / 2
     m.errors["y"] = bin_size / 2
+    m.errors["q"] = np.sum(pha) * 0.1
     # Define the strategy for the minimizer. We use the higher strategy to
     # avoid numerical problems with the hessian. For an explanation of the
     # strategy levels, please refer to the iminuit documentation.
