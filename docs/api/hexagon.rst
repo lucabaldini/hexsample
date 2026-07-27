@@ -14,7 +14,7 @@ Each layout comes into versions, depending on whether even or odd rows/columns
 are shoved right/down. We end up with the four basic arrangements shown in the
 figure below, all of which are supported.
 
-.. figure:: figures/hexagonal_layouts.png
+.. figure:: ../figures/hexagonal_layouts.png
 
 The module provides a :class:`HexagonalGrid <hexsample.hexagon.HexagonalGrid>` class,
 representing an hexagonal grid, whose main public interfaces,
