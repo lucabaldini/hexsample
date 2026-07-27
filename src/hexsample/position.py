@@ -26,6 +26,7 @@ import numpy as np
 from aptapy.hist import Histogram2d
 from aptapy.models import Probit
 from iminuit import Minuit
+from scipy.interpolate import PchipInterpolator
 
 from .likelihood import nll_grad_numba, nll_numba
 
@@ -198,6 +199,54 @@ def eta_2pix(
     return dx, dy
 
 
+def eta_2pix_unmodeled(
+    pha: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    spline_2pix: PchipInterpolator
+) -> Tuple[float, float]:
+    """Calculate the incident position of the photon in a two-pixel cluster
+    using the eta reconstruction algorithm with unmodeled charge diffusion.
+
+    Arguments
+    ---------
+    pha : np.ndarray
+        The measured pha in the two pixels of the cluster, ordered in
+        decreasing order of pha.
+    
+    x : np.ndarray
+        The x coordinates of the centers of the two pixels.
+
+    y : np.ndarray
+        The y coordinates of the centers of the two pixels.
+
+    spline_2pix : PchipInterpolator
+        The spline used to model the charge diffusion around the incident position.
+
+    Returns
+    -------
+    dx : float
+        The x coordinate of the incident position of the photon, relative to the
+        center of the higher-pha pixel and expressed in units of the pixel pitch.
+
+    dy : float
+        The y coordinate of the incident position of the photon, relative to the
+        center of the higher-pha pixel and expressed in units of the pixel pitch.
+    """
+    # Calculate the eta variable, defined as the ratio between the lower-pha pixel
+    # and the total pha in the cluster.
+    eta = pha[1] / np.sum(pha)
+    # Calculate the distance from the center of the higher-pha pixel, using the
+    # spline to model the charge diffusion around the incident position.
+    dr = spline_2pix(eta)
+    # Calculate the versor of the two-pixel cluster.
+    versor = versor_2pix(x, y)
+    # Project the radial coordinate onto the x and y axes to get the coordinates
+    # of the incident position relative to the center of the higher-pha pixel.
+    dx, dy = dr * versor[0], dr * versor[1]
+    return dx, dy
+
+
 def eta_3pix(
     pha: np.ndarray,
     x: np.ndarray,
@@ -266,6 +315,67 @@ def eta_3pix(
     # and the angle.
     dx = r * (np.cos(theta) * u[0] + np.sin(theta) * v[0])
     dy = r * (np.cos(theta) * u[1] + np.sin(theta) * v[1])
+    return dx, dy
+
+
+def eta_3pix_unmodeled(
+    pha: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    spline_3pix_rad: PchipInterpolator,
+    spline_3pix_theta: PchipInterpolator
+) -> Tuple[float, float]:
+    """Calculate the incident position of the photon in a three-pixel cluster
+    using the eta reconstruction algorithm with unmodeled charge diffusion.
+
+    Arguments
+    ---------
+    pha : np.ndarray
+        The measured pha in the three pixels of the cluster, ordered in
+        decreasing order of pha.
+    
+    x : np.ndarray
+        The x coordinates of the centers of the three pixels.
+    
+    y : np.ndarray
+        The y coordinates of the centers of the three pixels.
+    
+    spline_3pix_rad : PchipInterpolator
+        The spline used to model the radial coordinate of the incident position.
+
+    spline_3pix_theta : PchipInterpolator
+        The spline used to model the angular coordinate of the incident position.
+
+    Returns
+    -------
+    dx : float
+        The x coordinate of the incident position of the photon, relative to the
+        center of the higher-pha pixel and expressed in units of the pixel pitch.
+
+    dy : float
+        The y coordinate of the incident position of the photon, relative to the
+        center of the higher-pha pixel and expressed in units of the pixel pitch.
+    """
+    # Calculate the eta variables for the two lower-pha pixels, defined as the
+    # ratio between the pha in each pixel and the total pha in the cluster.
+    eta_1, eta_2 = pha[1:] / np.sum(pha)
+    # Calculate the two new eta variables, used to model the radial and angular
+    # coordinates of the incident position.
+    eta_sum = eta_1 + eta_2
+    eta_diff = (eta_1 - eta_2) / eta_sum
+    # Calculate the unit vectors for the radial and angular coordinates. The first
+    # versor points from the center of the higher-pha pixel to the midpoint between
+    # the two lower-pha pixels, while the second is orthogonal to the first one, and
+    # its direction is chosen to point towards the second higher-pha pixel.
+    u, v = versor_3pix(x, y)
+    # Calculate the radial and angular coordinates of the incident position using
+    # the splines to model the charge diffusion around the incident position.
+    dr = spline_3pix_rad(eta_sum)
+    dtheta = spline_3pix_theta(eta_diff)
+    # Project the radial coordinate onto the x and y axes using the two versors
+    # and the angle.    
+    dx = dr * u[0] + dtheta * v[0]
+    dy = dr * u[1] + dtheta * v[1]
     return dx, dy
 
 
