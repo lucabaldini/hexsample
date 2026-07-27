@@ -438,9 +438,12 @@ class CliArgumentParser(argparse.ArgumentParser):
         CliArgumentParser.add_cal_noise_file(group, default=None, required=True)
         CliArgumentParser.add_cal_pedestal_file(group, default=None, required=True)
         CliArgumentParser.add_cal_equalization_file(group, default=None, required=True)
-        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "mle"],
+        group.add_argument("--pos_recon_algorithm", choices=["centroid", "eta", "eta_unmodeled", "mle"],
                            type=str, default="centroid", help="How to reconstruct position")
         CliArgumentParser.add_cal_position_file(group, default=None)
+        group.add_argument("--eta_unmodeled_cal", type=caldb.CalDB.open_eta_unmodeled,
+                           default=None, help="path to a file containing the eta_unmodeled " \
+                           "calibration data")
 
     def add_calibrate_dark_options(self, parser: argparse.ArgumentParser) -> None:
         """Add an option group for the dark calibration properties.
