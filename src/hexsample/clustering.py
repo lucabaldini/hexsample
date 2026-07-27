@@ -27,7 +27,13 @@ from typing import TYPE_CHECKING, Optional, Tuple
 import numpy as np
 
 from .digi import DigiEventCircular, DigiEventRectangular
-from .position import eta_2pix, eta_3pix, mle
+from .position import (
+    eta_2pix,
+    eta_2pix_unmodeled,
+    eta_3pix,
+    eta_3pix_unmodeled,
+    mle
+)
 from .readout import HexagonalReadoutBase
 
 # This line is necessary to avoid circular imports errors, allowing to import the class only
@@ -82,6 +88,21 @@ class Cluster:
         """
         return np.average(self.x, weights=self.pha), np.average(self.y, weights=self.pha)
 
+    def eta_unmodeled(self, splines: Tuple, pitch: float) -> Tuple[float, float]:
+        # Calculate the size of the cluster, to choose the correct reconstruction
+        # method.
+        size = self.size()
+        # If size is 2 or 3, we use the corresponding eta reconstruction method...
+        if size == 2:
+            dx, dy = eta_2pix_unmodeled(self.pha, self.x, self.y, splines[0])
+        elif size == 3:
+            dx, dy = eta_3pix_unmodeled(self.pha, self.x, self.y, splines[1], splines[2])
+        # ... otherwise use the centroid algorithm.
+        else:
+            return self.centroid()
+        # Calculate the absolute position of the photon.
+        return self.x[0] + dx * pitch, self.y[0] + dy * pitch
+    
     def eta(self, position_cal: "PositionCalibrationData", pitch: float) -> Tuple[float, float]:
         """Return the cluster reconstructed position using the eta function
         calibrated for 2 and 3 pixel clusters.
