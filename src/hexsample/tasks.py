@@ -38,8 +38,10 @@ from .calibration import (
     CALIBRATION_UNITS,
     CalibrateDark,
     CalibrateENC,
+    CalibrateEtaUnmodeled,
     CalibrateEqualization,
     CalibrateGain,
+    CalibrateHitDistribution,
     CalibrateNoise,
     CalibratePosition,
     CalibrationMatrix,
@@ -314,7 +316,7 @@ def reconstruct(
             cluster = clustering.run(event)
             if cluster.pulse_height() == 0:
                 continue
-        except IndexError as e:
+        except (IndexError, AttributeError) as e:
             logger.warning(f"Error reconstructing event with trigger ID {event.trigger_id}: {e}")
         if cluster is not None and (cluster.size() in size):
             # Need to pass the recon method and other stuff as argument to ReconEvent
@@ -352,6 +354,69 @@ def calibspec(input_file_path: str) -> str:
     logger.info(f"Saving the PDF to {output_file_path}...")
     pdf.to_file(output_file_path)
     return output_file_path
+
+
+def calibrate_hit_distribution(
+        input_file_path: str,
+        output_dir: str = HEXSAMPLE_DATA
+        ) -> str:
+    input_file, header, readout_mode = open_file(input_file_path)
+    grid_args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"]
+    noise_matrix = CalDB.open_noise("sim_xpol3_noise-0_uniform_v001")
+    equalization_matrix = CalDB.open_equalization("sim_xpol3_equalization-1_uniform_v001")
+    pedestal_matrix = CalDB.open_pedestal("sim_xpol3_pedestal-0_uniform_v001")
+    readout_args = *grid_args, noise_matrix, equalization_matrix, pedestal_matrix
+    readout = create_readout(readout_mode, header, *readout_args)
+    clustering = ClusteringNN(readout, zero_sup_threshold=0.,
+                                 num_neighbors=6, pos_recon_algorithm="centroid")
+
+    distribution_calibrator = CalibrateHitDistribution()
+
+    for i, event in tqdm(enumerate(input_file)):
+        cluster = clustering.run(event)
+        if cluster is None:
+            continue
+        mc_event = input_file.mc_event(i)
+        distribution_calibrator.analyze_cluster(cluster, mc_event)
+        if i >= 200000:
+            break
+    data = distribution_calibrator.fit()
+    output_file = output_dir / f"hit_distr.h5"
+    data.to_hdf5(output_file, CalibrationType.HIT_DISTRIBUTION)
+
+
+def calibrate_eta_unmodeled(
+        input_file_path: str,
+        noise_matrix: CalibrationMatrix,
+        pedestal_matrix: CalibrationMatrix,
+        equalization_matrix: CalibrationMatrix,
+        n_events: int = 100000,
+        zero_sup_threshold: float = 1.0,
+        num_bins: int = 20,
+) -> str:
+    input_file, header, readout_mode = open_file(input_file_path)
+    grid_args = HexagonalLayout(header["layout"]), header["num_cols"], header["num_rows"],\
+        header["pitch"]
+    readout_args = *grid_args, noise_matrix, equalization_matrix, pedestal_matrix
+    readout = create_readout(readout_mode, header, *readout_args)
+    clustering_nn = ClusteringNN(readout, zero_sup_threshold=zero_sup_threshold,
+                                 num_neighbors=6, pos_recon_algorithm="centroid")
+    eta_unmodeled_calibrator = CalibrateEtaUnmodeled(num_bins=num_bins)
+    for i, event in tqdm(enumerate(input_file)):
+        if i >= n_events:
+            break
+        cluster_nn = clustering_nn.run(event)
+        if cluster_nn is None:
+            continue
+        eta_unmodeled_calibrator.analyze_cluster(cluster_nn)
+    input_file.close()
+    data = eta_unmodeled_calibrator.fit()
+    parent_folder = pathlib.Path(input_file_path).parent
+    output_file = parent_folder / f"eta_unmodeled_cal.h5"
+    data.to_hdf5(output_file, CalibrationType.ETA_UNMODELED)
+
+            
 
 
 @dataclass(frozen=True)

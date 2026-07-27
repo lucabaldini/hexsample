@@ -35,6 +35,7 @@ from aptapy.models import Gaussian, Probit
 from iminuit import Minuit
 from joblib import Parallel, delayed
 from scipy.sparse import csc_matrix, csr_matrix
+from scipy.interpolate import UnivariateSpline
 from tqdm import tqdm
 
 from .clustering import Cluster
@@ -57,6 +58,8 @@ class CalibrationType(str, Enum):
     NOISE = "noise"
     PEDESTAL = "pedestal"
     POSITION = "position"
+    HIT_DISTRIBUTION = "hit_distribution"
+    ETA_UNMODELED = "eta_unmodeled"
 
     @classmethod
     def values(cls) -> Tuple[str, ...]:
@@ -601,6 +604,82 @@ class PositionCalibrationData(CalibrationBase):
         """Set the value for the parameter.
         """
         self._three_pix_theta_sigma = value
+
+    @property
+    def metadata(self) -> dict:
+        """Metadata dictionary containing useful information about the calibration data.
+        """
+        return self._metadata
+
+
+class HitDistributionData(CalibrationBase):
+
+    VALUES_2PIX = "values_2pix"
+    VALUES_3PIX_RAD = "values_3pix_rad"
+    VALUES_3PIX_THETA = "values_3pix_theta"
+    CENTERS_2PIX = "centers_2pix"
+    CENTERS_3PIX_RAD = "centers_3pix_rad"
+    CENTERS_3PIX_THETA = "centers_3pix_theta"
+    _VALUES_2PIX_DTYPE = np.float32
+    _VALUES_3PIX_RAD_DTYPE = np.float32
+    _VALUES_3PIX_THETA_DTYPE = np.float32
+    _CENTERS_2PIX_DTYPE = np.float32
+    _CENTERS_3PIX_RAD_DTYPE = np.float32
+    _CENTERS_3PIX_THETA_DTYPE = np.float32
+
+    def __init__(self, values_2pix, centers_2pix,
+                 values_3pix_rad, centers_3pix_rad,
+                 values_3pix_theta, centers_3pix_theta) -> None:
+        """Class constructor.
+        """
+        super().__init__()
+        # Some useful information for the metadata.
+        self._num_events = 0
+        self._metadata = {
+            CalibrationMetadata.CALIBRATION_TYPE: CalibrationType.HIT_DISTRIBUTION.value,
+        }
+        self._values_2pix = values_2pix
+        self._values_3pix_rad = values_3pix_rad
+        self._values_3pix_theta = values_3pix_theta
+        self._centers_2pix = centers_2pix
+        self._centers_3pix_rad = centers_3pix_rad
+        self._centers_3pix_theta = centers_3pix_theta
+
+    @property
+    def values_2pix(self) -> np.ndarray:
+        """Return the values of the 2-pixel cluster distribution.
+        """
+        return self._values_2pix
+
+    @property
+    def values_3pix_rad(self) -> np.ndarray:
+        """Return the values of the 3-pixel cluster radial distribution.
+        """
+        return self._values_3pix_rad
+
+    @property
+    def values_3pix_theta(self) -> np.ndarray:
+        """Return the values of the 3-pixel cluster angular distribution.
+        """
+        return self._values_3pix_theta
+
+    @property
+    def centers_2pix(self) -> np.ndarray:
+        """Return the centers of the 2-pixel cluster distribution.
+        """
+        return self._centers_2pix
+
+    @property
+    def centers_3pix_rad(self) -> np.ndarray:
+        """Return the centers of the 3-pixel cluster radial distribution.
+        """
+        return self._centers_3pix_rad
+
+    @property
+    def centers_3pix_theta(self) -> np.ndarray:
+        """Return the centers of the 3-pixel cluster angular distribution.
+        """
+        return self._centers_3pix_theta
 
     @property
     def metadata(self) -> dict:
@@ -1580,3 +1659,171 @@ class CalibratePosition:
         # upfate the calibration data.
         self.cal_data.values = self._stats.mean()
         return self.cal_data
+
+class CalibrateHitDistribution:
+
+    def __init__(self) -> None:
+        """Class constructor.
+        """
+        self._dr_2pix = []
+        self._dr_3pix = []
+        self._theta_3pix = []
+
+    def analyze_cluster(self, cluster: Cluster, mc_event) -> None:
+        size = cluster.size()
+        if size not in [2, 3]:
+            return
+
+        dx = mc_event.absx - cluster.x[0]
+        dy = mc_event.absy - cluster.y[0]
+        r = np.sqrt(dx**2 + dy**2) / 0.005
+        phi = np.arctan2(dy, dx)
+        if size == 2:
+            phi_2 = (phi + np.pi/6) % (np.pi/3) - np.pi/6
+            dr = r * np.cos(phi_2)
+            self._dr_2pix.append(dr)
+        elif size == 3:
+            phi_3 = phi % (np.pi/3) - np.pi/6
+            dr = r * np.cos(phi_3)
+            dt = np.abs(r * np.sin(phi_3))
+            self._dr_3pix.append(dr)
+            self._theta_3pix.append(dt)
+
+    def fit(self):
+        dr_2pix_counts, dr_2pix_edges = np.histogram(self._dr_2pix, bins=100, range=(0., 0.5), density=True)
+        dr_2pix_counts *= 0.5
+        dr_2pix_centers = (dr_2pix_edges[:-1] + dr_2pix_edges[1:]) / 2
+        dr_3pix_counts, dr_3pix_edges = np.histogram(self._dr_3pix, bins=100, range=(0., 1/np.sqrt(3)), density=True)
+        dr_3pix_counts *= 1/np.sqrt(3)
+        dr_3pix_centers = (dr_3pix_edges[:-1] + dr_3pix_edges[1:]) / 2
+        theta_3pix_counts, theta_3pix_edges = np.histogram(self._theta_3pix, bins=100, range=(0., 0.27), density=True)
+        theta_3pix_counts *= 0.25
+        theta_3pix_centers = (theta_3pix_edges[:-1] + theta_3pix_edges[1:]) / 2
+        self.cal_data = HitDistributionData(
+            values_2pix=dr_2pix_counts,
+            centers_2pix=dr_2pix_centers,
+            values_3pix_rad=dr_3pix_counts,
+            centers_3pix_rad=dr_3pix_centers,
+            values_3pix_theta=theta_3pix_counts,
+            centers_3pix_theta=theta_3pix_centers
+        )
+        return self.cal_data
+
+
+class CalibrateEtaUnmodeled:
+
+    def __init__(self, num_bins: int) -> None:
+        """Class constructor.
+        """
+        self._num_bins = num_bins
+        self._eta = []
+        self._eta_plus = []
+        self._eta_minus = []
+
+    def analyze_cluster(self, cluster: Cluster) -> None:
+        size = cluster.size()
+        if size not in [2, 3]:
+            return
+
+        eta = cluster.pha[1:] / np.sum(cluster.pha)
+        if size == 2:
+            self._eta.append(eta[0])
+        elif size == 3:
+            eta_plus = eta[0] + eta[1]
+            eta_minus = (eta[0] - eta[1]) / eta_plus
+            self._eta_plus.append(eta_plus)
+            self._eta_minus.append(eta_minus)
+
+    def _fit_2pix(self) -> None:
+        n_iterations = 15
+        alpha = 0.25
+        
+        self._eta = np.array(self._eta)
+        counts_raw, edges = np.histogram(self._eta, bins=self._num_bins, range=(0, 0.5))
+        centers = (edges[:-1] + edges[1:]) / 2
+        
+        data = HitDistributionData.from_hdf5("/scratch/asix/data/huttner/simulation/caldb/hit_distr.h5")
+        spline_smoother = UnivariateSpline(data.centers_2pix, data.values_2pix, s=0.3)
+        
+        limit = 0.5
+        r_stima = np.linspace(0, limit, len(centers))
+        
+        for i in range(n_iterations):
+            W = spline_smoother(r_stima)
+            W = np.clip(W, 1e-3, None) 
+            
+            counts_corr = counts_raw / W
+            
+            target = np.cumsum(counts_corr)
+            target = (target / target[-1]) * limit
+            
+            r_stima = alpha * target + (1 - alpha) * r_stima
+            
+        cumulative = r_stima
+        return cumulative, centers
+
+
+    def _fit_3pix(self) -> None:
+        
+        n_iterations = 15
+        alpha = 0.25
+        
+        data = HitDistributionData.from_hdf5("/scratch/asix/data/huttner/simulation/caldb/hit_distr.h5")
+        
+        self._eta_plus = np.array(self._eta_plus)
+        counts_plus_raw, edges_plus = np.histogram(self._eta_plus, bins=self._num_bins, range=(0, 2/3))
+        centers_plus = (edges_plus[:-1] + edges_plus[1:]) / 2
+        
+        spline_plus = UnivariateSpline(data.centers_3pix_rad, data.values_3pix_rad, s=0.1, k=4)
+        
+        limit_plus = 1 / np.sqrt(3)
+        r_stima = np.linspace(0, limit_plus, len(centers_plus))
+        
+        for i in range(n_iterations):
+            W_plus = spline_plus(r_stima)
+            W_plus = np.clip(W_plus, 1e-3, None)
+            
+            counts_plus_corr = counts_plus_raw / W_plus
+            
+            target_plus = np.cumsum(counts_plus_corr)
+            target_plus = (target_plus / target_plus[-1]) * limit_plus
+            
+            r_stima = alpha * target_plus + (1 - alpha) * r_stima
+            
+        cumulative_plus = r_stima
+
+        self._eta_minus = np.array(self._eta_minus)
+        counts_minus_raw, edges_minus = np.histogram(self._eta_minus, bins=self._num_bins, range=(0, 0.27))
+        centers_minus = (edges_minus[:-1] + edges_minus[1:]) / 2
+        
+        spline_minus = UnivariateSpline(data.centers_3pix_theta, data.values_3pix_theta, s=0.1, k=4)
+        
+        limit_minus = 0.25
+        rtheta_stima = np.linspace(0, limit_minus, len(centers_minus))
+        
+        for i in range(n_iterations):
+            W_minus = spline_minus(rtheta_stima)
+            W_minus = np.clip(W_minus, 1e-3, None)
+            counts_minus_corr = counts_minus_raw / W_minus
+            
+            target_minus = np.cumsum(counts_minus_corr)
+            target_minus = (target_minus / target_minus[-1]) * limit_minus
+            
+            rtheta_stima = alpha * target_minus + (1 - alpha) * rtheta_stima
+            
+        cumulative_minus = rtheta_stima
+        return cumulative_plus, centers_plus, cumulative_minus, centers_minus
+
+
+    def fit(self):
+        values_2pix, centers_2pix = self._fit_2pix()
+        values_3pix_rad, centers_3pix_rad, values_3pix_theta, centers_3pix_theta = self._fit_3pix()
+
+        return HitDistributionData(
+            values_2pix=values_2pix,
+            centers_2pix=centers_2pix,
+            values_3pix_rad=values_3pix_rad,
+            centers_3pix_rad=centers_3pix_rad,
+            values_3pix_theta=values_3pix_theta,
+            centers_3pix_theta=centers_3pix_theta
+        )
