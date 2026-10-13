@@ -256,7 +256,7 @@ def eta_3pix(
     # Calculate the radial and angular coordinates of the incident position using
     # the Probit function.
     r = Probit.evaluate(3 / 4 * eta_sum, eta_3pix_rad_offset, eta_3pix_rad_sigma)
-    theta = Probit.evaluate((eta_diff + 1) / 2, 0., eta_3pix_theta_sigma) / r
+    theta = np.arcsin(Probit.evaluate((eta_diff + 1) / 2, 0., eta_3pix_theta_sigma) / r)
     # Calculate the unit vectors for the radial and angular coordinates. The first
     # versor points from the center of the higher-pha pixel to the midpoint between
     # the two lower-pha pixels, while the second is orthogonal to the first one,
