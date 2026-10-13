@@ -499,15 +499,17 @@ def eef_size_scan(x: np.ndarray, input_file: ReconInputFile) -> None:
              linestyle=":", color=color)
     plt.plot(x, eef(x, input_file, 1),
              label=f"2 pix (EEF@86.5%={eew(input_file, quantile=0.865, num_neighbors=1):.2f})",
-             linestyle="-", color=color)
+             linestyle="-.", color=color)
     plt.plot(x, eef(x, input_file, 2),
              label=f"3 pix (EEF@86.5%={eew(input_file, quantile=0.865, num_neighbors=2):.2f})",
              linestyle="--", color=color)
     plt.plot(x, eef(x, input_file, max_neighbors=6),
              label=f"All events (EEF@86.5%={eew(input_file, quantile=0.865, max_neighbors=6):.2f})",
-             linestyle="-.", color=color)
+             linestyle="-", color=color)
     # Plot the line corresponding to 50% of the energy
     plt.hlines(0.5, x[0], x[-1], colors="0.4", linestyles="--")
+    plt.hlines(0.9, x[0], x[-1], colors="0.4", linestyles="--")
+
     # Finalize the plot
     plt.xlim(x[0], x[-1])
     plt.ylim(0, 1)
