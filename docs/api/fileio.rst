@@ -47,7 +47,7 @@ would ordinarily be written out by the DAQ, i.e., the trigger identifier, the
 timestamp, and all the quantities that are necessary in order to uniquely identify
 the region of interest:
 
-.. literalinclude:: ../src/hexsample/fileio.py
+.. literalinclude:: ../../src/hexsample/fileio.py
    :pyobject: DigiDescription
 
 In addition, the PHA content of the ROI (which is a variable-length array by its
@@ -57,7 +57,7 @@ group holding the digi table.
 For simulated data, digitized files contain an additional table encapsulating the
 ground truth information for the event.
 
-.. literalinclude:: ../src/hexsample/fileio.py
+.. literalinclude:: ../../src/hexsample/fileio.py
    :pyobject: MonteCarloDescription
 
 
@@ -69,7 +69,7 @@ in the underlying digi file that are relevant for science analysis (i.e., timest
 and ROI size), and all the additional quantities that are calculated as part of
 the standard reconstruction (i.e., energy and position).
 
-.. literalinclude:: ../src/hexsample/fileio.py
+.. literalinclude:: ../../src/hexsample/fileio.py
    :pyobject: ReconDescription
 
 
