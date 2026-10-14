@@ -25,6 +25,7 @@ Solid-state hybrid detectors with hexagonal sampling.
    :caption: Technical info:
 
    calibration
+   position_calibration
 
 .. toctree::
    :maxdepth: 1

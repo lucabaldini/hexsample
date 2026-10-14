@@ -72,5 +72,3 @@ for thr in THRESHOLD:
         suffix = f'recon_nn{nn}_thr{thr:.0f}'
         kwargs = dict(zsupthreshold=thr, nneighbors=nn, suffix=suffix)
         pipeline.reconstruct(input_file=file_path, **kwargs)
-
-
