@@ -23,31 +23,39 @@ sub-commands.)
 Tasks and pipelines
 -------------------
 
-At a slightly different level, the package is organized around the number of
-high-level tasks packaged in the :mod:`~hexsample.tasks` module. These include:
-
-* :meth:`~hexsample.tasks.simulate`: simulate detector data from a source;
-* :meth:`~hexsample.tasks.reconstruct`: reconstruct detector data;
-* :meth:`~hexsample.tasks.display`: event display;
-* :meth:`~hexsample.tasks.quicklook`: quick-look analysis.
-
-(You might have noticed that these tasks correspond to the sub-commands of the
-command-line interface.)
-
-Each task is then wrapped, with an identical name, in the
+At a higher level, the package is organized around a set of tasks implemented
+in the :mod:`~hexsample.tasks` module. Most tasks are exposed through
+corresponding command-line subcommands and wrapped by functions in the
 :mod:`~hexsample.pipeline` module.
 
 .. seealso::
-   :mod:`~hexsample.tasks`, :mod:`~hexsample.pipeline`
 
-The main difference between the two is that all the functions in the
-:mod:`~hexsample.tasks` module come with a precise, documented signature, while
-the corresponding functions in the :mod:`~hexsample.pipeline` module are
-entirely driven by keyword arguments. The basic rule is: if you are building
-a simulation and/or analysis pipeline programmatically, always use the
-functions in the :mod:`~hexsample.tasks` module; this will prevents typos in the
-name of the arguments running undetected. The functions in the
-:mod:`~hexsample.pipeline` module, on the other hand, are designed to filter
-the keyword arguments and will happily ignore any unknown argument; they are
-really only meant to be used by the command-line interface, since the validation
-there happens at the ``argparse`` level.
+   :mod:`~hexsample.tasks`
+   :mod:`~hexsample.pipeline`
+
+The main difference between the two modules lies in how function arguments are
+handled. Functions in the :mod:`~hexsample.tasks` module have explicit,
+documented signatures. When building a simulation or analysis workflow
+programmatically, these functions should normally be preferred because they
+allow invalid or misspelled argument names to be detected immediately.
+
+Functions in the :mod:`~hexsample.pipeline` module, on the other hand, are
+driven entirely by keyword arguments. They filter the supplied arguments and
+ignore those that are not recognized by the corresponding task. These wrappers
+are primarily intended for use by the command-line interface, where argument
+validation is performed by :mod:`argparse`.
+
+
+The relationships between the main processing stages and their associated
+command-line tasks are summarized in the following diagram. The arrows
+indicate the flow of data and calibration products throughout the analysis
+workflow.
+
+.. figure:: figures/workflow.png
+   :alt: Overview of the simulation, calibration, and reconstruction workflow
+   :align: center
+   :width: 90%
+   :class: workflow-figure
+
+   Overview of the main analysis workflow and the dependencies between
+   simulation, calibration, and event reconstruction.
