@@ -39,12 +39,28 @@ def test_efficiency():
     setup_gca(xlabel="Energy [eV]", ylabel="Photoabsorption efficiency",
         grids=True, legend=True, xmax=energy.max())
 
+    plt.figure("CdTe efficiency")
+    energy = np.linspace(2000., 50000., 2000)
+    for thickness in (0.05,):
+        sensor = Sensor("CdTe", thickness=thickness)
+        efficiency = sensor.photabsorption_efficiency(energy)
+        plt.plot(energy, efficiency, label=f"{1.e4 * thickness:.0f} $\\mu$m")
+    setup_gca(xlabel="Energy [eV]", ylabel="Photoabsorption efficiency",
+        grids=True, legend=True, xmax=energy.max())
+
 def test_attenuation_length():
     """Calculate the photoelectric attenuation length of a silicon detector.
     """
     plt.figure("Silicon attenuation length")
     energy = np.linspace(2000., 15000., 200)
     attenuation_length = material("Si").photoelectric_attenuation_length(energy)
+    plt.plot(energy, attenuation_length)
+    setup_gca(xlabel="Energy [eV]", ylabel="Photoelectric attenuation length [cm]",
+        grids=True, logy=True, xmax=energy.max())
+
+    plt.figure("CdTe attenuation length")
+    energy = np.linspace(2000., 50000., 2000)
+    attenuation_length = material("CdTe").photoelectric_attenuation_length(energy)
     plt.plot(energy, attenuation_length)
     setup_gca(xlabel="Energy [eV]", ylabel="Photoelectric attenuation length [cm]",
         grids=True, logy=True, xmax=energy.max())
